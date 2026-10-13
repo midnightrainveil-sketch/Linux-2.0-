@@ -20,12 +20,12 @@ Scope {
     property bool leaving: false
 
     function lock() {
-        if (lock.locked) return;
+        if (sessionLock.locked) return;
         buffer = "";
         verdict = "";
         leaving = false;
         attempt = 0;
-        lock.locked = true;
+        sessionLock.locked = true;
         Sounds.play("lock");
     }
 
@@ -73,11 +73,11 @@ Scope {
         PauseAnimation { duration: 450 }
         ScriptAction { script: room.leaving = true }
         PauseAnimation { duration: Theme.dur(600) }
-        ScriptAction { script: { lock.locked = false; room.buffer = ""; room.verdict = ""; room.leaving = false; } }
+        ScriptAction { script: { sessionLock.locked = false; room.buffer = ""; room.verdict = ""; room.leaving = false; } }
     }
 
     WlSessionLock {
-        id: lock
+        id: sessionLock
         locked: false
 
         WlSessionLockSurface {

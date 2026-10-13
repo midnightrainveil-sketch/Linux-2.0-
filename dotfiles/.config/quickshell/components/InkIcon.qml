@@ -21,7 +21,7 @@ Item {
         id: img
         anchors.fill: parent
         source: root.name === "" ? "" : Qt.resolvedUrl("../assets/" + root.group + "/" + root.name + ".svg")
-        sourceSize: Qt.size(root.width * 2, root.height * 2)
+        sourceSize: Qt.size(Math.ceil(root.width * 2), Math.ceil(root.height * 2))
         smooth: true
         mipmap: true
         visible: false
