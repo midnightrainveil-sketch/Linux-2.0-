@@ -211,11 +211,15 @@ plugin, it rebuilds itself at the next login (`archive-bars ensure`). If a
 build ever fails, the installer falls back to stock hyprbars: the same bar,
 without the rule and the dash, and windows get a plain straight rim.
 
-How the edge works: each window sits on a paper card 4 px larger than
-itself. The card's edge is torn, with a thin uneven outline (fainter on top,
-darkest along the bottom), a light bevel just inside, and its own soft shadow.
-It is built from short edge tiles drawn once and repeated along each side,
-so any window size works and resizing costs nothing. The terminal's
+How the edge works: each window sits on a paper card 6 px larger than
+itself. Under the window the plugin draws the card: a torn outline lit from
+the top left (palest along the top, darkest along the bottom and right),
+chips bitten out of the edge with pale torn fibres, worn corners, and a soft
+shadow falling down and to the right. Over the window's padding it adds the
+aged edge (a blotchy darkening that fades inward), small tears, short
+wrinkles and, on some corners, a soft crease. All of it is built from short
+tiles drawn once and repeated along each side, so any window size works and
+resizing costs nothing. Each window gets its own pattern. The terminal's
 background is the same paper, so the window's straight edge disappears into
 the card.
 

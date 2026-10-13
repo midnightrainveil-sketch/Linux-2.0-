@@ -29,7 +29,9 @@ Paths are relative to `dotfiles/`. `qs/` means `.config/quickshell/`.
 | Style | Where |
 | --- | --- |
 | Courier Prime, sized off the reference at 1920 px (about 1.4x the spec's tokens): titles 16 regular caps +10 %, data and labels 16, small 15, clock 92 stretched 1.2x upright (tall typewriter figures), temperature 37 stretched 1.45x | `Theme.size*`, `Theme.clockStretch`; `InkText` adds tracking and ink spread |
-| IBM Plex Mono | foot, fastfetch, `fonts.conf` monospace |
+| Courier Prime in the terminal, as on the reference card (the spec names IBM Plex Mono; the reference shows typewriter type) | foot (`font=Courier Prime:size=14.5`, IBM Plex Mono behind it for box-drawing and symbols); `fonts.conf` monospace for other apps stays IBM Plex Mono |
+| The clock's worn typewriter figures | `TimeRecord.qml` `Digit`: Courier Prime through `assets/ink-wear.png`, a worn-ribbon mask (patchy ink, pale streaks, pinholes) |
+| Desk terminal: name in bold with a rule, "Key: value" lines, six ink swatches | `fastfetch/config.jsonc`; swatches are palette slots 16-21, set per mode in `foot.ini` |
 | Pinyon Script | Latin name on the plate and on the lock screen only |
 | IBM Plex Sans for apps | GTK `settings.ini`, qt6ct, `fonts.conf` |
 | No "Herbarium" on screen | Labels say *Archive*, *Archivum*, *Flora*. Checked with `grep` |
@@ -75,8 +77,9 @@ measurements rather than the spec text where the two disagree.
 
 | Reference | How |
 | --- | --- |
-| No hard frame: a torn paper edge with a thin uneven outline, faint along the top and darkest along the bottom, and a light bevel just inside | archivebars' **deckle** (`deckle.cpp`, `DeckleDeco.cpp`): a card 4 px larger than the window, laid out of repeating edge tiles; `deckle_*` in `look.lua`, colours `edge_top`, `rim_bottom`, `bevel` in `palette.lua`. Hyprland's border is off (`border_size = 0`) |
-| Short soft shadow falling down onto the sheet | the deckle's own shadow (blur 4, offset -0.5/2.5, 40 %) plus a tight contact shadow under the edge, so the shadow follows the torn outline. Hyprland's shadow is off |
+| No hard frame: a torn, chipped paper edge, lit from the top left (palest on top, darkest bottom and right), with a light bevel inside and pale fibres where it is torn | archivebars' **deckle** (`deckle.cpp`, `DeckleDeco.cpp`): a card 6 px larger than the window, laid out of repeating edge tiles; `deckle_*` in `look.lua`, colours `edge_top`, `rim_bottom`, `bevel` in `palette.lua`. Hyprland's border is off (`border_size = 0`) |
+| Aged paper: darker toward the edges, small tears, wrinkles, creased corners | the deckle's second layer, drawn over the window's padding: `deckle_tone` (`edge_tone`), `deckle_chips`, `deckle_creases` |
+| Shadow falling down and to the right | the deckle's own shadow (blur 4.5, offset 1.5/3, 40 %) plus a tight contact shadow under the edge, so the shadow follows the torn outline. Hyprland's shadow is off |
 | Square corners, just worn | the deckle's corner tiles; `rounding = 0` |
 | 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `archive-bars`), configured in `look.lua` |
 | Dots: close, maximise, drawer. "–": drawer | buttons and `right_icon_action` |
@@ -89,10 +92,14 @@ measurements rather than the spec text where the two disagree.
 **The torn edge.** Hyprland's own borders are straight, so the edge is drawn
 by the plugin instead. Each side is cut from short strips (160 px, three
 variants) whose torn line starts and ends on the same baseline, so they join
-seamlessly in any order and any number. Corners are their own tiles. Each tile
-carries its shadow, paper, bevel and outline, is drawn once per look (colours,
-monitor scale, focus) and is reused for every window and size. Each window
-picks its own sequence of variants, so no two edges look alike.
+seamlessly in any order and any number. Corners are their own tiles, and so
+are the creases. There are two layers: under the window (shadow, paper,
+outline, bevel, chips with their torn fibres, worn corners) and over it (the
+aged edge, tears, wrinkles, creases), and a tear's slit lines up with its
+notch because both layers are cut from the same strip. Every tile is drawn
+once per look (colours, monitor scale, focus) and reused for every window
+and size. Each window picks its own sequence of variants and creased
+corners, so no two cards look alike.
 `tools/deckle-preview.cpp` renders the same tiles outside Hyprland.
 
 Without the plugin the fallback is a straight 1 px rim with a top-to-bottom

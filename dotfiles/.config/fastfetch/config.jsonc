@@ -1,21 +1,27 @@
-// fastfetch: the desk terminal's index card (the mockup's left card).
+// fastfetch: the desk terminal's index card (the reference's left card).
 // The logo is the Arch mark retyped on a typewriter (logo.txt).
+//
+// Typed like the reference: the name in bold with a rule under it, then one
+// "Key: value" per line with no column alignment, then six ink swatches. The
+// swatches use palette slots 16-21, which foot.ini sets per mode (graphite
+// and slate by day, cream and ice blue at night), so the 16 standard colours
+// stay free for programs.
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
     "type": "file",
     "source": "~/.config/fastfetch/logo.txt",
     "color": { "1": "default" },
-    "padding": { "top": 1, "left": 2, "right": 4 }
+    "padding": { "top": 1, "left": 2, "right": 1 }
   },
   "display": {
     "separator": " ",
-    "color": { "keys": "default", "title": "default" },
-    "key": { "width": 12 },
-    "bar": { "charElapsed": "■", "charTotal": "·" }
+    "color": { "keys": "default", "title": "default", "separator": "default", "output": "default" },
+    "key": { "type": "string" },
+    "brightColor": false
   },
   "modules": [
-    { "type": "title", "format": "{user-name}@{host-name}" },
+    { "type": "title", "format": "{#1}{user-name}@{host-name}{#}" },
     { "type": "custom", "format": "────────────" },
     { "type": "os", "key": "OS:", "format": "{name} {arch}" },
     { "type": "host", "key": "Host:", "format": "{name}" },
@@ -30,6 +36,9 @@
     { "type": "terminal", "key": "Terminal:", "format": "{pretty-name}" },
     { "type": "terminalfont", "key": "Font:", "format": "{name} {size}" },
     "break",
-    { "type": "colors", "symbol": "block", "paddingLeft": 0 }
+    {
+      "type": "custom",
+      "format": "{#48;5;16}   {#} {#48;5;17}   {#} {#48;5;18}   {#} {#48;5;19}   {#} {#48;5;20}   {#} {#48;5;21}   {#}"
+    }
   ]
 }

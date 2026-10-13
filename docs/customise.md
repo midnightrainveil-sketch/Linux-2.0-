@@ -29,14 +29,17 @@ Its shape is set in `~/.config/hypr/archive/look.lua` (the `deckle_*` lines):
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `deckle_margin` | `4` | How far the card's edge sits outside the window (raise `gaps_in` with it) |
+| `deckle_margin` | `6` | How far the card's edge sits outside the window (raise `gaps_in` with it) |
 | `deckle_amplitude` | `1.2` | How far the torn line wanders, in px. `0` gives a clean cut |
 | `deckle_rim_width` | `1.3` | Weight of the outline |
 | `deckle_period` | `160` | Length of one repeating strip |
-| `deckle_shadow_blur`, `_x`, `_y` | `4`, `-0.5`, `2.5` | The card's shadow |
+| `deckle_shadow_blur`, `_x`, `_y` | `4.5`, `1.5`, `3` | The card's shadow (down and to the right) |
+| `deckle_chips` | `1` | How often edges are chipped, torn and wrinkled; `0` gives a clean cut, `2` a well-handled card |
+| `deckle_creases` | `1` | How often a corner is creased; `0` for none |
+| `deckle_tone`, `deckle_tone_depth` | `edge_tone`, `18` | The aged edge: its colour (alpha is its strength; alpha `00` turns it off) and how far in it reaches |
 
 The colours come from `palette.lua` (`edge_top`, `rim_bottom`, `bevel`,
-`edge_shadow` and their `_flat` versions for unfocused windows). To preview a
+`edge_shadow`, `edge_tone`, and `_flat` versions for unfocused windows). To preview a
 change without logging out, build the preview tool (see the top of
 `tools/deckle-preview.cpp`) and render a card to a PNG.
 
@@ -53,9 +56,12 @@ and `[colors-dark]` by night.
 
 ## Fonts
 
-Courier Prime is the shell's voice, IBM Plex Mono is for the terminal,
-Pinyon Script is used once per screen for Latin names, and IBM Plex Sans is
-for apps. Sizes are set in `Theme.qml` (`sizeClock`, `sizeTitle`...).
+Courier Prime is the archive's typewriter: the shell, the window titles and
+the terminal (foot, 14.5 pt, with IBM Plex Mono behind it for box-drawing and
+symbols). Pinyon Script is used once per screen for Latin names, and IBM Plex
+Sans is for apps (IBM Plex Mono for code in them). To give the terminal a
+plainer face for long sessions, change the `font=` lines in
+`~/.config/foot/foot.ini` to IBM Plex Mono. Sizes are set in `Theme.qml` (`sizeClock`, `sizeTitle`...).
 Fontconfig defaults are in `~/.config/fontconfig/fonts.conf`.
 
 ## Layout

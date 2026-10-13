@@ -18,6 +18,7 @@ return {
         dot          = "5f5b60", dot_flat        = "8a8688",   -- title-bar ink dots
         edge_top     = "a09b94", edge_top_flat   = "b3aea7",   -- torn edge (archivebars): fainter on top
         edge_shadow  = "66",     edge_shadow_flat = "3d",      -- its shadow: 40 % / 24 %
+        edge_tone    = "604c38", edge_tone_alpha  = "30",      -- the aged edge: a faint umber, 19 %
         bevel        = "ffffff", bevel_alpha     = "59",       -- light line inside the torn edge
     },
     night = {
@@ -37,6 +38,7 @@ return {
         dot          = "8e9cb3", dot_flat        = "5f7193",
         edge_top     = "4e6283", edge_top_flat   = "3c5274",
         edge_shadow  = "8c",     edge_shadow_flat = "4d",
+        edge_tone    = "050b16", edge_tone_alpha  = "40",
         bevel        = "9fb4d6", bevel_alpha     = "26",
     },
 }

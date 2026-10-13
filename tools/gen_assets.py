@@ -5,6 +5,7 @@
 
 Writes into dotfiles/.config/quickshell/assets/:
   grain-dark.png, grain-light.png   512 px seamless paper-fibre tiles
+  ink-wear.png                      256 px worn-ribbon mask for the clock
   icons/*.svg                       fallback line icons (the PNGs from art/ win) (24 grid, 2 px = 1.5 px at 18)
   weather/*.svg                     fallback weather sketches (the PNGs from art/ win)
 
@@ -84,6 +85,24 @@ def make_grain():
     rgba = np.full((size, size, 4), 255, np.uint8)
     rgba[..., 3] = (light * 255).astype(np.uint8)
     Image.fromarray(rgba, "RGBA").save(os.path.join(ROOT, "grain-light.png"), optimize=True)
+
+
+def make_ink_wear():
+    """A worn typewriter ribbon, as an alpha mask for large type (the clock):
+    patchy coverage, a few pale streaks and pinholes where the ink missed."""
+    size = 256
+    rng = np.random.default_rng(1953)
+    patches = seamless_noise(size, rng, 6.0)
+    grain = seamless_noise(size, rng, 0.8)
+    streak = seamless_noise(size, rng, 2.0)
+    holes = seamless_noise(size, rng, 0.6)
+    a = 0.9 + 0.05 * patches + 0.11 * grain
+    a -= 0.25 * np.clip(streak - 1.6, 0, None)       # pale streaks
+    a = np.where(holes > 2.3, a * 0.35, a)           # pinholes
+    a = np.clip(a, 0.4, 1.0)
+    rgba = np.zeros((size, size, 4), np.uint8)
+    rgba[..., 3] = (a * 255).astype(np.uint8)
+    Image.fromarray(rgba, "RGBA").save(os.path.join(ROOT, "ink-wear.png"), optimize=True)
 
 
 def make_card_texture():
@@ -465,6 +484,7 @@ def main():
     os.makedirs(ROOT, exist_ok=True)
     make_grain()
     make_card_texture()
+    make_ink_wear()
     # sprig-wash.png now comes from art/sprig.webp (tools/import_art.py);
     # the drawn one is only a fallback for a checkout without art/
     if not os.path.exists(os.path.join(ROOT, "sprig-wash.png")):

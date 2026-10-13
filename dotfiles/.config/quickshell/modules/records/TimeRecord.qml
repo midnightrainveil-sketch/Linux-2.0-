@@ -18,25 +18,52 @@ IndexCard {
     seed: 101
     implicitHeight: 323
 
-    // One tall numeral: Courier Prime Bold stretched upright like the
-    // reference's condensed typewriter figures. The old digit fades out and
-    // the new one types in (120 ms).
+    // One tall numeral: Courier Prime stretched upright like the
+    // reference's condensed typewriter figures, struck through a worn ribbon
+    // (assets/ink-wear.png: patchy ink, pale streaks, pinholes; each digit
+    // gets its own patch of it). The old digit fades out and the new one
+    // types in (120 ms).
     component Digit: Item {
         id: digit
         property string value: "0"
         property string shown: value
+        property int wear: 0
         readonly property real em: Theme.sizeClock
         width: em * 0.6
         height: em * 0.592 * Theme.clockStretch
 
-        InkText {
-            id: face
-            y: -(0.782 - 0.592) * digit.em * Theme.clockStretch
-            text: digit.shown
-            color: Theme.soft
-            font.pixelSize: digit.em
-            spread: 1.6
-            transform: Scale { yScale: Theme.clockStretch }
+        Item {
+            id: struck
+            anchors.fill: parent
+            visible: false
+            InkText {
+                id: face
+                y: -(0.782 - 0.592) * digit.em * Theme.clockStretch
+                text: digit.shown
+                color: Theme.soft
+                font.pixelSize: digit.em
+                spread: 1.6
+                transform: Scale { yScale: Theme.clockStretch }
+            }
+        }
+        Item {
+            id: ribbon
+            anchors.fill: parent
+            visible: false
+            clip: true
+            Image {
+                x: -(digit.wear * 53) % 256
+                y: -(digit.wear * 97) % 256
+                width: parent.width + 256
+                height: parent.height + 256
+                source: Qt.resolvedUrl("../../assets/ink-wear.png")
+                fillMode: Image.Tile
+            }
+        }
+        OpacityMask {
+            anchors.fill: parent
+            source: struck
+            maskSource: ribbon
         }
 
         onValueChanged: swap.restart()
@@ -57,10 +84,9 @@ IndexCard {
             id: clock
             x: 37
             y: 39
-            // typed with a worn ribbon: graphite, not black
-            opacity: 0.9
-            Digit { value: Clock.hours.charAt(0) }
-            Digit { value: Clock.hours.charAt(1) }
+            // typed with a worn ribbon (see Digit): graphite, not black
+            Digit { value: Clock.hours.charAt(0); wear: 1 }
+            Digit { value: Clock.hours.charAt(1); wear: 2 }
             // the colon: two round dots, set apart like "14 : 26"
             Item {
                 width: 72
@@ -77,8 +103,8 @@ IndexCard {
                     }
                 }
             }
-            Digit { value: Clock.minutes.charAt(0) }
-            Digit { value: Clock.minutes.charAt(1) }
+            Digit { value: Clock.minutes.charAt(0); wear: 3 }
+            Digit { value: Clock.minutes.charAt(1); wear: 4 }
         }
 
         Rule {

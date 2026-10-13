@@ -1,13 +1,14 @@
 #pragma once
 
-// The window's paper edge, as a Hyprland decoration.
+// The window's paper edge, as two Hyprland decorations.
 //
-// Every window becomes a card a few pixels larger than itself: the card's
-// torn edge, its bevel and its shadow are laid out of the tiles in deckle.cpp
-// around the window and its title bar. The window's own background is the
-// same paper colour, so its straight edge disappears and only the torn one
-// shows. Tiles are drawn once per look (colours, monitor scale, focus) and
-// reused, so resizing a window costs nothing.
+// Every window becomes a card a few pixels larger than itself. Under the
+// window: the card's shadow, paper and torn, chipped edge. Over the window
+// (only its padding): the aged edge, tears, wrinkles and creases. Both are
+// laid out of the tiles in deckle.cpp around the window and its title bar.
+// The window's own background is the same paper colour, so its straight edge
+// disappears and only the torn one shows. Tiles are drawn once per look
+// (colours, monitor scale, focus) and reused, so resizing costs nothing.
 
 #define WLR_USE_UNSTABLE
 
@@ -19,7 +20,8 @@
 
 class CArchiveDeckle : public IHyprWindowDecoration {
   public:
-    CArchiveDeckle(PHLWINDOW);
+    // over = false: the card under the window; true: the marks over it
+    CArchiveDeckle(PHLWINDOW, bool over);
     virtual ~CArchiveDeckle();
 
     virtual SDecorationPositioningInfo getPositioningInfo();
@@ -39,6 +41,7 @@ class CArchiveDeckle : public IHyprWindowDecoration {
 
   private:
     PHLWINDOWREF m_window;
+    bool         m_over = false;
     SBoxExtents  m_extents;
     SBoxExtents  m_reportedExtents;
     bool         m_hidden = false;
@@ -47,9 +50,12 @@ class CArchiveDeckle : public IHyprWindowDecoration {
     bool         visible();
     // the card's edge (window, title bar and margin), in global logical
     // coordinates, following the workspace slide and floating offset
-    CBox cardBox();
-    void updateExtents();
-    void renderPass(PHLMONITOR, float const& a);
+    CBox   cardBox();
+    double reach(); // how far this layer draws outside the card edge
+    void   updateExtents();
+    void   renderPass(PHLMONITOR, float const& a);
+    void   renderUnder(PHLMONITOR, float const& a, const CBox& card);
+    void   renderOver(PHLMONITOR, float const& a, const CBox& card);
 
     friend class CDecklePassElement;
 };
