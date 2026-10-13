@@ -23,6 +23,7 @@ import qs.modules.power
 import qs.modules.notifications
 import qs.modules.osd
 import qs.modules.lock
+import qs.modules.photo
 
 ShellRoot {
     id: shell
@@ -50,6 +51,7 @@ ShellRoot {
     Disposition { screen: shell.focusedScreen }
     Instrument  { screen: shell.focusedScreen }
     Correspondence { screen: shell.focusedScreen }
+    Photograph  { id: photograph; screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
 
@@ -61,6 +63,12 @@ ShellRoot {
         function instruments(): void { Panels.toggle("instrument"); }
         function disposition(): void { Panels.toggle("disposition"); }
         function close(): void { Panels.close(); }
+    }
+
+    // archive-screenshot: develop the shot as a print on the desk
+    IpcHandler {
+        target: "photo"
+        function show(file: string): void { photograph.show(file); }
     }
 
     // the desk lamp (night), Super+Alt+L

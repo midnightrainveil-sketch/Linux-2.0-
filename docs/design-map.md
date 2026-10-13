@@ -157,8 +157,10 @@ scrollbar (no shell list is long enough to scroll).
 | Surface | File |
 | --- | --- |
 | Footer strip | `qs/modules/bar/Bar.qml`, `Workspaces.qml`, `Status.qml` |
-| Card Catalogue | `qs/modules/launcher/Catalogue.qml` |
-| Correspondence | `qs/modules/notifications/Correspondence.qml`, `Letter.qml`, `qs/services/Notifs.qml` |
+| Card Catalogue: a wooden catalogue drawer slides out of the bar; ruled index cards riffle, typed tabs show the cards behind; the query is typed on the brass label holder's card | `qs/modules/launcher/Catalogue.qml`, `CatalogueCard.qml` |
+| Correspondence: envelopes slide in, stamped; click to turn over, lift the flap and slide the letter out; unopened ones go to the letter tray | `qs/modules/notifications/Correspondence.qml`, `Letter.qml`, `LetterTray.qml`, `qs/services/Notifs.qml` |
+| Screenshots develop as prints: a flash, the print drops onto the desk with a paperclip, then files itself into the bar | `qs/modules/photo/Photograph.qml`, `archive-screenshot` |
+| Desk lamp (night): warm light follows the pointer over the desk | `qs/services/Lamp.qml`, `qs/components/LampLight.qml` (drawn over the record layer) |
 | Instrument reading (OSD) | `qs/modules/osd/Instrument.qml` |
 | Ledger | `qs/modules/calendar/Ledger.qml` |
 | Instrument card | `qs/modules/quicksettings/InstrumentCard.qml` |
@@ -177,7 +179,8 @@ scrollbar (no shell list is long enough to scroll).
 | Focus change 160 ms | `border` 1.6, `fade` 1.6 |
 | Workspace switch: 320 ms slide 15 % with fade | `workspaces` 3.2 `slidefade 15%` |
 | Popup from the bar: 8 px, 180 ms | `BarPopup.qml` |
-| Stamp: 1.12 → 1.0, 90 ms | `Stamp.press()` |
+| Stamp: 1.12 → 1.0, 90 ms, ink squeezed out and soaking in over 650 ms | `Stamp.press()` |
+| Catalogue drawer: slides up 520 ms with a slight overshoot; cards stand up one after another, riffle with a springy tip | `Catalogue.qml` |
 | Clock digit: fade out, type in, 120 ms | `TimeRecord.qml` `Digit` |
 | Day ↔ night: 2 s crossfade | `Theme.night` animates every colour |
 | Reduced motion: a 100 ms fade everywhere | `"reducedMotion": true` |

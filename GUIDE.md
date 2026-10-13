@@ -270,7 +270,7 @@ number is the current air pressure in hPa.
 
 | Keys | Does |
 | --- | --- |
-| `Super + Space` | Card Catalogue (launcher): type, `↑ ↓`, `Enter` |
+| `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |
@@ -285,9 +285,10 @@ number is the current air pressure in hPa.
 | `Super + I` | Instrument card (quick settings) |
 | `Super + N` | Turn the sheet: day or night (holds until the next sunrise or sunset) |
 | `Super + Shift + G` | Paper shader (texture and ink over every window), on or off |
+| `Super + Alt + L` | Desk lamp at night (a warm pool of light that follows the pointer over the desk), on or off |
 | `Super + Escape` | Reading Room (lock) |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
-| `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window) |
+| `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window). It drops onto the desk as a print with a paperclip: click to open, right-click to file, middle-click to keep it |
 | `Super + Shift + N` | File away all notifications |
 | G14 `Fn + F5` (fan key) | Quiet → Balanced → Performance |
 | G14 ROG key | ROG Control Center |
@@ -301,8 +302,13 @@ everything back.
 Mouse: click the sprig for the catalogue, the date for the ledger and the
 status marks for the instruments. The screen mark turns the sheet to day or
 night. Scroll over the workspaces to switch, and over the Audio Archive card
-to skip tracks. Notifications: left-click to open, right-click to dismiss,
-middle-click to pin with a tape strip.
+to skip tracks.
+
+Correspondence (notifications) arrives as envelopes. Click one to open it:
+it turns over and the letter slides out; click the letter to act on it.
+Right-click files either away; middle-click pins it with a tape strip.
+Envelopes you leave unopened go to the letter tray on the desk corner above
+the bar; click the pile for the newest, right-click to file them all.
 
 ---
 

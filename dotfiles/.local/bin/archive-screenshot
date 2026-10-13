@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# archive-screenshot: file a screen record, with a shutter and a FILED stamp.
+# archive-screenshot: file a screen record.
 #   archive-screenshot region | window | screen
-# Saved to ~/Pictures/Archive/ and copied to the clipboard.
+# Saved to ~/Pictures/Archive/ and copied to the clipboard. The shell shows
+# it as a photograph dropped onto the desk (a flash, a print with a
+# paperclip, then it files itself away); without the shell, a notification.
 set -euo pipefail
 dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Archive"
 mkdir -p "$dir"
@@ -24,6 +26,7 @@ case ${1:-region} in
 esac
 
 wl-copy --type image/png <"$file"
+qs ipc call photo show "$file" >/dev/null 2>&1 && exit 0
 notify-send --app-name "Camera Lucida" \
     --hint string:x-archive-stamp:FILED \
     --hint string:x-archive-sound:capture \
