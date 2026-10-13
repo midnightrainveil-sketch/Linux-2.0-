@@ -30,6 +30,9 @@ configuration (your old files go to `~/.archive-backup/`), names the G14's
 GPUs if it finds a G14, builds the title-bar and paper-edge plugin, and offers
 a typed login screen. Then reboot.
 
+To update later, run `archive-update` in a terminal: it downloads the latest
+version and runs the same setup (then reboot).
+
 **→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
 Arch install, with a check after each one.
 
@@ -46,7 +49,7 @@ Arch install, with a check after each one.
 | **Reading Room** | The lock screen. Signature field; REJECTED or ADMITTED stamps. |
 | **Windows** | Paper cards with torn edges (drawn by the archivebars plugin from repeating tiles, any size), soft shadows, typed title bars with three ink dots and a ruled line, damped motion. |
 | **Night** | At sunset the whole sheet crossfades over 2 s to cyanotype, and GTK, Qt and foot follow. |
-| **Extras** | Optional film grain shader, foley sound theme hooks, screenshot filing with a stamp, plate importer. |
+| **Extras** | Paper grain per window (terminals and system tools; a title-bar toggle), colour profiles (ICC), foley sound theme hooks, screenshot filing with a stamp, plate importer. |
 
 ![Cards](docs/img/preview-cards.jpg)
 
@@ -57,11 +60,11 @@ GUIDE.md                    the install guide (start here)
 install.sh                  links dotfiles/ into $HOME, installs packages, services
 packages/                   pacman package lists (desktop, G14 extras)
 dotfiles/
-  .config/hypr/             hyprland.lua + archive/*.lua, hypridle.conf, grain shader
+  .config/hypr/             hyprland.lua + archive/*.lua, hypridle.conf
   .config/quickshell/       the shell: theme/, services/, components/, modules/, assets/
   .config/archive/          settings.json, GTK colour sheets
   .config/foot, fastfetch, zsh, gtk-3.0, gtk-4.0, qt6ct, fontconfig, systemd/user
-  .local/bin/               archive-mode, archive-grain, archive-plate, archive-screenshot, ...
+  .local/bin/               archive-mode, archive-update, archive-grain, archive-brightness, archive-icc, archive-plate, archive-screenshot, ...
   .local/share/archive/     plates (starter: Geranium pratense)
   .local/share/fonts/       Courier Prime, Pinyon Script (SIL OFL)
   .local/share/sounds/      the archive sound theme (record your own)

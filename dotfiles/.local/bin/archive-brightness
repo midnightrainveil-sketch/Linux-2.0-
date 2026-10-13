@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# archive-brightness: the screen's brightness, whatever the panel.
+#
+#   archive-brightness get              current level, in percent
+#   archive-brightness set <percent>
+#   archive-brightness up | down        5 % steps (the brightness keys)
+#   archive-brightness dim | restore    for hypridle: lower to 15 %, then back
+#   archive-brightness init             at login: put a software dim back
+#   archive-brightness doctor           what it found, for troubleshooting
+#
+# Most panels have a backlight (/sys/class/backlight). The G14's OLED has
+# one too, but depending on the kernel and the GPU mode it can accept a value
+# and change nothing. When that happens twice in a row the screen is dimmed
+# in software instead, through hyprsunset's gamma, which on an OLED really
+# does dim the pixels. Force a way with "brightness": "backlight" or "gamma"
+# in ~/.config/archive/settings.json, and a device with "backlightDevice".
+set -uo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+settings="${XDG_CONFIG_HOME:-$HOME/.config}/archive/settings.json"
+mkdir -p "$state"
+
+setting() { jq -r --arg k "$1" '.[$k] // empty' "$settings" 2>/dev/null; }
+
+# the backlight to use: the one asked for, else the likeliest
+device() {
+    local want d pat
+    want=$(setting backlightDevice)
+    if [[ -n $want && -d /sys/class/backlight/$want ]]; then
+        echo "$want"
+        return
+    fi
+    for pat in 'amdgpu_bl*' 'nvidia_wmi_ec_backlight' 'intel_backlight' 'nvidia_*' 'acpi_video*' '*'; do
+        for d in /sys/class/backlight/$pat; do
+            if [[ -r $d/max_brightness && $(cat "$d/max_brightness") -gt 0 ]]; then
+                basename "$d"
+                return
+            fi
+        done
+    done
+}
+
+mode() {
+    local m dev
+    m=$(setting brightness)
+    case $m in backlight | gamma) echo "$m"; return ;; esac
+    dev=$(device)
+    if [[ -n $dev && $(cat "$state/backlight-broken" 2>/dev/null) != "$dev" ]]; then
+        echo backlight
+    else
+        echo gamma
+    fi
+}
+
+clamp() { # clamp <value> <min> <max>
+    local v=$1
+    ((v < $2)) && v=$2
+    ((v > $3)) && v=$3
+    echo "$v"
+}
+
+# ---------------------------------------------------------------- gamma (software)
+gamma_get() { cat "$state/gamma" 2>/dev/null || echo 100; }
+
+gamma_set() {
+    local p; p=$(clamp "$1" 20 100)   # never all the way to black
+    if ! pgrep -x hyprsunset >/dev/null; then
+        command -v hyprsunset >/dev/null || { echo "archive-brightness: hyprsunset is not installed (sudo pacman -S hyprsunset)" >&2; return 1; }
+        setsid -f hyprsunset --identity --gamma "$p" >/dev/null 2>&1
+        sleep 0.3
+    fi
+    hyprctl hyprsunset gamma "$p" >/dev/null 2>&1
+    echo "$p" >"$state/gamma"
+}
+
+# ---------------------------------------------------------------- backlight
+backlight_get() {
+    brightnessctl -e4 -m -d "$1" 2>/dev/null | cut -d, -f4 | tr -d '%'
+}
+
+# set it, and check that the panel really followed
+backlight_set() {
+    local dev=$1 p=$2 sys="/sys/class/backlight/$1" before after wanted fails
+    before=$(cat "$sys/actual_brightness" 2>/dev/null)
+    brightnessctl -q -e4 -n2 -d "$dev" set "$p%" || return 1
+    sleep 0.15
+    wanted=$(cat "$sys/brightness" 2>/dev/null)
+    after=$(cat "$sys/actual_brightness" 2>/dev/null)
+    if [[ -n $before && $wanted != "$before" && $after == "$before" ]]; then
+        fails=$(($(cat "$state/backlight-fails" 2>/dev/null || echo 0) + 1))
+        echo "$fails" >"$state/backlight-fails"
+        if ((fails >= 2)); then
+            echo "$dev" >"$state/backlight-broken"
+            notify-send --app-name Archive "Brightness" "The panel ignores its backlight; dimming in software instead." >/dev/null 2>&1 || true
+            gamma_set "$p"
+        fi
+        return 0
+    fi
+    rm -f "$state/backlight-fails"
+}
+
+# ---------------------------------------------------------------- the level, whichever way
+get() {
+    local v=""
+    if [[ $(mode) == backlight ]]; then
+        v=$(backlight_get "$(device)")
+    fi
+    [[ -n $v ]] || v=$(gamma_get)
+    echo "$v"
+}
+
+set_level() {
+    local p; p=$(clamp "$1" 1 100)
+    if [[ $(mode) == backlight ]]; then
+        backlight_set "$(device)" "$p"
+    else
+        gamma_set "$p"
+    fi
+}
+
+case ${1:-get} in
+    get) get ;;
+    set)
+        [[ ${2:-} =~ ^[0-9]+$ ]] || { echo "usage: archive-brightness set <percent>" >&2; exit 2; }
+        set_level "$2"
+        ;;
+    up) set_level $(($(get) + 5)) ;;
+    down) set_level $(($(get) - 5)) ;;
+    dim)
+        get >"$state/brightness-saved"
+        set_level 15
+        ;;
+    restore)
+        [[ -f $state/brightness-saved ]] && set_level "$(cat "$state/brightness-saved")"
+        rm -f "$state/brightness-saved"
+        ;;
+    init)
+        if [[ $(mode) == gamma && $(gamma_get) != 100 ]]; then gamma_set "$(gamma_get)"; fi
+        ;;
+    doctor)
+        echo "mode:     $(mode)  (setting: $(setting brightness || true))"
+        echo "device:   $(device)"
+        for d in /sys/class/backlight/*; do
+            [[ -e $d ]] || { echo "backlights: none"; break; }
+            echo "  $(basename "$d"): brightness $(cat "$d/brightness") actual $(cat "$d/actual_brightness" 2>/dev/null) max $(cat "$d/max_brightness")"
+        done
+        echo "marked broken: $(cat "$state/backlight-broken" 2>/dev/null || echo no)"
+        echo "gamma:    $(gamma_get) %  (hyprsunset $(pgrep -x hyprsunset >/dev/null && echo running || echo 'not running'))"
+        command -v supergfxctl >/dev/null && echo "gpu mode: $(supergfxctl -g 2>/dev/null)"
+        echo "kernel:   $(uname -r)"
+        ;;
+    *) echo "usage: archive-brightness get|set <percent>|up|down|dim|restore|init|doctor" >&2; exit 2 ;;
+esac

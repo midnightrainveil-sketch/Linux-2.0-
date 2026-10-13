@@ -52,8 +52,10 @@ hl.config({
             color = rgba(c.shadow, c.shadow_active),
             color_inactive = rgba(c.shadow, c.shadow_inactive),
         },
-        -- paper texture and ink roughness over every window (archive-grain / Super+Shift+G)
-        screen_shader = state.grain() and (state.config_dir .. "/hypr/shaders/paper.frag") or "",
+        -- no screen shader: the paper grain is drawn per window by the plugin
+        -- (a whole-screen shader also grained videos and photos, and left
+        -- faint boxes where only part of the screen was redrawn)
+        screen_shader = "",
     },
 
     dwindle = {
@@ -177,7 +179,29 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         right_icon_action = drawer,
         right_icon_color = rgb(c.soft),
         right_icon_size = 20,
+        -- paper grain over terminals and system tools (rules below); the "░"
+        -- left of the "–" shows it (ink: on, faded: off) and flips it for one
+        -- window, as does Super+Shift+G. archive-grain off turns it off everywhere.
+        grain = state.grain() and 1 or 0,
+        grain_default = false,
+        grain_icon = "░",
+        grain_icon_color = rgb(c.soft),
+        grain_icon_color_off = rgba(c.faded, "66"),
     }
+
+    -- which windows are paper: the terminal and the system's own tools.
+    -- Browsers, players, editors and anything new keep their true colours.
+    local paper_apps = {
+        "^(foot|footclient|archive\\.desk|kitty|Alacritty|com\\.mitchellh\\.ghostty|org\\.wezfurlong\\.wezterm)$",
+        "^(org\\.pulseaudio\\.pavucontrol|pavucontrol|blueman-manager|\\.blueman-manager-wrapped|nm-connection-editor)$",
+        "^(org\\.gnome\\.Calculator|qalculate-gtk|hyprpolkitagent|org\\.hyprland\\.polkitagent|rog-control-center)$",
+        "^(nwg-look|qt6ct|qt5ct|thunar|Thunar|org\\.gnome\\.Nautilus|pcmanfm|pcmanfm-qt|btop|htop)$",
+        "^(xdg-desktop-portal-gtk|org\\.freedesktop\\.impl\\.portal\\.desktop\\.gtk)$",
+    }
+    for i, class in ipairs(paper_apps) do
+        hl.window_rule({ name = "archive-paper-" .. i, match = { class = class }, ["archivebars:grain"] = true })
+    end
+    -- your own: hl.window_rule({ match = { class = "^obsidian$" }, ["archivebars:grain"] = true }) in user.lua
 
     -- torn paper edges (settings.json "paperEdges": false turns them off)
     local deckle = hl.plugin.archivebars.has_deckle ~= nil and state.setting_bool("paperEdges", true)

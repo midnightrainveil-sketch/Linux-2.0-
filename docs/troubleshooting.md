@@ -130,8 +130,24 @@ Plex comes from the `ttf-ibm-plex` package.
 
 - Volume: `wpctl status` should list a default sink. The shell shows the
   reading when PipeWire reports a change.
-- Brightness: `brightnessctl -l` should list `amdgpu_bl*` (or `nvidia_wmi_ec_backlight`
-  in MUX mode).
+- Brightness: run `archive-brightness doctor`. It shows the backlights it
+  found, which one it uses and whether it fell back to software dimming.
+  The G14's OLED panel can accept a backlight value and not change; after
+  two such tries the screen is dimmed in software instead (hyprsunset's
+  gamma, which on an OLED really dims the pixels). To choose yourself, put
+  `"brightness": "gamma"` (or `"backlight"`) and optionally
+  `"backlightDevice": "amdgpu_bl1"` in `~/.config/archive/settings.json`.
+
+## Colour profiles (ICC)
+
+Put `.icc` / `.icm` files in `~/.local/share/icc` (or leave them in
+`~/Downloads`). In quick settings, the Colour row steps through them: click
+for the next, right-click for the previous, "None" to switch off. From a
+terminal: `archive-icc set ~/Downloads/panel.icc` (the focused screen), or
+`archive-icc set file.icc HDMI-A-1`, and `archive-icc off`. Hyprland applies
+it at once; a file it cannot read shows in its red error bar. For the G14,
+ASUS's own panel profiles are on the Windows side, under
+`C:\Windows\System32\spool\drivers\color`.
 
 ## Notifications from apps still use another daemon
 

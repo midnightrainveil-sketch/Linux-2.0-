@@ -4,7 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Screen backlight through brightnessctl (works on the G14's amdgpu_bl*).
+// Screen brightness through archive-brightness: the panel's backlight, or,
+// when an OLED ignores it, software dimming through hyprsunset.
 Singleton {
     id: root
 
@@ -17,7 +18,7 @@ Singleton {
 
     function set(p: int): void {
         p = Math.max(1, Math.min(100, p));
-        writer.command = ["brightnessctl", "-q", "-e4", "-n2", "set", p + "%"];
+        writer.command = ["archive-brightness", "set", String(p)];
         writer.running = true;
         root.percent = p;
         root.changed();
@@ -31,14 +32,14 @@ Singleton {
         onExited: root.refresh()
     }
 
-    // brightnessctl -m -> "amdgpu_bl1,backlight,128,50%,255"
+    // archive-brightness get -> "50"
     Process {
         id: reader
-        command: ["brightnessctl", "-m", "-c", "backlight"]
+        command: ["archive-brightness", "get"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const parts = text.trim().split(",");
-                if (parts.length >= 4) root.percent = parseInt(parts[3]);
+                const p = parseInt(text.trim());
+                if (!isNaN(p)) root.percent = p;
             }
         }
     }

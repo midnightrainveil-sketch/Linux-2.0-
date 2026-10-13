@@ -78,6 +78,8 @@ if (( want_link )); then
         rel=${f#"$src"/}
         link_file "$f" "$HOME/$rel"
     done < <(find "$src" \( -type f -o -type l \) -print0)
+    # links left by files a newer version no longer has
+    find "$HOME/.config" "$HOME/.local" -xtype l -lname "$src/*" -delete 2>/dev/null || true
     [[ -d $backup ]] && say "previous files kept in $backup"
 
     chmod +x "$src/.local/bin/"archive-*
@@ -88,7 +90,7 @@ if (( want_link )); then
     say "state: day / night, grain"
     state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
     mkdir -p "$state" "$HOME/Pictures/Archive"
-    [[ -f $state/grain ]] || echo on >"$state/grain"     # paper shader on by default
+    [[ -f $state/grain ]] || echo on >"$state/grain"     # paper grain on windows (archive-grain)
     [[ -f $state/lamp ]] || echo on >"$state/lamp"       # the night desk lamp
     "$HOME/.local/bin/archive-mode" auto || true
     # make sure GTK / Qt / foot match even if the mode did not change

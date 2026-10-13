@@ -1,6 +1,7 @@
 #pragma once
 
-// The window's paper edge, as two Hyprland decorations.
+// The window's paper edge, as two Hyprland decorations, and the paper grain
+// over the windows that want it.
 //
 // Every window becomes a card a few pixels larger than itself. Under the
 // window: the card's shadow, paper and torn, chipped edge. Over the window
@@ -9,6 +10,12 @@
 // The window's own background is the same paper colour, so its straight edge
 // disappears and only the torn one shows. Tiles are drawn once per look
 // (colours, monitor scale, focus) and reused, so resizing costs nothing.
+//
+// Grain: the layer over the window also lays one seamless grain tile over
+// the whole card. Which windows get it comes from the window rule effect
+// archivebars:grain (the config gives it to terminals and system tools),
+// else plugin:archivebars:grain_default; a click on the bar's grain glyph,
+// or hl.plugin.archivebars.toggle_grain(), flips it for one window.
 
 #define WLR_USE_UNSTABLE
 
@@ -37,6 +44,13 @@ class CArchiveDeckle : public IHyprWindowDecoration {
     PHLWINDOW                          getOwner();
     void                               updateRules();
 
+    // grain over this window (the layer over the window keeps the state)
+    bool                               grainOn();
+    void                               toggleGrain();
+    bool                               isOver() const {
+        return m_over;
+    }
+
     WP<CArchiveDeckle>                 m_self;
 
   private:
@@ -46,6 +60,11 @@ class CArchiveDeckle : public IHyprWindowDecoration {
     SBoxExtents  m_reportedExtents;
     bool         m_hidden = false;
     uint32_t     m_seed   = 0;
+    // from the rules (nullopt: no rule says), and a click's override
+    std::optional<bool> m_grainRule;
+    std::optional<bool> m_grainOverride;
+
+    bool         grainWanted(); // ignoring the global strength
 
     bool         visible();
     // the card's edge (window, title bar and margin), in global logical
@@ -92,3 +111,7 @@ void deckleInit(HANDLE handle);
 void deckleOnNewWindow(PHLWINDOW window);
 void deckleOnUpdateRules(PHLWINDOW window);
 void deckleExit();
+
+// for the title bar's grain glyph
+bool deckleGrainOn(PHLWINDOW window);
+void deckleToggleGrain(PHLWINDOW window);

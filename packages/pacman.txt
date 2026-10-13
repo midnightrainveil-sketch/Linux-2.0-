@@ -43,6 +43,7 @@ blueman
 upower
 power-profiles-daemon
 brightnessctl
+hyprsunset
 # ---- screenshots, clipboard, notifications from scripts
 grim
 slurp

@@ -50,16 +50,17 @@ the plate is the one place that should match the mockup.
 | Ink: typed text reads heavier, like ink pressed into paper | `qs/components/InkText.qml` (two faint offset copies, `spread`) |
 | Stamps: uneven ink, ±8°, 75–85 % | `qs/components/Stamp.qml` (knock-out specks and scuffs) |
 | Foxing: 3–6 spots, wallpaper only | `qs/modules/background/Plate.qml` |
-| Paper over everything (windows too) | `.config/hypr/shaders/paper.frag`, on by default, toggled by `archive-grain` / `Super + Shift + G` |
+| Paper grain on windows | drawn per window by archivebars (`DeckleDeco.cpp`, `Deckle::grainTile`): terminals and system tools by rule (`paper_apps` in `look.lua`), flipped per window by the bar's "░" or `Super + Shift + G`, off everywhere with `archive-grain off` |
 
 **Different from the spec:**
 
 - The card edge is a Canvas polygon, not a 9-slice `BorderImage` mask. The
   polygon takes the current paper colour directly, so cards crossfade with
   day and night. A coloured 9-slice image would need a recolouring shader.
-- The screen grain is static, not animated. A `time`-driven shader makes
-  Hyprland redraw every frame (and turn damage tracking off), which is bad
-  for a laptop battery. A static grain still reads as paper.
+- The window grain is a static tile fixed to each window, not a screen
+  shader. A whole-screen shader grained videos and photos too, and where only
+  part of the screen was redrawn (a moving pointer, typing) it left faint
+  boxes. A tile per window redraws identically every time.
 
 ## 5. Layout
 
@@ -84,7 +85,7 @@ measurements rather than the spec text where the two disagree.
 | Square corners, just worn | the deckle's corner tiles; `rounding = 0` |
 | 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `archive-bars`), configured in `look.lua` |
 | Dots: close, maximise, drawer. "–": drawer | buttons and `right_icon_action` |
-| Paper texture and slightly ragged ink inside the window | the paper screen shader `shaders/paper.frag`, on by default |
+| Paper texture inside the window | the plugin's grain, on terminals and system tools (see above); the ragged-ink nudge of the old shader is gone |
 | Focus lifts the card | focused: darker edge and 40 % shadow; unfocused: lighter edge, 24 % shadow, faded title |
 | Fullscreen drops the bar, rim and shadow | `archive-fullscreen` rules |
 | Urgent: accent.ink border and a stamp on the workspace number | a tag on `window.urgent` plus a rule; the ring stamp in `Workspaces.qml` |

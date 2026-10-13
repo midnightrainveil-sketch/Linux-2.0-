@@ -111,6 +111,15 @@ namespace Deckle {
     // A crease across a corner, CREASE square, from the card corner inward.
     cairo_surface_t* crease(const SStyle& style, eCorner corner, int variant);
 
+    // ---- paper grain over a whole window
+
+    // A seamless `size` square tile (size a multiple of 64) of paper grain in
+    // device pixels: soft mottling, tooth and specks as a faint black veil
+    // (so it darkens light paper and leaves dark ink almost untouched), and a
+    // few pale fibres. Static, so redrawing part of a window never shows a
+    // seam. strength 1 is the look of the old screen shader.
+    cairo_surface_t* grainTile(int size, double strength);
+
     // ---- layout, shared by the plugin and the preview
 
     // Which variant the i-th strip of a side uses, for a window seed.

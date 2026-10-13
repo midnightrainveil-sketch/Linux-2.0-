@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# archive-icc: a colour profile (.icc / .icm) for a screen.
+#
+#   archive-icc list                   the profiles it can find, one per line
+#   archive-icc current [output]       the one in use, or "none"
+#   archive-icc set <file> [output]    use it
+#   archive-icc off [output]           back to none
+#
+# output is a monitor name (eDP-1, HDMI-A-1, ...; see hyprctl monitors);
+# the default is the focused one. Put profiles in ~/.local/share/icc (a file
+# given to `set` from anywhere else is copied there); ~/Downloads and the
+# system's /usr/share/color/icc are searched too. The quick settings card
+# (Colour row) cycles through them.
+#
+# The choice is a link, ~/.config/archive/icc/<output>.icc, which
+# hypr/archive/machine.lua hands to Hyprland as the monitor's icc option;
+# Hyprland then colour-manages that screen with it.
+set -euo pipefail
+store="${XDG_DATA_HOME:-$HOME/.local/share}/icc"
+links="${XDG_CONFIG_HOME:-$HOME/.config}/archive/icc"
+mkdir -p "$store" "$links"
+
+output() {
+    if [[ -n ${1:-} ]]; then
+        echo "$1"
+        return
+    fi
+    local o
+    o=$(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused)][0].name // empty' || true)
+    echo "${o:-eDP-1}"
+}
+
+# one per file name, ours first (a profile copied in from Downloads is listed
+# once); a folder that does not exist is not an error
+list() {
+    {
+        find "$store" -maxdepth 2 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+        find "${XDG_DATA_HOME:-$HOME/.local/share}/color/icc" "$HOME/Downloads" -maxdepth 2 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+        find /usr/share/color/icc -maxdepth 1 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+    } | awk -F/ '!seen[$NF]++'
+}
+
+# Hyprland reads the monitor rules again (the profile applies at once)
+apply() { hyprctl reload >/dev/null 2>&1 || true; }
+
+case ${1:-list} in
+    list) list ;;
+    current)
+        l="$links/$(output "${2:-}").icc"
+        if [[ -L $l || -f $l ]]; then readlink -f "$l"; else echo none; fi
+        ;;
+    set)
+        [[ -n ${2:-} && -f $2 ]] || { echo "usage: archive-icc set <file.icc> [output]" >&2; exit 2; }
+        file=$(realpath "$2")
+        out=$(output "${3:-}")
+        case $file in
+            "$store"/* | /usr/share/*) ;;
+            *) cp -f "$file" "$store/" && file="$store/$(basename "$file")" ;;
+        esac
+        ln -sfn "$file" "$links/$out.icc"
+        apply
+        echo "$out: $(basename "$file")"
+        ;;
+    off)
+        out=$(output "${2:-}")
+        rm -f "$links/$out.icc"
+        apply
+        echo "$out: no profile"
+        ;;
+    *) echo "usage: archive-icc list|current|set <file> [output]|off [output]" >&2; exit 2 ;;
+esac

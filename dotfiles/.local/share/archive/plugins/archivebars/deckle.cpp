@@ -748,6 +748,67 @@ namespace Deckle {
         return cv.crop();
     }
 
+    // ---------------------------------------------------------------- paper grain
+
+    // value noise on a square lattice of `cells` x `cells`, repeating
+    static double tileNoise(double x, double y, int cells, double cell, uint32_t salt) {
+        const double tx = x / cell, ty = y / cell;
+        const int    ix = (int)std::floor(tx), iy = (int)std::floor(ty);
+        double       fx = tx - ix, fy = ty - iy;
+        fx     = fx * fx * (3 - 2 * fx);
+        fy     = fy * fy * (3 - 2 * fy);
+        auto v = [&](int i, int j) {
+            i = ((i % cells) + cells) % cells;
+            j = ((j % cells) + cells) % cells;
+            return random01(salt, (uint32_t)i, (uint32_t)j);
+        };
+        return (v(ix, iy) * (1 - fx) + v(ix + 1, iy) * fx) * (1 - fy) + (v(ix, iy + 1) * (1 - fx) + v(ix + 1, iy + 1) * fx) * fy;
+    }
+
+    cairo_surface_t* grainTile(int size, double strength) {
+        size              = std::max(64, size / 64 * 64);
+        strength          = std::clamp(strength, 0.0, 3.0);
+        auto*        s    = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
+        const int    rows = cairo_image_surface_get_stride(s) / 4;
+        cairo_surface_flush(s);
+        auto* px = reinterpret_cast<uint32_t*>(cairo_image_surface_get_data(s));
+
+        for (int y = 0; y < size; ++y) {
+            for (int x = 0; x < size; ++x) {
+                const double mottle = tileNoise(x, y, size / 64, 64, 11) * 0.55 + tileNoise(x, y, size / 16, 16, 12) * 0.45;
+                const double tooth  = random01(13, (uint32_t)x, (uint32_t)y);
+                const double speck  = random01(14, (uint32_t)(x / 2), (uint32_t)(y / 2)) > 0.9993 ? 1.0 : 0.0;
+                const double g      = (mottle - 0.5) * 0.070 + (tooth - 0.5) * 0.030 - speck * 0.12;
+                const double a      = std::clamp((0.02 - g) * strength, 0.0, 0.5);
+                px[y * rows + x]    = (uint32_t)std::lround(a * 255) << 24; // black, premultiplied
+            }
+        }
+        cairo_surface_mark_dirty(s);
+
+        // pale fibres, drawn on the torus so the tile still repeats
+        cairo_t* cr = cairo_create(s);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_width(cr, 0.7);
+        cairo_set_source_rgba(cr, 1, 1, 1, std::min(1.0, 0.035 * strength));
+        const int fibres = size * size / 2600;
+        for (int i = 0; i < fibres; ++i) {
+            const double x0 = random01(15, i, 0) * size, y0 = random01(15, i, 1) * size;
+            const double ang = random01(15, i, 2) * 3.14159265358979, len = 6 + 16 * random01(15, i, 3), bend = (random01(15, i, 4) - 0.5) * len * 0.6;
+            const double dx = std::cos(ang) * len, dy = std::sin(ang) * len;
+            for (int ox = -1; ox <= 1; ++ox) {
+                for (int oy = -1; oy <= 1; ++oy) {
+                    const double bx = x0 + ox * size, by = y0 + oy * size;
+                    cairo_move_to(cr, bx, by);
+                    cairo_curve_to(cr, bx + dx * 0.3 - dy / len * bend, by + dy * 0.3 + dx / len * bend, bx + dx * 0.7 - dy / len * bend, by + dy * 0.7 + dx / len * bend, bx + dx,
+                                   by + dy);
+                    cairo_stroke(cr);
+                }
+            }
+        }
+        cairo_destroy(cr);
+        return s;
+    }
+
     // ---------------------------------------------------------------- layout
 
     int variantFor(uint32_t seed, eSide side, int index) {

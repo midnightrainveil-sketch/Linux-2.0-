@@ -231,9 +231,11 @@ the card.
 **Check:** new windows have a 46 px paper title bar: three dark ink dots, the
 title, a "–" at the far right and a thin ruled line underneath. The window's
 outline is torn paper, not a straight line, and a short soft shadow falls
-below it. Paper texture shows in flat areas (the paper shader:
-`Super + Shift + G` toggles it). `archive-bars status` shows what the plugin
-was built for.
+below it. Terminals and the system's tools are grained like paper; browsers,
+players and other apps keep their true colours. The "░" left of the "–"
+shows a window's grain (dark: on, faded: off) and a click flips it, as does
+`Super + Shift + G`. `archive-bars status` shows what the plugin was built
+for.
 
 ### Make it say *atlas@linden* (optional)
 
@@ -284,7 +286,7 @@ number is the current air pressure in hPa.
 | `Super + C` | Ledger (calendar) |
 | `Super + I` | Instrument card (quick settings) |
 | `Super + N` | Turn the sheet: day or night (holds until the next sunrise or sunset) |
-| `Super + Shift + G` | Paper shader (texture and ink over every window), on or off |
+| `Super + Shift + G` | Paper grain on this window, on or off (the "░" in its title bar does the same; quick settings' Grain row turns it off everywhere) |
 | `Super + Alt + L` | Desk lamp at night (a warm pool of light that follows the pointer over the desk), on or off |
 | `Super + Escape` | Reading Room (lock) |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
@@ -296,9 +298,12 @@ number is the current air pressure in hPa.
 
 The desk: at login the record cards lie on the right and a live terminal on
 the left, as in the reference. Drag a card anywhere; right-click it to put it
-away. The terminal is an ordinary window: use it, clear it, move it, close it.
-The small card button after the workspace numbers (or `Super + D`) puts
-everything back.
+away. The terminal is a window you use like any other (clear it, move it,
+close it), but it belongs to the desk: every other window goes over it. While
+an app is tiled on its workspace it steps off the desk, and it comes back
+when the last one closes. The small card button after the workspace numbers
+(or `Super + D`) puts everything back, the terminal in front until you click
+elsewhere.
 
 Mouse: click the sprig for the catalogue, the date for the ledger and the
 status marks for the instruments. The screen mark turns the sheet to day or

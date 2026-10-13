@@ -11,6 +11,8 @@ Changes, kept deliberately small so they survive upstream updates:
     the bar, inset from the window's edges (the reference title bar);
   * right_icon / right_icon_action / right_icon_color / right_icon_size: a
     typed glyph on the right of the bar (the reference's "-"), clickable;
+  * grain_icon / grain_icon_color / grain_icon_color_off: a second glyph left
+    of it that shows and flips the window's paper grain (DeckleDeco.cpp);
   * deckle / deckle_*: a torn paper edge, bevel and shadow around every
     window, laid out of repeating tiles (deckle.cpp, DeckleDeco.cpp, copied in
     from next to this script), so it fits any window size.
@@ -55,7 +57,8 @@ edit("globals.hpp", [(
     "        SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;\n"
     "        SP<Config::Values::CColorValue>      ruleColor, rightIconColor;\n"
     "        SP<Config::Values::CIntValue>        ruleWidth, ruleInset, rightIconSize;\n"
-    "        SP<Config::Values::CStringValue>     rightIcon, rightIconCmd;\n",
+    "        SP<Config::Values::CStringValue>     rightIcon, rightIconCmd, grainIcon;\n"
+    "        SP<Config::Values::CColorValue>      grainIconColor, grainIconColorOff;\n",
 )])
 
 edit("main.cpp", [(
@@ -75,7 +78,13 @@ edit("main.cpp", [(
     "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIcon);\n"
     "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconCmd);\n"
     "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconColor);\n"
-    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconSize);\n",
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconSize);\n"
+    "    g_pGlobalState->config.grainIcon         = makeShared<Config::Values::CStringValue>(\"plugin:archivebars:grain_icon\", \"Glyph that shows and flips the window's grain (empty = none)\", \"\");\n"
+    "    g_pGlobalState->config.grainIconColor    = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:grain_icon_color\", \"Grain glyph, grain on\", 0xff000000);\n"
+    "    g_pGlobalState->config.grainIconColorOff = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:grain_icon_color_off\", \"Grain glyph, grain off\", 0x66000000);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIcon);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIconColor);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIconColorOff);\n",
 )])
 
 # ---- state for the right glyph's texture
@@ -83,14 +92,18 @@ edit("barDeco.hpp", [(
     "    SP<Render::ITexture>       m_pTextTex;\n",
     "    SP<Render::ITexture>       m_pTextTex;\n"
     "    SP<Render::ITexture>       m_pRightTex;\n"
-    "    std::string                m_szRightKey;\n",
+    "    std::string                m_szRightKey;\n"
+    "    SP<Render::ITexture>       m_pGrainTex;\n"
+    "    std::string                m_szGrainKey;\n",
 )])
 
 edit("barDeco.cpp", [
+    ('#include "barDeco.hpp"\n', '#include "barDeco.hpp"\n#include "DeckleDeco.hpp"\n'),
     # the title leaves room for the right glyph
     (
         "    const int  paddingTotal      = scaledBarPadding * 2 + scaledButtonsSize + (ALIGN != \"left\" ? scaledButtonsSize : 0);\n",
-        "    const int  rightGlyphRoom    = g_pGlobalState->config.rightIcon->value().empty() ? 0 : g_pGlobalState->config.rightIconSize->value() * 2 * scale;\n"
+        "    const int  rightGlyphRoom    = (g_pGlobalState->config.rightIcon->value().empty() ? 0 : g_pGlobalState->config.rightIconSize->value() * 2 * scale) +\n"
+        "                                   (g_pGlobalState->config.grainIcon->value().empty() ? 0 : g_pGlobalState->config.rightIconSize->value() * 1.6 * scale);\n"
         "    const int  paddingTotal      = scaledBarPadding * 2 + scaledButtonsSize + (ALIGN != \"left\" ? scaledButtonsSize : 0) + rightGlyphRoom;\n",
     ),
     # a click on the right glyph runs its action
@@ -102,6 +115,13 @@ edit("barDeco.cpp", [
         "        const auto RSIZE = g_pGlobalState->config.rightIconSize->value();\n"
         "        if (!RICON.empty() && !RCMD.empty() && COORDS.x >= assignedBoxGlobal().w - BARPADDING - RSIZE * 1.5) {\n"
         "            g_pKeybindManager->m_dispatchers[\"exec\"](RCMD);\n"
+        "            return;\n"
+        "        }\n"
+        "        // the grain glyph, in the space to the left of it\n"
+        "        const double GRIGHT = assignedBoxGlobal().w - BARPADDING - RSIZE * 1.5;\n"
+        "        if (!g_pGlobalState->config.grainIcon->value().empty() && COORDS.x >= GRIGHT - RSIZE * 1.6 && COORDS.x < GRIGHT) {\n"
+        "            deckleToggleGrain(PWINDOW);\n"
+        "            damageEntire();\n"
         "            return;\n"
         "        }\n"
         "    }\n"
@@ -142,6 +162,26 @@ edit("barDeco.cpp", [
         "                g_pHyprOpenGL->renderTexture(m_pRightTex, rbox, {.a = a});\n"
         "            }\n"
         "        }\n"
+        "\n"
+        "        const auto GICON = g_pGlobalState->config.grainIcon->value();\n"
+        "        if (!GICON.empty()) {\n"
+        "            const bool GON   = deckleGrainOn(m_pWindow.lock());\n"
+        "            const auto GSIZE = g_pGlobalState->config.rightIconSize->value();\n"
+        "            const auto GCOL  = GON ? g_pGlobalState->config.grainIconColor->value() : g_pGlobalState->config.grainIconColorOff->value();\n"
+        "            const auto GFONT = g_pGlobalState->config.barTextFont->value();\n"
+        "            const auto GKEY  = std::string{GICON} + \"|\" + std::to_string(GSIZE) + \"|\" + std::to_string(GCOL) + \"|\" + std::to_string(pMonitor->m_scale);\n"
+        "            if (!m_pGrainTex || m_pGrainTex->m_texID == 0 || m_szGrainKey != GKEY) {\n"
+        "                m_pGrainTex  = g_pHyprRenderer->renderText(std::string{GICON}, configColor(GCOL), std::round(GSIZE * 0.8 * pMonitor->m_scale), false, std::string{GFONT});\n"
+        "                m_szGrainKey = GKEY;\n"
+        "            }\n"
+        "            if (m_pGrainTex && m_pGrainTex->m_texID != 0) {\n"
+        "                const auto RPAD = g_pGlobalState->config.barPadding->value();\n"
+        "                const double cx = BARBUF.x - (RPAD + GSIZE * 2.3) * pMonitor->m_scale;\n"
+        "                CBox         gbox = {textBox.x + std::round(cx - m_pGrainTex->m_size.x / 2.0), textBox.y + std::round((BARBUF.y - m_pGrainTex->m_size.y) / 2.0),\n"
+        "                                     m_pGrainTex->m_size.x, m_pGrainTex->m_size.y};\n"
+        "                g_pHyprOpenGL->renderTexture(m_pGrainTex, gbox, {.a = a});\n"
+        "            }\n"
+        "        }\n"
         "    }\n"
         "\n"
         "    renderBarButtons(&textBox, pMonitor->m_scale, a);\n",
@@ -150,7 +190,8 @@ edit("barDeco.cpp", [
     (
         "    m_pTextTex           = nullptr;\n",
         "    m_pTextTex           = nullptr;\n"
-        "    m_pRightTex          = nullptr;\n",
+        "    m_pRightTex          = nullptr;\n"
+        "    m_pGrainTex          = nullptr;\n",
     ),
 ])
 

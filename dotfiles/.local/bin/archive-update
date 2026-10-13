@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# archive-update: fetch the latest version of the theme and install it.
+#
+#   archive-update
+#
+# Downloads the theme from GitHub into a temporary folder and runs its
+# setup.sh, which copies it over ~/archive, installs anything new and
+# rebuilds the title-bar plugin if it changed. Reboot when it says so.
+# ARCHIVE_REPO / ARCHIVE_BRANCH pick another source.
+set -euo pipefail
+repo=${ARCHIVE_REPO:-midnightrainveil-sketch/Linux-2.0-}
+branch=${ARCHIVE_BRANCH:-claude/hyprland-ui-setup-l5njnw}
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+echo ":: downloading $repo ($branch)"
+curl -fL "https://github.com/$repo/archive/refs/heads/$branch.tar.gz" | tar xz -C "$tmp" --strip-components=1
+"$tmp/setup.sh" "$@"

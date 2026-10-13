@@ -84,8 +84,9 @@ Singleton {
     readonly property color tape:        mix(day.tape, nite.tape)
 
     // Paper grain strength (section 4): 6-10 % by day, 8-12 % at night.
-    // When the screen-wide paper shader is on, the shell's own grain eases off.
-    readonly property real grainEase:  Mode.grain ? 0.6 : 1.0
+    // (The windows' grain is the title-bar plugin's, per window; the shell's
+    // own cards always carry theirs.)
+    readonly property real grainEase:  1.0
     readonly property real grainDark:  (0.08 + 0.02 * night) * grainEase
     readonly property real grainLight: 0.10 * night * grainEase
     // fibre texture on the cards themselves

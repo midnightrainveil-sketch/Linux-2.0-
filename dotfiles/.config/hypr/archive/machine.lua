@@ -8,11 +8,32 @@ local state = require("archive.state")
 -- Scale 1.5 gives 1920x1200 logical pixels: the mockup's 1920 width, plus
 -- the extra 16:10 height that the record column uses as breathing room.
 -- The internal panel shows up as eDP-1 or eDP-2 depending on the MUX mode.
+--
+-- Colour profiles: archive-icc (or the Colour row in quick settings) links
+-- a .icc file at ~/.config/archive/icc/<output>.icc; it is passed on here.
+local icc_dir = state.config_dir .. "/archive/icc/"
+local function with_icc(rule)
+    local icc = icc_dir .. rule.output .. ".icc"
+    if rule.output ~= "" and state.exists(icc) then rule.icc = icc end
+    return rule
+end
+
 for _, name in ipairs({ "eDP-1", "eDP-2" }) do
-    hl.monitor({ output = name, mode = "2880x1800@120", position = "0x0", scale = 1.5 })
+    hl.monitor(with_icc({ output = name, mode = "2880x1800@120", position = "0x0", scale = 1.5 }))
 end
 -- anything else you plug in: its preferred mode, to the right
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+-- ...with its profile, if it has one
+local ls = io.popen('ls "' .. icc_dir .. '" 2>/dev/null')
+if ls ~= nil then
+    for file in ls:lines() do
+        local name = file:match("^(.+)%.icc$")
+        if name ~= nil and not name:match("^eDP%-") then
+            hl.monitor(with_icc({ output = name, mode = "preferred", position = "auto", scale = "auto" }))
+        end
+    end
+    ls:close()
+end
 
 ------------------------------------------------------------------ GPUs
 -- Render on the iGPU (battery, heat); keep the dGPU listed so outputs wired

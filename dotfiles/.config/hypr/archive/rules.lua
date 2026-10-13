@@ -17,6 +17,74 @@ hl.window_rule({
     move = { "monitor_w*0.019", "monitor_h*0.25" },
 })
 
+------------------------------------------------------------------ the desk terminal stays at the back
+-- The desk terminal is part of the desk: every other window goes over it.
+-- Hyprland always draws floating windows over tiled ones, so a floating card
+-- cannot sit under an app. Instead, while its workspace holds a tiled window
+-- (which fills the screen and would cover it anyway), the terminal steps off
+-- the desk into the hidden special:desk, and it comes back when the last one
+-- closes or floats. Among floating windows it is kept lowest, even right
+-- after you click into it. The desk button (archive-desk, Super+D) still
+-- brings it forward over everything; it steps back once you focus another
+-- window. Newly opened terminals are ordinary windows.
+local desk_home = nil   -- the workspace it stepped off (forgotten on reload)
+
+local function is_desk(w)
+    return w ~= nil and w.class == "archive.desk"
+end
+
+local function find_desk()
+    for _, w in ipairs(hl.get_windows()) do
+        if is_desk(w) and w.mapped then return w end
+    end
+end
+
+-- does a tiled window (other than `gone`, which is closing) cover `ws`?
+local function covered(ws, gone)
+    if ws == nil then return false end
+    for _, w in ipairs(hl.get_workspace_windows(ws)) do
+        if not is_desk(w) and not w.floating and not w.hidden and (gone == nil or w.address ~= gone.address) then
+            return true
+        end
+    end
+    return false
+end
+
+local function tuck(gone)
+    local desk = find_desk()
+    if desk == nil or desk.workspace == nil then return end
+    if desk.workspace.special then
+        -- only bring it back from where we put it (not from the drawer)
+        if desk.workspace.name ~= "special:desk" then return end
+        local home = desk_home or hl.get_active_workspace().id
+        if not covered(hl.get_workspace(tostring(home)), gone) then
+            hl.dispatch(hl.dsp.window.move({ workspace = tostring(home), follow = false, window = desk }))
+        end
+        return
+    end
+    local active = hl.get_active_window()
+    if active ~= nil and active.address == desk.address then return end   -- brought forward on purpose
+    if covered(desk.workspace, gone) then
+        desk_home = desk.workspace.id
+        hl.dispatch(hl.dsp.window.move({ workspace = "special:desk", follow = false, window = desk }))
+    end
+end
+
+local function keep_back(w)
+    if is_desk(w) and w.floating then
+        hl.dispatch(hl.dsp.window.alter_zorder({ mode = "bottom", window = w }))
+    end
+end
+
+hl.on("window.open", function(w) if not is_desk(w) then tuck() end end)
+hl.on("window.close", function(w) if not is_desk(w) then tuck(w) end end)
+hl.on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end end)
+hl.on("window.update_rules", function(w) if not is_desk(w) then tuck() end end)   -- floated / tiled
+hl.on("window.active", function(w)
+    keep_back(w)
+    if not is_desk(w) then tuck() end
+end)
+
 ------------------------------------------------------------------ small tools float as centred cards
 -- (volume mixer, file picker, calculator, Bluetooth, network, authorisation)
 local small_tools = {

@@ -12,7 +12,7 @@ BarPopup {
     name: "instrument"
     side: "right"
 
-    onOpened: { Brightness.refresh(); keys.forceActiveFocus(); }
+    onOpened: { Brightness.refresh(); Icc.refresh(); keys.forceActiveFocus(); }
 
     IndexCard {
         id: card
@@ -112,6 +112,45 @@ BarPopup {
                 anchors.verticalCenter: parent.verticalCenter
                 checked: Lamp.isOn
                 onToggled: on => Lamp.set(on)
+            }
+        }
+
+        // the screen's colour profile: click for the next, right-click the previous
+        DataRow {
+            label: "Colour"
+            labelWidth: card.labelWidth
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 12
+                InkText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "‹"
+                    color: Theme.faded
+                    font.pixelSize: Theme.sizeData
+                    visible: Icc.profiles.length > 0
+                }
+                InkText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Icc.profiles.length > 0 ? 230 : 330
+                    text: Icc.profiles.length > 0 ? Icc.name : "Add to ~/.local/share/icc"
+                    color: Icc.current === "none" ? Theme.faded : Theme.soft
+                    font.pixelSize: Icc.profiles.length > 0 ? Theme.sizeData : Theme.sizeLabel
+                    elide: Text.ElideMiddle
+                }
+                InkText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "›"
+                    color: Theme.faded
+                    font.pixelSize: Theme.sizeData
+                    visible: Icc.profiles.length > 0
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                enabled: Icc.profiles.length > 0
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                cursorShape: Qt.PointingHandCursor
+                onClicked: mouse => Icc.cycle(mouse.button === Qt.RightButton ? -1 : 1)
             }
         }
 

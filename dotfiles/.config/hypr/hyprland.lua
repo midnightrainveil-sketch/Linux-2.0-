@@ -41,6 +41,7 @@ hl.permission("/usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland", "screencop
 ------------------------------------------------------------------ autostart
 hl.on("hyprland.start", function()
     hl.exec_cmd("archive-mode auto")                  -- day or night, by the clock
+    hl.exec_cmd("archive-brightness init")            -- a software dim, if the panel needs one
     hl.exec_cmd("archive-bars ensure")                -- title bars: rebuild if Hyprland was updated
     hl.exec_cmd("qs")                                 -- the shell
     hl.exec_cmd("hypridle")

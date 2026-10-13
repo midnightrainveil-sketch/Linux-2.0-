@@ -9,6 +9,7 @@
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
+#include <hyprland/src/render/pass/TexPassElement.hpp>
 #include <hyprland/src/render/decorations/DecorationPositioner.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/config/values/types/BoolValue.hpp>
@@ -30,9 +31,9 @@ using namespace Render::GL;
 
 namespace {
     struct SConfig {
-        SP<Config::Values::CBoolValue>  enabled;
+        SP<Config::Values::CBoolValue>  enabled, grainDefault;
         SP<Config::Values::CIntValue>   margin, period, toneDepth;
-        SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases;
+        SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases, grain;
         SP<Config::Values::CColorValue> paper, rimTop, rimBottom, rimTopInactive, rimBottomInactive, bevel, shadow, shadowInactive, tone;
     };
 
@@ -55,6 +56,11 @@ namespace {
     std::vector<UP<STileSet>>       g_tiles;
     uint64_t                        g_tick        = 0;
     uint32_t                        g_noDeckleIdx = 0;
+    uint32_t                        g_grainIdx    = 0;
+
+    // the grain tile, in device pixels, redrawn when its strength changes
+    SP<Render::ITexture>            g_grainTex;
+    double                          g_grainStrength = -1;
 
     uint32_t                        argb(const SP<Config::Values::CColorValue>& v) {
         return static_cast<uint32_t>(v->value());
@@ -147,6 +153,23 @@ namespace {
         return set;
     }
 
+    double grainStrength() {
+        return g_config.grain ? std::clamp((double)g_config.grain->value(), 0.0, 3.0) : 0.0;
+    }
+
+    SP<Render::ITexture> grainTexture() {
+        const double strength = grainStrength();
+        if (!g_grainTex || strength != g_grainStrength) {
+            g_grainTex      = upload(Deckle::grainTile(512, strength));
+            g_grainStrength = strength;
+        }
+        return g_grainTex;
+    }
+
+    bool edgesOn() {
+        return g_config.enabled && g_config.enabled->value();
+    }
+
     void damageAll() {
         for (auto& d : g_deckles) {
             if (d)
@@ -206,7 +229,10 @@ std::string CArchiveDeckle::getDisplayName() {
 }
 
 bool CArchiveDeckle::visible() {
-    if (!g_config.enabled || !g_config.enabled->value() || m_hidden || !validMapped(m_window))
+    if (m_hidden || !validMapped(m_window))
+        return false;
+    const bool grain = m_over && grainOn();
+    if (!edgesOn() && !grain)
         return false;
 
     const auto PWINDOW = m_window.lock();
@@ -215,9 +241,24 @@ bool CArchiveDeckle::visible() {
     // a fullscreen window is the whole sheet, not a card on it
     if (Fullscreen::controller()->isFullscreen(PWINDOW))
         return false;
-    if (m_over && !overlayWanted(styleFor(1.0, true)))
+    if (m_over && !grain && !overlayWanted(styleFor(1.0, true)))
         return false;
     return true;
+}
+
+bool CArchiveDeckle::grainWanted() {
+    return m_grainOverride.value_or(m_grainRule.value_or(g_config.grainDefault && g_config.grainDefault->value()));
+}
+
+bool CArchiveDeckle::grainOn() {
+    return grainWanted() && grainStrength() > 0;
+}
+
+void CArchiveDeckle::toggleGrain() {
+    m_grainOverride = !grainWanted();
+    updateExtents();
+    g_pDecorationPositioner->repositionDeco(this);
+    damageEntire();
 }
 
 CBox CArchiveDeckle::cardBox() {
@@ -257,9 +298,23 @@ void CArchiveDeckle::updateRules() {
     const auto PWINDOW    = m_window.lock();
     const auto prevHidden = m_hidden;
 
+    if (!PWINDOW)
+        return;
+    const auto& props = PWINDOW->m_ruleApplicator->m_otherProps.props;
+
     m_hidden = false;
-    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_noDeckleIdx))
-        m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_noDeckleIdx)->effect);
+    if (props.contains(g_noDeckleIdx))
+        m_hidden = truthy(props.at(g_noDeckleIdx)->effect);
+
+    const bool prevGrain = grainOn();
+    m_grainRule.reset();
+    if (props.contains(g_grainIdx))
+        m_grainRule = truthy(props.at(g_grainIdx)->effect);
+    if (grainOn() != prevGrain) {
+        updateExtents();
+        g_pDecorationPositioner->repositionDeco(this);
+        damageEntire();
+    }
 
     if (prevHidden != m_hidden) {
         updateExtents();
@@ -368,6 +423,28 @@ void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox&
     const double s = pMonitor->m_scale;
     const double E = Deckle::SStyle::OVER_OUT, D = st.toneDepth, R = st.cornerReach(), C = Deckle::SStyle::CREASE;
     const double x = card.x, y = card.y, w = card.w, h = card.h;
+    const bool   edges = edgesOn();
+
+    // the grain, one tile repeated over the card's paper (inside the torn
+    // edge), fixed to the card so it moves with the window
+    if (grainOn()) {
+        const auto   tex = grainTexture();
+        const double in  = edges ? st.inset() : std::clamp((int)g_config.margin->value(), 1, 32);
+        auto         px  = [&](double v) { return std::round(v * s); };
+        CBox         box = {px(x + in), px(y + in), px(x + w - in) - px(x + in), px(y + h - in) - px(y + in)};
+        if (tex && tex->m_size.x > 0 && box.w > 0 && box.h > 0) {
+            g_pHyprOpenGL->renderTexture(tex, box,
+                                         {.a                           = a,
+                                          .allowCustomUV               = true,
+                                          .wrapX                       = WRAP_REPEAT,
+                                          .wrapY                       = WRAP_REPEAT,
+                                          .primarySurfaceUVTopLeft     = Vector2D{0, 0},
+                                          .primarySurfaceUVBottomRight = Vector2D{box.w / tex->m_size.x, box.h / tex->m_size.y}});
+        }
+    }
+
+    if (!edges || !overlayWanted(st))
+        return;
 
     forEachStrip(st, m_seed, x, y, w, h, [&](int side, int v, double a0, double a1) {
         const auto& tex = tile(tiles->overStrips[side], v);
@@ -423,9 +500,37 @@ static int luaHasDeckle(lua_State* L) {
     return 1;
 }
 
+// grain on / off for the focused window; returns its new state
+static int luaToggleGrain(lua_State* L) {
+    const auto w = Desktop::focusState()->window();
+    if (w)
+        deckleToggleGrain(w);
+    lua_pushboolean(L, w && deckleGrainOn(w));
+    return 1;
+}
+
+static CArchiveDeckle* overOf(PHLWINDOW window) {
+    for (auto& d : g_deckles) {
+        if (d && d->isOver() && d->getOwner() == window)
+            return d.get();
+    }
+    return nullptr;
+}
+
+bool deckleGrainOn(PHLWINDOW window) {
+    const auto d = overOf(window);
+    return d && d->grainOn();
+}
+
+void deckleToggleGrain(PHLWINDOW window) {
+    if (const auto d = overOf(window); d)
+        d->toggleGrain();
+}
+
 void deckleInit(HANDLE handle) {
     g_handle      = handle;
     g_noDeckleIdx = Desktop::Rule::windowEffects()->registerEffect("archivebars:no_deckle");
+    g_grainIdx    = Desktop::Rule::windowEffects()->registerEffect("archivebars:grain");
 
     using namespace Config::Values;
     g_config.enabled           = makeShared<CBoolValue>("plugin:archivebars:deckle", "Torn paper edges around windows", false);
@@ -447,22 +552,27 @@ void deckleInit(HANDLE handle) {
     g_config.bevel             = makeShared<CColorValue>("plugin:archivebars:deckle_bevel", "Light: bevel, torn fibres, crease ridges", 0x59ffffff);
     g_config.shadow            = makeShared<CColorValue>("plugin:archivebars:deckle_shadow", "Shadow colour", 0x661e1d22);
     g_config.shadowInactive    = makeShared<CColorValue>("plugin:archivebars:deckle_shadow_inactive", "Shadow colour, unfocused (0 = as focused)", 0);
+    g_config.grain             = makeShared<CFloatValue>("plugin:archivebars:grain", "Strength of the paper grain over windows that have it (0 = none)", 1.F);
+    g_config.grainDefault      = makeShared<CBoolValue>("plugin:archivebars:grain_default", "Grain on windows no rule mentions", false);
     g_config.tone              = makeShared<CColorValue>("plugin:archivebars:deckle_tone", "The aged edge at its darkest (alpha = strength)", 0x30604c38);
 
     for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.margin, g_config.period, g_config.toneDepth, g_config.amplitude, g_config.rimWidth,
                                                            g_config.shadowBlur, g_config.shadowX, g_config.shadowY, g_config.chips, g_config.creases, g_config.paper,
                                                            g_config.rimTop, g_config.rimBottom, g_config.rimTopInactive, g_config.rimBottomInactive, g_config.bevel,
-                                                           g_config.shadow, g_config.shadowInactive, g_config.tone})
+                                                           g_config.shadow, g_config.shadowInactive, g_config.tone, g_config.grain, g_config.grainDefault})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config ask whether this build has the edges
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY) {
         HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle", ::luaHasDeckle);
+        HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
+    }
 
     // the rim and shadow change with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });
     static auto P2 = Event::bus()->m_events.config.reloaded.listen([] {
         g_tiles.clear();
+        g_grainTex = nullptr;
         for (auto& d : g_deckles) {
             if (d)
                 g_pDecorationPositioner->repositionDeco(d.get());
@@ -481,7 +591,9 @@ void deckleOnNewWindow(PHLWINDOW window) {
         auto deco    = makeUnique<CArchiveDeckle>(window, over);
         deco->m_self = deco;
         g_deckles.emplace_back(deco);
+        auto* added = deco.get();
         HyprlandAPI::addWindowDecoration(g_handle, window, std::move(deco));
+        added->updateRules(); // the rules were applied before the window opened
     }
 }
 
@@ -495,5 +607,7 @@ void deckleOnUpdateRules(PHLWINDOW window) {
 void deckleExit() {
     g_pHyprRenderer->m_renderPass.removeAllOfType("CDecklePassElement");
     Desktop::Rule::windowEffects()->unregisterEffect(g_noDeckleIdx);
+    Desktop::Rule::windowEffects()->unregisterEffect(g_grainIdx);
     g_tiles.clear();
+    g_grainTex = nullptr;
 }
