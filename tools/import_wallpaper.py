@@ -2,7 +2,11 @@
 """Turn art/wallpaper.webp into the starter plate: the whole sheet, by day
 and as a cyanotype by night.
 
-    python3 tools/import_wallpaper.py
+    python3 tools/import_wallpaper.py [image]
+
+The source is, in order: the image given, your own wallpaper kept outside the
+theme (~/.config/archive/wallpaper.*, set by archive-wallpaper, so updates
+never replace it), or the theme's art/wallpaper.webp.
 
 The wallpaper is used as drawn, with its own typed header, labels, stamp and
 tape, so the shell types nothing over it (meta.json "sheet": true).
@@ -19,12 +23,24 @@ of each side goes, never the plant. Requires: python3, numpy, pillow.
 """
 import json
 import os
+import sys
 
 import numpy as np
 from PIL import Image, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, "..", "art", "wallpaper.webp")
+THEME_SRC = os.path.join(HERE, "..", "art", "wallpaper.webp")
+USER_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "archive")
+
+
+def source():
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    for ext in ("png", "jpg", "jpeg", "webp"):
+        mine = os.path.join(USER_DIR, "wallpaper." + ext)
+        if os.path.exists(mine):
+            return mine
+    return THEME_SRC
 OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "plates")
 PLATE = "0001-geranium-pratense"
 # the sheet is sized to cover the G14's 2880 x 1800 panel (a 16:9 sheet:
@@ -39,7 +55,9 @@ NIGHT_INK = np.array([0xe6, 0xe1, 0xd6], np.float32)
 
 
 def main():
-    src = Image.open(SRC).convert("RGB")
+    path = source()
+    print("wallpaper:", path)
+    src = Image.open(path).convert("RGB")
     scale = max(COVER[0] / src.width, COVER[1] / src.height)
     big = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
     if scale > 1.05:   # enlarged: bring the pencil lines back a little

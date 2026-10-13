@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# archive-wallpaper: use your own image as the sheet on the desk.
+#
+#   archive-wallpaper <image>     png, jpg or webp; 16:9, the larger the better
+#   archive-wallpaper reset       back to the theme's own sheet
+#
+# The image is kept as ~/.config/archive/wallpaper.<ext>, outside the theme's
+# folder, so archive-update never replaces it (setup.sh rebuilds the sheet
+# from it after every update). The day sheet is the image toned to the desk's
+# grey, the night sheet a cyanotype print of it, both sized to the screen.
+set -euo pipefail
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/archive"
+importer="$HOME/archive/tools/import_wallpaper.py"
+mkdir -p "$dir"
+
+case ${1:-} in
+    "" | -h | --help) sed -n '2,11p' "$0"; exit 0 ;;
+    reset) rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp} ;;
+    *)
+        [[ -f $1 ]] || { echo "archive-wallpaper: no such file: $1" >&2; exit 1; }
+        ext=${1##*.}
+        ext=${ext,,}
+        case $ext in png | jpg | jpeg | webp) ;; *) echo "archive-wallpaper: use a png, jpg or webp" >&2; exit 1 ;; esac
+        rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp}
+        cp -f "$1" "$dir/wallpaper.$ext"
+        ;;
+esac
+
+python3 "$importer"
+# the shell picks up the new sheet when it starts again
+if pgrep -x qs >/dev/null; then
+    pkill -x qs || true
+    sleep 0.5
+    setsid -f qs -d >/dev/null 2>&1
+fi
+echo "done"

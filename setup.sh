@@ -115,6 +115,12 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
 "$here/install.sh" || warn "linking reported a problem; see above"
+# your own wallpaper (archive-wallpaper), kept outside the theme: the update
+# just replaced the sheet, so make it again from yours
+if compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null; then
+    say "your wallpaper"
+    python3 "$here/tools/import_wallpaper.py" || warn "could not rebuild your wallpaper; run archive-wallpaper"
+fi
 
 # ------------------------------------------------------------------ 4. Zephyrus G14
 model=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)

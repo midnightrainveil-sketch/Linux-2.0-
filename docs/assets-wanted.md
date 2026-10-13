@@ -27,8 +27,10 @@ night. Colour in the art is not kept.
 - Keep the layout: ten icons in one row with clear gaps between them, and
   nine weather sketches in a 3 × 3 grid with clear gaps. The scripts find
   the pieces by those gaps and stop with a message if the count is wrong.
-- For the wallpaper, any finished 16:9 sheet works: replace
-  `art/wallpaper.webp` and run `tools/import_wallpaper.py`. The screen fills
+- For the wallpaper, any finished 16:9 sheet works: run
+  `archive-wallpaper ~/path/to/image.png`. It keeps your image in
+  `~/.config/archive/`, outside the theme, so `archive-update` never
+  replaces it, and rebuilds the day and night sheets from it. The screen fills
   with it, cropping a little off the sides on a 16:10 panel, so keep the
   sides of the picture quiet. A text-free plant on plain paper can instead go
   through `archive-plate import`, and the shell types its labels.
