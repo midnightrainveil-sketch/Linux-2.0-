@@ -65,7 +65,8 @@ the plate is the one place that should match the mockup.
 
 | Spec | How |
 | --- | --- |
-| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`archive/rules.lua`: 35.7 % × 43 % at the 32 px margin), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
+| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`archive/rules.lua`: 35.7 % × 48 %, at 1.9 % / 16.4 % of the screen), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
+| The desk stays as in the reference, and comes back | Record cards are `DeskCard`s (`components/DeskCard.qml`): drag anywhere, right-click to put away; `services/Desk.qml` remembers which are away. `archive-desk` (bar button after the workspaces, `Super + D`) calls `qs ipc call desk restore` and brings the desk terminal to the current workspace at its place, or reopens it |
 | 8 px grid; margins 32, gaps 24, padding 16, header 10/14, rows 30 | `Theme.qml` |
 | Window gaps 8 between, 24 to the edge | `gaps_in = 4` (Hyprland doubles it between windows), `gaps_out = 24` |
 | 16:10: extra height as breathing room | `Records.qml` spreads the spare height between the cards, never adding one |
@@ -215,9 +216,16 @@ recommendation.
 | Tab. = ISO week in Roman numerals | `Clock.tabNumeral` |
 | Stamp year in Roman numerals | `Clock.yearNumeral` |
 
-The starter plate comes from `art/wallpaper.webp` (`tools/import_wallpaper.py`):
-the plant column only, with the image's own text painted out, so the shell's
-live labels are the only words on the sheet.
+The starter plate is `art/wallpaper.webp` used whole, as you asked: its own
+typed header, labels, stamp and tape stay (`"sheet": true` in its
+`meta.json`), so the shell types nothing over it. `tools/import_wallpaper.py`
+upscales it, tones its paper to the desk grey, and prints a cyanotype version
+for night (pale ink on Prussian blue, the paper's mottling kept); `Plate.qml`
+crossfades between the two. Note that the sheet's own text says "Herbarium"
+and "HERB. REG. BOT.", which the spec keeps off the screen; it is shown
+because the picture is yours. Plates imported with `archive-plate` carry no
+text, and for those the shell types the labels live (`Tab.` week numeral,
+Specimen No. and so on).
 
 ## 14. Night mode: cyanotype
 

@@ -18,6 +18,8 @@ require("archive.binds")
 require("archive.rules")
 
 ------------------------------------------------------------------ environment
+-- the archive-* commands live in ~/.local/bin; every login path must see them
+hl.env("PATH", os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or "/usr/local/bin:/usr/bin"))
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")

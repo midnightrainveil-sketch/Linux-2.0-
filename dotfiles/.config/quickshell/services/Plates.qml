@@ -10,6 +10,9 @@ import Quickshell.Io
 //   <id>/ink.png          the drawing as an alpha mask (no text, no paper)
 //   <id>/wash.png         optional: watercolour tint mask for the flowers
 //   <id>/silhouette.png   optional: filled shape, used for the cyanotype photogram
+// or, for a whole finished sheet that carries its own labels ("sheet": true):
+//   <id>/sheet-day.jpg    the sheet by day
+//   <id>/sheet-night.jpg  the same sheet as a cyanotype
 // A new plate is shown each day; settings.json "plate" pins one.
 Singleton {
     id: root
@@ -40,6 +43,9 @@ Singleton {
     readonly property var marks:        field("marks", [])
     readonly property bool hasWash:     field("wash", false)
     readonly property bool hasSilhouette: field("silhouette", false)
+    readonly property bool sheet:       field("sheet", false)
+    readonly property string sheetDay:   sheet && folder !== "" ? folder + field("day", "sheet-day.jpg") : ""
+    readonly property string sheetNight: sheet && folder !== "" ? folder + field("night", "sheet-night.jpg") : ""
 
     FileView {
         id: indexFile

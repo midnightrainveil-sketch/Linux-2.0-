@@ -62,6 +62,12 @@ ShellRoot {
         function close(): void { Panels.close(); }
     }
 
+    // archive-desk: lay the record cards back in their places
+    IpcHandler {
+        target: "desk"
+        function restore(): void { Desk.restore(); }
+    }
+
     IpcHandler {
         target: "lock"
         function lock(): void { readingRoom.lock(); }

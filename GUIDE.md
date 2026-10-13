@@ -13,6 +13,11 @@ You start with:
 
 Total time: about an hour, most of it waiting for downloads.
 
+> **In a hurry?** If Arch and Hyprland already run, `~/archive/setup.sh` does
+> Phases 2 to 7 in one go (packages, linking, G14 GPU names, the plugin, the
+> login screen). Clone the repository to `~/archive` first (Phase 2), run it,
+> then log out and back in and continue at Phase 8.
+
 > **What you get.** Hyprland 0.55+ (Lua config) handles windows: paper cards
 > with torn edges and short soft shadows, darker-edged when focused, with
 > typed title bars. Quickshell 0.3+ draws everything else: the plate wallpaper,
@@ -265,7 +270,8 @@ number is the current air pressure in hPa.
 
 | Keys | Does |
 | --- | --- |
-| `Super + Space` (or `Super + D`) | Card Catalogue (launcher): type, `↑ ↓`, `Enter` |
+| `Super + Space` | Card Catalogue (launcher): type, `↑ ↓`, `Enter` |
+| `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |
 | `Super + F` / `Super + M` | Fullscreen / maximise |
@@ -286,6 +292,12 @@ number is the current air pressure in hPa.
 | G14 `Fn + F5` (fan key) | Quiet → Balanced → Performance |
 | G14 ROG key | ROG Control Center |
 
+The desk: at login the record cards lie on the right and a live terminal on
+the left, as in the reference. Drag a card anywhere; right-click it to put it
+away. The terminal is an ordinary window: use it, clear it, move it, close it.
+The small card button after the workspace numbers (or `Super + D`) puts
+everything back.
+
 Mouse: click the sprig for the catalogue, the date for the ledger and the
 status marks for the instruments. The screen mark turns the sheet to day or
 night. Scroll over the workspaces to switch, and over the Audio Archive card
@@ -296,9 +308,10 @@ middle-click to pin with a tape strip.
 
 ## Phase 10: Your own plates (optional)
 
-The starter plate is drawn by a script, so it's a stand-in. For the real
-archive feeling, add 7 to 14 public-domain botanical plates. Each plate shows
-for one day, in order. Good sources are Wikimedia Commons and the Biodiversity
+The starter plate is your *Geranium pratense* sheet (`art/wallpaper.webp`,
+turned into day and night versions by `tools/import_wallpaper.py`). For
+variety, add 7 to 14 public-domain botanical plates. Each plate shows for one
+day, in order. Good sources are Wikimedia Commons and the Biodiversity
 Heritage Library, with books such as Lindman's *Bilder ur Nordens Flora*
 (1901–05), Thomé's *Flora von Deutschland* (1885) and Sturm's *Deutschlands Flora*.
 

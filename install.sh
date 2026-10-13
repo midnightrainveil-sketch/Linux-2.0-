@@ -150,4 +150,4 @@ if (( want_plugins )); then
     fi
 fi
 
-say "done. Log in to Hyprland (start-hyprland), then: ./install.sh --plugins"
+say "done. Title bars and paper edges: ./install.sh --plugins (setup.sh does this for you)"

@@ -1,42 +1,11 @@
 {
   "number": "0001",
   "region": "FLORA EUROPAEA",
-  "subtitle": "Archivum.",
   "latin": "Geranium pratense",
   "authority": "Linnaeus, 1753.",
   "family": "Geraniaceae",
   "common": "European meadow cranesbill.",
-  "label": {
-    "loc": "Northern Europe.",
-    "hab": "Meadows and field margins.",
-    "leg": "E. K. Vestergaard",
-    "det": "A. Holmgren",
-    "dat": "14 VI 1921."
-  },
-  "box": [
-    0.3768,
-    0.0584,
-    0.6699,
-    0.9511
-  ],
-  "wash": false,
-  "silhouette": true,
-  "tapes": [],
-  "marks": [
-    {
-      "text": "1:1",
-      "x": 0.902,
-      "y": 0.47
-    },
-    {
-      "text": "2:1",
-      "x": 0.931,
-      "y": 0.625
-    },
-    {
-      "text": "2:1",
-      "x": 0.89,
-      "y": 0.75
-    }
-  ]
+  "sheet": true,
+  "day": "sheet-day.jpg",
+  "night": "sheet-night.jpg"
 }

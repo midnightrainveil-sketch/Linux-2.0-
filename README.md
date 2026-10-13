@@ -16,25 +16,29 @@ are left out of this offscreen preview.</sub>
 
 ## Start here
 
-**→ [GUIDE.md](GUIDE.md)**: step by step, from a fresh Arch install to the
-finished desktop.
-
-Short version, on an up-to-date Arch with a sudo user:
+On an Arch Linux that already runs Hyprland, one command installs the whole
+theme:
 
 ```sh
-git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive && cd ~/archive
-./install.sh --packages --g14      # packages, G14 GPU names
-./install.sh                       # link config, services, day/night timer
-./install.sh --greeter             # optional: typed login screen
-# reboot, log in, then inside Hyprland:
-./install.sh --plugins             # title bars and torn window edges (archivebars)
+git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive
+~/archive/setup.sh
 ```
+
+(or unpack the `archive-theme` tarball anywhere and run `./setup.sh` in it; it
+moves itself to `~/archive`). It installs the packages, links the
+configuration (your old files go to `~/.archive-backup/`), names the G14's
+GPUs if it finds a G14, builds the title-bar and paper-edge plugin, and offers
+a typed login screen. Then log out and back in.
+
+**→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
+Arch install, with a check after each one.
 
 ## What's inside
 
 | | |
 | --- | --- |
-| **Plate** (wallpaper) | A text-free pencil plate in the centre third. The shell types the header, `Tab.` week numeral, Latin name, specimen label, `Specimen No.`, an archive stamp, tape strips and foxing. A new plate each day. |
+| **Plate** (wallpaper) | The *Geranium pratense* sheet, whole, with its typed labels, stamp and tape; at night the same sheet printed as a cyanotype. Plates without text also work: then the shell types the labels itself. |
+| **The desk** | At login: the three record cards on the right and a live terminal on the left, as in the reference. Drag them anywhere, right-click a card to put it away, close the terminal; the card button in the bar (or `Super + D`) lays the desk out again. |
 | **Record cards** | Time Record (clock, date, week, coordinates), Meteorological Observation (Open-Meteo, no key), Audio Archive (any MPRIS player). Every `No.` is real data. |
 | **Footer bar** | Sprig (launcher), typed workspaces with a blue underline, `/ home / atlas /` breadcrumb, sketched status marks, date. |
 | **Popups** | Card Catalogue (launcher), Ledger (calendar), Instrument card (Wi-Fi, Bluetooth, battery, power profile, day/night, grain, volume and light rulers), Disposition (power menu). |

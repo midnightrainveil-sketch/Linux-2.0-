@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# archive-desk: lay the desk out as it was at login.
+#
+#   archive-desk            put everything back (the bar's desk button, Super+D)
+#   archive-desk terminal   just the terminal
+#
+# The desk is the three record cards on the right and one live terminal on
+# the left (the reference picture). Drag them around, close them, send the
+# terminal to the drawer: this brings it all back. The cards return to their
+# places; the terminal comes to the workspace you are on, floating, at its
+# place and size, and is focused. If it was closed, a new one opens (it
+# greets you with fastfetch).
+set -uo pipefail
+
+# the terminal's place, as fractions of the screen (as in hypr/archive/rules.lua)
+X=0.019 Y=0.164 W=0.357 H=0.48
+
+cards() {
+    qs ipc call desk restore >/dev/null 2>&1 || true
+}
+
+terminal() {
+    local addr
+    addr=$(hyprctl clients -j | jq -r '[.[] | select(.class == "archive.desk")][0].address // empty')
+    if [[ -z $addr ]]; then
+        # rules.lua floats it and puts it in place
+        setsid -f foot --app-id=archive.desk env ARCHIVE_DESK=1 zsh >/dev/null 2>&1
+        return
+    fi
+
+    local mon ws
+    mon=$(hyprctl monitors -j | jq -c '.[] | select(.focused)')
+    ws=$(jq -r '.activeWorkspace.id' <<<"$mon")
+    # the monitor in layout coordinates (its size divided by its scale, turned if rotated)
+    read -r mx my mw mh < <(jq -r '
+        (.transform % 2 == 1) as $turned
+        | [.x, .y, ((if $turned then .height else .width end) / .scale | floor), ((if $turned then .width else .height end) / .scale | floor)]
+        | @tsv' <<<"$mon")
+    local px py pw ph
+    px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
+    py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
+    pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
+    ph=$(awk -v h="$mh" -v f="$H" 'BEGIN { printf "%d", h * f }')
+
+    local win="window = \"address:$addr\""
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.window.float({ action = \"on\", $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.window.resize({ x = $pw, y = $ph, $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.window.move({ x = $px, y = $py, $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ $win })" >/dev/null
+}
+
+case ${1:-all} in
+    all | restore)
+        cards
+        terminal
+        ;;
+    terminal) terminal ;;
+    cards) cards ;;
+    *) echo "usage: archive-desk [all|terminal|cards]" >&2; exit 2 ;;
+esac

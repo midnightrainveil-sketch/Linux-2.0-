@@ -4,14 +4,15 @@ local palette = require("archive.palette")
 local c = palette[state.mode()]
 
 ------------------------------------------------------------------ the desk terminal
--- At rest the left desk holds one terminal card (the mockup's fastfetch card):
--- floating, at the 32 px outer margin, about 35 % of the screen wide.
+-- At rest the left desk holds one terminal card (the reference's fastfetch
+-- card): floating, 36 % of the screen wide, by the left edge. archive-desk
+-- (the bar's desk button, Super+D) puts it back here; keep the two in step.
 hl.window_rule({
     name = "archive-desk",
     match = { class = "^archive\\.desk$" },
     float = true,
-    size = { "monitor_w*0.357", "monitor_h*0.43" },
-    move = { 32, "monitor_h*0.15" },
+    size = { "monitor_w*0.357", "monitor_h*0.48" },
+    move = { "monitor_w*0.019", "monitor_h*0.164" },
 })
 
 ------------------------------------------------------------------ small tools float as centred cards

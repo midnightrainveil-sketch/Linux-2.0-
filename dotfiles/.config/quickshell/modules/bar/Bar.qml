@@ -55,8 +55,39 @@ PanelWindow {
     }
 
     Workspaces {
+        id: workspaces
         x: 75
         anchors.verticalCenter: parent.verticalCenter
+    }
+
+    // the desk button: a small index card. Lays the record cards and the
+    // desk terminal back out as at login (archive-desk, also Super+D).
+    Item {
+        id: deskButton
+        x: workspaces.x + workspaces.width + 22
+        width: 30
+        height: Theme.barHeight
+        readonly property color ink: deskMouse.containsMouse ? Theme.accent : Theme.soft
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 20
+            height: 14
+            color: "transparent"
+            border.width: 1.4
+            border.color: deskButton.ink
+            radius: 1
+            // the card's header rule and a line of type
+            Rectangle { x: 3; y: 4; width: parent.width - 6; height: 1.2; color: deskButton.ink }
+            Rectangle { x: 3; y: 8; width: (parent.width - 6) * 0.6; height: 1.2; color: deskButton.ink; opacity: 0.7 }
+        }
+        MouseArea {
+            id: deskMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Quickshell.execDetached(["archive-desk"])
+        }
     }
 
     // ---- centre: "/ home / atlas /"

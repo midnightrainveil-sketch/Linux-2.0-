@@ -1,118 +1,85 @@
 #!/usr/bin/env python3
-"""Turn art/wallpaper.webp into the starter plate (0001, Geranium pratense).
+"""Turn art/wallpaper.webp into the starter plate: the whole sheet, by day
+and as a cyanotype by night.
 
     python3 tools/import_wallpaper.py
 
-The generated wallpaper is a whole sheet with the plant in the centre third,
-but it also carries typed labels, a stamp and scale marks, and some of that
-text says "Herbarium", which the spec keeps off the screen. So only the plant
-column is kept. The text inside it is painted out, and the drawing becomes the
-usual plate layers. The shell then types its own live labels around it.
+The wallpaper is used as drawn, with its own typed header, labels, stamp and
+tape, so the shell types nothing over it (meta.json "sheet": true).
 
-  ink.png          the pencil drawing as alpha (graphite by day, cream at night)
-  silhouette.png   the filled plant, printed as a photogram at night
-  meta.json        names, specimen label, tape strips, scale marks, plate box
+  sheet-day.jpg    the sheet, upscaled 2x and toned to the desk's grey paper
+  sheet-night.jpg  the same sheet printed as a cyanotype: Prussian-blue paper,
+                   the drawing and type in pale cream, the paper's own
+                   mottling and specks kept
+  meta.json        names and the plate number, for the shell's other cards
+
+The screen crops the sheet to fill (the G14 is 16:10, the art 16:9): a little
+of each side goes, never the plant. Requires: python3, numpy, pillow.
 """
 import json
 import os
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "art", "wallpaper.webp")
 OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "plates")
 PLATE = "0001-geranium-pratense"
-
-# in source pixels (1672 x 941)
-CROP = (630, 55, 1120, 895)                       # the plant and its detail studies
-TEXT = [                                          # typed text inside or near the crop
-    (630, 0, 830, 86),                            # FLORA EUROPAEA / Herbarium.
-    (1075, 0, 1200, 72),                          # Tab. XLVII.
-    (1065, 445, 1110, 475),                       # 1:1
-    (1080, 575, 1125, 605),                       # 2:1
-    (1060, 680, 1105, 710),                       # 2:1
-    (905, 730, 1180, 875),                        # the specimen label box
-    (560, 645, 770, 790),                         # Latin name and authority
-]
 UPSCALE = 2
+
+# the desk's paper (Theme.paperBase is c9c7c3; the reference desk reads about
+# cbc9c5 around the plate) and the night sheet's colours (Theme.nite)
+DAY_PAPER = np.array([203, 201, 197], np.float32)
+NIGHT_PAPER = np.array([0x1c, 0x2f, 0x4d], np.float32)
+NIGHT_INK = np.array([0xe6, 0xe1, 0xd6], np.float32)
 
 
 def main():
     src = Image.open(SRC).convert("RGB")
-    sw, sh = src.size
+    big = src.resize((src.width * UPSCALE, src.height * UPSCALE), Image.LANCZOS)
+    big = big.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
+    rgb = np.asarray(big, np.float32)
 
-    # paint the text out with the surrounding paper
-    gray = src.convert("L")
-    paper = gray.filter(ImageFilter.MaxFilter(21)).filter(ImageFilter.GaussianBlur(25))
-    mask = Image.new("L", src.size, 0)
-    d = ImageDraw.Draw(mask)
-    for box in TEXT:
-        d.rectangle(box, fill=255)
-    clean = Image.composite(paper, gray, mask)
+    # the paper's own colour, everywhere (the ink lifted out of it)
+    gray = big.convert("L")
+    paper_l = np.asarray(gray.filter(ImageFilter.MaxFilter(15)).filter(ImageFilter.GaussianBlur(24)), np.float32)
+    paper_rgb = np.median(rgb.reshape(-1, 3), axis=0)
 
-    # the plant column, upscaled so the lines stay fine on a 2880 px panel
-    col = clean.crop(CROP)
-    col = col.resize((col.width * UPSCALE, col.height * UPSCALE), Image.LANCZOS)
-    col = col.filter(ImageFilter.UnsharpMask(radius=1.6, percent=60, threshold=2))
-    g = np.asarray(col, np.float32) / 255
-    bg = np.asarray(col.filter(ImageFilter.MaxFilter(25)).filter(ImageFilter.GaussianBlur(30)), np.float32) / 255
-    bg = np.maximum(bg, g)
-    ink = np.clip((bg - g) / np.maximum(bg, 0.2), 0, 1)
-    ink = np.clip((ink - 0.10) / 0.58, 0, 1) ** 0.85
+    # ---- day: tone the sheet so its paper matches the desk
+    gain = DAY_PAPER / paper_rgb
+    day = np.clip(rgb * gain, 0, 255).astype(np.uint8)
 
-    # silhouette: the drawing thickened and softened, a photogram's glow
-    sil = Image.fromarray(((ink > 0.25) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(3))
+    # ---- night: a cyanotype print of the same sheet
+    lum = rgb.mean(axis=2)
+    paper_l = np.maximum(paper_l, lum)
+    ink = np.clip((paper_l - lum) / np.maximum(paper_l, 1), 0, 1)       # 0 paper .. 1 solid ink
+    ink = np.clip(ink * 1.25, 0, 1) ** 0.85
+    # the paper's mottling, carried over as a faint unevenness of the blue
+    mottle = (paper_l - paper_l.mean()) / 255.0
+    base = NIGHT_PAPER[None, None, :] * (1 + 0.9 * mottle[..., None])
+    night = base * (1 - ink[..., None]) + NIGHT_INK[None, None, :] * ink[..., None]
+    night = np.clip(night, 0, 255).astype(np.uint8)
 
     folder = os.path.join(OUT, PLATE)
     os.makedirs(folder, exist_ok=True)
-    for name in ("ink.png", "wash.png", "silhouette.png"):
-        p = os.path.join(folder, name)
-        if os.path.exists(p):
-            os.remove(p)
-
-    def alpha_png(a, name):
-        img = Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)) if isinstance(a, np.ndarray) else a
-        out = Image.new("RGBA", img.size, (0, 0, 0, 0))
-        out.putalpha(img)
-        out.save(os.path.join(folder, name), optimize=True)
-
-    alpha_png(ink, "ink.png")
-    alpha_png(sil, "silhouette.png")
-
-    x0, y0, x1, y1 = CROP
-    cw, ch = x1 - x0, y1 - y0
-
-    def rel(x, y):
-        return round((x - x0) / cw, 3), round((y - y0) / ch, 3)
-
-    tapes = []          # the tape strips are part of the drawing itself
-    marks = []
-    for (x, y), text in (((1072, 450), "1:1"), ((1086, 580), "2:1"), ((1066, 685), "2:1")):
-        mx, my = rel(x, y)
-        marks.append({"text": text, "x": mx, "y": my})
+    for name in os.listdir(folder):
+        if name.endswith(".png") or name.startswith("sheet-"):
+            os.remove(os.path.join(folder, name))
+    Image.fromarray(day).save(os.path.join(folder, "sheet-day.jpg"), quality=90, optimize=True, progressive=True)
+    Image.fromarray(night).save(os.path.join(folder, "sheet-night.jpg"), quality=90, optimize=True, progressive=True)
 
     meta = {
         "number": "0001",
         "region": "FLORA EUROPAEA",
-        "subtitle": "Archivum.",
         "latin": "Geranium pratense",
         "authority": "Linnaeus, 1753.",
         "family": "Geraniaceae",
         "common": "European meadow cranesbill.",
-        "label": {
-            "loc": "Northern Europe.",
-            "hab": "Meadows and field margins.",
-            "leg": "E. K. Vestergaard",
-            "det": "A. Holmgren",
-            "dat": "14 VI 1921."
-        },
-        # where the plant sat on the 16:9 source sheet, as fractions of the screen
-        "box": [round(x0 / sw, 4), round(y0 / sh, 4), round(x1 / sw, 4), round(y1 / sh, 4)],
-        "wash": False,
-        "silhouette": True,
-        "tapes": tapes,
-        "marks": marks,
+        # the whole sheet is the wallpaper: the shell types no labels over it
+        "sheet": True,
+        "day": "sheet-day.jpg",
+        "night": "sheet-night.jpg",
     }
     with open(os.path.join(folder, "meta.json"), "w") as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
@@ -125,7 +92,7 @@ def main():
     with open(index_path, "w") as f:
         json.dump(sorted(index), f, indent=2)
         f.write("\n")
-    print("plate written:", folder, ink.shape)
+    print("plate written:", folder, day.shape[1], "x", day.shape[0])
 
 
 if __name__ == "__main__":
