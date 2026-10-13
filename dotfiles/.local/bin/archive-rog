@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# archive-rog: keep the G14's own tools from changing things behind your back.
+#
+#   archive-rog calm      the power profile stays what you chose: asusd no
+#                         longer switches it when you plug in or unplug, and
+#                         ROG Control stops sending notifications and quits
+#                         when you close it (no background copy)
+#   archive-rog status
+#
+# Choose the profile with the fan key (Fn+F5) or the Instruments card. asusd's
+# own config is /etc/asusd/asusd.ron (a copy of the original is kept next to
+# it as asusd.ron.archive-bak); ROG Control's is ~/.config/rog/.
+set -euo pipefail
+asusd_cfg=/etc/asusd/asusd.ron
+rcc_cfg="${XDG_CONFIG_HOME:-$HOME/.config}/rog/rog-control-center.cfg"
+
+calm() {
+    if [[ -f $asusd_cfg ]] && grep -qE 'change_platform_profile_on_(ac|battery): *true' "$asusd_cfg"; then
+        # asusd writes its config back when it stops, so edit it while stopped
+        sudo systemctl stop asusd.service
+        [[ -f $asusd_cfg.archive-bak ]] || sudo cp "$asusd_cfg" "$asusd_cfg.archive-bak"
+        sudo sed -i -E 's/(change_platform_profile_on_(ac|battery): *)true/\1false/' "$asusd_cfg"
+        sudo systemctl start asusd.service
+        echo "asusd: the power profile no longer changes on plug / unplug"
+    else
+        echo "asusd: nothing to change"
+    fi
+
+    if [[ -f $rcc_cfg ]]; then
+        if pkill -x rog-control-center 2>/dev/null; then sleep 1; fi   # it saves on exit
+        sed -i -E \
+            -e 's/(run_in_background: *)true/\1false/' \
+            -e 's/(startup_in_background: *)true/\1false/' \
+            -e 's/(enabled: *)true/\1false/' \
+            -e 's/(enable_(dgpu_)?notifications: *)true/\1false/' \
+            "$rcc_cfg"
+        echo "ROG Control: no notifications, quits when closed"
+    else
+        echo "ROG Control: not set up yet (run this again after opening it once)"
+    fi
+}
+
+case ${1:-calm} in
+    calm) calm ;;
+    status)
+        grep -E 'change_platform_profile_on_(ac|battery)' "$asusd_cfg" 2>/dev/null || echo "no $asusd_cfg"
+        grep -E 'run_in_background|enabled:|notifications:' "$rcc_cfg" 2>/dev/null || echo "no $rcc_cfg"
+        ;;
+    *) echo "usage: archive-rog calm|status" >&2; exit 2 ;;
+esac

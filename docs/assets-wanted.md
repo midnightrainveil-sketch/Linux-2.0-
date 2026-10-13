@@ -7,6 +7,7 @@ source image:
 ```sh
 python3 tools/import_art.py         # sprig, icons, weather sketches
 python3 tools/import_wallpaper.py   # the starter plate (wallpaper)
+python3 tools/import_drawer.py      # the catalogue drawer
 ```
 
 | Source | Becomes | What it is |
@@ -14,6 +15,7 @@ python3 tools/import_wallpaper.py   # the starter plate (wallpaper)
 | `art/sprig.webp` | `assets/sprig-wash.png` | The Time Record's twig, a blue-grey watercolour sprig. |
 | `art/icons.webp` | `assets/icons/<name>.png` | One row of ten ink icons, left to right: seedling, screen, screen-night, speaker, speaker-loud, speaker-muted, wifi, wifi-none, wifi-off, record. |
 | `art/weather.webp` | `assets/weather/<name>.png` | A 3 × 3 grid of pencil weather sketches, row by row: overcast, clear, clear-night / partly, partly-night, fog / rain, snow, storm. |
+| `art/drawer/*.webp` | `quickshell/assets/drawer/` | The catalogue drawer, from `tools/import_drawer.py`: `front` (a square oak front, rebuilt wide with the grain lengthwise), `holder` and `pull` (brass on white, keyed out), `wood` (a seamless tile for the inside). Without them the drawer is drawn. |
 | `art/wallpaper.webp` | `~/.local/share/archive/plates/0001-geranium-pratense/` | The whole 16:9 sheet, used as the wallpaper with its own text: `sheet-day.jpg` (toned to the desk grey) and `sheet-night.jpg` (a cyanotype print of it). |
 
 The sources can be ink on white: the scripts key out the paper and write

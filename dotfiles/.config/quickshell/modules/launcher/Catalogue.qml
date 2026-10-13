@@ -1,4 +1,5 @@
 import QtQuick
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -165,7 +166,7 @@ PanelWindow {
         height: 700
         anchors.horizontalCenter: parent.horizontalCenter
         // pulled up out of the bar
-        y: win.height - Theme.barHeight - height + 36 + (1 - win.slide) * (height + 40)
+        y: win.height - Theme.barHeight - height + 20 + (1 - win.slide) * (height + 40)
 
         readonly property real frontTop: 520      // the drawer's front lip
         readonly property real cardW: 600
@@ -177,11 +178,18 @@ PanelWindow {
         }
 
         // the inside of the drawer: dark wood walls narrowing to the back
+        // (assets/drawer/wood.jpg, from art/drawer by tools/import_drawer.py;
+        // a plain gradient without it)
         Canvas {
             id: inside
             anchors.fill: parent
             readonly property color wood: Theme.night > 0.5 ? "#101a2b" : "#3a2f27"
+            readonly property string woodTile: Qt.resolvedUrl("../../assets/drawer/wood.jpg")
+            readonly property real nightTint: Theme.night
             onWoodChanged: requestPaint()
+            onNightTintChanged: requestPaint()
+            onImageLoaded: requestPaint()
+            Component.onCompleted: loadImage(woodTile)
             onPaint: {
                 const g = getContext("2d");
                 g.reset();
@@ -190,8 +198,18 @@ PanelWindow {
                 const b = f - 330;                    // the back of the drawer
                 g.moveTo(40, f); g.lineTo(780, f); g.lineTo(726, b); g.lineTo(94, b); g.closePath();
                 const grad = g.createLinearGradient(0, b, 0, f);
-                grad.addColorStop(0, String(Qt.darker(wood, 1.6)));
-                grad.addColorStop(1, String(wood));
+                if (isImageLoaded(woodTile)) {
+                    // the wood, darker toward the back, and blue by night
+                    g.fillStyle = g.createPattern(woodTile, "repeat");
+                    g.fill();
+                    g.fillStyle = Qt.rgba(0.06, 0.10, 0.17, 0.72 * nightTint);
+                    g.fill();
+                    grad.addColorStop(0, Qt.rgba(0, 0, 0, 0.62));
+                    grad.addColorStop(1, Qt.rgba(0, 0, 0, 0.12));
+                } else {
+                    grad.addColorStop(0, String(Qt.darker(wood, 1.6)));
+                    grad.addColorStop(1, String(wood));
+                }
                 g.fillStyle = grad;
                 g.fill();
                 // the side walls catch a little light
@@ -301,11 +319,31 @@ PanelWindow {
             x: 30
             y: stage.frontTop
             width: 760
-            height: 170
+            height: 180
+
+            // the oak front (assets/drawer/front.png; drawn wood without it),
+            // turned blue by night
+            Image {
+                id: frontImg
+                anchors.fill: parent
+                source: Qt.resolvedUrl("../../assets/drawer/front.png")
+                sourceSize: Qt.size(1520, 360)
+                smooth: true
+                visible: status === Image.Ready
+            }
+            Colorize {
+                anchors.fill: frontImg
+                source: frontImg
+                hue: 0.6; saturation: 0.35; lightness: -0.1
+                opacity: Theme.night
+                visible: frontImg.visible && Theme.night > 0.01
+            }
+            Rectangle { anchors.left: parent.left; anchors.right: parent.right; height: 3; color: Qt.rgba(1, 1, 1, 0.12); visible: frontImg.visible }
 
             Canvas {
                 id: frontWood
                 anchors.fill: parent
+                visible: frontImg.status !== Image.Ready
                 readonly property color tone: Theme.night > 0.5 ? "#1a2840" : "#5b4a3b"
                 onToneChanged: requestPaint()
                 onPaint: {
@@ -340,27 +378,38 @@ PanelWindow {
                 }
             }
 
-            // brass label holder
-            Rectangle {
+            // brass label holder: the label card lies behind the brass frame
+            // (assets/drawer/holder.png, its window measured by the importer:
+            // x .133, y .20, w .738, h .591 of the frame; a drawn frame without it)
+            Item {
                 id: holder
+                readonly property bool art: holderImg.status === Image.Ready
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 30
-                width: 300
-                height: 62
-                radius: 3
-                color: Theme.night > 0.5 ? "#7d8aa1" : "#a68a5b"
-                border.width: 1
-                border.color: Qt.rgba(0, 0, 0, 0.4)
-                // the label card behind the brass frame
+                y: art ? 4 : 30
+                width: art ? 330 : 300
+                height: art ? Math.round(330 / 2.874) : 62
+                readonly property color brass: Theme.night > 0.5 ? "#7d8aa1" : "#a68a5b"
+
                 Rectangle {
                     anchors.fill: parent
-                    anchors.margins: 7
+                    visible: !holder.art
+                    radius: 3
+                    color: holder.brass
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.4)
+                }
+
+                Rectangle {
+                    x: holder.art ? holder.width * 0.133 - 4 : 7
+                    y: holder.art ? holder.height * 0.20 - 4 : 7
+                    width: holder.art ? holder.width * 0.738 + 8 : holder.width - 14
+                    height: holder.art ? holder.height * 0.591 + 8 : holder.height - 14
                     color: Theme.paperCard
                     Grain { anchors.fill: parent; strength: 0.9 }
 
                     InkText {
                         id: queryLabel
-                        x: 10
+                        x: holder.art ? 12 : 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Query:"
                         color: Theme.faded
@@ -411,36 +460,66 @@ PanelWindow {
                     InkText {
                         id: count
                         anchors.right: parent.right
-                        anchors.rightMargin: 10
+                        anchors.rightMargin: holder.art ? 12 : 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: win.results.length ? String(win.selected + 1).padStart(2, "0") + " / " + String(win.results.length).padStart(2, "0") : "00"
                         color: Theme.faded
                         font.pixelSize: 13
                     }
                 }
+                Image {
+                    id: holderImg
+                    anchors.fill: parent
+                    source: Qt.resolvedUrl("../../assets/drawer/holder.png")
+                    smooth: true
+                    visible: status === Image.Ready
+                }
+                Colorize {
+                    anchors.fill: holderImg
+                    source: holderImg
+                    hue: 0.6; saturation: 0.18; lightness: 0.05
+                    opacity: Theme.night
+                    visible: holder.art && Theme.night > 0.01
+                }
+
                 // two little rivets
                 Repeater {
-                    model: 2
+                    model: holder.art ? 0 : 2
                     Rectangle {
                         required property int index
                         width: 6; height: 6; radius: 3
                         x: index === 0 ? -9 : holder.width + 3
                         anchors.verticalCenter: parent.verticalCenter
-                        color: holder.color
+                        color: holder.brass
                         border.width: 1
                         border.color: Qt.rgba(0, 0, 0, 0.4)
                     }
                 }
             }
 
-            // brass cup pull
+            // brass cup pull (assets/drawer/pull.png; drawn without it)
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 108
-                width: 150
-                height: 34
+                y: pullImg.visible ? 121 : 108
+                width: pullImg.visible ? 96 : 150
+                height: pullImg.visible ? Math.round(96 / 2.43) : 34
+                Image {
+                    id: pullImg
+                    anchors.fill: parent
+                    source: Qt.resolvedUrl("../../assets/drawer/pull.png")
+                    smooth: true
+                    visible: status === Image.Ready
+                }
+                Colorize {
+                    anchors.fill: pullImg
+                    source: pullImg
+                    hue: 0.6; saturation: 0.18; lightness: 0.05
+                    opacity: Theme.night
+                    visible: pullImg.visible && Theme.night > 0.01
+                }
                 Canvas {
                     anchors.fill: parent
+                    visible: !pullImg.visible
                     readonly property color brass: Theme.night > 0.5 ? "#7d8aa1" : "#a68a5b"
                     onBrassChanged: requestPaint()
                     onPaint: {

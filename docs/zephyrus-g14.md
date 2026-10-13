@@ -107,6 +107,11 @@ height, which the record column uses as breathing room.
 - The fan key (`Fn + F5`) cycles Quiet → Balanced → Performance through
   `power-profiles-daemon`. asusctl follows it, and the Instruments card
   shows it.
+- Out of the box asusd also switches the profile by itself when you plug in
+  (Performance) or unplug (Quiet), and ROG Control keeps running after you
+  close it and sends a notification for each change. `setup.sh` runs
+  `archive-rog calm`, which turns both off, so the profile stays what you
+  chose. Run it again if a ROG Control update brings them back.
 - hypridle dims at 2.5 min, locks at 5, turns the screen off at 5.5, and
   suspends after 20 min on battery.
 

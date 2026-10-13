@@ -121,6 +121,9 @@ model=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     say "Zephyrus G14 ($model): stable GPU names"
     "$here/install.sh" --g14 || warn "G14 step failed; see docs/zephyrus-g14.md"
+    # the power profile stays what you choose (no switching on plug / unplug,
+    # no ROG Control notifications)
+    "$HOME/.local/bin/archive-rog" calm || warn "could not quieten asusd / ROG Control; run archive-rog calm"
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, supergfxctl)"
 fi
 
