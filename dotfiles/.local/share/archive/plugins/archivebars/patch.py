@@ -10,11 +10,15 @@ Changes, kept deliberately small so they survive upstream updates:
   * rule_color / rule_width / rule_inset: a ruled line along the bottom of
     the bar, inset from the window's edges (the reference title bar);
   * right_icon / right_icon_action / right_icon_color / right_icon_size: a
-    typed glyph on the right of the bar (the reference's "-"), clickable.
+    typed glyph on the right of the bar (the reference's "-"), clickable;
+  * deckle / deckle_*: a torn paper edge, bevel and shadow around every
+    window, laid out of repeating tiles (deckle.cpp, DeckleDeco.cpp, copied in
+    from next to this script), so it fits any window size.
 Every edit is anchored on upstream text; if an anchor is missing the script
 stops with an error and the installer falls back to stock hyprbars.
 """
 import pathlib
+import shutil
 import sys
 
 src = pathlib.Path(sys.argv[1])
@@ -148,6 +152,26 @@ edit("barDeco.cpp", [
         "    m_pTextTex           = nullptr;\n"
         "    m_pRightTex          = nullptr;\n",
     ),
+])
+
+# ---- the paper edge: its own decoration, in its own files
+here = pathlib.Path(__file__).resolve().parent
+for f in ("deckle.hpp", "deckle.cpp", "DeckleDeco.hpp", "DeckleDeco.cpp"):
+    shutil.copy(here / f, src / f)
+
+edit("Makefile", [
+    ("SRC = main.cpp barDeco.cpp BarPassElement.cpp\n", "SRC = main.cpp barDeco.cpp BarPassElement.cpp deckle.cpp DeckleDeco.cpp\n"),
+    ("INCLUDES = `pkg-config --cflags ", "INCLUDES = `pkg-config --cflags cairo "),
+])
+
+edit("main.cpp", [
+    ('#include "barDeco.hpp"\n', '#include "barDeco.hpp"\n#include "DeckleDeco.hpp"\n'),
+    ("static void onNewWindow(PHLWINDOW window) {\n", "static void onNewWindow(PHLWINDOW window) {\n    deckleOnNewWindow(window);\n\n"),
+    ("static void onUpdateWindowRules(PHLWINDOW window) {\n", "static void onUpdateWindowRules(PHLWINDOW window) {\n    deckleOnUpdateRules(window);\n\n"),
+    ("    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword(",
+     "    deckleInit(PHANDLE);\n\n    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword("),
+    ('    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n',
+     '    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n    deckleExit();\n'),
 ])
 
 print("archivebars: patched", src)

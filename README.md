@@ -27,7 +27,7 @@ git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive &&
 ./install.sh                       # link config, services, day/night timer
 ./install.sh --greeter             # optional: typed login screen
 # reboot, log in, then inside Hyprland:
-./install.sh --plugins             # typed title bars (hyprbars)
+./install.sh --plugins             # title bars and torn window edges (archivebars)
 ```
 
 ## What's inside
@@ -40,7 +40,7 @@ git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive &&
 | **Popups** | Card Catalogue (launcher), Ledger (calendar), Instrument card (Wi-Fi, Bluetooth, battery, power profile, day/night, grain, volume and light rulers), Disposition (power menu). |
 | **Correspondence** | The notification daemon: cards with a RECEIVED stamp; critical ones stay, with a madder URGENT stamp. |
 | **Reading Room** | The lock screen. Signature field; REJECTED or ADMITTED stamps. |
-| **Windows** | Square cut cards, 2 px graphite border on focus, short paper shadows, typed title bars with three ink dots, damped motion. |
+| **Windows** | Paper cards with torn edges (drawn by the archivebars plugin from repeating tiles, any size), soft shadows, typed title bars with three ink dots and a ruled line, damped motion. |
 | **Night** | At sunset the whole sheet crossfades over 2 s to cyanotype, and GTK, Qt and foot follow. |
 | **Extras** | Optional film grain shader, foley sound theme hooks, screenshot filing with a stamp, plate importer. |
 

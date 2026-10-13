@@ -75,21 +75,34 @@ measurements rather than the spec text where the two disagree.
 
 | Reference | How |
 | --- | --- |
-| No hard frame: a thin cut-edge rim, light along the top and darkest along the bottom | `border_size = 1` (1.5 px on the G14) with a top-to-bottom gradient `rim_top` → `rim_bottom` (`palette.lua`) |
-| Short soft shadow falling down onto the sheet | `shadow.range = 12`, `render_power = 2`, `offset = {-1, 4}`, 32 % |
-| Square corners, just worn | `rounding = 2` |
+| No hard frame: a torn paper edge with a thin uneven outline, faint along the top and darkest along the bottom, and a light bevel just inside | archivebars' **deckle** (`deckle.cpp`, `DeckleDeco.cpp`): a card 4 px larger than the window, laid out of repeating edge tiles; `deckle_*` in `look.lua`, colours `edge_top`, `rim_bottom`, `bevel` in `palette.lua`. Hyprland's border is off (`border_size = 0`) |
+| Short soft shadow falling down onto the sheet | the deckle's own shadow (blur 4, offset -0.5/2.5, 40 %) plus a tight contact shadow under the edge, so the shadow follows the torn outline. Hyprland's shadow is off |
+| Square corners, just worn | the deckle's corner tiles; `rounding = 0` |
 | 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `archive-bars`), configured in `look.lua` |
 | Dots: close, maximise, drawer. "–": drawer | buttons and `right_icon_action` |
 | Paper texture and slightly ragged ink inside the window | the paper screen shader `shaders/paper.frag`, on by default |
-| Focus lifts the card | focused: darker rim and 32 % shadow; unfocused: lighter rim, 20 % shadow, faded title |
+| Focus lifts the card | focused: darker edge and 40 % shadow; unfocused: lighter edge, 24 % shadow, faded title |
 | Fullscreen drops the bar, rim and shadow | `archive-fullscreen` rules |
 | Urgent: accent.ink border and a stamp on the workspace number | a tag on `window.urgent` plus a rule; the ring stamp in `Workspaces.qml` |
 | Drawer = scratchpad, `` Super + ` `` | `special:drawer` |
 
-**What Hyprland cannot do:** the deckled irregularity of a real cut edge.
-Hyprland borders are straight, so the rim is straight; the paper shader's
-sub-pixel ink roughness softens it. The shell's own cards (records, popups)
-do have hand-cut edges, since Quickshell draws those itself.
+**The torn edge.** Hyprland's own borders are straight, so the edge is drawn
+by the plugin instead. Each side is cut from short strips (160 px, three
+variants) whose torn line starts and ends on the same baseline, so they join
+seamlessly in any order and any number. Corners are their own tiles. Each tile
+carries its shadow, paper, bevel and outline, is drawn once per look (colours,
+monitor scale, focus) and is reused for every window and size. Each window
+picks its own sequence of variants, so no two edges look alike.
+`tools/deckle-preview.cpp` renders the same tiles outside Hyprland.
+
+Without the plugin the fallback is a straight 1 px rim with a top-to-bottom
+gradient (`border_size = 1`, `rim_top` → `rim_bottom`), Hyprland's shadow and
+`rounding = 2`.
+
+A window whose own background is not the paper colour (a browser, say) shows
+its straight edge inside the card, with a 4 px paper margin around it. To
+remove the card from such an app, add
+`hl.window_rule({ match = { class = "..." }, ["archivebars:no_deckle"] = true })`.
 
 ## 7. Core components
 

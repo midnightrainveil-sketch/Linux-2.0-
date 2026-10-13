@@ -6,8 +6,9 @@
 #                          (run at every login; rebuilds in the background)
 #   archive-bars status
 #
-# archivebars is hyprbars with two additions the reference title bar needs: a
-# ruled line under the bar and a typed glyph ("-") on its right. It is
+# archivebars is hyprbars with the additions the reference windows need: a
+# ruled line under the bar, a typed glyph ("-") on its right, and the torn
+# paper edge around every window (see archivebars/deckle.hpp). It is
 # compiled against the Hyprland headers your distribution installed
 # (/usr/include/hyprland), so it always matches the running compositor.
 # If a build fails, the config simply runs without title bars until it works.
@@ -20,6 +21,12 @@ so="$data/archivebars.so"
 stamp="$data/archivebars.version"
 log="$cache/build.log"
 mkdir -p "$data" "$cache"
+
+# what the plugin was built from: the Hyprland commit and our own sources
+want_stamp() {
+    local dir; dir=$(dirname "$(readlink -f "$patcher")")   # the repo copy, new files included
+    echo "$(hypr_commit) $(cat "$dir"/*.py "$dir"/*.?pp 2>/dev/null | sha1sum | cut -c1-12)"
+}
 
 hypr_commit() {
     local c=""
@@ -71,9 +78,14 @@ build() {
     rm -rf "$work"
     cp -r "$repo/hyprbars" "$work"
     python3 "$patcher" "$work"
-    make -C "$work" all
+    # Hyprland's headers include Lua's; find them wherever the distribution keeps them
+    local lua_cflags=""
+    for pc in lua5.5 lua55 lua-5.5 lua; do
+        if pkg-config --exists "$pc"; then lua_cflags=$(pkg-config --cflags "$pc"); break; fi
+    done
+    make -C "$work" CXX="${CXX:-g++} $lua_cflags" all
     install -m 644 "$work/hyprbars.so" "$so"
-    echo "$commit" >"$stamp"
+    want_stamp >"$stamp"
     echo "archive-bars: built $so"
 }
 
@@ -84,7 +96,7 @@ case ${1:-build} in
         [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl reload >/dev/null || true
         ;;
     ensure)
-        if [[ -f $so && -f $stamp && $(cat "$stamp") == "$(hypr_commit)" ]]; then
+        if [[ -f $so && -f $stamp && $(cat "$stamp") == "$(want_stamp)" ]]; then
             exit 0
         fi
         if build >"$log" 2>&1; then

@@ -20,17 +20,28 @@ pkill -x qs; qs
 The bar names the file and line. To read it again later, run
 `hyprctl configerrors`. If you edited `user.lua`, check it first. The most
 common cause is a plugin option set before the plugin loaded, which is why
-`look.lua` checks `hl.plugin.hyprbars ~= nil`.
+`look.lua` checks `hl.plugin.archivebars ~= nil` (and `has_deckle`) first.
 
-## No title bars on windows
+## No title bars on windows, or straight window edges
+
+Both come from the archivebars plugin. Check it:
 
 ```sh
-hyprpm list            # is hyprbars enabled?
+archive-bars status    # what it was built for, and what is running
+archive-bars build     # rebuild now; the log is in ~/.cache/archive/archivebars/build.log
+```
+
+If the build fails, check that `base-devel git` are installed. While it
+fails, the config falls back to stock hyprbars from hyprpm (if you have it)
+and plain straight edges. For stock hyprbars:
+
+```sh
 hyprpm update          # after every Hyprland update
 hyprpm reload -n
 ```
 
-If hyprpm fails to build, check that `base-devel cmake meson cpio` are installed.
+To turn the torn edges off but keep the title bars, set `"paperEdges": false`
+in `~/.config/archive/settings.json` and run `hyprctl reload`.
 
 ## Black screen or Hyprland won't start on the G14
 

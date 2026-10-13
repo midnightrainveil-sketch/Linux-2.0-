@@ -13,8 +13,8 @@ You start with:
 
 Total time: about an hour, most of it waiting for downloads.
 
-> **What you get.** Hyprland 0.55+ (Lua config) handles windows: square cut
-> cards, a 2 px graphite border on the focused one, short paper shadows and
+> **What you get.** Hyprland 0.55+ (Lua config) handles windows: paper cards
+> with torn edges and short soft shadows, darker-edged when focused, with
 > typed title bars. Quickshell 0.3+ draws everything else: the plate wallpaper,
 > the record cards, the footer bar, the launcher, calendar, quick settings, power
 > menu, notifications, volume reading and lock screen. Day is grey paper and
@@ -202,19 +202,29 @@ cd ~/archive
 ./install.sh --plugins
 ```
 
-This builds **archivebars**, which is hyprbars plus the two things the
-reference title bar needs and hyprbars lacks: the ruled line under the bar
-and the "–" on its right. It fetches the hyprbars source that matches your
-Hyprland, patches it and compiles it, which takes a minute. After a Hyprland
-update it rebuilds itself at the next login (`archive-bars ensure`). If a
+This builds **archivebars**, which is hyprbars plus what the reference
+windows need and Hyprland lacks: the ruled line under the bar, the "–" on its
+right, and the **torn paper edge** around every window. It fetches the
+hyprbars source that matches your Hyprland, patches it and compiles it, which
+takes a minute. After a Hyprland update, or a `git pull` that changes the
+plugin, it rebuilds itself at the next login (`archive-bars ensure`). If a
 build ever fails, the installer falls back to stock hyprbars: the same bar,
-just without the rule and the dash.
+without the rule and the dash, and windows get a plain straight rim.
+
+How the edge works: each window sits on a paper card 4 px larger than
+itself. The card's edge is torn, with a thin uneven outline (fainter on top,
+darkest along the bottom), a light bevel just inside, and its own soft shadow.
+It is built from short edge tiles drawn once and repeated along each side,
+so any window size works and resizing costs nothing. The terminal's
+background is the same paper, so the window's straight edge disappears into
+the card.
 
 **Check:** new windows have a 46 px paper title bar: three dark ink dots, the
-title, a "–" at the far right and a thin ruled line underneath. Around the
-window there is a thin cut-edge rim, darker along the bottom, and a short
-soft shadow. Paper texture shows in flat areas (the paper shader:
-`Super + Shift + G` toggles it).
+title, a "–" at the far right and a thin ruled line underneath. The window's
+outline is torn paper, not a straight line, and a short soft shadow falls
+below it. Paper texture shows in flat areas (the paper shader:
+`Super + Shift + G` toggles it). `archive-bars status` shows what the plugin
+was built for.
 
 ### Make it say *atlas@linden* (optional)
 
@@ -343,7 +353,7 @@ with a 10 ms fade-out.
 
 - [ ] Plate in the centre, record cards on the right, footer bar at the bottom.
 - [ ] `Super + Space` opens the Catalogue; typing filters it; `Enter` launches.
-- [ ] Focused window has a graphite border and lifted shadow; others lie flat.
+- [ ] Windows have torn paper edges; the focused one has a darker edge and deeper shadow.
 - [ ] Title bars: paper strip, three ink dots, title, "–" on the right, ruled line under it.
 - [ ] Volume keys show the *Volume* reading above the bar.
 - [ ] `notify-send "Test" "A letter."` drops a card top-right with a RECEIVED stamp.

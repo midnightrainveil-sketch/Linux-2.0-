@@ -17,10 +17,28 @@ soon as you save), by Hyprland (on reload) and by `archive-mode`.
 | `plate` | `""` | Pin one plate by id; empty means a new plate each day |
 | `deskTerminal` | `true` | Open the fastfetch terminal card at login |
 | `reducedMotion` | `false` | Every transition becomes a 100 ms fade (shell and Hyprland) |
+| `paperEdges` | `true` | Torn paper edges around windows (needs the archivebars plugin); `false` gives straight rims |
 | `sounds` | `true` | Play the archive sounds |
 | `doNotDisturb` | `false` | Only critical notifications show (all are still kept) |
 
-After changing `reducedMotion` or `deskTerminal`, run `hyprctl reload`.
+After changing `reducedMotion`, `paperEdges` or `deskTerminal`, run `hyprctl reload`.
+
+### The torn window edge
+
+Its shape is set in `~/.config/hypr/archive/look.lua` (the `deckle_*` lines):
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `deckle_margin` | `4` | How far the card's edge sits outside the window (raise `gaps_in` with it) |
+| `deckle_amplitude` | `1.2` | How far the torn line wanders, in px. `0` gives a clean cut |
+| `deckle_rim_width` | `1.3` | Weight of the outline |
+| `deckle_period` | `160` | Length of one repeating strip |
+| `deckle_shadow_blur`, `_x`, `_y` | `4`, `-0.5`, `2.5` | The card's shadow |
+
+The colours come from `palette.lua` (`edge_top`, `rim_bottom`, `bevel`,
+`edge_shadow` and their `_flat` versions for unfocused windows). To preview a
+change without logging out, build the preview tool (see the top of
+`tools/deckle-preview.cpp`) and render a card to a PNG.
 
 ## Colours
 

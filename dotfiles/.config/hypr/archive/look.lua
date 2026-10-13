@@ -4,6 +4,12 @@
 -- meets its shadow; a short soft shadow falling down onto the sheet; a 46 px
 -- paper title bar with three ink dots, the typed title, a "-" on the right
 -- and a ruled line underneath. Focus lifts the card: darker rim, deeper shadow.
+--
+-- With archivebars built, the edge is torn paper rather than a straight line:
+-- the plugin lays a card a few pixels larger than the window, with a deckled
+-- edge, a light bevel and its own shadow, out of short repeating tiles, so it
+-- fits any window size. The straight border and Hyprland's shadow are then
+-- switched off. Without the plugin the plain border below is the fallback.
 local state = require("archive.state")
 local palette = require("archive.palette")
 
@@ -153,7 +159,7 @@ local function bars(name, extras)
 end
 
 if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
-    bars("archivebars", {
+    local extras = {
         rule_color = rgba(c.rule_ink, "aa"),
         rule_width = 1,
         rule_inset = 11,
@@ -161,7 +167,37 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         right_icon_action = drawer,
         right_icon_color = rgb(c.soft),
         right_icon_size = 20,
-    })
+    }
+
+    -- torn paper edges (settings.json "paperEdges": false turns them off)
+    local deckle = hl.plugin.archivebars.has_deckle ~= nil and state.setting_bool("paperEdges", true)
+    if deckle then
+        extras.deckle = true
+        extras.deckle_margin = 4                  -- the card's edge, 4 px outside the window
+        extras.deckle_amplitude = 1.2             -- how far the cut wanders
+        extras.deckle_rim_width = 1.3
+        extras.deckle_paper = rgb(c.paper_card)   -- same paper as the title bar and terminal
+        extras.deckle_rim_top = rgb(c.edge_top)
+        extras.deckle_rim_bottom = rgb(c.rim_bottom)
+        extras.deckle_rim_top_inactive = rgb(c.edge_top_flat)
+        extras.deckle_rim_bottom_inactive = rgb(c.rim_bottom_flat)
+        extras.deckle_bevel = rgba(c.bevel, c.bevel_alpha)
+        extras.deckle_shadow = rgba(c.shadow, c.edge_shadow)
+        extras.deckle_shadow_inactive = rgba(c.shadow, c.edge_shadow_flat)
+        extras.deckle_shadow_blur = 4
+        extras.deckle_shadow_x = -0.5
+        extras.deckle_shadow_y = 2.5
+    end
+    bars("archivebars", extras)
+
+    if deckle then
+        hl.config({
+            general = { border_size = 0, gaps_in = 8 },   -- 16 px between windows: 4 + 4 of card, 8 of desk
+            decoration = { rounding = 0, shadow = { enabled = false } },
+        })
+        -- fullscreen windows have no edge; a window that draws its own frame can opt out:
+        --   hl.window_rule({ match = { class = "..." }, ["archivebars:no_deckle"] = true })
+    end
 elseif hl.plugin ~= nil and hl.plugin.hyprbars ~= nil then
     -- stock hyprbars (from hyprpm) as a fallback: same bar, without the rule and the "-"
     bars("hyprbars")
