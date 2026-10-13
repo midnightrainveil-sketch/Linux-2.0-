@@ -12,8 +12,20 @@
 # greets you with fastfetch).
 set -uo pipefail
 
-# the terminal's place, as fractions of the screen (as in hypr/archive/rules.lua)
-X=0.019 Y=0.164 W=0.357 H=0.48
+# the terminal's place, as fractions of the screen, and its shape: 16:9 with
+# its title bar (as in hypr/archive/rules.lua)
+X=0.019 Y=0.164 W=0.3125 BAR=46
+# the desk card is smaller than a working terminal, so its type is too: the
+# whole fastfetch card fits (other terminals keep foot.ini's 14.5 pt)
+FONT="Courier Prime:size=10,IBM Plex Mono:size=10"
+
+open_terminal() {
+    setsid -f foot --app-id=archive.desk \
+        --override="main.font=$FONT" \
+        --override="main.font-bold=Courier Prime:weight=Bold:size=10,IBM Plex Mono:weight=SemiBold:size=10" \
+        --override="main.pad=16x10" \
+        env ARCHIVE_DESK=1 zsh >/dev/null 2>&1
+}
 
 cards() {
     qs ipc call desk restore >/dev/null 2>&1 || true
@@ -24,7 +36,7 @@ terminal() {
     addr=$(hyprctl clients -j | jq -r '[.[] | select(.class == "archive.desk")][0].address // empty')
     if [[ -z $addr ]]; then
         # rules.lua floats it and puts it in place
-        setsid -f foot --app-id=archive.desk env ARCHIVE_DESK=1 zsh >/dev/null 2>&1
+        open_terminal
         return
     fi
 
@@ -40,7 +52,7 @@ terminal() {
     px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
     py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
     pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
-    ph=$(awk -v h="$mh" -v f="$H" 'BEGIN { printf "%d", h * f }')
+    ph=$(awk -v w="$mw" -v f="$W" -v bar="$BAR" 'BEGIN { printf "%d", w * f * 9 / 16 - bar }')
 
     local win="window = \"address:$addr\""
     hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null

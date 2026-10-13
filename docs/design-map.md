@@ -65,7 +65,7 @@ the plate is the one place that should match the mockup.
 
 | Spec | How |
 | --- | --- |
-| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`archive/rules.lua`: 35.7 % × 48 %, at 1.9 % / 16.4 % of the screen), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
+| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`archive/rules.lua`: 31.25 % of the screen wide and 16:9 with its title bar, at 1.9 % / 16.4 %; clear of the plate's big leaf; its own 10 pt type so the fastfetch card fits), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
 | The desk stays as in the reference, and comes back | Record cards are `DeskCard`s (`components/DeskCard.qml`): drag anywhere, right-click to put away; `services/Desk.qml` remembers which are away. `archive-desk` (bar button after the workspaces, `Super + D`) calls `qs ipc call desk restore` and brings the desk terminal to the current workspace at its place, or reopens it |
 | 8 px grid; margins 32, gaps 24, padding 16, header 10/14, rows 30 | `Theme.qml` |
 | Window gaps 8 between, 24 to the edge | `gaps_in = 4` (Hyprland doubles it between windows), `gaps_out = 24` |

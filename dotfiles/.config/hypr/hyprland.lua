@@ -49,7 +49,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("sh -c 'sleep 2; qs ipc call sound play login'")   -- the drawer slides open
     -- the desk terminal, as on the mockup (set "deskTerminal": false to skip)
     if require("archive.state").setting_bool("deskTerminal", true) then
-        hl.exec_cmd("sh -c 'sleep 1; foot --app-id=archive.desk env ARCHIVE_DESK=1 zsh'")
+        hl.exec_cmd("sh -c 'sleep 1; archive-desk terminal'")
     end
 end)
 
