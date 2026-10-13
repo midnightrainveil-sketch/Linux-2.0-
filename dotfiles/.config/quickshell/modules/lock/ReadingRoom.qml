@@ -91,6 +91,12 @@ Scope {
 
                 Grain { anchors.fill: parent; strength: 1.15 }
 
+                // a click anywhere gives the signature line the keyboard
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: field.forceActiveFocus()
+                }
+
                 // header, as on the plate
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -162,11 +168,30 @@ Scope {
                             font.letterSpacing: 3
                             color: Theme.graphite
                             cursorDelegate: Item {}
-                            enabled: !room.busy && room.verdict !== "admitted"
+                            // read-only, not disabled, while it checks: a disabled
+                            // field drops the keyboard and never takes it back
+                            readOnly: room.busy || room.verdict === "admitted"
                             onTextChanged: room.buffer = text
                             onAccepted: room.submit()
                             Keys.onEscapePressed: room.buffer = ""
                             Component.onCompleted: forceActiveFocus()
+                            // the signature line always has the keyboard: when
+                            // the room locks, after a verdict, and whenever
+                            // anything else takes it
+                            onActiveFocusChanged: if (!activeFocus) refocus.restart()
+                            Timer {
+                                id: refocus
+                                interval: 60
+                                onTriggered: if (sessionLock.locked && !field.activeFocus) field.forceActiveFocus()
+                            }
+                            Connections {
+                                target: sessionLock
+                                function onLockedChanged() { if (sessionLock.locked) refocus.restart(); }
+                            }
+                            Connections {
+                                target: room
+                                function onVerdictChanged() { refocus.restart(); }
+                            }
                             Connections {
                                 target: room
                                 function onBufferChanged() { if (room.buffer === "" && field.text !== "") field.text = ""; }
