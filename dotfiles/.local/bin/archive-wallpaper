@@ -28,9 +28,11 @@ esac
 
 python3 "$importer"
 # the shell picks up the new sheet when it starts again
-if pgrep -x qs >/dev/null; then
-    pkill -x qs || true
-    sleep 0.5
-    setsid -f qs -d >/dev/null 2>&1
+# (it runs as qs or as quickshell, depending on how it was started)
+pkill -x qs 2>/dev/null || true
+pkill -x quickshell 2>/dev/null || true
+sleep 0.5
+if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
+    setsid -f qs >/dev/null 2>&1
 fi
 echo "done"

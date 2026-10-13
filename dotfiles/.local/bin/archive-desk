@@ -20,6 +20,8 @@ X=0.019 Y=0.25 W=0.3125 BAR=46
 FONT="Courier Prime:size=10,IBM Plex Mono:size=10"
 
 open_terminal() {
+    # one desk terminal: not again while one is still starting
+    pgrep -f -- '--app-id=archive.desk' >/dev/null && return
     setsid -f foot --app-id=archive.desk \
         --override="main.font=$FONT" \
         --override="main.font-bold=Courier Prime:weight=Bold:size=10,IBM Plex Mono:weight=SemiBold:size=10" \

@@ -85,6 +85,19 @@ hl.on("window.active", function(w)
     if not is_desk(w) then tuck() end
 end)
 
+-- An empty workspace is a clean desk: going to one lays the desk out there,
+-- the terminal at its place (moved over, or opened again if it was closed)
+-- and the cards back in theirs, as at login.
+hl.on("workspace.active", function(ws)
+    if ws == nil or ws.special then return end
+    for _, w in ipairs(hl.get_workspace_windows(ws)) do
+        if not is_desk(w) then return end
+    end
+    local desk = find_desk()
+    if desk ~= nil and desk.workspace ~= nil and desk.workspace.id == ws.id then return end
+    hl.exec_cmd("archive-desk")
+end)
+
 ------------------------------------------------------------------ small tools float as centred cards
 -- (volume mixer, file picker, calculator, Bluetooth, network, authorisation)
 local small_tools = {

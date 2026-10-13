@@ -29,16 +29,22 @@ IndexCard {
         property string shown: value
         property int wear: 0
         readonly property real em: Theme.sizeClock
+        // room around the figure for the ink, so a font that sits a little
+        // lower (or the ink's spread) is never clipped
+        readonly property real pad: Math.round(em * 0.12)
         width: em * 0.6
         height: em * 0.592 * Theme.clockStretch
 
         Item {
             id: struck
-            anchors.fill: parent
+            x: -digit.pad; y: -digit.pad
+            width: digit.width + 2 * digit.pad
+            height: digit.height + 2 * digit.pad
             visible: false
             InkText {
                 id: face
-                y: -(0.782 - 0.592) * digit.em * Theme.clockStretch
+                x: digit.pad
+                y: digit.pad - (0.782 - 0.592) * digit.em * Theme.clockStretch
                 text: digit.shown
                 color: Theme.soft
                 font.pixelSize: digit.em
@@ -48,7 +54,7 @@ IndexCard {
         }
         Item {
             id: ribbon
-            anchors.fill: parent
+            anchors.fill: struck
             visible: false
             clip: true
             Image {
@@ -61,7 +67,7 @@ IndexCard {
             }
         }
         OpacityMask {
-            anchors.fill: parent
+            anchors.fill: struck
             source: struck
             maskSource: ribbon
         }
