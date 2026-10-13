@@ -95,7 +95,8 @@ apply() {
     fi
 
     # Hyprland: borders, shadows and title bars are read from the state file
-    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+    # (not while setup.sh runs: the new config waits for the next login)
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${ARCHIVE_NO_RELOAD:-} ]] && command -v hyprctl >/dev/null; then
         hyprctl reload >/dev/null 2>&1 || true
     fi
 }

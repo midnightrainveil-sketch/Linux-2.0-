@@ -179,15 +179,21 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         right_icon_action = drawer,
         right_icon_color = rgb(c.soft),
         right_icon_size = 20,
-        -- paper grain over terminals and system tools (rules below); the "░"
-        -- left of the "–" shows it (ink: on, faded: off) and flips it for one
-        -- window, as does Super+Shift+G. archive-grain off turns it off everywhere.
-        grain = state.grain() and 1 or 0,
-        grain_default = false,
-        grain_icon = "░",
-        grain_icon_color = rgb(c.soft),
-        grain_icon_color_off = rgba(c.faded, "66"),
     }
+
+    -- paper grain over terminals and system tools (rules below); the "░"
+    -- left of the "–" shows it (ink: on, faded: off) and flips it for one
+    -- window, as does Super+Shift+G. archive-grain off turns it off everywhere.
+    -- (Only with a plugin built with grain: an older build, still loaded until
+    -- the next login after an update, would reject these.)
+    local has_grain = hl.plugin.archivebars.toggle_grain ~= nil
+    if has_grain then
+        extras.grain = state.grain() and 1 or 0
+        extras.grain_default = false
+        extras.grain_icon = "░"
+        extras.grain_icon_color = rgb(c.soft)
+        extras.grain_icon_color_off = rgba(c.faded, "66")
+    end
 
     -- which windows are paper: the terminal and the system's own tools.
     -- Browsers, players, editors and anything new keep their true colours.
@@ -198,7 +204,7 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         "^(nwg-look|qt6ct|qt5ct|thunar|Thunar|org\\.gnome\\.Nautilus|pcmanfm|pcmanfm-qt|btop|htop)$",
         "^(xdg-desktop-portal-gtk|org\\.freedesktop\\.impl\\.portal\\.desktop\\.gtk)$",
     }
-    for i, class in ipairs(paper_apps) do
+    for i, class in ipairs(has_grain and paper_apps or {}) do
         hl.window_rule({ name = "archive-paper-" .. i, match = { class = class }, ["archivebars:grain"] = true })
     end
     -- your own: hl.window_rule({ match = { class = "^obsidian$" }, ["archivebars:grain"] = true }) in user.lua
