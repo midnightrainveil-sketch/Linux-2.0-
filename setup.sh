@@ -121,9 +121,13 @@ model=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     say "Zephyrus G14 ($model): stable GPU names"
     "$here/install.sh" --g14 || warn "G14 step failed; see docs/zephyrus-g14.md"
-    # the power profile stays what you choose (no switching on plug / unplug,
-    # no ROG Control notifications)
-    "$HOME/.local/bin/archive-rog" calm || warn "could not quieten asusd / ROG Control; run archive-rog calm"
+    # the NVIDIA driver, built for the kernels you have (if it is not running)
+    if lspci -d 10de: 2>/dev/null | grep -qiE 'vga|3d' && ! lsmod | grep -q '^nvidia '; then
+        say "Zephyrus G14: the NVIDIA driver (Hybrid mode)"
+        "$HOME/.local/bin/archive-rog" gpu || warn "the NVIDIA step failed; see docs/zephyrus-g14.md"
+    fi
+    # Quiet on battery, Balanced plugged in; no ROG Control notifications
+    "$HOME/.local/bin/archive-rog" power || warn "could not set the power profiles; run archive-rog power"
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, supergfxctl)"
 fi
 

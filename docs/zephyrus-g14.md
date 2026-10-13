@@ -107,11 +107,18 @@ height, which the record column uses as breathing room.
 - The fan key (`Fn + F5`) cycles Quiet → Balanced → Performance through
   `power-profiles-daemon`. asusctl follows it, and the Instruments card
   shows it.
-- Out of the box asusd also switches the profile by itself when you plug in
-  (Performance) or unplug (Quiet), and ROG Control keeps running after you
-  close it and sends a notification for each change. `setup.sh` runs
-  `archive-rog calm`, which turns both off, so the profile stays what you
-  chose. Run it again if a ROG Control update brings them back.
+- The profile follows the charger: Quiet on battery, Balanced plugged in
+  (`archive-rog power`, run by `setup.sh`; asusd does the switching).
+  `archive-rog calm` stops the switching instead. Both stop ROG Control's
+  notifications and its background copy.
+- Graphics: Hybrid. The screen runs on the iGPU (the MUX stays there) and the
+  dGPU wakes for whatever asks for it (`prime-run`, games), then powers off
+  again. On battery it is asleep, so Integrated mode, which needs a log-out
+  for every switch, is not used automatically. `archive-rog gpu` installs the
+  driver with headers for every kernel you have (linux-lts needs
+  linux-lts-headers), the dGPU power settings and Hybrid mode; `setup.sh`
+  runs it when the driver is not loaded. `archive-rog status` shows the
+  driver, the dGPU's state and the profile.
 - hypridle dims at 2.5 min, locks at 5, turns the screen off at 5.5, and
   suspends after 20 min on battery.
 

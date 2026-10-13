@@ -1,31 +1,43 @@
 #!/usr/bin/env bash
-# archive-rog: keep the G14's own tools from changing things behind your back.
+# archive-rog: the G14's graphics and power, set up once and left alone.
 #
-#   archive-rog calm      the power profile stays what you chose: asusd no
-#                         longer switches it when you plug in or unplug, and
-#                         ROG Control stops sending notifications and quits
-#                         when you close it (no background copy)
-#   archive-rog status
+#   archive-rog gpu       the NVIDIA side: the driver built for every kernel
+#                         you have installed (it needs that kernel's headers),
+#                         Hybrid mode, the dGPU powering off when unused and
+#                         surviving suspend. Reboot afterwards.
+#   archive-rog power     the profile follows the charger: Quiet on battery,
+#                         Balanced plugged in (asusd switches it)
+#   archive-rog calm      the profile stays what you chose: no switching
+#   archive-rog status    what is set, and what the dGPU is doing
 #
-# Choose the profile with the fan key (Fn+F5) or the Instruments card. asusd's
-# own config is /etc/asusd/asusd.ron (a copy of the original is kept next to
+# power and calm also quieten ROG Control: no notifications, and it quits
+# when you close it instead of staying in the background.
+#
+# Hybrid is "screen on the iGPU, dGPU wakes for whatever asks for it": the
+# MUX stays on the iGPU and the dGPU sleeps (no power) when nothing uses it,
+# so on battery it is as good as off. supergfxctl -m Integrated removes it
+# entirely, but every switch needs a log-out, so it is not done automatically.
+#
+# asusd's own config is /etc/asusd/asusd.ron (the original is kept next to
 # it as asusd.ron.archive-bak); ROG Control's is ~/.config/rog/.
 set -euo pipefail
 asusd_cfg=/etc/asusd/asusd.ron
 rcc_cfg="${XDG_CONFIG_HOME:-$HOME/.config}/rog/rog-control-center.cfg"
 
-calm() {
-    if [[ -f $asusd_cfg ]] && grep -qE 'change_platform_profile_on_(ac|battery): *true' "$asusd_cfg"; then
-        # asusd writes its config back when it stops, so edit it while stopped
-        sudo systemctl stop asusd.service
-        [[ -f $asusd_cfg.archive-bak ]] || sudo cp "$asusd_cfg" "$asusd_cfg.archive-bak"
-        sudo sed -i -E 's/(change_platform_profile_on_(ac|battery): *)true/\1false/' "$asusd_cfg"
-        sudo systemctl start asusd.service
-        echo "asusd: the power profile no longer changes on plug / unplug"
-    else
-        echo "asusd: nothing to change"
-    fi
+# ---------------------------------------------------------------- asusd
+# edit_asusd <sed expressions...>: asusd writes its config back when it
+# stops, so the file is edited while it is stopped
+edit_asusd() {
+    [[ -f $asusd_cfg ]] || { echo "asusd: no $asusd_cfg (is asusctl installed?)"; return 0; }
+    sudo systemctl stop asusd.service
+    [[ -f $asusd_cfg.archive-bak ]] || sudo cp "$asusd_cfg" "$asusd_cfg.archive-bak"
+    local args=()
+    for e in "$@"; do args+=(-e "$e"); done
+    sudo sed -i -E "${args[@]}" "$asusd_cfg"
+    sudo systemctl start asusd.service
+}
 
+quiet_rcc() {
     if [[ -f $rcc_cfg ]]; then
         if pkill -x rog-control-center 2>/dev/null; then sleep 1; fi   # it saves on exit
         sed -i -E \
@@ -35,16 +47,75 @@ calm() {
             -e 's/(enable_(dgpu_)?notifications: *)true/\1false/' \
             "$rcc_cfg"
         echo "ROG Control: no notifications, quits when closed"
-    else
-        echo "ROG Control: not set up yet (run this again after opening it once)"
     fi
 }
 
-case ${1:-calm} in
+power() {
+    edit_asusd \
+        's/^(\s*change_platform_profile_on_ac: *)\w+/\1true/' \
+        's/^(\s*change_platform_profile_on_battery: *)\w+/\1true/' \
+        's/^(\s*platform_profile_on_ac: *)\w+/\1Balanced/' \
+        's/^(\s*platform_profile_on_battery: *)\w+/\1Quiet/'
+    echo "asusd: Quiet on battery, Balanced plugged in"
+    quiet_rcc
+}
+
+calm() {
+    edit_asusd \
+        's/^(\s*change_platform_profile_on_ac: *)\w+/\1false/' \
+        's/^(\s*change_platform_profile_on_battery: *)\w+/\1false/'
+    echo "asusd: the profile no longer changes on plug / unplug"
+    quiet_rcc
+}
+
+# ---------------------------------------------------------------- the dGPU
+gpu() {
+    # headers for every installed kernel (linux, linux-lts, linux-g14, ...)
+    local pkgs=(nvidia-open-dkms nvidia-utils supergfxctl) k
+    for k in /usr/lib/modules/*/pkgbase; do
+        [[ -f $k ]] && pkgs+=("$(cat "$k")-headers")
+    done
+    echo ":: the NVIDIA driver and headers: ${pkgs[*]}"
+    sudo pacman -S --needed --noconfirm "${pkgs[@]}" || sudo pacman -S --needed "${pkgs[@]}"
+    sudo pacman -S --needed --noconfirm lib32-nvidia-utils 2>/dev/null || echo "   (lib32-nvidia-utils skipped: enable [multilib] for 32-bit games)"
+
+    echo ":: dGPU power: sleeps when unused, survives suspend"
+    printf '%s\n' \
+        "# archive-rog gpu: the dGPU powers off when nothing uses it, and keeps" \
+        "# its memory across suspend" \
+        "options nvidia NVreg_DynamicPowerManagement=0x02 NVreg_PreserveVideoMemoryAllocations=1" |
+        sudo tee /etc/modprobe.d/nvidia-power.conf >/dev/null
+    sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service 2>/dev/null || true
+    sudo systemctl enable --now supergfxd.service || true
+
+    echo ":: rebuilding the driver and the boot images"
+    sudo dkms autoinstall || true
+    sudo mkinitcpio -P
+
+    echo ":: Hybrid mode"
+    supergfxctl -m Hybrid 2>/dev/null || echo "   (supergfxctl answers after the reboot; Hybrid is its default)"
+    echo ":: done: reboot, then check with: archive-rog status"
+}
+
+status() {
+    echo "kernel:      $(uname -r)"
+    echo "nvidia:      $(lsmod | grep -q '^nvidia ' && echo loaded || echo 'NOT loaded')"
+    local dev
+    dev=$(lspci -D -d 10de: 2>/dev/null | grep -iE 'vga|3d' | cut -d' ' -f1 | head -n1 || true)
+    if [[ -n $dev ]]; then
+        echo "dGPU:        $dev, $(cat "/sys/bus/pci/devices/$dev/power/runtime_status" 2>/dev/null) (suspended = asleep, no power)"
+    else
+        echo "dGPU:        not on the bus (Integrated mode, or not found)"
+    fi
+    echo "gpu mode:    $(supergfxctl -g 2>/dev/null || echo '?')  (supported: $(supergfxctl -s 2>/dev/null | tr -d '[]\n' || echo '?'))"
+    echo "profile:     $(powerprofilesctl get 2>/dev/null || echo '?')"
+    grep -E '^\s*(change_)?platform_profile_on_(ac|battery)' "$asusd_cfg" 2>/dev/null | sed 's/^\s*/asusd:       /' || true
+}
+
+case ${1:-status} in
+    gpu) gpu ;;
+    power) power ;;
     calm) calm ;;
-    status)
-        grep -E 'change_platform_profile_on_(ac|battery)' "$asusd_cfg" 2>/dev/null || echo "no $asusd_cfg"
-        grep -E 'run_in_background|enabled:|notifications:' "$rcc_cfg" 2>/dev/null || echo "no $rcc_cfg"
-        ;;
-    *) echo "usage: archive-rog calm|status" >&2; exit 2 ;;
+    status) status ;;
+    *) echo "usage: archive-rog gpu|power|calm|status" >&2; exit 2 ;;
 esac
