@@ -112,7 +112,7 @@ ShellRoot {
     IpcHandler {
         target: "notifications"
         function clear(): void { Notifs.clearAll(); }
-        function dnd(): void { Notifs.dnd = !Notifs.dnd; }
+        function dnd(): void { Notifs.toggleDnd(); }
     }
 
     IpcHandler {

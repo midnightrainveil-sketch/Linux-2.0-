@@ -94,13 +94,18 @@ PanelWindow {
         const app = results[selected];
         if (!app || launching) return;
         launching = true;
-        app.execute();
+        // programs that live in a terminal (htop, btop...) get one
+        if (app.runInTerminal)
+            Quickshell.execDetached({ command: [Settings.terminal, "-e"].concat(app.command), workingDirectory: app.workingDirectory });
+        else
+            app.execute();
         closeAfterLift.restart();
     }
     Timer { id: closeAfterLift; interval: Theme.dur(260); onTriggered: Panels.close() }
 
     onShownChanged: {
         if (shown) {
+            closeAfterLift.stop();
             launching = false;
             query = "";
             input.text = "";

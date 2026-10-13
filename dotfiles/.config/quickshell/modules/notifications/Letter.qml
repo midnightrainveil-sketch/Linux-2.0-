@@ -89,15 +89,19 @@ Item {
 
     // ------------------------------------------------------------ leaving
     // filed (read), dismissed, or sent down to the tray (unread)
-    function leave(how) {
+    // `action` (a notification action) runs once the card is gone: running
+    // it can close the notification at once, which would cut the animation
+    function leave(how, action) {
         if (leaving) return;
         leaving = true;
         away.how = how;
+        away.action = action ?? null;
         away.start();
     }
     SequentialAnimation {
         id: away
         property string how: "file"
+        property var action: null
         ParallelAnimation {
             NumberAnimation { target: sheet; property: "opacity"; to: 0; duration: Theme.dur(away.how === "tray" ? 320 : 160); easing.type: Easing.InCubic }
             NumberAnimation { target: sheet; property: "y"; to: away.how === "tray" ? 140 : 6; duration: Theme.dur(away.how === "tray" ? 320 : 160); easing.type: Easing.InCubic }
@@ -106,9 +110,11 @@ Item {
         }
         ScriptAction {
             script: {
-                if (away.how === "dismiss") Notifs.dismiss(root.notification);
-                else if (away.how === "tray") Notifs.toTray(root.notification, root.serial);
-                else Notifs.hide(root.notification);
+                const n = root.notification;
+                if (away.action) away.action.invoke();
+                if (away.how === "dismiss") Notifs.dismiss(n);
+                else if (away.how === "tray") Notifs.toTray(n, root.serial);
+                else Notifs.file(n);
             }
         }
     }
@@ -147,8 +153,7 @@ Item {
                     root.open();
                 } else {
                     const def = (root.notification?.actions ?? []).find(a => a.identifier === "default");
-                    if (def) def.invoke();
-                    root.leave("dismiss");
+                    root.leave("dismiss", def);
                 }
             }
         }
@@ -451,7 +456,7 @@ Item {
                             ArchiveButton {
                                 required property var modelData
                                 text: modelData.text
-                                onClicked: { modelData.invoke(); root.leave("file"); }
+                                onClicked: root.leave("file", modelData)
                             }
                         }
                     }

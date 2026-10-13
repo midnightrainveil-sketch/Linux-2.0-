@@ -14,8 +14,8 @@
 # Then log out and back in (or reboot). Safe to run again at any time.
 set -uo pipefail
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-home_repo="$HOME/archive"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+home_repo="$(realpath -m "$HOME/archive")"
 yes=0
 [[ ${1:-} == --yes || ${1:-} == -y ]] && yes=1
 
@@ -36,7 +36,7 @@ command -v sudo >/dev/null || { warn "sudo is needed"; exit 1; }
 # ------------------------------------------------------------------ 1. keep the theme in ~/archive
 # The dotfiles are linked, not copied, so the folder must stay put. If this
 # was unpacked elsewhere (Downloads, say), it moves itself to ~/archive.
-if [[ $here != "$home_repo" ]]; then
+if [[ $here != "$home_repo" && -z ${ARCHIVE_SETUP_MOVED:-} ]]; then
     if [[ -e $home_repo && ! -f $home_repo/setup.sh ]]; then
         warn "$home_repo exists and is not this theme; move it aside and run again"
         exit 1
@@ -44,7 +44,7 @@ if [[ $here != "$home_repo" ]]; then
     say "copying the theme to $home_repo"
     mkdir -p "$home_repo"
     cp -a "$here/." "$home_repo/"
-    exec "$home_repo/setup.sh" "$@"
+    ARCHIVE_SETUP_MOVED=1 exec "$home_repo/setup.sh" "$@"
 fi
 
 # ------------------------------------------------------------------ 2. packages

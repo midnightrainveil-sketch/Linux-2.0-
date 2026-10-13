@@ -36,12 +36,25 @@ PanelWindow {
         pinned = false;
         restAngle = Math.random() * 8 - 5;
         Sounds.play("capture");
+        // the flash at once; the print drops once the picture has loaded, so
+        // it lands where its real size puts it
+        clear();
+        shutter.restart();
+        waiting = true;
+        if (picture.status === Image.Ready || picture.status === Image.Error) startDrop();
+    }
+    property bool waiting: false
+    function startDrop(): void {
+        if (!waiting) return;
+        waiting = false;
         develop.restart();
     }
 
     // off the desk at once (before the next screenshot is taken)
     function clear(): void {
+        waiting = false;
         develop.stop();
+        shutter.stop();
         fileAway.stop();
         linger.stop();
         flash.opacity = 0;
@@ -103,6 +116,7 @@ PanelWindow {
             cache: false
             smooth: true
             mipmap: true
+            onStatusChanged: if (status === Image.Ready || status === Image.Error) win.startDrop()
         }
         InkText {
             anchors.left: picture.left
@@ -167,7 +181,6 @@ PanelWindow {
     SequentialAnimation {
         id: develop
         ScriptAction { script: { fileAway.stop(); shot.filing = false; shot.visible = false; } }
-        NumberAnimation { target: flash; property: "opacity"; to: 0.6; duration: Theme.dur(60) }
         ScriptAction {
             script: {
                 shot.visible = true;
@@ -179,7 +192,6 @@ PanelWindow {
             }
         }
         ParallelAnimation {
-            NumberAnimation { target: flash; property: "opacity"; to: 0; duration: Theme.dur(420); easing.type: Easing.OutCubic }
             NumberAnimation { target: shot; property: "opacity"; to: 1; duration: Theme.dur(200) }
             NumberAnimation { target: shot; property: "scale"; to: 1; duration: Theme.dur(520); easing.type: Easing.OutBack; easing.overshoot: 0.8 }
             NumberAnimation { target: shot; property: "y"; to: win.restY; duration: Theme.dur(520); easing.type: Easing.OutBounce }
@@ -187,7 +199,15 @@ PanelWindow {
         }
         NumberAnimation { target: clip; property: "opacity"; from: 0; to: 1; duration: Theme.dur(120) }
         NumberAnimation { target: clip; property: "y"; from: -30; to: -16; duration: Theme.dur(140); easing.type: Easing.OutBack }
-        ScriptAction { script: linger.restart() }
+        // from here on it follows its resting place (the picture's size, the screen)
+        ScriptAction { script: { shot.x = Qt.binding(() => win.restX); shot.y = Qt.binding(() => win.restY); linger.restart(); } }
+    }
+
+    // the magnesium flash
+    SequentialAnimation {
+        id: shutter
+        NumberAnimation { target: flash; property: "opacity"; to: 0.6; duration: Theme.dur(60) }
+        NumberAnimation { target: flash; property: "opacity"; to: 0; duration: Theme.dur(420); easing.type: Easing.OutCubic }
     }
 
     Timer {

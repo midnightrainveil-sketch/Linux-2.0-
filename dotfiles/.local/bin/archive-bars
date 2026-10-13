@@ -46,18 +46,18 @@ build() {
 
     local repo="$cache/hyprland-plugins"
     if [[ -d $repo/.git ]]; then
-        git -C "$repo" fetch -q origin
+        git -C "$repo" fetch -q origin || return 1
     else
-        git clone -q https://github.com/hyprwm/hyprland-plugins "$repo"
+        git clone -q https://github.com/hyprwm/hyprland-plugins "$repo" || return 1
     fi
     # hyprland-plugins pins a plugins commit to each Hyprland release
     local pin
     pin=$(git -C "$repo" show origin/HEAD:hyprpm.toml | grep -F "\"$commit\"" | grep -oE '"[0-9a-f]{40}"' | sed -n 2p | tr -d '"' || true)
     if [[ -n $pin ]]; then
-        git -C "$repo" checkout -q --force "$pin"
+        git -C "$repo" checkout -q --force "$pin" || return 1
     else
         echo "archive-bars: no pin for this Hyprland; using the latest hyprbars"
-        git -C "$repo" checkout -q --force origin/HEAD
+        git -C "$repo" checkout -q --force origin/HEAD || return 1
     fi
 
     # headers: the ones your distribution installed, else hyprpm's copy
@@ -76,31 +76,44 @@ build() {
 
     local work="$cache/work"
     rm -rf "$work"
-    cp -r "$repo/hyprbars" "$work"
-    python3 "$patcher" "$work"
+    # (each step stops the build on failure: `ensure` runs this in an if,
+    # where set -e does not apply, and must not stamp a failed build)
+    cp -r "$repo/hyprbars" "$work" || return 1
+    python3 "$patcher" "$work" || return 1
     # Hyprland's headers include Lua's; find them wherever the distribution keeps them
     local lua_cflags=""
     for pc in lua5.5 lua55 lua-5.5 lua; do
         if pkg-config --exists "$pc"; then lua_cflags=$(pkg-config --cflags "$pc"); break; fi
     done
-    make -C "$work" CXX="${CXX:-g++} $lua_cflags" all
-    install -m 644 "$work/hyprbars.so" "$so"
+    make -C "$work" CXX="${CXX:-g++} $lua_cflags" all || return 1
+    install -m 644 "$work/hyprbars.so" "$so" || return 1
     want_stamp >"$stamp"
     echo "archive-bars: built $so"
+}
+
+# make a running Hyprland use the new build: the config loads the plugin by
+# path, and a path it has already loaded is not loaded again, so unload the
+# old one first; the reload then loads the new file
+activate() {
+    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || return 0
+    if hyprctl plugin list 2>/dev/null | grep -q archivebars; then
+        hyprctl plugin unload "$so" >/dev/null 2>&1 || true
+    fi
+    hyprctl reload >/dev/null 2>&1 || true
 }
 
 case ${1:-build} in
     build)
         build 2>&1 | tee "$log"
         [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
-        [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl reload >/dev/null || true
+        activate
         ;;
     ensure)
         if [[ -f $so && -f $stamp && $(cat "$stamp") == "$(want_stamp)" ]]; then
             exit 0
         fi
         if build >"$log" 2>&1; then
-            [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl reload >/dev/null || true
+            activate
         else
             notify-send --app-name "Archive" "Title bars not built." "See $log" || true
         fi

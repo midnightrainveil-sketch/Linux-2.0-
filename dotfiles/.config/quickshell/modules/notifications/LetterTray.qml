@@ -35,18 +35,22 @@ PanelWindow {
         opacity: Notifs.tray.count > 0 ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.durFocus } }
 
-        // up to three envelopes, the newest on top
+        // the envelopes, newest on top; only the top three show. Each row of
+        // the tray keeps its delegate, so a new arrival drops onto the pile
+        // without the others being laid again
         Repeater {
-            model: Math.min(3, Notifs.tray.count)
+            model: Notifs.tray
             Item {
                 id: env
                 required property int index
-                readonly property int depth: Math.min(3, Notifs.tray.count) - 1 - index   // 0 = top
+                readonly property int depth: index                                     // 0 = top
+                visible: depth < 3
                 width: 150
                 height: 66
                 x: 14 + depth * 9
-                y: 16 - depth * 5
-                rotation: [-3, 5, -8][depth]
+                property real drop: 0
+                y: 16 - depth * 5 + drop
+                rotation: [-3, 5, -8][Math.min(depth, 2)]
                 z: 10 - depth
 
                 RectangularGlow {
@@ -71,7 +75,7 @@ PanelWindow {
                 }
                 // the newest drops onto the pile
                 Component.onCompleted: if (depth === 0) land.start()
-                NumberAnimation on y { id: land; running: false; from: -30; to: 16; duration: Theme.dur(300); easing.type: Easing.OutBack }
+                NumberAnimation { id: land; target: env; property: "drop"; from: -46; to: 0; duration: Theme.dur(300); easing.type: Easing.OutBack }
             }
         }
 

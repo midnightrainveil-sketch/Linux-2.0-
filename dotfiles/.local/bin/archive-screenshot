@@ -18,8 +18,13 @@ case ${1:-region} in
         grim -g "$geom" "$file"
         ;;
     window)
-        geom=$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
-        grim -g "$geom" "$file"
+        geom=$(hyprctl activewindow -j | jq -r 'if .at then "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])" else empty end')
+        if [[ -n $geom ]]; then
+            grim -g "$geom" "$file"
+        else
+            # no window has focus: the screen it is on, then
+            grim -o "$(hyprctl activeworkspace -j | jq -r '.monitor')" "$file"
+        fi
         ;;
     screen)
         mon=$(hyprctl activeworkspace -j | jq -r '.monitor')

@@ -17,7 +17,10 @@ Singleton {
     readonly property ListModel tray: ListModel {}
     property var byId: ({})
     readonly property var history: server.trackedNotifications.values
-    property bool dnd: Settings.doNotDisturb
+    // settings.json "doNotDisturb", unless toggled this session (qs ipc call notifications dnd)
+    property var dndOverride: null
+    readonly property bool dnd: dndOverride === null ? Settings.doNotDisturb : dndOverride
+    function toggleDnd(): void { dndOverride = !dnd; }
     property int received: 0          // running count, used for catalogue numbers
 
     function isCritical(n: var): bool {
@@ -39,6 +42,25 @@ Singleton {
         if (t >= 0) tray.remove(t);
     }
 
+    // a read letter is filed: off the desk, and the sender is told it is done
+    // with (so a later update with the same id arrives as a new letter)
+    function file(n: var): void {
+        if (!n) return;
+        hide(n);
+        try { n.expire(); } catch (e) {}       // already closed by its own action
+    }
+
+    // at most four on the desk; an unopened envelope pushed off the bottom
+    // goes to the tray rather than vanishing, a read letter is filed
+    function trimPopups(): void {
+        while (popups.count > 4) {
+            const last = popups.get(popups.count - 1);
+            const nid = last.nid, serial = last.serial, opened = last.opened;
+            popups.remove(popups.count - 1);
+            if (!opened && byId[nid] && indexIn(tray, nid) < 0) tray.insert(0, { nid: nid, serial: serial });
+        }
+    }
+
     // an unopened envelope goes onto the pile in the letter tray
     function toTray(n: var, serial: int): void {
         if (!n) return;
@@ -55,13 +77,13 @@ Singleton {
         tray.remove(0);
         if (!byId[nid]) return;
         popups.insert(0, { nid: nid, serial: serial, opened: true });
-        while (popups.count > 4) popups.remove(popups.count - 1);
+        trimPopups();
     }
 
     function dismiss(n: var): void {
         if (!n) return;
         hide(n);
-        n.dismiss();
+        try { n.dismiss(); } catch (e) {}      // already closed by its own action
     }
 
     function clearAll(): void {
@@ -81,14 +103,20 @@ Singleton {
 
         onNotification: n => {
             n.tracked = true;
-            root.received += 1;
             root.byId[n.id] = n;
+            // after a shell reload the server hands back the letters it kept:
+            // they are not new mail, so no envelope and no sound
+            if (n.lastGeneration) {
+                n.closed.connect(() => root.hide(n));
+                return;
+            }
+            root.received += 1;
             const critical = root.isCritical(n);
             const sound = n.hints["x-archive-sound"];
             if (root.dnd && !critical) return;
             if (root.indexOf(n.id) < 0) {
                 root.popups.insert(0, { nid: n.id, serial: root.received, opened: false });
-                while (root.popups.count > 4) root.popups.remove(root.popups.count - 1);
+                root.trimPopups();
                 n.closed.connect(() => root.hide(n));
             }
             Sounds.play(sound ? sound : (critical ? "urgent" : "message"));

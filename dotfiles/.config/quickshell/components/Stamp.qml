@@ -63,6 +63,11 @@ Item {
         property color c: root.ink
         onCChanged: requestPaint()
         onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        // the text arrives later on the wallpaper (the plate's number, the
+        // archive's name from settings), so any change repaints
+        readonly property string text: [root.kind, root.ring, root.number, root.footer, root.word, root.sub, root.seed].join("|")
+        onTextChanged: requestPaint()
 
         function arcText(ctx, text, cx, cy, rx, ry, centreAngle, top) {
             ctx.save();
