@@ -130,13 +130,13 @@ Plex comes from the `ttf-ibm-plex` package.
 
 - Volume: `wpctl status` should list a default sink. The shell shows the
   reading when PipeWire reports a change.
-- Brightness: run `archive-brightness doctor`. It shows the backlights it
-  found, which one it uses and whether it fell back to software dimming.
-  The G14's OLED panel can accept a backlight value and not change; after
-  two such tries the screen is dimmed in software instead (hyprsunset's
-  gamma, which on an OLED really dims the pixels). To choose yourself, put
-  `"brightness": "gamma"` (or `"backlight"`) and optionally
-  `"backlightDevice": "amdgpu_bl1"` in `~/.config/archive/settings.json`.
+- Brightness: `archive-brightness doctor` shows the backlights it found and
+  which one it uses. The ruler sets the backlight linearly, never below 5 %
+  (the G14's OLED goes nearly black and red near zero). If the screen is
+  ever stuck dark or tinted, `archive-brightness reset` puts back the plain
+  backlight at 70 %. For a panel without a working backlight,
+  `"brightness": "gamma"` in `~/.config/archive/settings.json` dims in
+  software instead; `"backlightDevice": "amdgpu_bl1"` picks a backlight.
 
 ## Colour profiles (ICC)
 
