@@ -5,7 +5,7 @@
 #   archive-brightness set <percent>
 #   archive-brightness up | down        5 % steps (the brightness keys)
 #   archive-brightness dim | restore    for hypridle: lower to 15 %, then back
-#   archive-brightness init             at login: clear any software dimming
+#   archive-brightness init             at login: the level you last chose
 #   archive-brightness reset            back to the plain backlight at 70 %
 #   archive-brightness doctor           what it found, for troubleshooting
 #
@@ -87,7 +87,10 @@ get() {
     fi
 }
 
+# set_level <percent> [remember]: "no" for hypridle's dimming, which is not
+# a level you chose
 set_level() {
+    [[ ${2:-yes} == yes ]] && echo "$1" >"$state/brightness"
     if [[ $(mode) == backlight ]]; then
         # (no software dimming on top of the backlight)
         pgrep -x hyprsunset >/dev/null && gamma_off
@@ -107,22 +110,25 @@ case ${1:-get} in
     down) set_level $(($(get) - 5)) ;;
     dim)
         get >"$state/brightness-saved"
-        set_level 15
+        set_level 15 no
         ;;
     restore)
         [[ -f $state/brightness-saved ]] && set_level "$(cat "$state/brightness-saved")"
         rm -f "$state/brightness-saved"
         ;;
     init)
+        # the level you last chose (the kernel does not keep it across a reboot)
         if [[ $(mode) == gamma ]]; then
             [[ $(gamma_get) != 100 ]] && gamma_set "$(gamma_get)"
         else
             gamma_off
+            [[ -f $state/brightness ]] && set_level "$(cat "$state/brightness")" no
         fi
         ;;
     reset)
         gamma_off
         rm -f "$state/brightness-saved"
+        echo 70 >"$state/brightness"
         [[ -n $(device) ]] && brightnessctl -q -d "$(device)" set 70%
         echo "brightness: backlight $(device), 70 %"
         ;;

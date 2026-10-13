@@ -7,7 +7,8 @@ and as a cyanotype by night.
 The wallpaper is used as drawn, with its own typed header, labels, stamp and
 tape, so the shell types nothing over it (meta.json "sheet": true).
 
-  sheet-day.jpg    the sheet, upscaled 2x and toned to the desk's grey paper
+  sheet-day.jpg    the sheet, sized to cover the screen and toned to the
+                   desk's grey paper
   sheet-night.jpg  the same sheet printed as a cyanotype: Prussian-blue paper,
                    the drawing and type in pale cream, the paper's own
                    mottling and specks kept
@@ -26,7 +27,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "..", "art", "wallpaper.webp")
 OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "plates")
 PLATE = "0001-geranium-pratense"
-UPSCALE = 2
+# the sheet is sized to cover the G14's 2880 x 1800 panel (a 16:9 sheet:
+# 3200 x 1800), up or down from whatever the source is
+COVER = (2880, 1800)
 
 # the desk's paper (Theme.paperBase is c9c7c3; the reference desk reads about
 # cbc9c5 around the plate) and the night sheet's colours (Theme.nite)
@@ -37,8 +40,10 @@ NIGHT_INK = np.array([0xe6, 0xe1, 0xd6], np.float32)
 
 def main():
     src = Image.open(SRC).convert("RGB")
-    big = src.resize((src.width * UPSCALE, src.height * UPSCALE), Image.LANCZOS)
-    big = big.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
+    scale = max(COVER[0] / src.width, COVER[1] / src.height)
+    big = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
+    if scale > 1.05:   # enlarged: bring the pencil lines back a little
+        big = big.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
     rgb = np.asarray(big, np.float32)
 
     # the paper's own colour, everywhere (the ink lifted out of it)

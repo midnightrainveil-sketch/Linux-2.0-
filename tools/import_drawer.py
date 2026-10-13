@@ -28,6 +28,24 @@ FRONT_W, FRONT_H = 1520, 360          # the front, 760 x 180 at 2x
 FRAME = 0.36                          # the frame's scale in the front
 # the square's frame and moulding, before turning: left, top, right, bottom
 FRONT_BORDERS = (140, 160, 136, 164)
+PANEL = 0.95                          # the panel's grain, near its own scale
+
+# The desk is pencil on grey paper: the wood and brass are muted to sit in it
+# like a hand-tinted print, not a photograph laid on top.
+WOOD_TONE = dict(saturation=0.6, contrast=0.88, lift=12)
+BRASS_TONE = dict(saturation=0.66, contrast=0.9, lift=4)
+
+
+def tone(img, saturation, contrast, lift):
+    """Less colour, a little less contrast, a little lighter (alpha kept)."""
+    a = np.asarray(img).astype(np.float32)
+    rgb = a[..., :3]
+    lum = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
+    rgb = lum[..., None] + (rgb - lum[..., None]) * saturation
+    mean = lum.mean()
+    rgb = mean + (rgb - mean) * contrast + lift
+    a[..., :3] = np.clip(rgb, 0, 255)
+    return Image.fromarray(a.astype(np.uint8), img.mode)
 
 
 def front():
@@ -45,12 +63,20 @@ def front():
     def put(box, size, at):
         out.paste(src.crop(box).resize(size, Image.Resampling.LANCZOS), at)
 
-    # the panel: a band from the middle of the square's, at one scale
+    # the panel: bookmatched, as cabinet-makers lay veneer. One band of the
+    # square's panel at about its own scale, and its mirror image beside it,
+    # meeting on the centre line (under the label holder and the pull).
     pw, ph = FRONT_W - L - R, FRONT_H - T - B
-    s = pw / (W - l - r)
-    band = ph / s
-    cy = (t + H - b) / 2
-    put((l, round(cy - band / 2), W - r, round(cy + band / 2)), (pw, ph), (L, T))
+    band = ph / PANEL
+    half = (pw + 1) // 2
+    sw = round(half / PANEL)
+    cy = t + (H - t - b) * 0.45
+    x0 = W - r - 10 - sw
+    leaf = src.crop((x0, round(cy - band / 2), x0 + sw, round(cy + band / 2))).resize((half, ph), Image.Resampling.LANCZOS)
+    panel = Image.new("RGB", (pw, ph))
+    panel.paste(leaf, (0, 0))
+    panel.paste(leaf.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (pw - half, 0))
+    out.paste(panel, (L, T))
     # the bars: stretched or squeezed along their grain only
     put((l, 0, W - r, t), (pw, T), (L, 0))
     put((l, H - b, W - r, H), (pw, B), (L, FRONT_H - B))
@@ -61,6 +87,7 @@ def front():
     put((W - r, 0, W, t), (R, T), (FRONT_W - R, 0))
     put((0, H - b, l, H), (L, B), (0, FRONT_H - B))
     put((W - r, H - b, W, H), (R, B), (FRONT_W - R, FRONT_H - B))
+    out = tone(out, **WOOD_TONE)
     out.save(OUT / "front.png", optimize=True)
     print(f"front.png  {out.size}, frame {L}/{T}/{R}/{B} px")
 
@@ -73,7 +100,7 @@ def keyed(name):
     alpha = np.clip((246 - lo) / 22, 0, 1)
     rgba = np.dstack([im, alpha * 255]).astype(np.uint8)
     img = Image.fromarray(rgba, "RGBA")
-    return img.crop(img.getbbox())
+    return tone(img.crop(img.getbbox()), **BRASS_TONE)
 
 
 def holder():
@@ -113,7 +140,7 @@ def pull():
 
 
 def wood():
-    img = Image.open(SRC / "wood.webp").convert("RGB").resize((512, 512), Image.Resampling.LANCZOS)
+    img = tone(Image.open(SRC / "wood.webp").convert("RGB").resize((512, 512), Image.Resampling.LANCZOS), **WOOD_TONE)
     img.save(OUT / "wood.jpg", quality=90)
     print("wood.jpg   (512, 512)")
 

@@ -178,6 +178,17 @@ PanelWindow {
         }
 
         // the inside of the drawer: dark wood walls narrowing to the back
+        // the drawer's soft shadow on the desk (drawn on the GPU, from the
+        // drawer's own outline)
+        DropShadow {
+            anchors.fill: inside
+            source: inside
+            radius: 22
+            samples: 33
+            verticalOffset: 8
+            color: Qt.rgba(0, 0, 0, 0.42)
+        }
+
         // (assets/drawer/wood.jpg, from art/drawer by tools/import_drawer.py;
         // a plain gradient without it)
         Canvas {
@@ -217,6 +228,27 @@ PanelWindow {
                 g.beginPath(); g.moveTo(40, f); g.lineTo(72, f); g.lineTo(116, b); g.lineTo(94, b); g.closePath(); g.fill();
                 g.fillStyle = Qt.rgba(0, 0, 0, 0.18);
                 g.beginPath(); g.moveTo(780, f); g.lineTo(748, f); g.lineTo(704, b); g.lineTo(726, b); g.closePath(); g.fill();
+                // the top edges of the walls, lit from above: sides, then back
+                const lit = isImageLoaded(woodTile) ? g.createPattern(woodTile, "repeat") : String(wood);
+                const edge = (pts, light) => {
+                    g.beginPath();
+                    g.moveTo(pts[0], pts[1]);
+                    for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+                    g.closePath();
+                    g.fillStyle = lit;
+                    g.fill();
+                    g.fillStyle = Qt.rgba(1, 0.94, 0.84, light * (1 - 0.6 * nightTint));
+                    g.fill();
+                    g.fillStyle = Qt.rgba(0.06, 0.10, 0.17, 0.6 * nightTint);
+                    g.fill();
+                };
+                edge([40, f, 54, f, 103, b, 94, b], 0.26);
+                edge([780, f, 766, f, 717, b, 726, b], 0.16);
+                edge([94, b, 726, b, 718, b + 7, 102, b + 7], 0.22);
+                // the inner corners of those edges
+                g.strokeStyle = Qt.rgba(0, 0, 0, 0.45);
+                g.lineWidth = 1;
+                g.beginPath(); g.moveTo(54, f); g.lineTo(103, b + 7); g.lineTo(717, b + 7); g.lineTo(766, f); g.stroke();
                 // the brass rod that keeps the cards in
                 g.strokeStyle = Theme.night > 0.5 ? "#6f7f99" : "#8d7449";
                 g.lineWidth = 4;
@@ -316,6 +348,16 @@ PanelWindow {
         Item {
             id: front
             z: 1000
+
+            // the front board shades the cards just behind it
+            Rectangle {
+                x: 12; y: -44
+                width: parent.width - 24; height: 44
+                gradient: Gradient {
+                    GradientStop { position: 0; color: "transparent" }
+                    GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0.32) }
+                }
+            }
             x: 30
             y: stage.frontTop
             width: 760
@@ -338,7 +380,17 @@ PanelWindow {
                 opacity: Theme.night
                 visible: frontImg.visible && Theme.night > 0.01
             }
-            Rectangle { anchors.left: parent.left; anchors.right: parent.right; height: 3; color: Qt.rgba(1, 1, 1, 0.12); visible: frontImg.visible }
+            // the board's top edge, seen a little from above, and its arris
+            Rectangle {
+                anchors.left: parent.left; anchors.right: parent.right
+                height: 6
+                visible: frontImg.visible
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.rgba(1, 0.94, 0.84, 0.30 * (1 - 0.6 * Theme.night)) }
+                    GradientStop { position: 1; color: Qt.rgba(1, 0.94, 0.84, 0.10 * (1 - 0.6 * Theme.night)) }
+                }
+            }
+            Rectangle { y: 6; anchors.left: parent.left; anchors.right: parent.right; height: 1; color: Qt.rgba(0, 0, 0, 0.35); visible: frontImg.visible }
 
             Canvas {
                 id: frontWood
