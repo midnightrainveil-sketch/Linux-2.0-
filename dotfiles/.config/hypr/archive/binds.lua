@@ -17,6 +17,7 @@ hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Reading Room
 hl.bind(mod .. " + SHIFT + Escape", shell("shell", "disposition"), { description = "Disposition (power menu)" })
 hl.bind(mod .. " + N", exec("archive-mode toggle"), { description = "Turn the sheet: day / night" })
 hl.bind(mod .. " + SHIFT + G", exec("archive-grain toggle"), { description = "Film grain on / off" })
+hl.bind(mod .. " + ALT + L", shell("lamp", "toggle"), { description = "Desk lamp on / off (night)" })
 hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "File all correspondence" })
 
 ------------------------------------------------------------------ programs

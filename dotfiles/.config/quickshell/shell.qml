@@ -63,6 +63,14 @@ ShellRoot {
         function close(): void { Panels.close(); }
     }
 
+    // the desk lamp (night), Super+Alt+L
+    IpcHandler {
+        target: "lamp"
+        function toggle(): void { Lamp.toggle(); }
+        function light(): void { Lamp.set(true); }
+        function dark(): void { Lamp.set(false); }
+    }
+
     // archive-desk: lay the record cards back in their places
     IpcHandler {
         target: "desk"

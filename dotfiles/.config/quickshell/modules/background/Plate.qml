@@ -29,6 +29,14 @@ PanelWindow {
     readonly property real sheetH: height - Theme.barHeight      // the sheet above the footer strip
     readonly property int plateSeed: Rand.hash(Plates.current + Plates.number)
 
+    // the desk lamp follows the pointer across the bare desk (services/Lamp.qml)
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        hoverEnabled: true
+        onPositionChanged: mouse => Lamp.moveTo(win.modelData?.name ?? "", mouse.x, mouse.y)
+    }
+
     // ------------------------------------------------------------ a whole sheet
     Image {
         anchors.fill: parent

@@ -106,6 +106,16 @@ BarPopup {
         }
 
         DataRow {
+            label: "Lamp"
+            labelWidth: card.labelWidth
+            Toggle {
+                anchors.verticalCenter: parent.verticalCenter
+                checked: Lamp.isOn
+                onToggled: on => Lamp.set(on)
+            }
+        }
+
+        DataRow {
             label: "Volume"
             labelWidth: card.labelWidth
             rowHeight: 50

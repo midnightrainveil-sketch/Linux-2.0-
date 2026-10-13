@@ -39,6 +39,11 @@ PanelWindow {
     readonly property real column: width - Theme.margin - Theme.recordWidth
     readonly property real gap: Theme.cardGap + extra * 0.2
 
+    // over the cards the lamp keeps following
+    HoverHandler {
+        onPointChanged: if (hovered) Lamp.moveTo(win.modelData?.name ?? "", point.position.x, point.position.y)
+    }
+
     DeskCard {
         id: time
         name: "time"
@@ -65,5 +70,12 @@ PanelWindow {
         homeX: win.column
         homeY: Settings.showWeather ? weather.homeY + weather.height + win.gap : weather.homeY
         AudioRecord { width: parent.width }
+    }
+
+    // the desk lamp's light, over the sheet and the cards alike (night only)
+    LampLight {
+        anchors.fill: parent
+        z: 100
+        screenName: win.modelData?.name ?? ""
     }
 }
