@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# archive-idle: how long the desk waits before it dims, locks and sleeps.
+#
+#   archive-idle <minutes>   lock after that long away (2, 5, 10, 30 ...)
+#   archive-idle never       never dim, lock or turn the screen off by itself
+#   archive-idle status
+#   archive-idle start       (at login) run hypridle with the current choice
+#
+# From the one number: the screen dims at half of it, locks at it, turns off
+# 30 s later, and on battery the laptop sleeps after 4x it (20 min at
+# least). The quick settings card's "Screen off" row sets it too. The
+# choice is kept in ~/.local/state/archive/idle (default 5).
+set -euo pipefail
+state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+conf="$state/hypridle.conf"
+mkdir -p "$state"
+
+minutes() { cat "$state/idle" 2>/dev/null || echo 5; }
+
+write_conf() {
+    local m; m=$(minutes)
+    {
+        cat <<'HEAD'
+# made by archive-idle from ~/.local/state/archive/idle; edits here are lost
+general {
+    lock_cmd = qs ipc call lock lock
+    before_sleep_cmd = loginctl lock-session
+    after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
+    inhibit_sleep = 3
+}
+HEAD
+        if [[ $m != never ]]; then
+            local t=$((m * 60)) half=$((m * 30)) sleep=$((m * 4 * 60))
+            ((sleep < 1200)) && sleep=1200
+            cat <<BODY
+
+# dim the screen and the keyboard
+listener {
+    timeout = $half
+    on-timeout = archive-brightness dim
+    on-resume = archive-brightness restore
+}
+listener {
+    timeout = $half
+    on-timeout = brightnessctl -sd asus::kbd_backlight set 0
+    on-resume = brightnessctl -rd asus::kbd_backlight
+}
+
+# lock
+listener {
+    timeout = $t
+    on-timeout = loginctl lock-session
+}
+
+# screen off
+listener {
+    timeout = $((t + 30))
+    on-timeout = hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })'
+    on-resume = hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })'
+}
+
+# on battery: sleep
+listener {
+    timeout = $sleep
+    on-timeout = systemctl suspend
+    condition_cmd = [ "\$(cat /sys/class/power_supply/AC*/online 2>/dev/null | head -n1)" != "1" ]
+}
+BODY
+        fi
+    } >"$conf"
+}
+
+restart() {
+    write_conf
+    pkill -x hypridle 2>/dev/null || true
+    sleep 0.2
+    setsid -f hypridle -c "$conf" >/dev/null 2>&1
+}
+
+case ${1:-status} in
+    start) restart ;;
+    status) echo "$(minutes) (minutes until it locks)" ;;
+    never) echo never >"$state/idle"; restart; echo "never dims, locks or turns off by itself" ;;
+    *)
+        [[ $1 =~ ^[0-9]+$ && $1 -ge 1 ]] || { echo "usage: archive-idle <minutes>|never|status" >&2; exit 2; }
+        echo "$1" >"$state/idle"
+        restart
+        echo "dims at $(( $1 * 30 )) s, locks at $1 min, screen off 30 s later"
+        ;;
+esac

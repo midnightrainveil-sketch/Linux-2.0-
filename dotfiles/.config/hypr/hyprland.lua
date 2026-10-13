@@ -44,7 +44,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("archive-brightness init")            -- a software dim, if the panel needs one
     hl.exec_cmd("archive-bars ensure")                -- title bars: rebuild if Hyprland was updated
     hl.exec_cmd("qs")                                 -- the shell
-    hl.exec_cmd("hypridle")
+    hl.exec_cmd("archive-idle start")                 -- dim, lock, screen off (archive-idle <minutes>)
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("sh -c 'sleep 2; qs ipc call sound play login'")   -- the drawer slides open

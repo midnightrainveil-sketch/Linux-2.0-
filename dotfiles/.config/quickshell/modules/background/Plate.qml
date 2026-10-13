@@ -43,10 +43,12 @@ PanelWindow {
         visible: Plates.sheet
         source: Plates.sheetDay
         fillMode: Image.PreserveAspectCrop
-        sourceSize: Qt.size(width * 1.5, height * 1.5)
+        // the sheet is made at the screen's own size (import_wallpaper):
+        // drawn straight, no resampling first and no mipmaps, which soften
+        // fine pencil lines even when the picture barely shrinks
         asynchronous: true
         smooth: true
-        mipmap: true
+        mipmap: false
         cache: false
     }
     Image {
@@ -55,10 +57,12 @@ PanelWindow {
         opacity: Theme.night
         source: Plates.sheetNight
         fillMode: Image.PreserveAspectCrop
-        sourceSize: Qt.size(width * 1.5, height * 1.5)
+        // the sheet is made at the screen's own size (import_wallpaper):
+        // drawn straight, no resampling first and no mipmaps, which soften
+        // fine pencil lines even when the picture barely shrinks
         asynchronous: true
         smooth: true
-        mipmap: true
+        mipmap: false
         cache: false
     }
 

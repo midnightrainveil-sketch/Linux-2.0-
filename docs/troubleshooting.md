@@ -138,6 +138,13 @@ Plex comes from the `ttf-ibm-plex` package.
   `"brightness": "gamma"` in `~/.config/archive/settings.json` dims in
   software instead; `"backlightDevice": "amdgpu_bl1"` picks a backlight.
 
+## The screen dims or locks too soon (or too late)
+
+Quick settings, the Lock row: 2, 5, 10 or 30 minutes, or Never. Or from a
+terminal: `archive-idle 10` (minutes), `archive-idle never`. The screen dims
+at half that time, locks at it and turns off 30 s later; on battery the
+laptop sleeps after four times it (20 min at least).
+
 ## Colour profiles (ICC)
 
 Put `.icc` / `.icm` files in `~/.local/share/icc` (or leave them in

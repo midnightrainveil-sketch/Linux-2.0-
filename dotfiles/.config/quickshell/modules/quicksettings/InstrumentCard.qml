@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.theme
 import qs.services
 import qs.components
@@ -112,6 +113,30 @@ BarPopup {
                 anchors.verticalCenter: parent.verticalCenter
                 checked: Lamp.isOn
                 onToggled: on => Lamp.set(on)
+            }
+        }
+
+        // how long away before it dims, locks and turns the screen off (archive-idle)
+        DataRow {
+            label: "Lock"
+            labelWidth: card.labelWidth
+            FileView {
+                id: idleFile
+                path: Settings.stateHome + "/archive/idle"
+                watchChanges: true
+                onFileChanged: reload()
+                printErrors: false
+            }
+            Toggle {
+                readonly property var minutes: ["2", "5", "10", "30", "never"]
+                anchors.verticalCenter: parent.verticalCenter
+                options: ["2 m", "5 m", "10 m", "30 m", "Never"]
+                current: Math.max(0, minutes.indexOf(idleFile.text().trim() || "5"))
+                onPicked: i => {
+                    Quickshell.execDetached(["archive-idle", minutes[i]]);
+                    idleReread.restart();
+                }
+                Timer { id: idleReread; interval: 400; onTriggered: idleFile.reload() }
             }
         }
 
