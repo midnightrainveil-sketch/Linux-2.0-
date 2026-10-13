@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# archive-sound-prep: turn a raw foley recording into an archive sound.
+#
+#   archive-sound-prep recording.wav EVENT
+#
+# EVENT is one of: login lock message urgent capture volume plug battery error
+# Mixing (spec section 12): mono, 48 kHz, dry, peak -12 dBFS, about -24 LUFS,
+# last 10 ms faded to avoid clicks. Trim the recording to the sound first.
+set -euo pipefail
+[[ $# -eq 2 ]] || { sed -n '2,10p' "$0"; exit 2; }
+in=$1 event=$2
+declare -A names=(
+    [login]=desktop-login [lock]=desktop-logout [message]=message-new-instant
+    [urgent]=dialog-warning [capture]=screen-capture [volume]=audio-volume-change
+    [plug]=power-plug [battery]=battery-low [error]=dialog-error
+)
+name=${names[$event]:-}
+[[ -n $name ]] || { echo "unknown event: $event" >&2; exit 2; }
+out_dir="${XDG_DATA_HOME:-$HOME/.local/share}/sounds/archive/stereo"
+mkdir -p "$out_dir"
+tmp=$(mktemp --suffix=.wav)
+trap 'rm -f "$tmp"' EXIT
+# 1. trim leading silence, mono 48 kHz, loudness to about -24 LUFS, peak -12 dBFS
+ffmpeg -hide_banner -loglevel error -y -i "$in" \
+    -af "silenceremove=start_periods=1:start_threshold=-50dB,loudnorm=I=-24:TP=-12:LRA=7" \
+    -ac 1 -ar 48000 "$tmp"
+# 2. fade the last 10 ms and encode
+dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$tmp")
+fade_start=$(awk -v d="$dur" 'BEGIN { s = d - 0.010; if (s < 0) s = 0; printf "%.3f", s }')
+ffmpeg -hide_banner -loglevel error -y -i "$tmp" \
+    -af "afade=t=out:st=$fade_start:d=0.010" \
+    -c:a libvorbis -q:a 5 "$out_dir/$name.oga"
+echo "filed: $out_dir/$name.oga"

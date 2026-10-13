@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# archive-grain: the optional 2-3 % film grain screen shader (spec section 4).
+#   archive-grain on | off | toggle | status
+# It shifts colours slightly: turn it off for colour-critical work
+# (3D renders, video, photos). Super+Shift+G toggles it.
+set -euo pipefail
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+shader="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/shaders/grain.frag"
+mkdir -p "$state_dir"
+current=$(cat "$state_dir/grain" 2>/dev/null || echo off)
+
+case ${1:-toggle} in
+    on) want=on ;;
+    off) want=off ;;
+    toggle) [[ $current == on ]] && want=off || want=on ;;
+    status) echo "$current"; exit 0 ;;
+    *) echo "usage: archive-grain on|off|toggle|status" >&2; exit 2 ;;
+esac
+
+printf '%s\n' "$want" >"$state_dir/grain"
+path=""
+[[ $want == on ]] && path=$shader
+hyprctl eval "hl.config({ decoration = { screen_shader = \"$path\" } })" >/dev/null

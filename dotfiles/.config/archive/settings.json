@@ -1,0 +1,27 @@
+{
+  "archive": {
+    "name": "ROYAL BOTANIC ARCHIVE",
+    "stamp": "REG. BOT. ARCHIVUM"
+  },
+  "location": {
+    "name": "Singapore",
+    "country": "Singapore",
+    "latitude": 1.3521,
+    "longitude": 103.8198
+  },
+  "dayStart": "07:00",
+  "nightStart": "19:10",
+  "bar": {
+    "minWorkspaces": 4
+  },
+  "records": {
+    "time": true,
+    "weather": true,
+    "audio": true
+  },
+  "plate": "",
+  "deskTerminal": true,
+  "reducedMotion": false,
+  "sounds": true,
+  "doNotDisturb": false
+}

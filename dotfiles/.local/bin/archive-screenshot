@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# archive-screenshot: file a screen record, with a shutter and a FILED stamp.
+#   archive-screenshot region | window | screen
+# Saved to ~/Pictures/Archive/ and copied to the clipboard.
+set -euo pipefail
+dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Archive"
+mkdir -p "$dir"
+file="$dir/record-$(date +%Y%m%d-%H%M%S).png"
+
+case ${1:-region} in
+    region)
+        geom=$(slurp -d -b '1e1d2233' -c '34405eff' -s '00000000' -w 2) || exit 0
+        grim -g "$geom" "$file"
+        ;;
+    window)
+        geom=$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+        grim -g "$geom" "$file"
+        ;;
+    screen)
+        mon=$(hyprctl activeworkspace -j | jq -r '.monitor')
+        grim -o "$mon" "$file"
+        ;;
+    *) echo "usage: archive-screenshot region|window|screen" >&2; exit 2 ;;
+esac
+
+wl-copy --type image/png <"$file"
+notify-send --app-name "Camera Lucida" \
+    --hint string:x-archive-stamp:FILED \
+    --hint string:x-archive-sound:capture \
+    --hint "string:image-path:$file" \
+    "Screen record filed." "${file/#$HOME/\~}"

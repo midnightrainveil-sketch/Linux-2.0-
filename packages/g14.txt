@@ -1,0 +1,10 @@
+# ASUS ROG Zephyrus G14 (2024, GA403) extras, from the asus-linux.org [g14] repo
+# and the official repos. See docs/02-zephyrus-g14.md before installing.
+asusctl
+supergfxctl
+rog-control-center
+switcheroo-control
+nvidia-open-dkms
+nvidia-utils
+lib32-nvidia-utils
+linux-headers

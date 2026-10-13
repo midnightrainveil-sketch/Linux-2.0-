@@ -1,0 +1,67 @@
+# Archive desktop: official Arch packages (install with ./install.sh --packages)
+# ---- compositor and session
+hyprland
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+hypridle
+hyprpolkitagent
+hyprpicker
+greetd
+greetd-tuigreet
+# ---- the shell (Quickshell) and the Qt modules it uses
+quickshell
+qt6-5compat
+qt6-svg
+qt6-imageformats
+qt6-wayland
+# ---- build tools for hyprpm (title bar plugin)
+base-devel
+git
+cmake
+meson
+cpio
+pkgconf
+# ---- terminal and shell
+foot
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+fastfetch
+# ---- audio, media
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+pavucontrol
+playerctl
+# ---- network, bluetooth, power
+networkmanager
+network-manager-applet
+bluez
+bluez-utils
+blueman
+upower
+power-profiles-daemon
+brightnessctl
+# ---- screenshots, clipboard, notifications from scripts
+grim
+slurp
+wl-clipboard
+cliphist
+jq
+libnotify
+# ---- look: fonts, GTK / Qt themes, icons
+ttf-ibm-plex
+noto-fonts
+noto-fonts-cjk
+adw-gtk-theme
+papirus-icon-theme
+qt6ct
+nwg-look
+# ---- plates and sounds
+python-pillow
+python-numpy
+ffmpeg
+# ---- everyday apps (swap for your own)
+nautilus
+firefox

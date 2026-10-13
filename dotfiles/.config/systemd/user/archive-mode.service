@@ -1,0 +1,6 @@
+[Unit]
+Description=Archive: turn the sheet to day or night by the clock
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/archive-mode auto

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# archive-session logout: end the Hyprland session cleanly.
+set -euo pipefail
+case ${1:-logout} in
+    logout)
+        if command -v hyprshutdown >/dev/null; then
+            exec hyprshutdown
+        fi
+        exec hyprctl dispatch 'hl.dsp.exit()'
+        ;;
+    *) echo "usage: archive-session logout" >&2; exit 2 ;;
+esac

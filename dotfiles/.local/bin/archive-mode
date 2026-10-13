@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# archive-mode: turn the sheet between day (paper) and night (cyanotype).
+#
+#   archive-mode day | night     set it, and hold until the next sunrise / sunset
+#   archive-mode toggle          the other one, held the same way
+#   archive-mode auto            follow the clock (run by archive-mode.timer and at login)
+#   archive-mode status          print the current mode
+#
+# Day / night times come from ~/.config/archive/settings.json ("dayStart",
+# "nightStart"; default 07:00 and 19:10, right for Singapore all year).
+#
+# Everything that changes colour follows the one state file
+# ~/.local/state/archive/mode: Quickshell watches it (2 s crossfade),
+# Hyprland reloads its colours, foot, GTK and Qt are switched here.
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+settings="$config_dir/archive/settings.json"
+mkdir -p "$state_dir"
+
+setting() { # setting key default
+    local v=""
+    [[ -f "$settings" ]] && v=$(sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$settings" | head -n1)
+    echo "${v:-$2}"
+}
+
+day_start=$(setting dayStart "07:00")
+night_start=$(setting nightStart "19:10")
+
+minutes() { local h=${1%%:*} m=${1##*:}; echo $((10#$h * 60 + 10#$m)); }
+
+clock_mode() {
+    local now d n
+    now=$(minutes "$(date +%H:%M)")
+    d=$(minutes "$day_start")
+    n=$(minutes "$night_start")
+    if (( now >= d && now < n )); then echo day; else echo night; fi
+}
+
+# epoch of the next sunrise or sunset, whichever comes first
+next_boundary() {
+    local now t
+    now=$(date +%s)
+    for t in "today $day_start" "today $night_start" "tomorrow $day_start"; do
+        local e
+        e=$(date -d "$t" +%s)
+        if (( e > now )); then echo "$e"; return; fi
+    done
+}
+
+current() { cat "$state_dir/mode" 2>/dev/null || echo day; }
+
+apply() {
+    local mode=$1
+    printf '%s\n' "$mode" >"$state_dir/mode"
+
+    # foot: new windows read this; running ones get a signal below
+    if [[ $mode == night ]]; then
+        printf '[main]\ninitial-color-theme=dark\n' >"$state_dir/foot-theme.ini"
+    else
+        printf '[main]\ninitial-color-theme=light\n' >"$state_dir/foot-theme.ini"
+    fi
+
+    # GTK 3 / 4: swap the archive stylesheets and tell apps about the scheme
+    local themes="$config_dir/archive/themes"
+    if [[ -d $themes ]]; then
+        mkdir -p "$config_dir/gtk-3.0" "$config_dir/gtk-4.0"
+        ln -sfn "$themes/gtk3-$mode.css" "$config_dir/gtk-3.0/gtk.css"
+        ln -sfn "$themes/gtk4-$mode.css" "$config_dir/gtk-4.0/gtk.css"
+    fi
+    if command -v gsettings >/dev/null; then
+        if [[ $mode == night ]]; then
+            gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+            gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null || true
+        else
+            gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true
+            gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3 2>/dev/null || true
+        fi
+    fi
+
+    # Qt: point qt6ct at the matching colour scheme
+    local qtconf="$config_dir/qt6ct/qt6ct.conf"
+    if [[ -f $qtconf ]]; then
+        sed -i "s|^color_scheme_path=.*|color_scheme_path=$config_dir/qt6ct/colors/archive-$mode.conf|" "$qtconf"
+    fi
+
+    # foot (1.26+): SIGUSR1 = [colors-dark], SIGUSR2 = [colors-light]
+    if [[ $mode == night ]]; then
+        pkill -USR1 -x foot 2>/dev/null || true
+        pkill -USR1 -x footclient 2>/dev/null || true
+    else
+        pkill -USR2 -x foot 2>/dev/null || true
+        pkill -USR2 -x footclient 2>/dev/null || true
+    fi
+
+    # Hyprland: borders, shadows and title bars are read from the state file
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+        hyprctl reload >/dev/null 2>&1 || true
+    fi
+}
+
+cmd=${1:-status}
+case $cmd in
+    day | night)
+        apply "$cmd"
+        next_boundary >"$state_dir/mode-hold"
+        ;;
+    toggle)
+        if [[ $(current) == night ]]; then new=day; else new=night; fi
+        apply "$new"
+        next_boundary >"$state_dir/mode-hold"
+        ;;
+    auto)
+        hold=$(cat "$state_dir/mode-hold" 2>/dev/null || echo 0)
+        if (( $(date +%s) < hold )); then
+            exit 0      # a manual choice holds until the next sunrise / sunset
+        fi
+        rm -f "$state_dir/mode-hold"
+        want=$(clock_mode)
+        if [[ $want != "$(current)" || ! -f $state_dir/foot-theme.ini ]]; then
+            apply "$want"
+        fi
+        ;;
+    status)
+        current
+        ;;
+    *)
+        echo "usage: archive-mode day|night|toggle|auto|status" >&2
+        exit 2
+        ;;
+esac

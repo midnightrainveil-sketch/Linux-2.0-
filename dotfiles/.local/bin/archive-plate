@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""archive-plate: manage the plate collection shown on the sheet.
+
+  archive-plate list
+  archive-plate import IMAGE --latin "Geranium pratense" [options]
+  archive-plate pin ID            always show this plate
+  archive-plate daily             a new plate each day (default)
+  archive-plate remove ID
+
+Import turns any botanical illustration (a scan of a public-domain flora
+plate, or your own drawing) into a text-free plate:
+  ink.png         the drawing's lines as alpha; the shell inks it graphite by
+                  day and pale cream on cyanotype blue at night
+  wash.png        coloured areas (flowers), shown as a pale blue watercolour wash
+  silhouette.png  the filled shape, printed as a photogram at night
+Good sources: Wikimedia Commons and the Biodiversity Heritage Library, e.g.
+Lindman's "Bilder ur Nordens Flora", Thome's "Flora von Deutschland",
+Sturm's "Deutschlands Flora". Pick plates with one plant on a plain ground;
+crop away printed captions first (the shell types its own labels).
+
+Options for import:
+  --latin, --authority, --family, --common   the names typed beside the plant
+  --region "FLORA EUROPAEA"                   the header
+  --loc --hab --leg --det --dat              the specimen label fields
+  --number 0007                              catalogue number (default: next free)
+  --threshold 0.06                           ink noise floor (raise for grey scans)
+  --no-wash                                  ignore colour in the source
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+try:
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter, ImageOps
+except ImportError:
+    sys.exit("archive-plate needs python-numpy and python-pillow")
+
+DATA = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+CONFIG = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+PLATES = os.path.join(DATA, "archive", "plates")
+INDEX = os.path.join(PLATES, "index.json")
+SETTINGS = os.path.join(CONFIG, "archive", "settings.json")
+MAX_H = 2560
+
+
+def load_index():
+    if os.path.exists(INDEX):
+        with open(INDEX) as f:
+            return json.load(f)
+    return []
+
+
+def save_index(index):
+    os.makedirs(PLATES, exist_ok=True)
+    with open(INDEX, "w") as f:
+        json.dump(sorted(set(index)), f, indent=2)
+        f.write("\n")
+
+
+def slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def next_number(index):
+    nums = [int(i.split("-")[0]) for i in index if i.split("-")[0].isdigit()]
+    return f"{(max(nums) + 1) if nums else 1:04d}"
+
+
+def alpha_png(mask, path):
+    a = Image.fromarray((np.clip(mask, 0, 1) * 255).astype(np.uint8))
+    out = Image.new("RGBA", a.size, (0, 0, 0, 0))
+    out.putalpha(a)
+    out.save(path, optimize=True)
+
+
+def cmd_import(args):
+    src = Image.open(args.image).convert("RGB")
+    if src.height > MAX_H:
+        src = src.resize((round(src.width * MAX_H / src.height), MAX_H), Image.LANCZOS)
+    rgb = np.asarray(src, np.float32) / 255.0
+    gray = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
+
+    # paper: a heavy blur of the lightest tones, so yellowed or uneven scans flatten out
+    g8 = Image.fromarray((gray * 255).astype(np.uint8))
+    paper = np.asarray(g8.filter(ImageFilter.MaxFilter(15)).filter(ImageFilter.GaussianBlur(40)), np.float32) / 255.0
+    paper = np.maximum(paper, gray)
+    ink = np.clip((paper - gray) / np.maximum(paper, 0.05), 0, 1)
+    ink = np.clip((ink - args.threshold) / (0.75 - args.threshold), 0, 1) ** 0.85
+
+    # colour wash: saturated areas of the source (flowers, tinted leaves)
+    mx, mn = rgb.max(axis=2), rgb.min(axis=2)
+    sat = np.where(mx > 0.05, (mx - mn) / np.maximum(mx, 1e-3), 0)
+    wash = np.clip((sat - 0.18) / 0.35, 0, 1) * (mx > 0.2)
+    wash_img = Image.fromarray((wash * 255).astype(np.uint8)).filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.GaussianBlur(3))
+    wash = np.asarray(wash_img, np.float32) / 255.0
+    has_wash = (not args.no_wash) and wash.mean() > 0.002
+
+    # silhouette: close the drawing, then fill everything not reachable from the border
+    solid = Image.fromarray(((ink > 0.12) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))
+    padded = ImageOps.expand(solid, border=2, fill=0)
+    ImageDraw.floodfill(padded, (0, 0), 128)
+    outside = np.asarray(padded, np.uint8)[2:-2, 2:-2] == 128
+    sil_img = Image.fromarray(((~outside) * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.GaussianBlur(1.2))
+    sil = np.asarray(sil_img, np.float32) / 255.0
+
+    # crop to the plant, with a small margin
+    ys, xs = np.nonzero(sil > 0.1)
+    if len(xs) == 0:
+        sys.exit("archive-plate: no drawing found (try a lower --threshold)")
+    m = 24
+    x0, x1 = max(0, xs.min() - m), min(ink.shape[1], xs.max() + m)
+    y0, y1 = max(0, ys.min() - m), min(ink.shape[0], ys.max() + m)
+    ink, wash, sil = ink[y0:y1, x0:x1], wash[y0:y1, x0:x1], sil[y0:y1, x0:x1]
+
+    index = load_index()
+    number = args.number or next_number(index)
+    plate_id = f"{number}-{slug(args.latin)}"
+    folder = os.path.join(PLATES, plate_id)
+    os.makedirs(folder, exist_ok=True)
+    alpha_png(ink, os.path.join(folder, "ink.png"))
+    if has_wash:
+        alpha_png(wash, os.path.join(folder, "wash.png"))
+    alpha_png(sil, os.path.join(folder, "silhouette.png"))
+
+    # three tape strips across the stem: where the silhouette is narrowest low down
+    tapes = []
+    h, w = sil.shape
+    for fy, angle in ((0.45, 7), (0.68, -4), (0.88, 5)):
+        row = sil[int(fy * (h - 1))]
+        cols = np.nonzero(row > 0.5)[0]
+        cx = float(cols.mean() / w) if len(cols) else 0.5
+        tapes.append({"x": round(cx, 3), "y": fy, "w": 0.14, "angle": angle})
+
+    meta = {
+        "number": number,
+        "region": args.region,
+        "subtitle": "Archivum.",
+        "latin": args.latin,
+        "authority": args.authority,
+        "family": args.family,
+        "common": args.common,
+        "label": {"loc": args.loc, "hab": args.hab, "leg": args.leg, "det": args.det, "dat": args.dat},
+        "box": [0.375, 0.06, 0.665, 0.95],
+        "wash": bool(has_wash),
+        "silhouette": True,
+        "tapes": tapes,
+        "marks": [],
+    }
+    with open(os.path.join(folder, "meta.json"), "w") as f:
+        json.dump(meta, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    index.append(plate_id)
+    save_index(index)
+    print(f"filed plate {plate_id}  ({w}x{h}, wash: {'yes' if has_wash else 'no'})")
+    print(f"edit {folder}/meta.json to adjust tapes, marks or the plate box")
+
+
+def set_plate(value):
+    data = {}
+    if os.path.exists(SETTINGS):
+        with open(SETTINGS) as f:
+            data = json.load(f)
+    data["plate"] = value
+    os.makedirs(os.path.dirname(SETTINGS), exist_ok=True)
+    with open(SETTINGS, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="archive-plate", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("list")
+    sub.add_parser("daily")
+    sp = sub.add_parser("pin"); sp.add_argument("id")
+    sr = sub.add_parser("remove"); sr.add_argument("id")
+    si = sub.add_parser("import")
+    si.add_argument("image")
+    si.add_argument("--latin", required=True)
+    si.add_argument("--authority", default="")
+    si.add_argument("--family", default="")
+    si.add_argument("--common", default="")
+    si.add_argument("--region", default="FLORA EUROPAEA")
+    for k in ("loc", "hab", "leg", "det", "dat"):
+        si.add_argument("--" + k, default="")
+    si.add_argument("--number", default="")
+    si.add_argument("--threshold", type=float, default=0.06)
+    si.add_argument("--no-wash", action="store_true")
+    args = p.parse_args()
+
+    if args.cmd == "list":
+        for i in load_index():
+            meta_path = os.path.join(PLATES, i, "meta.json")
+            latin = ""
+            if os.path.exists(meta_path):
+                with open(meta_path) as f:
+                    latin = json.load(f).get("latin", "")
+            print(f"{i:40s} {latin}")
+    elif args.cmd == "import":
+        cmd_import(args)
+    elif args.cmd == "pin":
+        if args.id not in load_index():
+            sys.exit(f"no plate {args.id}; see archive-plate list")
+        set_plate(args.id)
+    elif args.cmd == "daily":
+        set_plate("")
+    elif args.cmd == "remove":
+        index = [i for i in load_index() if i != args.id]
+        save_index(index)
+        print(f"removed {args.id} from the index (files kept in {PLATES})")
+
+
+if __name__ == "__main__":
+    main()

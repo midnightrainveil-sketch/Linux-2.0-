@@ -1,0 +1,30 @@
+-- The archive palette (spec sections 2 and 14), as bare hex for Hyprland.
+-- Keep in sync with ~/.config/quickshell/theme/Theme.qml.
+return {
+    day = {
+        paper_base   = "c9c7c3",
+        paper_card   = "d5d0ca",
+        paper_raised = "ddd9d3",
+        graphite     = "1e1d22",
+        soft         = "3e3d42",
+        faded        = "6e6c6d",
+        rule_ink     = "4a4950",
+        rule_faint   = "9c9995",
+        accent       = "34405e",
+        madder       = "7a4a46",
+        shadow       = "1e1d22", shadow_active = "2e", shadow_inactive = "1a",   -- 18 % / 10 %
+    },
+    night = {
+        paper_base   = "1c2f4d",
+        paper_card   = "22385a",
+        paper_raised = "2a4268",
+        graphite     = "e6e1d6",
+        soft         = "c9ccd2",
+        faded        = "8e9cb3",
+        rule_ink     = "b8bfcc",
+        rule_faint   = "4e6283",
+        accent       = "a9c4e4",
+        madder       = "d69a8e",
+        shadow       = "08101e", shadow_active = "66", shadow_inactive = "33",   -- 40 % / 20 %
+    },
+}

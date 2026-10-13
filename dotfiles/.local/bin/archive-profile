@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# archive-profile: step through the power profiles (the G14's fan key).
+#   archive-profile next | quiet | balanced | performance
+# power-profiles-daemon is the source of truth; asusctl follows it.
+set -euo pipefail
+profiles=(power-saver balanced performance)
+words=([0]=Quiet [1]=Balanced [2]=Performance)
+current=$(powerprofilesctl get)
+case ${1:-next} in
+    next)
+        for i in "${!profiles[@]}"; do [[ ${profiles[$i]} == "$current" ]] && idx=$i; done
+        idx=$(( (${idx:-0} + 1) % ${#profiles[@]} ))
+        ;;
+    quiet) idx=0 ;;
+    balanced) idx=1 ;;
+    performance) idx=2 ;;
+    *) echo "usage: archive-profile next|quiet|balanced|performance" >&2; exit 2 ;;
+esac
+powerprofilesctl set "${profiles[$idx]}"
+notify-send --app-name "Instruments" --hint string:x-archive-stamp:SET \
+    --hint string:x-archive-sound:volume "Profile: ${words[$idx]}." "Fan and power profile changed."
