@@ -23,7 +23,7 @@ Item {
     readonly property real _angle: Rand.make(seed)() * 16 - 8
     readonly property real _opacity: 0.75 + Rand.make(seed + 99)() * 0.10
 
-    implicitWidth: kind === "oval" ? 132 : Math.max(96, wordMetrics.width + 34)
+    implicitWidth: kind === "oval" ? 132 : Math.max(96, wordMetrics.width + 30)
     implicitHeight: kind === "oval" ? 84 : (sub === "" ? 34 : 46)
     rotation: _angle
     opacity: _opacity
@@ -103,8 +103,17 @@ Item {
                 ctx.lineWidth = 1;
                 ctx.strokeRect(5, 5, w - 10, h - 10);
                 ctx.font = "bold 15px '" + Theme.typewriter + "'";
-                const spaced = root.word.split("").join(String.fromCharCode(0x200A));
-                ctx.fillText(spaced, w / 2, root.sub === "" ? h / 2 + 1 : h / 2 - 5);
+                // typed letter by letter, spaced like a rubber stamp's type
+                const gap = 2, chars = root.word.split("");
+                const widths = chars.map(ch => ctx.measureText(ch).width);
+                const total = widths.reduce((a, b) => a + b, 0) + gap * (chars.length - 1);
+                let x = (w - total) / 2;
+                ctx.textAlign = "left";
+                for (let i = 0; i < chars.length; i++) {
+                    ctx.fillText(chars[i], x, root.sub === "" ? h / 2 + 1 : h / 2 - 5);
+                    x += widths[i] + gap;
+                }
+                ctx.textAlign = "center";
                 if (root.sub !== "") {
                     ctx.font = "9px '" + Theme.typewriter + "'";
                     ctx.fillText(root.sub, w / 2, h / 2 + 11);

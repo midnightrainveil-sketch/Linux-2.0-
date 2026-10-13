@@ -124,7 +124,7 @@ Item {
                     anchors.left: picture.right
                     anchors.leftMargin: picture.visible ? 14 : Theme.headerPadH
                     anchors.right: parent.right
-                    anchors.rightMargin: 104
+                    anchors.rightMargin: 120
                     y: 13
                     spacing: 4
 
