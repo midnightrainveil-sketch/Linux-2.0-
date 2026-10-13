@@ -290,6 +290,12 @@ void CArchiveDeckle::renderPass(PHLMONITOR pMonitor, float const& a) {
         renderUnder(pMonitor, a, card);
 }
 
+// a tile from one of the tile arrays, or none if `v` is out of range
+static const SP<Render::ITexture>& tile(const SP<Render::ITexture> (&row)[Deckle::VARIANTS], int v) {
+    static const SP<Render::ITexture> NONE;
+    return v >= 0 && v < Deckle::VARIANTS ? row[v] : NONE;
+}
+
 // logical edges -> a box in device pixels; neighbouring tiles share edges
 static void put(const SP<Render::ITexture>& tex, double s, float a, double x0, double y0, double x1, double y1) {
     auto px  = [&](double v) { return std::round(v * s); };
@@ -337,7 +343,7 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
 
     // the edges: strips repeated along each side, stretched a little to fit
     forEachStrip(st, m_seed, x, y, w, h, [&](int side, int v, double a0, double a1) {
-        const auto& tex = tiles->strips[side][v];
+        const auto& tex = tile(tiles->strips[side], v);
         switch (side) {
             case Deckle::SIDE_TOP: put(tex, s, a, a0, y - O, a1, y + I); break;
             case Deckle::SIDE_BOTTOM: put(tex, s, a, a0, y + h - I, a1, y + h + O); break;
@@ -350,7 +356,7 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
     const double cx[4] = {x - O, x + w - R, x - O, x + w - R};
     const double cy[4] = {y - O, y - O, y + h - R, y + h - R};
     for (int c = 0; c < 4; ++c)
-        put(tiles->corners[c][Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)], s, a, cx[c], cy[c], cx[c] + K, cy[c] + K);
+        put(tile(tiles->corners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + K, cy[c] + K);
 }
 
 void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox& card) {
@@ -364,7 +370,7 @@ void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox&
     const double x = card.x, y = card.y, w = card.w, h = card.h;
 
     forEachStrip(st, m_seed, x, y, w, h, [&](int side, int v, double a0, double a1) {
-        const auto& tex = tiles->overStrips[side][v];
+        const auto& tex = tile(tiles->overStrips[side], v);
         switch (side) {
             case Deckle::SIDE_TOP: put(tex, s, a, a0, y - E, a1, y + D); break;
             case Deckle::SIDE_BOTTOM: put(tex, s, a, a0, y + h - D, a1, y + h + E); break;
@@ -376,14 +382,14 @@ void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox&
     const double cx[4] = {x - E, x + w - R, x - E, x + w - R};
     const double cy[4] = {y - E, y - E, y + h - R, y + h - R};
     for (int c = 0; c < 4; ++c) {
-        put(tiles->overCorners[c][Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)], s, a, cx[c], cy[c], cx[c] + E + R, cy[c] + E + R);
+        put(tile(tiles->overCorners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + E + R, cy[c] + E + R);
 
         const int v = Deckle::creaseFor(st, m_seed, (Deckle::eCorner)c, w, h);
         if (v < 0)
             continue;
         const double kx = (c == Deckle::CORNER_TR || c == Deckle::CORNER_BR) ? x + w - C : x;
         const double ky = (c == Deckle::CORNER_BL || c == Deckle::CORNER_BR) ? y + h - C : y;
-        put(tiles->creases[c][v], s, a, kx, ky, kx + C, ky + C);
+        put(tile(tiles->creases[c], v), s, a, kx, ky, kx + C, ky + C);
     }
 }
 

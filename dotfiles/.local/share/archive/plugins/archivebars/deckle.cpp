@@ -751,7 +751,9 @@ namespace Deckle {
     // ---------------------------------------------------------------- layout
 
     int variantFor(uint32_t seed, eSide side, int index) {
-        return (int)(mix(seed * 4U + side + 1U) ^ mix((uint32_t)index * 0x27d4eb2dU + 3U)) % VARIANTS;
+        // the modulo on the unsigned hash: cast first and half the hashes go
+        // negative, and a negative variant indexes outside the tile arrays
+        return (int)((mix(seed * 4U + side + 1U) ^ mix((uint32_t)index * 0x27d4eb2dU + 3U)) % (uint32_t)VARIANTS);
     }
 
     int stripCount(const SStyle& st, double length) {
