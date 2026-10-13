@@ -19,7 +19,7 @@ Singleton {
     property bool isDay: true
 
     readonly property string condition: describe(code)
-    readonly property string icon: iconFor(code, isDay)
+    readonly property string icon: ready ? iconFor(code, isDay) : "overcast"
     readonly property string windCompass: compass(windDirection)
 
     function describe(c: int): string {

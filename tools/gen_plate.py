@@ -332,7 +332,7 @@ def main():
     tooth = nrng.random((H * SS, W * SS)).astype(np.float32)
     tooth = np.asarray(Image.fromarray((tooth * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.7)), np.float32) / 255
     ink = np.clip(S.ink, 0, 1.25) / 1.25
-    ink = np.clip(ink * (0.62 + 0.55 * tooth), 0, 1) ** 0.9
+    ink = np.clip(ink * (0.75 + 0.6 * tooth) * 1.35, 0, 1) ** 0.85
 
     alpha = Image.fromarray((ink * 255).astype(np.uint8)).resize((W, H), Image.LANCZOS)
     rgba = Image.new("RGBA", (W, H), (0, 0, 0, 0))

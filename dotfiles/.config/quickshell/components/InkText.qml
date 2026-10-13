@@ -13,10 +13,18 @@ Text {
     color: Theme.soft
     font.family: Theme.typewriter
     font.pixelSize: Theme.sizeData
-    font.letterSpacing: tracking * font.pixelSize
     font.capitalization: caps ? Font.AllUppercase : Font.MixedCase
     renderType: Text.QtRendering
     textFormat: Text.PlainText
+
+    // tracking is set once, not bound: font is one grouped property, so a
+    // binding from font.pixelSize to font.letterSpacing would loop
+    function applyTracking() {
+        if (tracking !== 0 || font.letterSpacing !== 0)
+            font.letterSpacing = tracking * font.pixelSize;
+    }
+    onTrackingChanged: applyTracking()
+    Component.onCompleted: applyTracking()
 
     Text {
         visible: root.bleed
@@ -37,5 +45,9 @@ Text {
         lineHeight: root.lineHeight
         renderType: root.renderType
         textFormat: root.textFormat
+        leftPadding: root.leftPadding
+        rightPadding: root.rightPadding
+        topPadding: root.topPadding
+        bottomPadding: root.bottomPadding
     }
 }

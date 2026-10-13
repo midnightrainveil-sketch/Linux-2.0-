@@ -54,8 +54,11 @@ IndexCard {
             spacing: 0
             Digit { value: Clock.hours.charAt(0) }
             Digit { value: Clock.hours.charAt(1) }
+            // the colon, spaced like "14 : 26" but tighter than a full typewriter space
             InkText {
-                text: " : "
+                text: ":"
+                leftPadding: 10
+                rightPadding: 10
                 color: Theme.graphite
                 font.pixelSize: Theme.sizeClock
                 font.bold: true

@@ -70,7 +70,7 @@ def make_grain():
     fib = fibres(size, R, 900, 40, 90)
 
     # dark: specks + fibres + very soft blotches; alpha only, black ink
-    dark = 0.45 * np.clip(fine, 0, None) + 0.35 * np.clip(mid, 0, None) + 0.25 * (blotch * 0.5 + 0.5) + 1.4 * fib
+    dark = 0.45 * np.clip(fine, 0, None) + 0.30 * np.clip(mid, 0, None) + 0.08 * (blotch * 0.5 + 0.5) + 1.4 * fib
     dark = np.clip(dark / np.percentile(dark, 99.7), 0, 1)
     rgba = np.zeros((size, size, 4), np.uint8)
     rgba[..., 3] = (dark * 255).astype(np.uint8)

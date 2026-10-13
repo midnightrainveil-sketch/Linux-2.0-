@@ -32,7 +32,7 @@ PanelWindow {
     Column {
         id: column
         x: win.pad
-        y: Theme.margin + 16 + Math.max(0, win.free * 0.15)
+        y: Theme.margin + 16 + Math.max(0, win.free * 0.08)
         width: Theme.recordWidth
         spacing: Math.max(Theme.cardGap, Math.min(56, win.free * 0.35 / Math.max(1, win.count - 1)))
 

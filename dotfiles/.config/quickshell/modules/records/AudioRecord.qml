@@ -20,7 +20,7 @@ IndexCard {
 
         // the print
         Item {
-            id: print
+            id: photo
             x: Theme.cardPad
             y: 14
             width: 132
@@ -66,7 +66,7 @@ IndexCard {
         }
 
         Column {
-            anchors.left: print.right
+            anchors.left: photo.right
             anchors.leftMargin: 18
             anchors.right: parent.right
             anchors.rightMargin: Theme.cardPad
@@ -99,7 +99,7 @@ IndexCard {
         // progress: 1 px rule.faint track, 3 px accent.ink fill
         Item {
             id: progress
-            anchors.left: print.right
+            anchors.left: photo.right
             anchors.leftMargin: 18
             anchors.right: parent.right
             anchors.rightMargin: Theme.cardPad

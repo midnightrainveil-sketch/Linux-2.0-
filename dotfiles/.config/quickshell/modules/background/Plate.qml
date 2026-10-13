@@ -23,12 +23,12 @@ PanelWindow {
     WlrLayershell.namespace: "archive-plate"
     color: Theme.paperBase
 
-    readonly property real W: width
-    readonly property real H: height - Theme.barHeight      // the sheet above the footer strip
+    readonly property real sheetW: width
+    readonly property real sheetH: height - Theme.barHeight      // the sheet above the footer strip
     readonly property int plateSeed: Rand.hash(Plates.current + Plates.number)
 
     // ------------------------------------------------------------ paper
-    Grain { anchors.fill: parent; strength: 1.15 }
+    Grain { anchors.fill: parent; strength: 1.0 }
 
     // foxing: 3-6 small age spots, never on cards
     Repeater {
@@ -41,8 +41,8 @@ PanelWindow {
                 return [r(), r(), r(), r(), r(), r()];
             }
             readonly property real s: 2 + v[0] * 5
-            x: (index % 2 === 0 ? 0.04 + v[1] * 0.28 : 0.68 + v[1] * 0.28) * win.W
-            y: (0.05 + v[2] * 0.88) * win.H
+            x: (index % 2 === 0 ? 0.04 + v[1] * 0.28 : 0.68 + v[1] * 0.28) * win.sheetW
+            y: (0.05 + v[2] * 0.88) * win.sheetH
             width: s; height: s * (0.7 + v[3] * 0.5)
             radius: s / 2
             color: Theme.night > 0.5 ? Qt.rgba(0.9, 0.85, 0.75, 1) : "#8a6e4b"
@@ -55,10 +55,10 @@ PanelWindow {
     Item {
         id: plateBox
         readonly property var box: Plates.field("box", [0.375, 0.06, 0.665, 0.95])
-        x: box[0] * win.W
-        y: box[1] * win.H
-        width: (box[2] - box[0]) * win.W
-        height: (box[3] - box[1]) * win.H
+        x: box[0] * win.sheetW
+        y: box[1] * win.sheetH
+        width: (box[2] - box[0]) * win.sheetW
+        height: (box[3] - box[1]) * win.sheetH
 
         Image {
             id: ink
@@ -145,8 +145,8 @@ PanelWindow {
 
     // ------------------------------------------------------------ header (top centre)
     Column {
-        x: 0.388 * win.W
-        y: 0.040 * win.H
+        x: 0.388 * win.sheetW
+        y: 0.040 * win.sheetH
         spacing: 3
         InkText {
             text: Plates.region
@@ -164,8 +164,8 @@ PanelWindow {
     }
 
     InkText {
-        x: 0.648 * win.W
-        y: 0.042 * win.H
+        x: 0.648 * win.sheetW
+        y: 0.042 * win.sheetH
         text: "Tab. " + Clock.tabNumeral + "."
         font.pixelSize: Theme.sizeData
         color: Theme.soft
@@ -173,8 +173,8 @@ PanelWindow {
 
     // ------------------------------------------------------------ name (lower left of the stem)
     Column {
-        x: 0.283 * win.W
-        y: 0.705 * win.H
+        x: 0.283 * win.sheetW
+        y: 0.705 * win.sheetH
         spacing: 2
         visible: Plates.latin !== ""
 
@@ -197,8 +197,8 @@ PanelWindow {
 
     // ------------------------------------------------------------ stamp (lower left)
     Stamp {
-        x: 0.262 * win.W
-        y: 0.84 * win.H
+        x: 0.262 * win.sheetW
+        y: 0.84 * win.sheetH
         scale: 1.25
         transformOrigin: Item.TopLeft
         number: Plates.number
@@ -210,8 +210,8 @@ PanelWindow {
     // ------------------------------------------------------------ specimen label (lower right)
     Item {
         id: label
-        x: 0.552 * win.W
-        y: 0.80 * win.H
+        x: 0.552 * win.sheetW
+        y: 0.80 * win.sheetH
         width: labelRows.implicitWidth + 28
         height: labelRows.implicitHeight + 20
 
@@ -246,17 +246,17 @@ PanelWindow {
 
     // ------------------------------------------------------------ Specimen No. (vertical, right of the plate)
     Rule {
-        x: 0.698 * win.W
-        y: 0.63 * win.H
-        height: 0.30 * win.H
+        x: 0.698 * win.sheetW
+        y: 0.63 * win.sheetH
+        height: 0.30 * win.sheetH
         width: implicitWidth
         vertical: true
         weight: 1.1
         seed: 81
     }
     InkText {
-        x: 0.703 * win.W
-        y: 0.82 * win.H
+        x: 0.703 * win.sheetW
+        y: 0.82 * win.sheetH
         rotation: -90
         transformOrigin: Item.TopLeft
         text: "Specimen No. " + Plates.number

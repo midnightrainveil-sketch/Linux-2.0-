@@ -10,7 +10,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property bool isNight: file.loaded && file.text().trim() === "night"
+    readonly property bool isNight: file.text().trim() === "night"
     readonly property string name: isNight ? "night" : "day"
 
     function set(mode: string): void {
@@ -19,7 +19,7 @@ Singleton {
     function toggle(): void { set("toggle"); }
 
     // Optional film grain screen shader (archive-grain writes on / off).
-    readonly property bool grain: grainFile.loaded && grainFile.text().trim() === "on"
+    readonly property bool grain: grainFile.text().trim() === "on"
     function setGrain(on: bool): void {
         Quickshell.execDetached(["archive-grain", on ? "on" : "off"]);
     }
