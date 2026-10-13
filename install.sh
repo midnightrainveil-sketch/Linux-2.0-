@@ -88,6 +88,7 @@ if (( want_link )); then
     state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
     mkdir -p "$state" "$HOME/Pictures/Archive"
     [[ -f $state/grain ]] || echo on >"$state/grain"     # paper shader on by default
+    [[ -f $state/lamp ]] || echo on >"$state/lamp"       # the night desk lamp
     "$HOME/.local/bin/archive-mode" auto || true
     # make sure GTK / Qt / foot match even if the mode did not change
     "$HOME/.local/bin/archive-mode" "$("$HOME/.local/bin/archive-mode" status)" || true

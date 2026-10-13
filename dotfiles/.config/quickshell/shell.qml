@@ -68,7 +68,8 @@ ShellRoot {
     // archive-screenshot: develop the shot as a print on the desk
     IpcHandler {
         target: "photo"
-        function show(file: string): void { photograph.show(file); }
+        // not "show": `qs ipc show` is a command of its own
+        function develop(file: string): void { photograph.show(file); }
         function clear(): void { photograph.clear(); }
     }
 

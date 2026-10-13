@@ -20,6 +20,7 @@ Singleton {
     readonly property string dir: Settings.dataHome + "/archive/plates/"
     property var index: []
     property var meta: ({})
+    property bool metaLoaded: false         // until then, nothing is known about the plate's files
 
     readonly property string current: {
         if (Settings.fixedPlate !== "" && index.indexOf(Settings.fixedPlate) >= 0) return Settings.fixedPlate;
@@ -64,6 +65,7 @@ Singleton {
         onFileChanged: reload()
         onLoaded: {
             try { root.meta = JSON.parse(metaFile.text()); } catch (e) { root.meta = {}; }
+            root.metaLoaded = true;
         }
     }
 }

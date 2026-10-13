@@ -34,7 +34,7 @@ case ${1:-region} in
 esac
 
 wl-copy --type image/png <"$file"
-qs ipc call photo show "$file" >/dev/null 2>&1 && exit 0
+qs ipc call photo develop "$file" >/dev/null 2>&1 && exit 0
 notify-send --app-name "Camera Lucida" \
     --hint string:x-archive-stamp:FILED \
     --hint string:x-archive-sound:capture \

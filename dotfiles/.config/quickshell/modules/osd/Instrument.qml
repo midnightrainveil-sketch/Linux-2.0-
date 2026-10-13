@@ -15,6 +15,7 @@ PanelWindow {
     property bool shown: false
 
     anchors.bottom: true
+    exclusionMode: ExclusionMode.Ignore        // floats above the bar; takes no room from it
     implicitWidth: 340 + 2 * pad
     implicitHeight: card.height + pad + 12
     color: "transparent"

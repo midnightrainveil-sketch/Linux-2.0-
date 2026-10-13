@@ -13,7 +13,7 @@ import qs.components
 // and on the clipboard).
 //   hover      keep it on the desk        click    open it
 //   right      file it now                middle   pin it (stays till clicked)
-// archive-screenshot calls: qs ipc call photo show <file>
+// archive-screenshot calls: qs ipc call photo develop <file>
 PanelWindow {
     id: win
 

@@ -103,7 +103,7 @@ PanelWindow {
             Image {
                 id: ink
                 anchors.fill: parent
-                source: Plates.folder === "" ? "" : Plates.folder + "ink.png"
+                source: Plates.folder === "" || !Plates.metaLoaded || Plates.sheet ? "" : Plates.folder + "ink.png"
                 fillMode: Image.PreserveAspectFit
                 verticalAlignment: Image.AlignBottom
                 asynchronous: true

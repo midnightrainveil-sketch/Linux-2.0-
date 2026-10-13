@@ -29,6 +29,7 @@ PanelWindow {
     margins.left: side === "left" ? offset - pad : 0
     margins.right: side === "right" ? offset - pad : 0
 
+    exclusionMode: ExclusionMode.Ignore         // lies over the desk; takes no room from windows
     implicitWidth: holder.childrenRect.width + 2 * pad
     implicitHeight: holder.childrenRect.height + pad + padBottom
     color: "transparent"
