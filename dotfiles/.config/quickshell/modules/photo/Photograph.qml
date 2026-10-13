@@ -39,6 +39,17 @@ PanelWindow {
         develop.restart();
     }
 
+    // off the desk at once (before the next screenshot is taken)
+    function clear(): void {
+        develop.stop();
+        fileAway.stop();
+        linger.stop();
+        flash.opacity = 0;
+        shot.visible = false;
+        shot.filing = false;
+        clip.opacity = 0;
+    }
+
     // ------------------------------------------------------------ the flash
     Rectangle {
         id: flash

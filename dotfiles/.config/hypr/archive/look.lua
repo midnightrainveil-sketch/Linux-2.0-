@@ -70,7 +70,6 @@ hl.config({
         allow_session_lock_restore = true,      -- if the shell restarts while locked
         key_press_enables_dpms = true,
         mouse_move_enables_dpms = true,
-        vfr = true,
     },
 
     cursor = {

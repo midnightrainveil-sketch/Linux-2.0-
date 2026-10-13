@@ -69,6 +69,7 @@ ShellRoot {
     IpcHandler {
         target: "photo"
         function show(file: string): void { photograph.show(file); }
+        function clear(): void { photograph.clear(); }
     }
 
     // the desk lamp (night), Super+Alt+L

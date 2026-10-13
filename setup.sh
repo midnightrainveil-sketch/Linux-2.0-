@@ -50,16 +50,33 @@ fi
 # ------------------------------------------------------------------ 2. packages
 say "updating the system and installing packages (sudo pacman)"
 # Arch is upgraded as a whole; installing onto stale package lists breaks things
-sudo pacman -Syu --noconfirm || warn "the system upgrade reported a problem; see above"
+if ! sudo pacman -Syu --noconfirm; then
+    warn "the upgrade needs a decision; answering it yourself this time"
+    sudo pacman -Syu || warn "the system upgrade reported a problem; see above"
+fi
 mapfile -t wanted < <(grep -vE '^\s*(#|$)' "$here/packages/pacman.txt")
 repo_pkgs=() aur_pkgs=()
 for p in "${wanted[@]}"; do
     if pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
 done
-sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}" || warn "some packages failed to install; see above"
+if ! sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"; then
+    # usually a question pacman will not answer by itself (a conflicting
+    # package to replace, a provider to pick): ask you instead
+    warn "pacman needs a decision; answering it yourself this time"
+    sudo pacman -S --needed "${repo_pkgs[@]}" || warn "some packages failed to install; see above"
+fi
 if (( ${#aur_pkgs[@]} )); then
     helper=""
     for h in paru yay; do command -v $h >/dev/null && { helper=$h; break; }; done
+    if [[ -z $helper ]] && ask "Not in the official repositories: ${aur_pkgs[*]}. Install the AUR helper yay to get them?"; then
+        tmp=$(mktemp -d)
+        if git clone -q https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin" && (cd "$tmp/yay-bin" && makepkg -si --noconfirm); then
+            helper=yay
+        else
+            warn "could not install yay"
+        fi
+        rm -rf "$tmp"
+    fi
     if [[ -n $helper ]]; then
         note "from the AUR with $helper: ${aur_pkgs[*]}"
         $helper -S --needed --noconfirm "${aur_pkgs[@]}" || warn "AUR install failed: ${aur_pkgs[*]}"

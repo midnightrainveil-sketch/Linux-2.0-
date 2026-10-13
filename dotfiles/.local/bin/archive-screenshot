@@ -9,6 +9,9 @@ dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Archive"
 mkdir -p "$dir"
 file="$dir/record-$(date +%Y%m%d-%H%M%S).png"
 
+# a print from the last shot must not end up in this one
+qs ipc call photo clear >/dev/null 2>&1 || true
+
 case ${1:-region} in
     region)
         geom=$(slurp -d -b '1e1d2233' -c '34405eff' -s '00000000' -w 2) || exit 0

@@ -50,6 +50,7 @@ wl-clipboard
 cliphist
 jq
 libnotify
+xdg-utils
 # ---- look: fonts, GTK / Qt themes, icons
 ttf-ibm-plex
 noto-fonts

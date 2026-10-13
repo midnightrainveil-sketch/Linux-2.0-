@@ -58,6 +58,10 @@ hl.bind(mod .. " + SHIFT + grave", hl.dsp.window.move({ workspace = "e+0" }), { 
 ------------------------------------------------------------------ screenshots (filed with a stamp)
 hl.bind("Print", exec("archive-screenshot region"), { description = "File a region" })
 hl.bind("SHIFT + Print", exec("archive-screenshot screen"), { description = "File the screen" })
+-- instant: the whole screen you are looking at, no selection. (Ctrl+Backspace
+-- is "delete the previous word" in most apps; this takes it over everywhere.
+-- Delete this line to give it back.)
+hl.bind("CTRL + BackSpace", exec("archive-screenshot screen"), { description = "File the screen, instantly" })
 hl.bind(mod .. " + SHIFT + S", exec("archive-screenshot region"), { description = "File a region" })
 hl.bind(mod .. " + ALT + S", exec("archive-screenshot window"), { description = "File the window" })
 
