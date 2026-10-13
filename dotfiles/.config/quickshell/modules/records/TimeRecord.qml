@@ -33,7 +33,7 @@ IndexCard {
             id: face
             y: -(0.782 - 0.592) * digit.em * Theme.clockStretch
             text: digit.shown
-            color: Theme.graphite
+            color: Theme.soft
             font.pixelSize: digit.em
             spread: 1.6
             transform: Scale { yScale: Theme.clockStretch }
@@ -57,6 +57,8 @@ IndexCard {
             id: clock
             x: 37
             y: 39
+            // typed with a worn ribbon: graphite, not black
+            opacity: 0.9
             Digit { value: Clock.hours.charAt(0) }
             Digit { value: Clock.hours.charAt(1) }
             // the colon: two round dots, set apart like "14 : 26"
@@ -68,7 +70,7 @@ IndexCard {
                     Rectangle {
                         required property int index
                         width: 11; height: 11; radius: 5.5
-                        color: Theme.graphite
+                        color: Theme.soft
                         antialiasing: true
                         x: parent.width / 2 - width / 2
                         y: index === 0 ? parent.height * 0.32 - 5 : parent.height * 0.86 - 5

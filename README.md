@@ -61,7 +61,8 @@ dotfiles/
   .local/share/archive/     plates (starter: Geranium pratense)
   .local/share/fonts/       Courier Prime, Pinyon Script (SIL OFL)
   .local/share/sounds/      the archive sound theme (record your own)
-tools/                      generators for icons, grain, the starter plate, GTK/Qt colours
+art/                        source artwork (twig, icons, weather, wallpaper)
+tools/                      importers for art/, generators for grain, paper, GTK/Qt colours
 docs/                       G14 notes, customising, design map, troubleshooting
 ```
 
@@ -72,7 +73,7 @@ docs/                       G14 notes, customising, design map, troubleshooting
 - [docs/customise.md](docs/customise.md): settings, colours, plates, keybinds
 - [docs/design-map.md](docs/design-map.md): every rule of the design spec, and where it lives
 - [docs/troubleshooting.md](docs/troubleshooting.md)
-- [docs/assets-wanted.md](docs/assets-wanted.md): artwork to drop in (twig, weather sketches, icons)
+- [docs/assets-wanted.md](docs/assets-wanted.md): the artwork sources in `art/` and how to replace them
 
 ## Credits
 

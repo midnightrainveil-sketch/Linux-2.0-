@@ -42,7 +42,7 @@ Singleton {
         readonly property color shadow:      Qt.rgba(0x1E / 255, 0x1D / 255, 0x22 / 255, 0.30)
         readonly property color tape:        Qt.rgba(0xE8 / 255, 0xE4 / 255, 0xDC / 255, 0.55)
         readonly property color labelInk:    "#55535a"
-        readonly property color sprigInk:    "#5d6688"
+        readonly property color sprigInk:    "#4f5a86"
         readonly property color rimTop:      "#8c8780"
         readonly property color rimBottom:   "#6b6660"
     }

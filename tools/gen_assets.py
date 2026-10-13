@@ -5,8 +5,8 @@
 
 Writes into dotfiles/.config/quickshell/assets/:
   grain-dark.png, grain-light.png   512 px seamless paper-fibre tiles
-  icons/*.svg                       margin-sketch line icons (24 grid, 2 px = 1.5 px at 18)
-  weather/*.svg                     pencil-shaded weather sketches (64 grid)
+  icons/*.svg                       fallback line icons (the PNGs from art/ win) (24 grid, 2 px = 1.5 px at 18)
+  weather/*.svg                     fallback weather sketches (the PNGs from art/ win)
 
 Icons are drawn as polylines with a gentle seeded wobble so they read as
 ink sketches, not interface glyphs (spec section 9). The shell recolours
@@ -465,7 +465,10 @@ def main():
     os.makedirs(ROOT, exist_ok=True)
     make_grain()
     make_card_texture()
-    make_watercolour_sprig()
+    # sprig-wash.png now comes from art/sprig.webp (tools/import_art.py);
+    # the drawn one is only a fallback for a checkout without art/
+    if not os.path.exists(os.path.join(ROOT, "sprig-wash.png")):
+        make_watercolour_sprig()
 
     tw = Pen(64, 1.2, 1, 0.22)
     twig(tw)

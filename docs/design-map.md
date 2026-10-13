@@ -195,8 +195,9 @@ recommendation.
 | Tab. = ISO week in Roman numerals | `Clock.tabNumeral` |
 | Stamp year in Roman numerals | `Clock.yearNumeral` |
 
-The starter plate is procedural (`tools/gen_plate.py`), so it's a stand-in
-for real public-domain plates.
+The starter plate comes from `art/wallpaper.webp` (`tools/import_wallpaper.py`):
+the plant column only, with the image's own text painted out, so the shell's
+live labels are the only words on the sheet.
 
 ## 14. Night mode: cyanotype
 

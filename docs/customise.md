@@ -88,7 +88,8 @@ A plate's `meta.json` holds its names, the specimen label, the `tapes`
 ## Regenerating assets
 
 ```sh
-python3 tools/gen_assets.py   # paper grain, line icons, weather sketches
-python3 tools/gen_plate.py    # the procedural starter plate
-python3 tools/gen_themes.py   # GTK and Qt colour files
+python3 tools/import_art.py        # twig, icons, weather sketches from art/
+python3 tools/import_wallpaper.py  # the starter plate from art/wallpaper.webp
+python3 tools/gen_assets.py        # paper grain, card texture, fallback SVG icons
+python3 tools/gen_themes.py        # GTK and Qt colour files
 ```

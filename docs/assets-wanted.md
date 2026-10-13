@@ -1,36 +1,36 @@
-# Artwork wanted
+# Artwork
 
-The shell ships with generated placeholders. Drop your own files at these
-exact paths (inside `~/archive/dotfiles/.config/quickshell/assets/`) and
-they are used automatically, with no code changes. Every image is drawn in
-**one ink on a transparent background**, because the shell tints it (graphite
-by day, cream or ice blue at night). Black on transparent is ideal. Coloured
-art would lose its colours.
+The shell's artwork lives in four source images in `art/`. Two scripts turn
+them into the files the shell reads. Re-run them whenever you replace a
+source image:
 
-| # | File | Size | What it is |
-| --- | --- | --- | --- |
-| 1 | `sprig-wash.png` | 320 × 640 | The Time Record's twig: a small lavender-like sprig, soft watercolour, upright, a curved stem with short side branches of narrow leaflets. Most important. |
-| 2 | `icons/seedling.png` | 96 × 96 | The bar's launcher glyph: a tiny seedling, a straight stem with two or three pairs of open outline leaves, pen line about 4 px. |
-| 3 | `weather/overcast.png` | 360 × 360 | A pencil-sketched cloud with light diagonal hatching inside, as on the reference card. |
-| 4 | `weather/clear.png`, `clear-night.png`, `partly.png`, `partly-night.png`, `fog.png`, `rain.png`, `snow.png`, `storm.png` | 360 × 360 | The same pencil hand: sun, crescent moon, sun or moon behind a cloud, cloud over fog lines, rain strokes, snowflakes, a lightning stroke. |
-| 5 | `icons/screen.png`, `screen-night.png`, `speaker.png`, `speaker-loud.png`, `speaker-muted.png`, `wifi.png`, `wifi-none.png`, `wifi-off.png`, `record.png` | 72 × 72 | Optional: the bar's status marks as small ink sketches (monitor, speaker with 0, 1 or 2 waves or an ×, Wi-Fi arcs full, faded or struck through, a vinyl record). The generated ones are acceptable. |
-| 6 | a seamless paper photo | 1024 × 1024, greyscale | Optional: a real scan of cream card stock, tileable. Send it to me and I'll convert it into the card texture. |
+```sh
+python3 tools/import_art.py         # sprig, icons, weather sketches
+python3 tools/import_wallpaper.py   # the starter plate (wallpaper)
+```
 
-## Prompts that work well
+| Source | Becomes | What it is |
+| --- | --- | --- |
+| `art/sprig.webp` | `assets/sprig-wash.png` | The Time Record's twig, a blue-grey watercolour sprig. |
+| `art/icons.webp` | `assets/icons/<name>.png` | One row of ten ink icons, left to right: seedling, screen, screen-night, speaker, speaker-loud, speaker-muted, wifi, wifi-none, wifi-off, record. |
+| `art/weather.webp` | `assets/weather/<name>.png` | A 3 × 3 grid of pencil weather sketches, row by row: overcast, clear, clear-night / partly, partly-night, fog / rain, snow, storm. |
+| `art/wallpaper.webp` | `~/.local/share/archive/plates/0001-geranium-pratense/` | A whole 16:9 plate. Only the plant column is kept. Its typed text is painted out, because the shell types its own live labels. |
 
-For any image generator, add *"black ink on a pure transparent (or pure
-white) background, no paper, no shadow, no text, centred, isolated"*. If
-you only get a white background, that's fine: tell me and I'll key it out.
+The sources can be ink on white: the scripts key out the paper and write
+black ink with alpha, which the shell tints graphite by day and pale blue at
+night. Colour in the art is not kept.
 
-1. *"A small botanical sprig of lavender drawn in loose watercolour, single
-   blue-grey wash, upright curved stem with five short side branches of
-   narrow leaflets, herbarium illustration style."*
-2. *"Minimal pen-and-ink icon of a seedling, straight stem with three pairs of
-   outline leaves, hand-drawn, slightly wobbly line."*
-3. *"Pencil sketch of a single cumulus cloud, outlined in graphite with soft
-   diagonal hatching in its lower half, field-notebook style."*
+## Replacing a source
 
-## Wallpaper plates
+- Keep the layout: ten icons in one row with clear gaps between them, and
+  nine weather sketches in a 3 × 3 grid with clear gaps. The scripts find
+  the pieces by those gaps and stop with a message if the count is wrong.
+- For the wallpaper, any plant works, but `tools/import_wallpaper.py` has the
+  crop box and the text boxes for this particular image at the top (`CROP`,
+  `TEXT`). A new image needs those numbers changed. A text-free plant on a
+  plain ground is easier: use `archive-plate import` instead.
+- A larger source gives finer lines on the G14's 2880 × 1800 panel. The
+  current wallpaper is 1672 × 941 and is upscaled 2×.
 
-Ignore these for now. When you want them, send text-free plant illustrations
-(one plant, plain ground). `archive-plate import` turns each one into a plate.
+Any file you place directly at `assets/<group>/<name>.png` is used as is;
+the generated `.svg` files are only fallbacks.
