@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.theme
 import qs.services
@@ -87,6 +88,51 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: Quickshell.execDetached(["archive-desk"])
+        }
+    }
+
+    // the Register button: two cards in a stack and how many windows are
+    // open; opens the Register (also Super+W, Alt+Tab)
+    Item {
+        id: registerButton
+        x: deskButton.x + deskButton.width + 10
+        width: 26 + countText.implicitWidth
+        height: Theme.barHeight
+        readonly property color ink: registerMouse.containsMouse || Panels.open === "register" ? Theme.accent : Theme.soft
+        readonly property int count: Hyprland.toplevels.values.length
+
+        Rectangle {
+            x: 6; y: parent.height / 2 - 4
+            width: 16; height: 11
+            color: "transparent"
+            border.width: 1.2
+            border.color: registerButton.ink
+            radius: 1
+            opacity: 0.6
+        }
+        Rectangle {
+            x: 2; y: parent.height / 2 - 7
+            width: 16; height: 11
+            color: Theme.paperBase
+            border.width: 1.4
+            border.color: registerButton.ink
+            radius: 1
+            Rectangle { x: 3; y: 3.5; width: parent.width - 6; height: 1.2; color: registerButton.ink }
+        }
+        InkText {
+            id: countText
+            x: 24
+            anchors.verticalCenter: parent.verticalCenter
+            text: registerButton.count
+            font.pixelSize: Theme.sizeSmall
+            color: registerButton.ink
+        }
+        MouseArea {
+            id: registerMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Quickshell.execDetached(["qs", "ipc", "call", "shell", "register"])
         }
     }
 

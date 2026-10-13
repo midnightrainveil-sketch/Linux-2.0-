@@ -25,7 +25,9 @@ PanelWindow {
     anchors.bottom: side !== "middle"
     anchors.left: side === "left"
     anchors.right: side === "right"
-    margins.bottom: 0
+    // above the bar: the card takes no room from windows (Ignore), so it
+    // does not get pushed clear of the bar's zone either
+    margins.bottom: side === "middle" ? 0 : Theme.barHeight
     margins.left: side === "left" ? offset - pad : 0
     margins.right: side === "right" ? offset - pad : 0
 

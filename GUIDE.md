@@ -273,6 +273,7 @@ number is the current air pressure in hPa.
 | Keys | Does |
 | --- | --- |
 | `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out |
+| `Alt + Tab`, `Super + W` | The Register: every open window, put-away ones too |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |

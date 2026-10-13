@@ -18,6 +18,7 @@ import qs.modules.records
 import qs.modules.bar
 import qs.modules.launcher
 import qs.modules.calendar
+import qs.modules.windows
 import qs.modules.quicksettings
 import qs.modules.power
 import qs.modules.notifications
@@ -49,6 +50,7 @@ ShellRoot {
     Ledger      { screen: shell.focusedScreen }
     InstrumentCard { screen: shell.focusedScreen }
     Disposition { screen: shell.focusedScreen }
+    Register    { id: registerCard; screen: shell.focusedScreen }
     Instrument  { screen: shell.focusedScreen }
     Correspondence { screen: shell.focusedScreen }
     Photograph  { id: photograph; screen: shell.focusedScreen }
@@ -63,6 +65,11 @@ ShellRoot {
         function instruments(): void { Panels.toggle("instrument"); }
         function disposition(): void { Panels.toggle("disposition"); }
         function close(): void { Panels.close(); }
+        // the Register (open windows): the bar button, and Alt+Tab
+        function register(): void { registerCard.toggle(); }
+        function registerNext(): void { registerCard.step(1); }
+        function registerPrev(): void { registerCard.step(-1); }
+        function registerPick(): void { registerCard.commit(); }
     }
 
     // archive-screenshot: develop the shot as a print on the desk

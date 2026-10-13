@@ -20,6 +20,13 @@ hl.bind(mod .. " + SHIFT + G", exec("archive-grain window"), { description = "Pa
 hl.bind(mod .. " + ALT + L", shell("lamp", "toggle"), { description = "Desk lamp on / off (night)" })
 hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "File all correspondence" })
 
+-- the Register: every open window, put-away ones too (also the bar button).
+-- Alt+Tab steps through it; letting go of Alt goes to the one marked.
+hl.bind(mod .. " + W", shell("shell", "register"), { description = "Register (open windows)" })
+hl.bind("ALT + Tab", shell("shell", "registerNext"), { description = "Next window" })
+hl.bind("ALT + SHIFT + Tab", shell("shell", "registerPrev"), { description = "Previous window" })
+hl.bind("ALT + Alt_L", shell("shell", "registerPick"), { release = true, non_consuming = true })
+
 ------------------------------------------------------------------ programs
 hl.bind(mod .. " + Return", exec(terminal), { description = "Terminal" })
 hl.bind(mod .. " + E", exec(files), { description = "Files" })
