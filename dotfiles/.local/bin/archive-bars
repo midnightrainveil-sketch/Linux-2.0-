@@ -2,9 +2,14 @@
 # archive-bars: build the "archivebars" title-bar plugin for this Hyprland.
 #
 #   archive-bars build     fetch hyprbars for your Hyprland version, patch, compile
-#   archive-bars ensure    rebuild only if Hyprland changed since the last build
-#                          (run at every login; rebuilds in the background)
+#   archive-bars update    build only if Hyprland or the plugin changed since
+#                          the last build
+#   archive-bars ensure    the same, quietly (run at every login)
 #   archive-bars status
+#   archive-bars crashed   exit 0 if Hyprland crashed inside this build of the
+#                          plugin (the config then leaves it out; rebuild or
+#                          `archive-bars retry` to try again)
+#   archive-bars retry     forget such a crash
 #
 # archivebars is hyprbars with the additions the reference windows need: a
 # ruled line under the bar, a typed glyph ("-") on its right, and the torn
@@ -28,13 +33,13 @@ want_stamp() {
     echo "$(hypr_commit) $(cat "$dir"/*.py "$dir"/*.?pp 2>/dev/null | sha1sum | cut -c1-12)"
 }
 
+# the installed Hyprland (the one the headers belong to, and the one the next
+# login runs), else the running one
 hypr_commit() {
-    local c=""
-    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    local c
+    c=$(Hyprland --version 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n1 || true)
+    if [[ -z $c && -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
         c=$(hyprctl version -j 2>/dev/null | jq -r '.commit // empty' || true)
-    fi
-    if [[ -z $c ]]; then
-        c=$(Hyprland --version 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n1 || true)
     fi
     echo "$c"
 }
@@ -91,15 +96,34 @@ build() {
     echo "archive-bars: built $so"
 }
 
-# make a running Hyprland use the new build: the config loads the plugin by
-# path, and a path it has already loaded is not loaded again, so unload the
-# old one first; the reload then loads the new file
+up_to_date() {
+    [[ -f $so && -f $stamp && $(cat "$stamp") == "$(want_stamp)" ]]
+}
+
+# Make a running Hyprland use the new build, but only if it has no copy of the
+# plugin loaded yet (a first build): the reload then loads it. Swapping a
+# loaded plugin out of a running Hyprland can take the session down, so an
+# updated build waits for the next login.
 activate() {
-    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || return 0
+    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${ARCHIVE_NO_RELOAD:-} ]] || return 0
+    [[ $(hyprctl version -j 2>/dev/null | jq -r '.commit // empty') == "$(hypr_commit)" ]] || return 0
     if hyprctl plugin list 2>/dev/null | grep -q archivebars; then
-        hyprctl plugin unload "$so" >/dev/null 2>&1 || true
+        notify-send --app-name "Archive" "Title bars updated." "They change at your next login." >/dev/null 2>&1 || true
+        return 0
     fi
     hyprctl reload >/dev/null 2>&1 || true
+}
+
+# Hyprland writes a crash report with a backtrace; if a report newer than this
+# build has the plugin in its backtrace, the plugin caused it
+crash_reports="${XDG_CACHE_HOME:-$HOME/.cache}/hyprland"
+crashed() {
+    [[ -f $so ]] || return 1
+    local r
+    while IFS= read -r -d '' r; do
+        awk '/^Backtrace:/ { b = 1 } /^Log tail:/ { b = 0 } b && /archivebars\.so/ { f = 1 } END { exit !f }' "$r" && return 0
+    done < <(find "$crash_reports" -maxdepth 1 -name 'hyprlandCrashReport*.txt' -newer "$so" -print0 2>/dev/null)
+    return 1
 }
 
 case ${1:-build} in
@@ -108,15 +132,29 @@ case ${1:-build} in
         [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
         activate
         ;;
-    ensure)
-        if [[ -f $so && -f $stamp && $(cat "$stamp") == "$(want_stamp)" ]]; then
+    update)
+        # build only if needed (setup.sh): an unchanged build keeps its date,
+        # so a crash it caused still counts (see `crashed`)
+        if up_to_date; then
+            echo "archive-bars: already built for this Hyprland"
             exit 0
         fi
+        build 2>&1 | tee "$log"
+        [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
+        activate
+        ;;
+    ensure)
+        up_to_date && exit 0
         if build >"$log" 2>&1; then
             activate
         else
             notify-send --app-name "Archive" "Title bars not built." "See $log" || true
         fi
+        ;;
+    crashed) crashed ;;
+    retry)
+        touch "$so" 2>/dev/null || true   # older reports no longer count
+        echo "archive-bars: the title bars load again at your next login"
         ;;
     status)
         if [[ -f $so ]]; then
@@ -125,5 +163,5 @@ case ${1:-build} in
             echo "not built"
         fi
         ;;
-    *) echo "usage: archive-bars build|ensure|status" >&2; exit 2 ;;
+    *) echo "usage: archive-bars build|update|ensure|status|crashed|retry" >&2; exit 2 ;;
 esac

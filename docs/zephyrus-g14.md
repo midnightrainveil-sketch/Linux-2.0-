@@ -85,7 +85,8 @@ option `prime-run %command%`.
 `/dev/dri/nvidia-dgpu`. Hyprland is then told to render on the iGPU first
 (`AQ_DRM_DEVICES` in `~/.config/hypr/archive/machine.lua`). The dGPU stays
 listed so a monitor on the HDMI port (wired to the NVIDIA card on this model)
-still works.
+still works. The names appear at the next boot (the rule is not applied to
+a running session: re-announcing the GPUs to a live Hyprland can crash it).
 
 ## 5. Display
 

@@ -28,7 +28,7 @@ git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive
 moves itself to `~/archive`). It installs the packages, links the
 configuration (your old files go to `~/.archive-backup/`), names the G14's
 GPUs if it finds a G14, builds the title-bar and paper-edge plugin, and offers
-a typed login screen. Then log out and back in.
+a typed login screen. Then reboot.
 
 **→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
 Arch install, with a check after each one.

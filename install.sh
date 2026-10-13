@@ -51,9 +51,10 @@ if (( want_g14 )); then
     [[ -n $nv ]] && rules+="KERNEL==\"card*\", KERNELS==\"0000:$nv\", SUBSYSTEM==\"drm\", SUBSYSTEMS==\"pci\", SYMLINK+=\"dri/nvidia-dgpu\""$'\n'
     if [[ -n $rules ]]; then
         printf '%s' "$rules" | sudo tee /etc/udev/rules.d/90-archive-gpu-names.rules >/dev/null
+        # no `udevadm trigger` here: re-announcing the GPUs to a running
+        # Hyprland can take it down. The names appear at the next boot.
         sudo udevadm control --reload
-        sudo udevadm trigger --subsystem-match=drm
-        ls -l /dev/dri/amd-igpu /dev/dri/nvidia-dgpu 2>/dev/null || warn "symlinks appear after a reboot if not now"
+        echo "   the names appear after the next reboot"
     else
         warn "no AMD / NVIDIA display controller found; skipped"
     fi

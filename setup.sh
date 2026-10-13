@@ -11,7 +11,8 @@
 #   4. on a Zephyrus G14, gives the GPUs stable names for Hyprland
 #   5. builds the title-bar and paper-edge plugin for your Hyprland
 #   6. optionally starts Hyprland at boot from a typed login screen
-# Then log out and back in (or reboot). Safe to run again at any time.
+# Then reboot. Safe to run again at any time. The session you run it from is
+# left as it is until then.
 set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -32,6 +33,17 @@ ask() { # ask "question" -> 0 for yes
 [[ $EUID -ne 0 ]] || { warn "run this as your own user, not root (it uses sudo where needed)"; exit 1; }
 [[ -f /etc/arch-release ]] || warn "this is made for Arch Linux; continuing anyway"
 command -v sudo >/dev/null || { warn "sudo is needed"; exit 1; }
+
+# ------------------------------------------------------------------ leave the running session alone
+# Hyprland reloads its config the moment a file of it changes, and swapping a
+# whole new desktop (or a freshly built plugin) into a live session can take
+# it down. So the session you run this from keeps its old config until you
+# log out; everything here takes effect at the next login.
+if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && command -v hyprctl >/dev/null; then
+    hyprctl eval 'hl.config({ misc = { disable_autoreload = true } })' >/dev/null 2>&1 || true
+    sleep 1
+fi
+export ARCHIVE_NO_RELOAD=1   # archive-bars: build only, load at the next login
 
 # ------------------------------------------------------------------ 1. keep the theme in ~/archive
 # The dotfiles are linked, not copied, so the folder must stay put. If this
@@ -114,8 +126,8 @@ fi
 
 # ------------------------------------------------------------------ 5. the plugin
 say "building the title bars and paper edges for your Hyprland (a minute or two)"
-if "$HOME/.local/bin/archive-bars" build; then
-    note "built"
+if "$HOME/.local/bin/archive-bars" update; then
+    note "ready"
 else
     warn "the plugin did not build (log: ~/.cache/archive/archivebars/build.log)"
     note "everything else works; windows get plain straight edges until it builds."
@@ -134,8 +146,9 @@ fi
 
 say "done"
 cat <<'EOF'
-   Log out and back in to Hyprland (or reboot). You will find the wallpaper,
-   the three record cards on the right and a live terminal on the left.
+   Now reboot (sudo reboot). Until then this session keeps its old look.
+   Then you will find the wallpaper, the three record cards on the right
+   and a live terminal on the left.
 
    Drag the cards and the terminal anywhere; right-click a card to put it
    away; close the terminal if you like. The small card button in the bar

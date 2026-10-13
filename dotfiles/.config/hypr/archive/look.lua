@@ -117,7 +117,16 @@ hl.animation({ leaf = "layers", enabled = false })
 -- apart starting 20 px in, the title in Courier Prime 18, a "-" 18 px from the
 -- right edge, and a rule 2 px thick, 11 px in from each side.
 local bars_so = (os.getenv("XDG_DATA_HOME") or (os.getenv("HOME") .. "/.local/share")) .. "/archive/plugins/archivebars.so"
-if state.exists(bars_so) then
+-- If Hyprland ever crashed inside this build of the plugin, leave it out (plain
+-- edges) rather than crash at every login; `archive-bars retry` or a rebuild
+-- brings it back.
+local home = os.getenv("HOME") or ""
+local bars_crashed = state.exists(bars_so) and os.execute(home .. "/.local/bin/archive-bars crashed") == true
+if bars_crashed then
+    hl.on("hyprland.start", function()
+        hl.exec_cmd([[notify-send --app-name Archive "Title bars are off." "Hyprland crashed in them last time. Run: archive-bars retry"]])
+    end)
+elseif state.exists(bars_so) then
     hl.plugin.load(bars_so)
 end
 

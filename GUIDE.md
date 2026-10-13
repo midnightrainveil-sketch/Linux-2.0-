@@ -16,7 +16,7 @@ Total time: about an hour, most of it waiting for downloads.
 > **In a hurry?** If Arch and Hyprland already run, `~/archive/setup.sh` does
 > Phases 2 to 7 in one go (packages, linking, G14 GPU names, the plugin, the
 > login screen). Clone the repository to `~/archive` first (Phase 2), run it,
-> then log out and back in and continue at Phase 8.
+> then reboot and continue at Phase 8.
 
 > **What you get.** Hyprland 0.55+ (Lua config) handles windows: paper cards
 > with torn edges and short soft shadows, darker-edged when focused, with
