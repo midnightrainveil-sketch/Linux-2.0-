@@ -14,7 +14,7 @@ hl.window_rule({
     match = { class = "^archive\\.desk$" },
     float = true,
     size = { "monitor_w*0.3125", "monitor_w*0.3125*9/16-46" },
-    move = { "monitor_w*0.019", "monitor_h*0.164" },
+    move = { "monitor_w*0.019", "monitor_h*0.25" },
 })
 
 ------------------------------------------------------------------ small tools float as centred cards
