@@ -137,7 +137,7 @@ PanelWindow {
                 x: modelData.x * plateBox.width
                 y: modelData.y * plateBox.height
                 text: modelData.text
-                font.pixelSize: Theme.sizeLabel
+                font.pixelSize: 14
                 color: Theme.soft
             }
         }
@@ -157,7 +157,7 @@ PanelWindow {
         }
         InkText {
             text: Plates.field("subtitle", "Archivum.")
-            font.pixelSize: Theme.sizeData
+            font.pixelSize: 15
             color: Theme.soft
         }
         Rule { width: 160; height: implicitHeight; weight: 1.2; seed: 3 }
@@ -167,7 +167,7 @@ PanelWindow {
         x: 0.648 * win.sheetW
         y: 0.042 * win.sheetH
         text: "Tab. " + Clock.tabNumeral + "."
-        font.pixelSize: Theme.sizeData
+        font.pixelSize: 15
         color: Theme.soft
     }
 
@@ -189,9 +189,9 @@ PanelWindow {
             leftPadding: 16
             topPadding: 2
             spacing: 4
-            InkText { text: Plates.authority; color: Theme.soft }
-            InkText { text: Plates.family; color: Theme.soft }
-            InkText { text: Plates.common; color: Theme.soft }
+            InkText { text: Plates.authority; color: Theme.soft; font.pixelSize: 15 }
+            InkText { text: Plates.family; color: Theme.soft; font.pixelSize: 15 }
+            InkText { text: Plates.common; color: Theme.soft; font.pixelSize: 15 }
         }
     }
 
@@ -231,12 +231,12 @@ PanelWindow {
                     InkText {
                         width: 34
                         text: modelData.charAt(0).toUpperCase() + modelData.slice(1) + "."
-                        font.pixelSize: Theme.sizeLabel
+                        font.pixelSize: 14
                         color: Theme.soft
                     }
                     InkText {
                         text: Plates.label[modelData] ?? ""
-                        font.pixelSize: Theme.sizeLabel
+                        font.pixelSize: 14
                         color: Theme.soft
                     }
                 }
@@ -260,7 +260,7 @@ PanelWindow {
         rotation: -90
         transformOrigin: Item.TopLeft
         text: "Specimen No. " + Plates.number
-        font.pixelSize: Theme.sizeLabel
+        font.pixelSize: 14
         color: Theme.soft
     }
 }

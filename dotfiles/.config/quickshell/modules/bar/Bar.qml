@@ -28,36 +28,35 @@ PanelWindow {
         anchors.right: parent.right
         height: implicitHeight
         color: Theme.ruleInk
-        drift: 0.35
+        weight: 1.7
+        drift: 0.45
         seed: 9001
     }
 
-    // ---- left: sprig (opens the Card Catalogue) + workspaces
-    Row {
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.margin - 8
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 24
-
-        Item {
-            width: 24
-            height: Theme.barHeight
-            InkIcon {
-                anchors.centerIn: parent
-                name: "sprig"
-                size: 20
-                color: sprigMouse.containsMouse || Panels.open === "catalogue" ? Theme.accent : Theme.soft
-            }
-            MouseArea {
-                id: sprigMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Panels.toggle("catalogue")
-            }
+    // ---- left: seedling (opens the Card Catalogue) + workspaces
+    Item {
+        x: 19
+        width: 28
+        height: Theme.barHeight
+        InkIcon {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: 1
+            name: "seedling"
+            size: 28
+            color: sprigMouse.containsMouse || Panels.open === "catalogue" ? Theme.accent : Theme.soft
         }
+        MouseArea {
+            id: sprigMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Panels.toggle("catalogue")
+        }
+    }
 
-        Workspaces {}
+    Workspaces {
+        x: 75
+        anchors.verticalCenter: parent.verticalCenter
     }
 
     // ---- centre: "/ home / atlas /"
@@ -66,8 +65,8 @@ PanelWindow {
         spacing: 0
         InkText {
             text: "/ "
-            font.pixelSize: Theme.sizeBar
-            color: Theme.faded
+            font.pixelSize: Theme.sizeSmall
+            color: Theme.soft
         }
         Repeater {
             model: Hypr.crumbs
@@ -75,13 +74,13 @@ PanelWindow {
                 required property string modelData
                 InkText {
                     text: modelData
-                    font.pixelSize: Theme.sizeBar
+                    font.pixelSize: Theme.sizeSmall
                     color: Theme.soft
                 }
                 InkText {
                     text: " / "
-                    font.pixelSize: Theme.sizeBar
-                    color: Theme.faded
+                    font.pixelSize: Theme.sizeSmall
+                    color: Theme.soft
                 }
             }
         }
@@ -90,7 +89,7 @@ PanelWindow {
     // ---- right: status + date
     Status {
         anchors.right: parent.right
-        anchors.rightMargin: Theme.margin - 8
+        anchors.rightMargin: 23
         anchors.verticalCenter: parent.verticalCenter
     }
 }

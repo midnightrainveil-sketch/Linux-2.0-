@@ -1,6 +1,9 @@
--- Windows as cards of thicker stock lying on the sheet (spec section 6).
--- Focus is shown physically: the focused card is lifted (2 px graphite
--- border, 14 px shadow), the others lie flat. No rounding, blur or dimming.
+-- Windows as cards of thicker stock lying on the sheet, drawn to the
+-- reference: no hard black frame, but the card's cut edge, a thin rim that is
+-- light along the top and darkest along the bottom where the card's thickness
+-- meets its shadow; a short soft shadow falling down onto the sheet; a 46 px
+-- paper title bar with three ink dots, the typed title, a "-" on the right
+-- and a ruled line underneath. Focus lifts the card: darker rim, deeper shadow.
 local state = require("archive.state")
 local palette = require("archive.palette")
 
@@ -13,34 +16,36 @@ local function rgba(hex, a) return "rgba(" .. hex .. a .. ")" end
 
 hl.config({
     general = {
-        border_size = 2,
+        border_size = 1,            -- 1.5 physical px at the G14's 1.5 scale: the cut edge
         gaps_in = 4,                -- 8 px between tiled windows
         gaps_out = 24,              -- 24 px to the screen edge
         float_gaps = 24,
         layout = "dwindle",
         resize_on_border = true,
         col = {
-            active_border = rgb(c.graphite),
-            inactive_border = rgb(c.rule_faint),
+            -- top to bottom: the cut edge catching light, then its shadowed underside
+            active_border = { colors = { rgb(c.rim_top), rgb(c.rim_top), rgb(c.rim_bottom) }, angle = 90 },
+            inactive_border = { colors = { rgb(c.rim_top_flat), rgb(c.rim_top_flat), rgb(c.rim_bottom_flat) }, angle = 90 },
         },
     },
 
     decoration = {
-        rounding = 0,               -- a cut card, never rounded
+        rounding = 2,               -- a cut card: square, just worn at the corners
+        rounding_power = 2,
         active_opacity = 1.0,
         inactive_opacity = 1.0,     -- dimming looks digital
         dim_inactive = false,
         blur = { enabled = false },
         shadow = {
             enabled = true,
-            range = 14,
-            render_power = 3,
-            offset = { 0, 4 },
+            range = 12,
+            render_power = 2,
+            offset = { -1, 4 },
             color = rgba(c.shadow, c.shadow_active),
             color_inactive = rgba(c.shadow, c.shadow_inactive),
         },
-        -- optional film grain over everything (archive-grain / Super+Shift+G)
-        screen_shader = state.grain() and (state.config_dir .. "/hypr/shaders/grain.frag") or "",
+        -- paper texture and ink roughness over every window (archive-grain / Super+Shift+G)
+        screen_shader = state.grain() and (state.config_dir .. "/hypr/shaders/paper.frag") or "",
     },
 
     dwindle = {
@@ -98,51 +103,66 @@ end
 -- the shell animates its own cards; Hyprland just shows them
 hl.animation({ leaf = "layers", enabled = false })
 
------------------------------------------------------------------- title bars (hyprbars plugin)
--- 28 px, paper.card, title in Courier Prime 12; three small ink dots on the
--- left instead of red / yellow / green: file away (close), full sheet
--- (maximise), drawer (minimise to the scratchpad).
--- The plugin loads after the first config pass (hyprpm reload), and Hyprland
--- re-reads this file once it has, so these lines are simply skipped at first.
-if hl.plugin ~= nil and hl.plugin.hyprbars ~= nil then
-    hl.config({
-        plugin = {
-            hyprbars = {
-                enabled = true,
-                bar_height = 28,
-                bar_color = rgb(c.paper_card),
-                col = { text = rgb(c.graphite) },
-                bar_text_font = "Courier Prime",
-                bar_text_size = 12,
-                bar_text_weight = "normal",
-                bar_text_align = "left",
-                bar_buttons_alignment = "left",
-                bar_padding = 12,
-                bar_button_padding = 6,
-                bar_part_of_window = true,
-                bar_precedence_over_border = true,
-                bar_blur = false,
-                inactive_button_color = rgb(c.rule_faint),
-                on_double_click = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
-            },
-        },
-    })
+------------------------------------------------------------------ title bars
+-- archivebars is hyprbars plus a ruled line and a right-hand glyph, built
+-- for this Hyprland by `archive-bars` (see the guide). Measured off the
+-- reference terminal card at 1920 px: 46 px bar, three 11 px ink dots 21 px
+-- apart starting 20 px in, the title in Courier Prime 18, a "-" 18 px from the
+-- right edge, and a rule 2 px thick, 11 px in from each side.
+local bars_so = (os.getenv("XDG_DATA_HOME") or (os.getenv("HOME") .. "/.local/share")) .. "/archive/plugins/archivebars.so"
+if state.exists(bars_so) then
+    hl.plugin.load(bars_so)
+end
 
-    local dot = { bg_color = rgb(c.faded), fg_color = rgb(c.faded), size = 8, icon = "" }
-    -- buttons are listed from the outer edge inwards
-    hl.plugin.hyprbars.add_button({ bg_color = dot.bg_color, fg_color = dot.fg_color, size = dot.size, icon = dot.icon,
-        action = [[hyprctl dispatch 'hl.dsp.window.close()']] })
-    hl.plugin.hyprbars.add_button({ bg_color = dot.bg_color, fg_color = dot.fg_color, size = dot.size, icon = dot.icon,
-        action = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']] })
-    hl.plugin.hyprbars.add_button({ bg_color = dot.bg_color, fg_color = dot.fg_color, size = dot.size, icon = dot.icon,
-        action = [[hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:drawer", follow = false })']] })
+local drawer = [[hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:drawer", follow = false })']]
 
-    -- unfocused cards: title in ink.faded
-    hl.window_rule({
-        name = "archive-bar-unfocused",
-        match = { focus = false },
-        ["hyprbars:title_color"] = rgb(c.faded),
+local function bars(name, extras)
+    local opts = {
+        enabled = true,
+        bar_height = 46,
+        bar_color = rgb(c.paper_card),
+        col = { text = rgb(c.soft) },
+        bar_text_font = "Courier Prime",
+        bar_text_size = 18,
+        bar_text_weight = "normal",
+        bar_text_align = "left",
+        bar_buttons_alignment = "left",
+        bar_padding = 20,
+        bar_button_padding = 10,
+        bar_part_of_window = true,
+        bar_precedence_over_border = false,
+        bar_blur = false,
+        inactive_button_color = rgb(c.dot_flat),
+        on_double_click = [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
+    }
+    for k, v in pairs(extras or {}) do opts[k] = v end
+    hl.config({ plugin = { [name] = opts } })
+
+    -- three ink dots: file away (close), full sheet (maximise), drawer (minimise)
+    local api = hl.plugin[name]
+    for _, action in ipairs({
+        [[hyprctl dispatch 'hl.dsp.window.close()']],
+        [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
+        drawer,
+    }) do
+        api.add_button({ bg_color = rgb(c.dot), fg_color = rgb(c.dot), size = 11, icon = "", action = action })
+    end
+
+    hl.window_rule({ name = "archive-bar-unfocused", match = { focus = false }, [name .. ":title_color"] = rgb(c.faded) })
+    hl.window_rule({ name = "archive-bar-fullscreen", match = { fullscreen = true }, [name .. ":no_bar"] = true })
+end
+
+if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
+    bars("archivebars", {
+        rule_color = rgba(c.rule_ink, "aa"),
+        rule_width = 1,
+        rule_inset = 11,
+        right_icon = "–",
+        right_icon_action = drawer,
+        right_icon_color = rgb(c.soft),
+        right_icon_size = 20,
     })
-    -- no title bar on the shell's own surfaces or on fullscreen windows
-    hl.window_rule({ name = "archive-bar-fullscreen", match = { fullscreen = true }, ["hyprbars:no_bar"] = true })
+elseif hl.plugin ~= nil and hl.plugin.hyprbars ~= nil then
+    -- stock hyprbars (from hyprpm) as a fallback: same bar, without the rule and the "-"
+    bars("hyprbars")
 end

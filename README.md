@@ -72,6 +72,7 @@ docs/                       G14 notes, customising, design map, troubleshooting
 - [docs/customise.md](docs/customise.md): settings, colours, plates, keybinds
 - [docs/design-map.md](docs/design-map.md): every rule of the design spec, and where it lives
 - [docs/troubleshooting.md](docs/troubleshooting.md)
+- [docs/assets-wanted.md](docs/assets-wanted.md): artwork to drop in (twig, weather sketches, icons)
 
 ## Credits
 

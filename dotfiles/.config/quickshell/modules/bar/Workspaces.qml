@@ -5,10 +5,10 @@ import qs.services
 import qs.components
 
 // Workspaces as typed numbers. Occupied: ink.soft. Empty: ink.faded.
-// Active: underlined with a 2 px accent.ink rule. Urgent: a small stamp mark.
+// Active: underlined with a short 2 px rule, as on the reference. Urgent: a small stamp mark.
 Row {
     id: root
-    spacing: 4
+    spacing: 0
 
     readonly property var ids: {
         let top = Settings.minWorkspaces;
@@ -35,25 +35,25 @@ Row {
             readonly property bool occupied: (ws?.toplevels?.values?.length ?? 0) > 0
             readonly property bool urgent: ws?.urgent ?? false
 
-            width: 26
+            width: 50
             height: Theme.barHeight
 
             InkText {
                 id: num
                 anchors.centerIn: parent
                 text: String(cell.modelData)
-                font.pixelSize: Theme.sizeBar
-                color: cell.active ? Theme.graphite : cell.occupied ? Theme.soft : Theme.faded
+                font.pixelSize: 17
+                color: cell.active ? Theme.graphite : cell.occupied ? Theme.soft : Theme.labelInk
                 Behavior on color { ColorAnimation { duration: Theme.durFocus } }
             }
 
             Rectangle {
                 anchors.horizontalCenter: num.horizontalCenter
                 anchors.top: num.bottom
-                anchors.topMargin: 3
+                anchors.topMargin: 1
                 height: 2
-                width: cell.active ? num.width + 6 : 0
-                color: Theme.accent
+                width: cell.active ? 20 : 0
+                color: Theme.soft
                 Behavior on width { NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
             }
 

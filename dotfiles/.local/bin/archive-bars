@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# archive-bars: build the "archivebars" title-bar plugin for this Hyprland.
+#
+#   archive-bars build     fetch hyprbars for your Hyprland version, patch, compile
+#   archive-bars ensure    rebuild only if Hyprland changed since the last build
+#                          (run at every login; rebuilds in the background)
+#   archive-bars status
+#
+# archivebars is hyprbars with two additions the reference title bar needs: a
+# ruled line under the bar and a typed glyph ("-") on its right. It is
+# compiled against the Hyprland headers your distribution installed
+# (/usr/include/hyprland), so it always matches the running compositor.
+# If a build fails, the config simply runs without title bars until it works.
+set -euo pipefail
+
+data="${XDG_DATA_HOME:-$HOME/.local/share}/archive/plugins"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/archive/archivebars"
+patcher="$data/archivebars/patch.py"
+so="$data/archivebars.so"
+stamp="$data/archivebars.version"
+log="$cache/build.log"
+mkdir -p "$data" "$cache"
+
+hypr_commit() {
+    local c=""
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+        c=$(hyprctl version -j 2>/dev/null | jq -r '.commit // empty' || true)
+    fi
+    if [[ -z $c ]]; then
+        c=$(Hyprland --version 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n1 || true)
+    fi
+    echo "$c"
+}
+
+build() {
+    local commit; commit=$(hypr_commit)
+    [[ -n $commit ]] || { echo "archive-bars: cannot tell which Hyprland is installed" >&2; return 1; }
+    echo "archive-bars: Hyprland commit $commit"
+
+    local repo="$cache/hyprland-plugins"
+    if [[ -d $repo/.git ]]; then
+        git -C "$repo" fetch -q origin
+    else
+        git clone -q https://github.com/hyprwm/hyprland-plugins "$repo"
+    fi
+    # hyprland-plugins pins a plugins commit to each Hyprland release
+    local pin
+    pin=$(git -C "$repo" show origin/HEAD:hyprpm.toml | grep -F "\"$commit\"" | grep -oE '"[0-9a-f]{40}"' | sed -n 2p | tr -d '"' || true)
+    if [[ -n $pin ]]; then
+        git -C "$repo" checkout -q --force "$pin"
+    else
+        echo "archive-bars: no pin for this Hyprland; using the latest hyprbars"
+        git -C "$repo" checkout -q --force origin/HEAD
+    fi
+
+    # headers: the ones your distribution installed, else hyprpm's copy
+    if ! pkg-config --exists hyprland; then
+        for root in "/var/cache/hyprpm/$USER/headersRoot" "${XDG_DATA_HOME:-$HOME/.local/share}/hyprpm/headersRoot"; do
+            [[ -d $root/share/pkgconfig ]] && export PKG_CONFIG_PATH="$root/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+        done
+        if ! pkg-config --exists hyprland; then
+            echo "archive-bars: fetching Hyprland headers with hyprpm"
+            hyprpm update
+            for root in "/var/cache/hyprpm/$USER/headersRoot" "${XDG_DATA_HOME:-$HOME/.local/share}/hyprpm/headersRoot"; do
+                [[ -d $root/share/pkgconfig ]] && export PKG_CONFIG_PATH="$root/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            done
+        fi
+    fi
+
+    local work="$cache/work"
+    rm -rf "$work"
+    cp -r "$repo/hyprbars" "$work"
+    python3 "$patcher" "$work"
+    make -C "$work" all
+    install -m 644 "$work/hyprbars.so" "$so"
+    echo "$commit" >"$stamp"
+    echo "archive-bars: built $so"
+}
+
+case ${1:-build} in
+    build)
+        build 2>&1 | tee "$log"
+        [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
+        [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl reload >/dev/null || true
+        ;;
+    ensure)
+        if [[ -f $so && -f $stamp && $(cat "$stamp") == "$(hypr_commit)" ]]; then
+            exit 0
+        fi
+        if build >"$log" 2>&1; then
+            [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] && hyprctl reload >/dev/null || true
+        else
+            notify-send --app-name "Archive" "Title bars not built." "See $log" || true
+        fi
+        ;;
+    status)
+        if [[ -f $so ]]; then
+            echo "built for $(cat "$stamp" 2>/dev/null), running $(hypr_commit)"
+        else
+            echo "not built"
+        fi
+        ;;
+    *) echo "usage: archive-bars build|ensure|status" >&2; exit 2 ;;
+esac

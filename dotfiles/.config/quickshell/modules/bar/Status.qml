@@ -7,7 +7,7 @@ import qs.components
 // Marks open the Instrument card; the date opens the Ledger.
 Row {
     id: root
-    spacing: 14
+    spacing: 21
 
     // a mark that darkens on hover
     component Mark: Item {
@@ -21,7 +21,7 @@ Row {
         InkIcon {
             anchors.centerIn: parent
             name: mark.icon
-            size: 18
+            size: 20
             color: mark.ink
         }
         MouseArea {
@@ -54,7 +54,7 @@ Row {
     // battery: outline in ink, filled level in accent (madder when low)
     Item {
         visible: Power.present
-        width: battery.width + 6 + pct.implicitWidth
+        width: battery.width + 6 + pct.implicitWidth + 2
         height: Theme.barHeight
 
         Canvas {
@@ -95,7 +95,7 @@ Row {
             anchors.leftMargin: 6
             anchors.verticalCenter: parent.verticalCenter
             text: Power.percent + "%"
-            font.pixelSize: Theme.sizeBar
+            font.pixelSize: Theme.sizeSmall
             color: Power.low ? Theme.madder : Theme.soft
         }
         MouseArea {
@@ -106,13 +106,13 @@ Row {
     }
 
     Item {
-        width: date.implicitWidth + 8
+        width: date.implicitWidth
         height: Theme.barHeight
         InkText {
             id: date
             anchors.centerIn: parent
             text: Clock.barDate
-            font.pixelSize: Theme.sizeBar
+            font.pixelSize: Theme.sizeSmall
             color: dateMouse.containsMouse || Panels.open === "ledger" ? Theme.graphite : Theme.soft
         }
         MouseArea {

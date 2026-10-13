@@ -34,11 +34,11 @@ BarPopup {
 
     IndexCard {
         id: card
-        width: 380
+        width: 500
         title: "Disposition"
         subtitle: "Of the present session."
         number: Clock.timeRecordNo
-        labelWidth: 56
+        labelWidth: 70
         seed: 707
         lift: 1.6
 
@@ -97,7 +97,6 @@ BarPopup {
                     anchors.verticalCenter: parent.verticalCenter
                     text: row.modelData.word + "."
                     color: row.asking ? Theme.madder : Theme.graphite
-                    font.bold: row.current
                 }
                 InkText {
                     anchors.right: parent.right

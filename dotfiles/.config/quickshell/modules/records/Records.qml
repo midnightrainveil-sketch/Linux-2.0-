@@ -27,14 +27,16 @@ PanelWindow {
 
     readonly property real cardsHeight: time.height + weather.height + audio.height
     readonly property int count: (time.visible ? 1 : 0) + (weather.visible ? 1 : 0) + (audio.visible ? 1 : 0)
-    readonly property real free: height - 2 * Theme.margin - cardsHeight - 40
+    // the reference is 1080 px tall; extra height (the G14 is 16:10) becomes
+    // a little more air between the cards, never another card
+    readonly property real extra: Math.max(0, height - 1080 + Theme.barHeight)
 
     Column {
         id: column
         x: win.pad
-        y: Theme.margin + 16 + Math.max(0, win.free * 0.08)
+        y: Theme.recordTop + win.extra * 0.15
         width: Theme.recordWidth
-        spacing: Math.max(Theme.cardGap, Math.min(56, win.free * 0.35 / Math.max(1, win.count - 1)))
+        spacing: Theme.cardGap + win.extra * 0.2
 
         TimeRecord { id: time; width: parent.width; visible: Settings.showTime }
         WeatherRecord { id: weather; width: parent.width; visible: Settings.showWeather }

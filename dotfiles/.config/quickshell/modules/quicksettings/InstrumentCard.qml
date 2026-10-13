@@ -16,11 +16,11 @@ BarPopup {
 
     IndexCard {
         id: card
-        width: 420
+        width: 500
         title: "Instruments"
-        subtitle: "Settings of the reading room."
+        subtitle: "Reading room."
         number: Clock.pad(Power.percent, 3)
-        labelWidth: 104
+        labelWidth: 124
         seed: 606
         lift: 1.4
 

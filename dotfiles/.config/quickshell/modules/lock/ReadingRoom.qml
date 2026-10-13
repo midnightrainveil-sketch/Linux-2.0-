@@ -125,13 +125,16 @@ Scope {
                     Item {
                         width: parent.width
                         height: 150
+                        // the Time Record's tall typewriter figures, larger
                         InkText {
-                            anchors.centerIn: parent
-                            text: Clock.hours + " : " + Clock.minutes
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            y: parent.height / 2 - 0.592 * 112 * Theme.clockStretch / 2 - (0.782 - 0.592) * 112 * Theme.clockStretch
+                            text: Clock.hours + ":" + Clock.minutes
                             color: Theme.graphite
-                            font.pixelSize: 96
-                            font.bold: true
-                            tracking: Theme.trackClock
+                            font.pixelSize: 112
+                            font.letterSpacing: 8
+                            spread: 1.8
+                            transform: Scale { yScale: Theme.clockStretch }
                         }
                     }
 

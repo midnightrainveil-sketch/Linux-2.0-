@@ -3,8 +3,11 @@ import qs.theme
 import qs.services
 import qs.components
 
-// Meteorological Observation: pencil-shaded weather sketch, temperature and
-// condition on the left; a small typed table on the right.
+// Meteorological Observation, laid out to the reference card (485 x 249):
+//   header band, rule at 45
+//   pencil cloud | big temperature over the condition | vertical rule |
+//   a four-line typed table (labels left, values set to the right)
+//   footer: Location | place
 // No. = air pressure in hPa.
 IndexCard {
     id: card
@@ -13,73 +16,88 @@ IndexCard {
     number: Weather.ready ? String(Weather.pressure) : "----"
     footerLabel: "Location"
     footerValue: Settings.placeName + (Settings.placeCountry && Settings.placeCountry !== Settings.placeName ? ", " + Settings.placeCountry : "")
-    labelWidth: 104
+    labelWidth: 115
     seed: 202
+    implicitHeight: 249
 
     Item {
-        width: parent.width
-        height: 112
+        width: card.width
+        height: 158        // header 45 + 158 = footer rule at 203
 
-        Row {
-            anchors.left: parent.left
-            anchors.leftMargin: Theme.cardPad + 4
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 18
+        InkIcon {
+            group: "weather"
+            name: Weather.icon
+            x: 16
+            y: 26
+            size: 115
+            color: Theme.soft
+        }
 
-            InkIcon {
-                group: "weather"
-                name: Weather.icon
-                size: 60
+        // temperature: tall typewriter figures, like the clock
+        Item {
+            id: temp
+            x: 155
+            y: 57
+            width: 82
+            height: 46
+            InkText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: -(0.782 - 0.592) * Theme.sizeDisplay * 1.45
+                text: Weather.ready ? Math.round(Weather.temperature) + "°C" : "--°C"
                 color: Theme.graphite
-                anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: Theme.sizeDisplay
+                spread: 1.0
+                transform: Scale { yScale: 1.45; origin.x: 0; origin.y: 0 }
             }
-
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
-                InkText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Weather.ready ? Math.round(Weather.temperature) + "°C" : "--°C"
-                    color: Theme.graphite
-                    font.pixelSize: 30
-                    font.bold: true
-                }
-                InkText {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Weather.ready ? Weather.condition : "Awaiting reading."
-                    color: Theme.soft
-                    font.pixelSize: Theme.sizeData + 1
-                }
-            }
+        }
+        InkText {
+            anchors.horizontalCenter: temp.horizontalCenter
+            y: 101
+            text: Weather.ready ? Weather.condition : "Awaiting."
+            color: Theme.soft
+            font.pixelSize: 18
         }
 
         Rule {
-            id: split
             vertical: true
-            x: parent.width * 0.5
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.topMargin: 2
+            x: 295
+            y: 19
+            height: 131
             width: implicitWidth
             seed: 203
         }
 
-        Grid {
-            anchors.left: split.right
-            anchors.leftMargin: Theme.headerPadH
-            anchors.verticalCenter: parent.verticalCenter
-            columns: 2
-            columnSpacing: 12
-            rowSpacing: 7
-
-            InkText { text: "Feels like"; color: Theme.faded; font.pixelSize: Theme.sizeLabel }
-            InkText { text: Weather.ready ? Math.round(Weather.feelsLike) + "°C" : "--"; font.pixelSize: Theme.sizeLabel }
-            InkText { text: "Humidity"; color: Theme.faded; font.pixelSize: Theme.sizeLabel }
-            InkText { text: Weather.ready ? Weather.humidity + "%" : "--"; font.pixelSize: Theme.sizeLabel }
-            InkText { text: "Wind"; color: Theme.faded; font.pixelSize: Theme.sizeLabel }
-            InkText { text: Weather.ready ? Math.round(Weather.windSpeed) + " km/h " + Weather.windCompass : "--"; font.pixelSize: Theme.sizeLabel }
-            InkText { text: "Pressure"; color: Theme.faded; font.pixelSize: Theme.sizeLabel }
-            InkText { text: Weather.ready ? Weather.pressure + " hPa" : "--"; font.pixelSize: Theme.sizeLabel }
+        Column {
+            x: 314
+            y: 22
+            width: card.width - x - Theme.ruleInset - 2
+            spacing: 0
+            Repeater {
+                model: [
+                    ["Feels like", Weather.ready ? Math.round(Weather.feelsLike) + "°C" : "--"],
+                    ["Humidity", Weather.ready ? Weather.humidity + "%" : "--"],
+                    ["Wind", Weather.ready ? Math.round(Weather.windSpeed) + " km/h " + Weather.windCompass : "--"],
+                    ["Pressure", Weather.ready ? Weather.pressure + " hPa" : "--"]
+                ]
+                Item {
+                    required property var modelData
+                    width: parent.width
+                    height: 27.5
+                    InkText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modelData[0]
+                        color: Theme.labelInk
+                        font.pixelSize: Theme.sizeSmall
+                    }
+                    InkText {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modelData[1]
+                        color: Theme.soft
+                        font.pixelSize: Theme.sizeSmall
+                    }
+                }
+            }
         }
     }
 }

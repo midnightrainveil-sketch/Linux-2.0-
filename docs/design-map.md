@@ -28,7 +28,7 @@ Paths are relative to `dotfiles/`. `qs/` means `.config/quickshell/`.
 
 | Style | Where |
 | --- | --- |
-| Courier Prime: clock 64 bold, title 11 bold caps +12 %, data 12, label 11 | `Theme.size*`; `InkText` applies the tracking |
+| Courier Prime, sized off the reference at 1920 px (about 1.4x the spec's tokens): titles 16 regular caps +10 %, data and labels 16, small 15, clock 92 stretched 1.2x upright (tall typewriter figures), temperature 37 stretched 1.45x | `Theme.size*`, `Theme.clockStretch`; `InkText` adds tracking and ink spread |
 | IBM Plex Mono | foot, fastfetch, `fonts.conf` monospace |
 | Pinyon Script | Latin name on the plate and on the lock screen only |
 | IBM Plex Sans for apps | GTK `settings.ini`, qt6ct, `fonts.conf` |
@@ -45,10 +45,10 @@ the plate is the one place that should match the mockup.
 | Paper grain 6–10 % (night 8–12 %) | `assets/grain-dark.png` and `grain-light.png`, 512 px seamless tiles from `tools/gen_assets.py`. `Theme.grainDark` / `grainLight` set the strength |
 | Irregular cut edge, 1–2 px | `qs/components/Paper.qml` draws the card as a polygon with a seeded 1.4 px jag (see below) |
 | Ruled lines 1.5 px, ±0.5 px drift | `qs/components/Rule.qml` |
-| Ink bleed: 0.4 px ghost at 25 % | `qs/components/InkText.qml` |
+| Ink: typed text reads heavier, like ink pressed into paper | `qs/components/InkText.qml` (two faint offset copies, `spread`) |
 | Stamps: uneven ink, ±8°, 75–85 % | `qs/components/Stamp.qml` (knock-out specks and scuffs) |
 | Foxing: 3–6 spots, wallpaper only | `qs/modules/background/Plate.qml` |
-| Optional global grain | `.config/hypr/shaders/grain.frag`, toggled by `archive-grain` / `Super + Shift + G` |
+| Paper over everything (windows too) | `.config/hypr/shaders/paper.frag`, on by default, toggled by `archive-grain` / `Super + Shift + G` |
 
 **Different from the spec:**
 
@@ -70,34 +70,26 @@ the plate is the one place that should match the mockup.
 
 ## 6. Windows
 
-| Spec | How |
+The reference window was measured at 1920 px, and the config follows the
+measurements rather than the spec text where the two disagree.
+
+| Reference | How |
 | --- | --- |
-| Focused: 2 px graphite border, 14 px shadow, offset 0/4, 18 % | `archive/look.lua` |
-| Unfocused: rule.faint border, smaller shadow 10 % | `inactive_border` and `shadow.color_inactive` |
-| Corner radius 0, opacity 100 %, no dimming | `rounding = 0`, `inactive_opacity = 1`, `dim_inactive = false` |
-| 28 px title bar, paper.card, 1.5 px rule, Courier 12 | hyprbars plugin (`look.lua`) |
-| Three ink dots, no red, yellow or green | three `ink.faded` buttons: close, maximise, drawer |
-| Title graphite, unfocused faded | `col.text` plus the `hyprbars:title_color` rule for unfocused windows |
-| Tiling (dwindle); small tools float centred at fixed sizes | `small_tools` in `archive/rules.lua` |
-| Fullscreen drops border and shadow | the `archive-fullscreen` rule (and no title bar) |
+| No hard frame: a thin cut-edge rim, light along the top and darkest along the bottom | `border_size = 1` (1.5 px on the G14) with a top-to-bottom gradient `rim_top` → `rim_bottom` (`palette.lua`) |
+| Short soft shadow falling down onto the sheet | `shadow.range = 12`, `render_power = 2`, `offset = {-1, 4}`, 32 % |
+| Square corners, just worn | `rounding = 2` |
+| 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `archive-bars`), configured in `look.lua` |
+| Dots: close, maximise, drawer. "–": drawer | buttons and `right_icon_action` |
+| Paper texture and slightly ragged ink inside the window | the paper screen shader `shaders/paper.frag`, on by default |
+| Focus lifts the card | focused: darker rim and 32 % shadow; unfocused: lighter rim, 20 % shadow, faded title |
+| Fullscreen drops the bar, rim and shadow | `archive-fullscreen` rules |
 | Urgent: accent.ink border and a stamp on the workspace number | a tag on `window.urgent` plus a rule; the ring stamp in `Workspaces.qml` |
 | Drawer = scratchpad, `` Super + ` `` | `special:drawer` |
 
-**Different from the spec:**
-
-- The unfocused border is 2 px, not 1.5. Hyprland has one integer
-  `border_size`, so the colour alone marks the difference.
-- The unfocused shadow uses the focused shadow's size with a lighter colour.
-  Hyprland has `color_inactive` but no separate range or offset.
-- The title bar has three dots and no right-hand dash. hyprbars puts all its
-  buttons on one side, so the third dot is the drawer (minimise).
-- The dots don't darken on hover. hyprbars has no hover colour, only
-  `inactive_button_color`.
-- There's no separate rule under the title bar. With
-  `bar_part_of_window`, the window's border frames the bar, which reads as the
-  card's edge.
-- Lowercase titles come from the app. The zsh prompt sets
-  `user@host: ~/path`, and other apps show their own titles.
+**What Hyprland cannot do:** the deckled irregularity of a real cut edge.
+Hyprland borders are straight, so the rim is straight; the paper shader's
+sub-pixel ink roughness softens it. The shell's own cards (records, popups)
+do have hand-cut edges, since Quickshell draws those itself.
 
 ## 7. Core components
 

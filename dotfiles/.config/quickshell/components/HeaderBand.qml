@@ -1,48 +1,42 @@
 import QtQuick
 import qs.theme
 
-// Header band (section 7): bold caps title on the left, a vertical rule,
-// then "No. 42817" on the right; a rule closes the band underneath.
-// An optional sentence-case subtitle sits under the title ("Time Record.").
+// Header band (section 7), measured off the reference cards: caps title in
+// regular weight on the left, an optional sentence-case subtitle under it,
+// a vertical rule running up to the card's top edge, "No. 42817" on the
+// right, and a rule closing the band, inset from the card edges.
 Item {
     id: root
 
     property string title: ""
     property string subtitle: ""
     property string number: ""            // digits only; "No." is always written out
-    property color titleColor: Theme.graphite
+    property color titleColor: Theme.soft
     property int seed: 11
 
-    implicitHeight: titleCol.implicitHeight + 2 * Theme.headerPadV + Theme.rule
+    implicitHeight: subtitle !== "" ? Theme.headerHeight : 45
 
-    Column {
-        id: titleCol
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.headerPadH
-        anchors.right: divider.left
-        anchors.rightMargin: Theme.headerPadH
-        anchors.top: parent.top
-        anchors.topMargin: Theme.headerPadV
-        spacing: 1
-
-        InkText {
-            width: parent.width
-            text: root.title
-            caps: true
-            tracking: Theme.trackTitle
-            color: root.titleColor
-            font.pixelSize: Theme.sizeTitle
-            font.bold: true
-            elide: Text.ElideRight
-        }
-        InkText {
-            visible: root.subtitle !== ""
-            width: parent.width
-            text: root.subtitle
-            color: Theme.soft
-            font.pixelSize: Theme.sizeLabel
-            elide: Text.ElideRight
-        }
+    InkText {
+        id: titleText
+        x: Theme.cardPad
+        y: root.subtitle !== "" ? 12 : (root.implicitHeight - height) / 2 + 1
+        width: divider.x - x - 12
+        text: root.title
+        caps: true
+        tracking: Theme.trackTitle
+        color: root.titleColor
+        font.pixelSize: Theme.sizeTitle
+        elide: Text.ElideRight
+    }
+    InkText {
+        visible: root.subtitle !== ""
+        x: Theme.cardPad + 1
+        y: 33
+        width: divider.x - x - 12
+        text: root.subtitle
+        color: Theme.soft
+        font.pixelSize: Theme.sizeTitle - 1
+        elide: Text.ElideRight
     }
 
     Rule {
@@ -50,33 +44,28 @@ Item {
         visible: root.number !== ""
         vertical: true
         seed: root.seed + 1
-        anchors.right: numberText.left
-        anchors.rightMargin: Theme.headerPadH
-        anchors.top: parent.top
-        anchors.bottom: bottomRule.top
+        x: root.number !== "" ? numberText.x - 28 : root.width
+        y: 1
+        height: bottomRule.y - y + 1
         width: implicitWidth
     }
 
     InkText {
         id: numberText
         visible: root.number !== ""
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.headerPadH + 2
-        anchors.top: parent.top
-        anchors.topMargin: Theme.headerPadV
+        x: root.width - Theme.headerPadH - width
+        y: titleText.y
         text: "No. " + root.number
-        color: Theme.graphite
+        color: Theme.soft
         font.pixelSize: Theme.sizeNumber
-        font.bold: true
+        tracking: 0.04
     }
 
     Rule {
         id: bottomRule
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: 6
-        anchors.rightMargin: 6
-        anchors.bottom: parent.bottom
+        x: Theme.ruleInset
+        width: root.width - 2 * Theme.ruleInset
+        y: root.implicitHeight - height / 2
         height: implicitHeight
         seed: root.seed + 2
     }

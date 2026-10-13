@@ -4,7 +4,7 @@
 #   ./install.sh                 link the dotfiles, enable the services (safe to re-run)
 #   ./install.sh --packages      also install the official packages (sudo pacman)
 #   ./install.sh --g14           also set up the Zephyrus G14 GPU names (sudo, udev)
-#   ./install.sh --plugins       build and enable the hyprbars title bars (run inside Hyprland)
+#   ./install.sh --plugins       build the archivebars title bars (run inside Hyprland)
 #   ./install.sh --greeter       enable greetd + tuigreet to start Hyprland at boot (sudo)
 #   ./install.sh --all           packages + g14 + link + services + greeter
 #
@@ -87,7 +87,7 @@ if (( want_link )); then
     say "state: day / night, grain"
     state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
     mkdir -p "$state" "$HOME/Pictures/Archive"
-    [[ -f $state/grain ]] || echo off >"$state/grain"
+    [[ -f $state/grain ]] || echo on >"$state/grain"     # paper shader on by default
     "$HOME/.local/bin/archive-mode" auto || true
     # make sure GTK / Qt / foot match even if the mode did not change
     "$HOME/.local/bin/archive-mode" "$("$HOME/.local/bin/archive-mode" status)" || true
@@ -133,14 +133,21 @@ EOF
     warn "greetd takes over tty1 from the next boot; disable any other display manager first"
 fi
 
-# ------------------------------------------------------------------ hyprbars
+# ------------------------------------------------------------------ title bars
 if (( want_plugins )); then
     [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]] || { warn "--plugins must run inside a Hyprland session"; exit 1; }
-    say "building the hyprbars title bar plugin (hyprpm)"
-    hyprpm update
-    hyprpm add https://github.com/hyprwm/hyprland-plugins || true
-    hyprpm enable hyprbars
-    hyprpm reload -n
+    say "building the archivebars title-bar plugin (hyprbars + ruled line + right glyph)"
+    hyprpm disable hyprbars >/dev/null 2>&1 || true
+    if "$HOME/.local/bin/archive-bars" build; then
+        say "title bars built; Hyprland reloaded"
+    else
+        warn "archivebars did not build (log: ~/.cache/archive/archivebars/build.log)"
+        warn "falling back to stock hyprbars: same bar, without the rule and the '-'"
+        hyprpm update
+        hyprpm add https://github.com/hyprwm/hyprland-plugins || true
+        hyprpm enable hyprbars
+        hyprpm reload -n
+    fi
 fi
 
 say "done. Log in to Hyprland (start-hyprland), then: ./install.sh --plugins"

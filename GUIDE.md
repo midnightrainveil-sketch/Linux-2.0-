@@ -194,19 +194,27 @@ After logging in you should see, within two seconds:
    marks and the date.
 4. A terminal card on the left showing fastfetch (the "desk terminal").
 
-The windows don't have their typed title bars yet. Build the plugin once,
-from a terminal inside Hyprland (`Super + Return`):
+The windows don't have their typed title bars yet. Build them once, from a
+terminal inside Hyprland (`Super + Return`):
 
 ```sh
 cd ~/archive
 ./install.sh --plugins
 ```
 
-This compiles `hyprbars` against your exact Hyprland version, which takes a
-minute or two. After every Hyprland update, run `hyprpm update` once.
+This builds **archivebars**, which is hyprbars plus the two things the
+reference title bar needs and hyprbars lacks: the ruled line under the bar
+and the "–" on its right. It fetches the hyprbars source that matches your
+Hyprland, patches it and compiles it, which takes a minute. After a Hyprland
+update it rebuilds itself at the next login (`archive-bars ensure`). If a
+build ever fails, the installer falls back to stock hyprbars: the same bar,
+just without the rule and the dash.
 
-**Check:** new windows have a 28 px paper title bar with three small ink dots
-on the left.
+**Check:** new windows have a 46 px paper title bar: three dark ink dots, the
+title, a "–" at the far right and a thin ruled line underneath. Around the
+window there is a thin cut-edge rim, darker along the bottom, and a short
+soft shadow. Paper texture shows in flat areas (the paper shader:
+`Super + Shift + G` toggles it).
 
 ### Make it say *atlas@linden* (optional)
 
@@ -256,7 +264,7 @@ number is the current air pressure in hPa.
 | `Super + C` | Ledger (calendar) |
 | `Super + I` | Instrument card (quick settings) |
 | `Super + N` | Turn the sheet: day or night (holds until the next sunrise or sunset) |
-| `Super + Shift + G` | Film grain over everything, on or off |
+| `Super + Shift + G` | Paper shader (texture and ink over every window), on or off |
 | `Super + Escape` | Reading Room (lock) |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
 | `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window) |
@@ -336,7 +344,7 @@ with a 10 ms fade-out.
 - [ ] Plate in the centre, record cards on the right, footer bar at the bottom.
 - [ ] `Super + Space` opens the Catalogue; typing filters it; `Enter` launches.
 - [ ] Focused window has a graphite border and lifted shadow; others lie flat.
-- [ ] Title bars: paper strip, three ink dots, lowercase title.
+- [ ] Title bars: paper strip, three ink dots, title, "–" on the right, ruled line under it.
 - [ ] Volume keys show the *Volume* reading above the bar.
 - [ ] `notify-send "Test" "A letter."` drops a card top-right with a RECEIVED stamp.
 - [ ] `Super + N` crossfades the whole sheet to cyanotype blue and back.

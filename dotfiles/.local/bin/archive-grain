@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# archive-grain: the optional 2-3 % film grain screen shader (spec section 4).
+# archive-grain: the paper screen shader (fibre texture + ink roughness over
+# every window, so apps read as printed on card, like the reference).
 #   archive-grain on | off | toggle | status
 # It shifts colours slightly: turn it off for colour-critical work
 # (3D renders, video, photos). Super+Shift+G toggles it.
 set -euo pipefail
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
-shader="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/shaders/grain.frag"
+shader="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/shaders/paper.frag"
 mkdir -p "$state_dir"
 current=$(cat "$state_dir/grain" 2>/dev/null || echo off)
 

@@ -4,8 +4,11 @@ import qs.theme
 import qs.services
 import qs.components
 
-// Audio Archive: the cover as a desaturated print, track data, and a 3 px
-// blue progress line. No. = release year of the current track.
+// Audio Archive, laid out to the reference card (485 x 226):
+//   header band, rule at 42
+//   the cover as a grey print | artist, title, album
+//   progress: 4 px accent fill on a 2 px track, times under it
+// No. = release year of the current track.
 // Click the print to play / pause; scroll over the card to skip.
 IndexCard {
     id: card
@@ -13,29 +16,27 @@ IndexCard {
     title: "Audio Archive"
     number: Media.year !== "" ? Media.year : (Media.active ? "----" : "")
     seed: 303
+    implicitHeight: 226
 
     Item {
-        width: parent.width
-        height: 130
+        width: card.width
+        height: 181
 
         // the print
         Item {
             id: photo
-            x: Theme.cardPad
-            y: 14
-            width: 132
-            height: 100
+            x: 27
+            y: 61 - 45
+            width: 134
+            height: 140
 
             Rectangle {
                 anchors.fill: parent
                 color: Theme.paperRaised
-                border.width: 1
-                border.color: Theme.ruleFaint
             }
             Image {
                 id: art
                 anchors.fill: parent
-                anchors.margins: 1
                 source: Media.art
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
@@ -46,16 +47,15 @@ IndexCard {
                 source: art
                 visible: art.status === Image.Ready
                 saturation: -1.0
-                contrast: 0.08
-                brightness: Theme.night > 0.5 ? -0.08 : 0.02
-                opacity: 0.92
+                contrast: 0.12
+                brightness: Theme.night > 0.5 ? -0.08 : 0.0
             }
             Grain { anchors.fill: parent; strength: 1.6 }
             InkIcon {
                 anchors.centerIn: parent
                 visible: art.status !== Image.Ready
                 name: "record"
-                size: 34
+                size: 40
                 color: Theme.faded
             }
             MouseArea {
@@ -66,18 +66,14 @@ IndexCard {
         }
 
         Column {
-            anchors.left: photo.right
-            anchors.leftMargin: 18
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.cardPad
-            y: 18
-            spacing: 6
-
+            x: 184
+            y: 72 - 45 - 11
+            width: card.width - x - Theme.headerPadH
+            spacing: 9
             InkText {
                 width: parent.width
                 text: Media.active ? Media.artist : "No recording playing."
-                color: Media.active ? Theme.graphite : Theme.faded
-                font.bold: Media.active
+                color: Media.active ? Theme.soft : Theme.faded
                 elide: Text.ElideRight
             }
             InkText {
@@ -85,48 +81,46 @@ IndexCard {
                 visible: Media.active
                 text: Media.title
                 color: Theme.graphite
-                font.bold: true
                 elide: Text.ElideRight
             }
             InkText {
                 width: parent.width
                 visible: Media.active && Media.album !== ""
                 text: Media.album
+                color: Theme.soft
                 elide: Text.ElideRight
             }
         }
 
-        // progress: 1 px rule.faint track, 3 px accent.ink fill
+        // progress
         Item {
             id: progress
-            anchors.left: photo.right
-            anchors.leftMargin: 18
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.cardPad
-            y: 92
-            height: 3
+            x: 185
+            y: 171 - 45 - 2
+            width: 459 - 185
+            height: 4
             visible: Media.active
-            Rectangle { y: 1; width: parent.width; height: 1; color: Theme.ruleFaint }
+            Rectangle { y: 1; width: parent.width; height: 2; color: Theme.ruleFaint; opacity: 0.9 }
             Rectangle {
                 width: parent.width * Media.progress
-                height: 3
+                height: 4
                 color: Theme.accent
                 Behavior on width { NumberAnimation { duration: 900; easing.type: Easing.Linear } }
             }
         }
         InkText {
             visible: Media.active
-            anchors.left: progress.left
-            y: progress.y + 12
+            x: progress.x
+            y: 194 - 45 - 9
             text: Media.time(Media.position)
-            font.pixelSize: Theme.sizeLabel
+            font.pixelSize: Theme.sizeSmall
         }
         InkText {
             visible: Media.active
-            anchors.right: progress.right
-            y: progress.y + 12
+            x: progress.x + progress.width - width + 2
+            y: 194 - 45 - 9
             text: Media.time(Media.length)
-            font.pixelSize: Theme.sizeLabel
+            font.pixelSize: Theme.sizeSmall
         }
     }
 

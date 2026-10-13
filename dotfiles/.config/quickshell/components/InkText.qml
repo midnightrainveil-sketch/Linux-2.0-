@@ -7,6 +7,9 @@ Text {
     id: root
 
     property bool bleed: true
+    // how far the ink spreads into the paper, in px; the reference's typed
+    // text reads a little heavier than the bare glyphs
+    property real spread: 0.5
     property bool caps: false
     property real tracking: 0          // fraction of font size, e.g. 0.12
 
@@ -26,16 +29,13 @@ Text {
     onTrackingChanged: applyTracking()
     Component.onCompleted: applyTracking()
 
-    Text {
+    component Ghost: Text {
         visible: root.bleed
-        x: 0.4
-        y: 0.4
         z: -1
         width: root.width
         height: root.height
         text: root.text
         color: root.color
-        opacity: 0.25
         font: root.font
         elide: root.elide
         wrapMode: root.wrapMode
@@ -50,4 +50,6 @@ Text {
         topPadding: root.topPadding
         bottomPadding: root.bottomPadding
     }
+    Ghost { x: root.spread * 0.9; y: root.spread * 0.4; opacity: 0.42 }
+    Ghost { x: -root.spread * 0.3; y: root.spread * 0.8; opacity: 0.30 }
 }

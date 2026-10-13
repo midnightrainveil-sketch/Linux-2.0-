@@ -17,10 +17,17 @@ Item {
     implicitWidth: size
     implicitHeight: size
 
+    // Your own artwork wins: assets/<group>/<name>.png is used when present,
+    // the generated .svg placeholder otherwise.
+    property bool usePng: true
+    onNameChanged: usePng = true
+
     Image {
         id: img
         anchors.fill: parent
-        source: root.name === "" ? "" : Qt.resolvedUrl("../assets/" + root.group + "/" + root.name + ".svg")
+        source: root.name === "" ? "" : Qt.resolvedUrl("../assets/" + root.group + "/" + root.name + (root.usePng ? ".png" : ".svg"))
+        onStatusChanged: if (status === Image.Error && root.usePng) root.usePng = false
+        fillMode: Image.PreserveAspectFit
         sourceSize: Qt.size(Math.ceil(root.width * 2), Math.ceil(root.height * 2))
         smooth: true
         mipmap: true

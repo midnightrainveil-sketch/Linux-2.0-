@@ -12,7 +12,10 @@ return {
         rule_faint   = "9c9995",
         accent       = "34405e",
         madder       = "7a4a46",
-        shadow       = "1e1d22", shadow_active = "2e", shadow_inactive = "1a",   -- 18 % / 10 %
+        shadow       = "1e1d22", shadow_active = "52", shadow_inactive = "33",   -- 32 % / 20 %
+        rim_top      = "8a857e", rim_bottom      = "57524d",   -- the cut edge, focused
+        rim_top_flat = "a39e97", rim_bottom_flat = "7b766f",   -- unfocused: lies flat
+        dot          = "5f5b60", dot_flat        = "8a8688",   -- title-bar ink dots
     },
     night = {
         paper_base   = "1c2f4d",
@@ -25,6 +28,9 @@ return {
         rule_faint   = "4e6283",
         accent       = "a9c4e4",
         madder       = "d69a8e",
-        shadow       = "08101e", shadow_active = "66", shadow_inactive = "33",   -- 40 % / 20 %
+        shadow       = "08101e", shadow_active = "73", shadow_inactive = "40",   -- 45 % / 25 %
+        rim_top      = "4e6283", rim_bottom      = "0b1424",
+        rim_top_flat = "3c5274", rim_bottom_flat = "13213a",
+        dot          = "8e9cb3", dot_flat        = "5f7193",
     },
 }

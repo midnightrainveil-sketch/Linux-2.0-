@@ -86,6 +86,95 @@ def make_grain():
     Image.fromarray(rgba, "RGBA").save(os.path.join(ROOT, "grain-light.png"), optimize=True)
 
 
+def make_card_texture():
+    """Fibre texture for the cards: soft mottling plus pale fibres and a few
+    dark specks, stored as white or black with alpha so it works on day paper
+    and on the night cyanotype alike."""
+    size = 512
+    rng = np.random.default_rng(1921)
+    mottle = seamless_noise(size, rng, 14.0) * 0.55 + seamless_noise(size, rng, 40.0) * 0.45
+    fine = seamless_noise(size, rng, 1.6)
+    pyrng = np.random.default_rng(23)
+
+    class R:
+        uniform = staticmethod(lambda a, b: pyrng.uniform(a, b))
+        normal = staticmethod(lambda m, s: pyrng.normal(m, s))
+
+    light_fibres = fibres(size, R, 700, 26, 140)
+    dark_fibres = fibres(size, R, 160, 18, 90)
+    v = 0.30 * mottle + 0.22 * fine + 1.6 * light_fibres - 1.2 * dark_fibres
+    # rare dark specks of foxing-free dirt
+    specks = (rng.random((size, size)) > 0.9993).astype(np.float32)
+    specks = np.asarray(Image.fromarray((specks * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)), np.float32) / 255
+    v -= 1.6 * specks
+    v = np.clip(v / 2.2, -1, 1)
+    rgba = np.zeros((size, size, 4), np.uint8)
+    pos = v > 0
+    rgba[pos, 0:3] = 255
+    rgba[..., 3] = (np.abs(v) * 0.11 * 255).astype(np.uint8)
+    Image.fromarray(rgba, "RGBA").save(os.path.join(ROOT, "paper-card.png"), optimize=True)
+
+
+def make_watercolour_sprig():
+    """The Time Record's sprig: a soft watercolour twig (alpha only; the shell
+    tints it). Upward side branches with elongated leaflets, no outlines."""
+    from PIL import ImageDraw
+    W, H, S = 160, 280, 4
+    img = Image.new("L", (W * S, H * S), 0)
+    d = ImageDraw.Draw(img)
+    rng = random.Random(42)
+
+    def P(x, y):
+        return (x * S, y * S)
+
+    def leaf(x, y, ang, L, w, a=210):
+        pts = []
+        for i in range(24):
+            t = i / 23 * math.pi * 2
+            u = (1 - math.cos(t)) / 2 * L
+            v = math.sin(t) * w * math.sin(math.pi * u / L) ** 0.6
+            pts.append(P(x + math.cos(ang) * u - math.sin(ang) * v, y + math.sin(ang) * u + math.cos(ang) * v))
+        d.polygon(pts, fill=int(a * rng.uniform(0.75, 1.0)))
+
+    def stroke(pts, w, a=230):
+        d.line([P(*q) for q in pts], fill=a, width=int(w * S), joint="curve")
+
+    stem = [(58 + 38 * t ** 1.15 + 6 * math.sin(t * 3.0), 274 - 258 * t) for t in [i / 40 for i in range(41)]]
+    stroke(stem, 4.2)
+    # a second stem forking low on the left, as on the reference
+    fork = [(stem[6][0] - 26 * t ** 1.3, stem[6][1] - 70 * t) for t in [i / 12 for i in range(13)]]
+    stroke(fork, 3.2)
+    for j in range(3):
+        fx, fy = fork[4 + j * 3]
+        leaf(fx, fy, -math.pi / 2 - 0.9, 22, 6.5)
+        leaf(fx, fy, -math.pi / 2 + 0.5, 20, 6.0)
+    leaf(*fork[-1], -math.pi / 2 - 0.2, 24, 7)
+    for t, side, L in [(0.3, 1, 58), (0.42, -1, 52), (0.56, 1, 46), (0.68, -1, 38), (0.8, 1, 28)]:
+        x, y = stem[int(t * 40)]
+        ang = -math.pi / 2 + side * 0.75
+        bx, by = x + math.cos(ang) * L, y + math.sin(ang) * L
+        mid = (x + (bx - x) * 0.5 + side * 2, y + (by - y) * 0.5)
+        stroke([(x, y), mid, (bx, by)], 2.8)
+        for j in range(3):
+            tt = 0.32 + j * 0.24
+            lx, ly = x + (bx - x) * tt, y + (by - y) * tt
+            leaf(lx, ly, ang - 0.85, 21 - 3 * j, 6.5)
+            leaf(lx, ly, ang + 0.85, 21 - 3 * j, 6.5)
+        leaf(bx, by, ang, 22, 6.5)
+    tx, ty = stem[-1]
+    for a in (-2.2, -1.57, -0.95):
+        leaf(tx, ty, a, 20, 6.2)
+    img = img.filter(ImageFilter.GaussianBlur(2.2 * S / 4)).resize((W, H), Image.LANCZOS)
+    # watercolour pools darker at the edges of each wash, and is uneven
+    a = np.asarray(img, np.float32) / 255
+    edge = np.clip(a - np.asarray(img.filter(ImageFilter.GaussianBlur(2)), np.float32) / 255, 0, 1)
+    tone = seamless_noise(256, np.random.default_rng(5), 6.0)[:H % 256 or 256, :W] if False else None
+    a = np.clip(a * 0.85 + edge * 1.2, 0, 1)
+    rgba = np.zeros((H, W, 4), np.uint8)
+    rgba[..., 3] = (a * 255).astype(np.uint8)
+    Image.fromarray(rgba, "RGBA").save(os.path.join(ROOT, "sprig-wash.png"), optimize=True)
+
+
 # ---------------------------------------------------------------- sketch helpers
 class Pen:
     """Collects wobbly polylines and writes an SVG."""
@@ -193,6 +282,59 @@ def sprig(p, big=False):
     for j in range(4):
         y = 4.2 + j * 1.7
         p.circle(12.2 + (0.9 if j % 2 else -0.9), y, 0.75, width=1.1)
+
+
+def twig(p):
+    """A lavender-like twig, as on the reference Time Record: a curved main
+    stem with short side branches carrying small paired leaflets. 64 grid."""
+    def leaflet(x, y, ang, L=4.2, w=1.5):
+        ca, sa = math.cos(ang), math.sin(ang)
+        pts = []
+        for i in range(13):
+            t = i / 12 * math.pi * 2
+            u = (1 - math.cos(t)) / 2 * L                  # along the leaf
+            v = math.sin(t) * w * math.sin(math.pi * u / L) ** 0.8
+            pts.append((x + ca * u - sa * v, y + sa * u + ca * v))
+        p.line(pts, width=0.55, closed=True, step=0.5)
+        d = "M" + " L".join(f"{a:.2f},{b:.2f}" for a, b in pts) + " Z"
+        p.paths.append((d, 0, 0.62, True))                # watercolour fill
+    stem = [(24 + 15 * t ** 1.25 + 2.2 * math.sin(t * 4.5), 61 - 57 * t) for t in [i / 30 for i in range(31)]]
+    p.line(stem, width=1.1, step=1.0)
+    branches = [(0.2, -1, 17), (0.36, 1, 17), (0.52, -1, 14), (0.66, 1, 11), (0.8, -1, 7)]
+    for t, side, L in branches:
+        x, y = stem[int(t * 30)]
+        ang = -math.pi / 2 + side * 0.95
+        bx, by = x + math.cos(ang) * L, y + math.sin(ang) * L
+        p.line([(x, y), (x + (bx - x) * 0.5 + side * 0.6, y + (by - y) * 0.5), (bx, by)], width=0.8, step=1.0)
+        n = 3 if L > 12 else 2
+        for j in range(n):
+            tt = 0.38 + j * (0.55 / n)
+            lx, ly = x + (bx - x) * tt, y + (by - y) * tt
+            leaflet(lx, ly, ang - 1.0, 4.4)
+            leaflet(lx, ly, ang + 1.0, 4.4)
+        leaflet(bx, by, ang, 5.0)
+    tx, ty = stem[-1]
+    for a in (-2.3, -1.57, -0.85):
+        leaflet(tx, ty, a, 4.6)
+
+
+def seedling(p):
+    """The bar's sprig glyph: a small seedling with two pairs of leaves and a bud."""
+    def leaf(x, y, ang, L, w):
+        ca, sa = math.cos(ang), math.sin(ang)
+        pts = []
+        for i in range(17):
+            t = i / 16 * math.pi * 2
+            u = (1 - math.cos(t)) / 2 * L
+            v = math.sin(t) * w * math.sin(math.pi * u / L) ** 0.7
+            pts.append((x + ca * u - sa * v, y + sa * u + ca * v))
+        p.line(pts, width=1.15, closed=True, step=0.5)
+    p.line([(12, 22.8), (12.15, 17), (11.9, 11.5), (12.05, 6.5)], width=1.3, step=0.8)
+    leaf(11.9, 15.8, math.radians(-148), 6.4, 1.9)
+    leaf(12.1, 15.8, math.radians(-32), 6.4, 1.9)
+    leaf(11.9, 10.6, math.radians(-138), 5.0, 1.6)
+    leaf(12.1, 10.6, math.radians(-42), 5.0, 1.6)
+    leaf(12.05, 6.6, math.radians(-90), 4.2, 1.4)
 
 
 def screen(p, night=False):
@@ -322,8 +464,15 @@ def moon(p, cx=30, cy=30, r=12):
 def main():
     os.makedirs(ROOT, exist_ok=True)
     make_grain()
+    make_card_texture()
+    make_watercolour_sprig()
 
-    icon("sprig", 1, sprig)
+    tw = Pen(64, 1.2, 1, 0.22)
+    twig(tw)
+    save("icons", "sprig", tw)
+    sd = Pen(24, 1.2, 11, 0.12)
+    seedling(sd)
+    save("icons", "seedling", sd)
     icon("screen", 2, screen)
     icon("screen-night", 3, lambda p: screen(p, True))
     icon("speaker", 4, lambda p: speaker(p, 1))

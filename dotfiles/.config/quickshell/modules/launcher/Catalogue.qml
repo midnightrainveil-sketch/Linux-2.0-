@@ -189,6 +189,7 @@ BarPopup {
                     anchors.verticalCenter: parent.verticalCenter
                     text: row.modelData.name
                     color: Theme.graphite
+                    font.bold: false
                     elide: Text.ElideRight
                 }
                 InkText {
