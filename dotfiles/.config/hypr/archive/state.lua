@@ -27,6 +27,13 @@ function M.mode()
     return "day"
 end
 
+-- the internal panel's refresh rate, 60 or 120 (archive-refresh, the bar's "Hz")
+function M.refresh()
+    local s = read(M.state_dir .. "/refresh")
+    if s and s:match("^%s*60") then return 60 end
+    return 120
+end
+
 function M.grain()
     local s = read(M.state_dir .. "/grain")
     return s ~= nil and s:match("on") ~= nil

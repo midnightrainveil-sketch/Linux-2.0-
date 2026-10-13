@@ -306,7 +306,9 @@ when the last one closes. The small card button after the workspace numbers
 elsewhere.
 
 Mouse: click the sprig for the catalogue, the date for the ledger and the
-status marks for the instruments. The screen mark turns the sheet to day or
+status marks for the instruments. "120 Hz" flips the panel between 120 and
+60 Hz (60 saves battery; it holds after a reboot). Next to the battery, the
+rate it charges or drains at: "+38 W", "−9.6 W". The screen mark turns the sheet to day or
 night. Scroll over the workspaces to switch, and over the Audio Archive card
 to skip tracks.
 

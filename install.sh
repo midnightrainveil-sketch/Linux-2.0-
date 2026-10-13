@@ -92,6 +92,7 @@ if (( want_link )); then
     mkdir -p "$state" "$HOME/Pictures/Archive"
     [[ -f $state/grain ]] || echo on >"$state/grain"     # paper grain on windows (archive-grain)
     [[ -f $state/lamp ]] || echo on >"$state/lamp"       # the night desk lamp
+    [[ -f $state/refresh ]] || echo 120 >"$state/refresh" # the panel's rate (archive-refresh)
     "$HOME/.local/bin/archive-mode" auto || true
     # make sure GTK / Qt / foot match even if the mode did not change
     "$HOME/.local/bin/archive-mode" "$("$HOME/.local/bin/archive-mode" status)" || true

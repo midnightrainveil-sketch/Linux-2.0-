@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# archive-refresh: the laptop panel's refresh rate.
+#
+#   archive-refresh toggle | 60 | 120 | status
+#
+# 120 Hz is smoother; 60 Hz saves battery. The choice is kept in
+# ~/.local/state/archive/refresh, which hypr/archive/machine.lua reads, so it
+# holds after a reboot. The "Hz" mark in the bar flips it.
+set -euo pipefail
+state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+mkdir -p "$state"
+current=$(cat "$state/refresh" 2>/dev/null || echo 120)
+[[ $current == 60 ]] || current=120
+
+case ${1:-status} in
+    60 | 120) want=$1 ;;
+    toggle) [[ $current == 120 ]] && want=60 || want=120 ;;
+    status) echo "$current"; exit 0 ;;
+    *) echo "usage: archive-refresh toggle|60|120|status" >&2; exit 2 ;;
+esac
+
+echo "$want" >"$state/refresh"
+# Hyprland reads the monitor rules again (the panel blinks once)
+hyprctl reload >/dev/null 2>&1 || true
+echo "$want Hz"

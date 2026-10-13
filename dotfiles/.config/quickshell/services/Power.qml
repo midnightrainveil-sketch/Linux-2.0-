@@ -33,6 +33,14 @@ Singleton {
         return h + " h " + m + " min";
     }
 
+    // watts in (charging) or out (on battery); UPower gives it unsigned
+    readonly property real rate: battery?.changeRate ?? 0
+    readonly property string rateWord: {
+        if (!present || rate < 0.1 || battery.state === UPowerDeviceState.FullyCharged) return "";
+        const w = rate < 10 ? rate.toFixed(1) : Math.round(rate);
+        return (battery.state === UPowerDeviceState.Charging ? "+" : "−") + w + " W";
+    }
+
     onChargingChanged: if (present && charging) Sounds.play("plug")
 
     property bool warned: false

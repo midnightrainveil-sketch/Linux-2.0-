@@ -19,7 +19,8 @@ local function with_icc(rule)
 end
 
 for _, name in ipairs({ "eDP-1", "eDP-2" }) do
-    hl.monitor(with_icc({ output = name, mode = "2880x1800@120", position = "0x0", scale = 1.5 }))
+    -- 120 Hz, or 60 to save battery (archive-refresh, the "Hz" in the bar)
+    hl.monitor(with_icc({ output = name, mode = "2880x1800@" .. state.refresh(), position = "0x0", scale = 1.5 }))
 end
 -- anything else you plug in: its preferred mode, to the right
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })

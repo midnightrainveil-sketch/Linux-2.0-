@@ -1,4 +1,6 @@
 import QtQuick
+import Quickshell
+import Quickshell.Io
 import qs.theme
 import qs.services
 import qs.components
@@ -33,6 +35,37 @@ Row {
         }
     }
 
+    // The panel's refresh rate, typed: click for 60 / 120 Hz (archive-refresh)
+    Item {
+        width: hz.implicitWidth
+        height: Theme.barHeight
+        FileView {
+            id: refreshFile
+            path: Settings.stateHome + "/archive/refresh"
+            watchChanges: true
+            onFileChanged: reload()
+            printErrors: false
+        }
+        InkText {
+            id: hz
+            anchors.centerIn: parent
+            text: (refreshFile.text().trim() === "60" ? "60" : "120") + " Hz"
+            font.pixelSize: Theme.sizeSmall
+            color: hzMouse.containsMouse ? Theme.graphite : Theme.soft
+        }
+        MouseArea {
+            id: hzMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                Quickshell.execDetached(["archive-refresh", "toggle"]);
+                rereadHz.restart();
+            }
+        }
+        Timer { id: rereadHz; interval: 400; onTriggered: refreshFile.reload() }
+    }
+
     // Day / night: the screen mark. Click to turn the plate over.
     Mark {
         icon: Theme.night > 0.5 ? "screen-night" : "screen"
@@ -54,7 +87,7 @@ Row {
     // battery: outline in ink, filled level in accent (madder when low)
     Item {
         visible: Power.present
-        width: battery.width + 6 + pct.implicitWidth + 2
+        width: battery.width + 6 + pct.implicitWidth + (rate.visible ? 10 + rate.implicitWidth : 0) + 2
         height: Theme.barHeight
 
         Canvas {
@@ -97,6 +130,17 @@ Row {
             text: Power.percent + "%"
             font.pixelSize: Theme.sizeSmall
             color: Power.low ? Theme.madder : Theme.soft
+        }
+        // the rate it fills or drains at: "+38 W", "−9.6 W"
+        InkText {
+            id: rate
+            visible: text !== ""
+            anchors.left: pct.right
+            anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            text: Power.rateWord
+            font.pixelSize: Theme.sizeSmall
+            color: Theme.faded
         }
         MouseArea {
             anchors.fill: parent
