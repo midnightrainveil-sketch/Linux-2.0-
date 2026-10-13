@@ -38,6 +38,7 @@ ShellRoot {
             required property var modelData
             Plate { modelData: perScreen.modelData }
             Records { modelData: perScreen.modelData }
+            LetterTray { screen: perScreen.modelData }
             Bar { modelData: perScreen.modelData }
         }
     }

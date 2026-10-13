@@ -8,9 +8,13 @@ import Quickshell.Services.Notifications
 Singleton {
     id: root
 
-    // Cards on screen, newest first. A ListModel so that a new arrival adds
-    // one card instead of re-laying every card already on the sheet.
+    // Envelopes and letters on screen, newest first. A ListModel so that a
+    // new arrival adds one card instead of re-laying every card already on
+    // the sheet. Roles: nid, serial, opened (arrives already unfolded).
     readonly property ListModel popups: ListModel {}
+    // Unopened letters that were not read in time: the letter tray on the
+    // desk corner, newest first (nid, serial).
+    readonly property ListModel tray: ListModel {}
     property var byId: ({})
     readonly property var history: server.trackedNotifications.values
     property bool dnd: Settings.doNotDisturb
@@ -20,16 +24,38 @@ Singleton {
         return n !== null && n !== undefined && n.urgency === NotificationUrgency.Critical;
     }
 
-    function indexOf(id: int): int {
-        for (let i = 0; i < popups.count; i++)
-            if (popups.get(i).nid === id) return i;
+    function indexIn(model: var, id: int): int {
+        for (let i = 0; i < model.count; i++)
+            if (model.get(i).nid === id) return i;
         return -1;
     }
+    function indexOf(id: int): int { return indexIn(popups, id); }
 
     function hide(n: var): void {
         if (!n) return;
         const i = indexOf(n.id);
         if (i >= 0) popups.remove(i);
+        const t = indexIn(tray, n.id);
+        if (t >= 0) tray.remove(t);
+    }
+
+    // an unopened envelope goes onto the pile in the letter tray
+    function toTray(n: var, serial: int): void {
+        if (!n) return;
+        const i = indexOf(n.id);
+        if (i >= 0) popups.remove(i);
+        if (indexIn(tray, n.id) < 0) tray.insert(0, { nid: n.id, serial: serial });
+    }
+
+    // the newest letter in the tray comes back up, and opens
+    function fromTray(): void {
+        if (tray.count === 0) return;
+        const t = tray.get(0);
+        const nid = t.nid, serial = t.serial;
+        tray.remove(0);
+        if (!byId[nid]) return;
+        popups.insert(0, { nid: nid, serial: serial, opened: true });
+        while (popups.count > 4) popups.remove(popups.count - 1);
     }
 
     function dismiss(n: var): void {
@@ -40,6 +66,7 @@ Singleton {
 
     function clearAll(): void {
         popups.clear();
+        tray.clear();
         for (const n of root.history.slice()) n.dismiss();
     }
 
@@ -60,7 +87,7 @@ Singleton {
             const sound = n.hints["x-archive-sound"];
             if (root.dnd && !critical) return;
             if (root.indexOf(n.id) < 0) {
-                root.popups.insert(0, { nid: n.id, serial: root.received });
+                root.popups.insert(0, { nid: n.id, serial: root.received, opened: false });
                 while (root.popups.count > 4) root.popups.remove(root.popups.count - 1);
                 n.closed.connect(() => root.hide(n));
             }

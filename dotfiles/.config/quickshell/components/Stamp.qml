@@ -1,4 +1,5 @@
 import QtQuick
+import Qt5Compat.GraphicalEffects
 import qs.theme
 import qs.services
 import "Rand.js" as Rand
@@ -7,7 +8,8 @@ import "Rand.js" as Rand
 //   oval: double ring, archive name around the edge, number in the middle
 //   box:  double-ruled rectangle with one word (RECEIVED, ADMITTED, URGENT...)
 // Random rotation in [-8°, +8°], 75-85 % opacity, uneven ink.
-// Call press() to make it land: scale 1.12 -> 1.0 and darken, 90 ms.
+// Call press() to make it land: scale 1.12 -> 1.0 and darken, 90 ms, with a
+// little ink squeezed out around it that soaks into the paper.
 Item {
     id: root
 
@@ -37,6 +39,21 @@ Item {
         font.bold: true
         font.letterSpacing: 2
         text: root.word
+    }
+
+    // the ink pressed out past the rubber, soaking in and fading
+    RadialGradient {
+        id: squeeze
+        anchors.centerIn: parent
+        width: parent.width * 1.5
+        height: parent.height * 1.9
+        opacity: 0
+        z: -1
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(root.ink.r, root.ink.g, root.ink.b, 0.55) }
+            GradientStop { position: 0.45; color: Qt.rgba(root.ink.r, root.ink.g, root.ink.b, 0.18) }
+            GradientStop { position: 0.5; color: "transparent" }
+        }
     }
 
     Canvas {
@@ -141,7 +158,15 @@ Item {
 
     SequentialAnimation {
         id: landing
+        ScriptAction { script: { squeeze.scale = 0.6; squeeze.opacity = 0; } }
         ParallelAnimation {
+            SequentialAnimation {
+                PauseAnimation { duration: Theme.durStamp * 0.7 }
+                ParallelAnimation {
+                    NumberAnimation { target: squeeze; property: "opacity"; from: 0.5; to: 0; duration: Theme.dur(650); easing.type: Easing.OutCubic }
+                    NumberAnimation { target: squeeze; property: "scale"; from: 0.7; to: 1.2; duration: Theme.dur(650); easing.type: Easing.OutCubic }
+                }
+            }
             NumberAnimation { target: root; property: "scale"; from: 1.12; to: 1.0; duration: Theme.durStamp; easing.type: Easing.Bezier; easing.bezierCurve: Theme.lift }
             NumberAnimation { target: root; property: "opacity"; from: root._opacity * 0.55; to: Math.min(1, root._opacity + 0.12); duration: Theme.durStamp; easing.type: Easing.Bezier; easing.bezierCurve: Theme.lift }
         }
