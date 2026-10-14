@@ -205,6 +205,16 @@ Item {
             anchors.centerIn: parent
             width: 2 * deck.recordR
             height: width
+            // a new record is set down: it drops the last few millimetres
+            property string onIt: deck.labelTitle + "|" + deck.labelArtist
+            onOnItChanged: if (onIt !== "|") setDown.restart()
+            SequentialAnimation {
+                id: setDown
+                ParallelAnimation {
+                    NumberAnimation { target: record; property: "scale"; from: 1.06; to: 1; duration: Theme.dur(380); easing.type: Easing.OutBounce }
+                    NumberAnimation { target: record; property: "opacity"; from: 0.6; to: 1; duration: Theme.dur(200) }
+                }
+            }
             visible: deck.album !== null || deck.labelTitle !== ""
 
             Canvas {
@@ -490,20 +500,41 @@ Item {
     readonly property real playAngle: startAngle + (endAngle - startAngle) * Math.max(0, Math.min(1, progress))
     readonly property real armAngle: dragging ? dragAngle : (onRecord ? playAngle : restAngle)
 
+    // Moving the arm: small steps (the music going on) it creeps; anything
+    // further is a cue: lift, swing across, lower into the groove.
+    property real cueTo: restAngle
+    property int cueTime: 400
+    Component.onCompleted: arm.rotation = armAngle
+    onArmAngleChanged: {
+        if (dragging) { cue.stop(); creep.stop(); arm.rotation = armAngle; return; }
+        const d = Math.abs(armAngle - arm.rotation);
+        if (cue.running) { cueTo = armAngle; return; }
+        if (d < 1.5) { creep.to = armAngle; creep.restart(); return; }
+        cueTo = armAngle;
+        cueTime = Theme.dur(Math.round(260 + d * 22));
+        cue.restart();
+    }
+    NumberAnimation { id: creep; target: arm; property: "rotation"; duration: 450 }
+    SequentialAnimation {
+        id: cue
+        NumberAnimation { target: arm; property: "cueLift"; to: 1; duration: Theme.dur(170); easing.type: Easing.OutCubic }
+        NumberAnimation { target: arm; property: "rotation"; to: deck.cueTo; duration: deck.cueTime; easing.type: Easing.InOutCubic }
+        // let down gently, with the faintest bounce on the record
+        NumberAnimation { target: arm; property: "cueLift"; to: 0; duration: Theme.dur(300); easing.type: Easing.OutBack; easing.overshoot: 2 }
+        ScriptAction { script: if (Math.abs(arm.rotation - deck.armAngle) > 0.01) { creep.to = deck.armAngle; creep.restart(); } }
+    }
+
     Item {
         id: arm
         x: deck.pivot.x
         y: deck.pivot.y
         width: 0; height: 0
-        rotation: deck.armAngle
-        // (smoothed: it creeps along with the music, and swings when moved)
-        Behavior on rotation {
-            enabled: !deck.dragging
-            SmoothedAnimation { velocity: Theme.reducedMotion ? -1 : 30; duration: 900 }
-        }
-        // lifted (paused, at rest) it floats a little higher: a longer shadow
+        // lifted (paused, at rest, or on its way across) it rides a little
+        // higher: nearer, with a longer shadow
         readonly property real raised: deck.lifted || !deck.onRecord || deck.dragging ? 1 : 0
-        property real lift: raised
+        property real cueLift: 0
+        property real lift: Math.max(raised, cueLift)
+        scale: 1 + 0.025 * lift
         Behavior on lift { NumberAnimation { duration: Theme.dur(220); easing.type: Easing.OutCubic } }
 
         DropShadow {

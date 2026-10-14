@@ -9,8 +9,9 @@ dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Archive"
 mkdir -p "$dir"
 file="$dir/record-$(date +%Y%m%d-%H%M%S).png"
 
-# a print from the last shot must not end up in this one
-qs ipc call photo clear >/dev/null 2>&1 || true
+# a print from the last shot (pinned or not) must not end up in this one:
+# take it off the desk, and give the screen a moment to be drawn without it
+if qs ipc call photo clear >/dev/null 2>&1; then sleep 0.15; fi
 
 case ${1:-region} in
     region)

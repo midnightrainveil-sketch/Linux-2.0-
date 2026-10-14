@@ -72,7 +72,10 @@ PanelWindow {
         if (folder >= albums.length) folder = Math.max(0, albums.length - 1);
         if (Gramophone.albumIndex >= 0 && !leafed) folder = Gramophone.albumIndex;
     }
-    onFolderChanged: marked = (folder === Gramophone.albumIndex) ? Math.max(0, Gramophone.trackIndex) : 0
+    onFolderChanged: {
+        marked = (folder === Gramophone.albumIndex) ? Math.max(0, Gramophone.trackIndex) : 0;
+        if (shown) swap.restart();
+    }
 
     function turn(by: int): void {
         if (albums.length === 0) return;
@@ -235,6 +238,20 @@ PanelWindow {
             id: sheet
             x: 196
             y: 10
+            // another folder pulled from the stack and laid on top
+            transform: Translate { id: shift }
+            SequentialAnimation {
+                id: swap
+                ParallelAnimation {
+                    NumberAnimation { target: shift; property: "y"; from: 0; to: 14; duration: Theme.dur(80); easing.type: Easing.InQuad }
+                    NumberAnimation { target: sheet; property: "opacity"; to: 0.25; duration: Theme.dur(80) }
+                }
+                ParallelAnimation {
+                    NumberAnimation { target: shift; property: "y"; from: -22; to: 0; duration: Theme.dur(220); easing.type: Easing.OutBack }
+                    NumberAnimation { target: shift; property: "x"; from: -10; to: 0; duration: Theme.dur(220); easing.type: Easing.OutCubic }
+                    NumberAnimation { target: sheet; property: "opacity"; to: 1; duration: Theme.dur(140) }
+                }
+            }
             album: win.album
             number: win.folder + 1
             count: win.albums.length
@@ -324,22 +341,28 @@ PanelWindow {
                     flyer.x = sheet.x + sheet.width / 2 - flyer.width / 2;
                     flyer.y = sheet.y + 168 - flyer.height / 2;
                     flyer.scale = 0.5;
+                    flyer.rotation = 0;
                     flyer.opacity = 0;
                     flyer.visible = true;
                 }
             }
+            // out of the sleeve: it slides up from behind the mount
             ParallelAnimation {
-                NumberAnimation { target: flyer; property: "opacity"; to: 1; duration: Theme.dur(120) }
-                NumberAnimation { target: flyer; property: "scale"; to: 1.06; duration: Theme.dur(420); easing.type: Easing.OutCubic }
+                NumberAnimation { target: flyer; property: "opacity"; to: 1; duration: Theme.dur(140) }
+                NumberAnimation { target: flyer; property: "y"; to: sheet.y + 90 - flyer.height / 2; duration: Theme.dur(220); easing.type: Easing.OutCubic }
+            }
+            // and across, lifted over the desk, turning a little in the hand
+            ParallelAnimation {
+                NumberAnimation { target: flyer; property: "scale"; to: 1.06; duration: Theme.dur(460); easing.type: Easing.OutCubic }
+                NumberAnimation { target: flyer; property: "rotation"; from: 0; to: 140; duration: Theme.dur(460); easing.type: Easing.InOutCubic }
                 NumberAnimation {
                     target: flyer; property: "x"
                     to: deck.x + deck.centre.x - flyer.width / 2
-                    duration: Theme.dur(420); easing.type: Easing.InOutCubic
+                    duration: Theme.dur(460); easing.type: Easing.InOutCubic
                 }
-                NumberAnimation {
-                    target: flyer; property: "y"
-                    to: deck.y + deck.centre.y - flyer.height / 2
-                    duration: Theme.dur(420); easing.type: Easing.InOutCubic
+                SequentialAnimation {
+                    NumberAnimation { target: flyer; property: "y"; to: Math.min(sheet.y + 40, deck.y + deck.centre.y - 70) - flyer.height / 2; duration: Theme.dur(200); easing.type: Easing.OutQuad }
+                    NumberAnimation { target: flyer; property: "y"; to: deck.y + deck.centre.y - flyer.height / 2; duration: Theme.dur(260); easing.type: Easing.InQuad }
                 }
             }
             // set down

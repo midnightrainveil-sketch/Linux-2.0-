@@ -58,7 +58,12 @@ for i = 1, 9 do
 end
 hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
-hl.bind(mod .. " + Tab", hl.dsp.focus({ workspace = "previous" }))
+-- back and forth between the last two desks; and the next / previous desk
+hl.bind(mod .. " + Tab", hl.dsp.focus({ workspace = "previous" }), { description = "The desk you were on before" })
+hl.bind(mod .. " + CTRL + Right", hl.dsp.focus({ workspace = "e+1" }), { description = "Next desk" })
+hl.bind(mod .. " + CTRL + Left", hl.dsp.focus({ workspace = "e-1" }), { description = "Previous desk" })
+hl.bind(mod .. " + Page_Down", hl.dsp.focus({ workspace = "e+1" }), { description = "Next desk" })
+hl.bind(mod .. " + Page_Up", hl.dsp.focus({ workspace = "e-1" }), { description = "Previous desk" })
 
 -- the drawer: minimised windows live in a special workspace
 hl.bind(mod .. " + grave", hl.dsp.workspace.toggle_special("drawer"), { description = "Open the drawer" })

@@ -72,8 +72,9 @@ PanelWindow {
     }
 
     // ------------------------------------------------------------ the shot
-    readonly property real restX: width - Theme.margin - Theme.recordWidth - shot.width - 40
-    readonly property real restY: height - Theme.barHeight - shot.height - 34
+    // in the bottom right-hand corner, just above the bar
+    readonly property real restX: width - shot.width - 30
+    readonly property real restY: height - Theme.barHeight - shot.height - 26
     property real restAngle: -3
 
     Item {
