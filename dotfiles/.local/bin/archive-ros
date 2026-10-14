@@ -3,6 +3,8 @@
 #
 #   archive-ros            a ROS shell (sets everything up the first time)
 #   archive-ros rviz       RViz (starts roscore first if none is running)
+#   archive-ros ROBOT      a ROS shell talking to a robot's ROS master
+#   archive-ros rviz ROBOT RViz on a robot (ROBOT: its IP, e.g. 192.168.68.153)
 #   archive-ros setup      set up, or finish a setup that stopped
 #   archive-ros remove     delete the container (your files stay)
 #
@@ -124,16 +126,41 @@ EOF
     say "done: run archive-ros (or open \"ROS Noetic\" from the drawer)"
 }
 
+# ------------------------------------------------------------------ a robot
+# robot <ip or name>: the ROS settings for talking to a robot's master. ROS 1
+# talks both ways, so the robot must reach this laptop too: it is told this
+# laptop's address on the robot's network (not a name it cannot look up).
+robot_env=""
+robot() {
+    local host=$1 addr me
+    addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
+    [[ -n $addr ]] || { echo "archive-ros: cannot find $host" >&2; exit 1; }
+    me=$(ip -4 route get "$addr" 2>/dev/null | grep -oP 'src \K\S+' || true)
+    [[ -n $me ]] || { echo "archive-ros: no network route to $host (same Wi-Fi?)" >&2; exit 1; }
+    echo ":: robot master http://$host:11311, this laptop $me"
+    if ! timeout 3 bash -c "exec 3<>/dev/tcp/$addr/11311" 2>/dev/null; then
+        echo "!! nothing answers on $host port 11311: is the robot's roscore (its bringup) running?" >&2
+    fi
+    robot_env="export ROS_MASTER_URI=http://$host:11311 ROS_IP=$me ROS_HOSTNAME=$me;"
+}
+looks_like_host() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || ( $1 == *.* && $1 != */* ) ]]; }
+
 # ------------------------------------------------------------------ use
-case ${1:-shell} in
+cmd=${1:-shell}
+if looks_like_host "$cmd"; then robot "$cmd"; cmd=shell; fi
+case $cmd in
     shell)
         ready || setup
         [[ -f $rc ]] || write_rc
-        exec distrobox enter "$box" -- bash --rcfile "$rc" -i
+        exec distrobox enter "$box" -- bash -c "$robot_env exec bash --rcfile '$rc' -i"
         ;;
     rviz)
         ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
         [[ -f $rc ]] || write_rc
+        if [[ -n ${2:-} ]]; then
+            robot "$2"
+            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; rviz"
+        fi
         # roscore first if none is running; stopped again with RViz
         exec distrobox enter "$box" -- bash -c "source '$rc' >/dev/null
             if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
@@ -145,5 +172,5 @@ case ${1:-shell} in
         rm -f "$conf/installed" "$apps/archive-ros.desktop" "$apps/archive-rviz.desktop"
         echo "removed the container (~/catkin_ws is untouched)"
         ;;
-    *) echo "usage: archive-ros [rviz|setup|remove]" >&2; exit 2 ;;
+    *) echo "usage: archive-ros [ROBOT] | rviz [ROBOT] | setup | remove" >&2; exit 2 ;;
 esac
