@@ -1,7 +1,5 @@
 #include "DeckleDeco.hpp"
 
-#include <cmath>
-
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
@@ -265,8 +263,6 @@ void CArchiveDeckle::toggleGrain() {
 
 CBox CArchiveDeckle::cardBox() {
     const auto PWINDOW = m_window.lock();
-    if (!PWINDOW)
-        return {};
     CBox       box     = g_pDecorationPositioner->getBoxWithIncludedDecos(PWINDOW);
 
     const auto PWORKSPACE      = PWINDOW->m_workspace;
@@ -334,20 +330,15 @@ void CArchiveDeckle::draw(PHLMONITOR pMonitor, float const& a) {
     if (!visible())
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CDecklePassElement>(CDecklePassElement::SData{m_self, a}));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CDecklePassElement>(CDecklePassElement::SData{this, a}));
 }
 
 void CArchiveDeckle::renderPass(PHLMONITOR pMonitor, float const& a) {
-    if (!pMonitor || !m_window.lock() || !visible())
+    if (!visible())
         return;
 
     CBox card = cardBox();
     card.translate(-pMonitor->m_position);
-    // a window that is not a sensible card yet (no size, or an absurd one,
-    // as some X11 programs report while they start): nothing to draw
-    if (!std::isfinite(card.x) || !std::isfinite(card.y) || !std::isfinite(card.w) || !std::isfinite(card.h) || card.w < 2 || card.h < 2 || card.w > 32768 ||
-        card.h > 32768 || std::abs(card.x) > 65536 || std::abs(card.y) > 65536)
-        return;
     if (m_over)
         renderOver(pMonitor, a, card);
     else
@@ -378,7 +369,7 @@ static void forEachStrip(const Deckle::SStyle& st, uint32_t seed, double x, doub
         const double start = (horizontal ? x : y) + R, end = (horizontal ? x + w : y + h) - R;
         if (end - start < 1)
             continue;
-        const int n = std::min(Deckle::stripCount(st, end - start), 512);
+        const int n = Deckle::stripCount(st, end - start);
         for (int i = 0; i < n; ++i)
             fn(side, Deckle::variantFor(seed, (Deckle::eSide)side, i), start + (end - start) * i / n, start + (end - start) * (i + 1) / n);
     }
@@ -386,13 +377,9 @@ static void forEachStrip(const Deckle::SStyle& st, uint32_t seed, double x, doub
 
 void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox& card) {
     const auto   PWINDOW = m_window.lock();
-    if (!PWINDOW || !pMonitor || !(pMonitor->m_scale > 0))
-        return;
     const bool   focused = PWINDOW == Desktop::focusState()->window();
     const auto   st      = styleFor(pMonitor->m_scale, focused);
     STileSet*    tiles   = tilesFor(st, false);
-    if (!tiles)
-        return;
 
     const double s = pMonitor->m_scale;
     const double O = st.outset(), I = st.inset(), R = st.cornerReach(), K = st.cornerSize();
@@ -429,13 +416,9 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
 
 void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox& card) {
     const auto   PWINDOW = m_window.lock();
-    if (!PWINDOW || !pMonitor || !(pMonitor->m_scale > 0))
-        return;
     const bool   focused = PWINDOW == Desktop::focusState()->window();
     const auto   st      = styleFor(pMonitor->m_scale, focused);
     STileSet*    tiles   = tilesFor(st, true);
-    if (!tiles)
-        return;
 
     const double s = pMonitor->m_scale;
     const double E = Deckle::SStyle::OVER_OUT, D = st.toneDepth, R = st.cornerReach(), C = Deckle::SStyle::CREASE;
@@ -494,9 +477,7 @@ CDecklePassElement::CDecklePassElement(const SData& data) : m_data(data) {
 }
 
 std::vector<UP<IPassElement>> CDecklePassElement::draw() {
-    // (a weak pointer over a unique one: checked, never locked)
-    if (m_data.deco.valid())
-        m_data.deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    m_data.deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
     return {};
 }
 
@@ -509,11 +490,7 @@ bool CDecklePassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CDecklePassElement::boundingBox() {
-    const auto deco    = m_data.deco.get();
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor.lock();
-    if (!m_data.deco.valid() || !deco || !monitor || !deco->getOwner())
-        return std::nullopt;
-    return deco->cardBox().translate(-monitor->m_position).expand(deco->reach());
+    return m_data.deco->cardBox().translate(-g_pHyprRenderer->m_renderData.pMonitor->m_position).expand(m_data.deco->reach());
 }
 
 // ---------------------------------------------------------------- wiring
@@ -605,8 +582,8 @@ void deckleInit(HANDLE handle) {
 }
 
 void deckleOnNewWindow(PHLWINDOW window) {
-    // X11 programs (through XWayland) keep a plain frame: their windows come
-    // and go in ways the torn edge has crashed on (RViz)
+    // X11 programs (through XWayland) keep a plain frame: the torn edge
+    // crashed Hyprland when RViz opened
     if (window->m_X11DoesntWantBorders || window->m_isX11)
         return;
     if (std::ranges::any_of(window->m_windowDecorations, [](const auto& d) { return d->getDisplayName() == "Archivedeckle"; }))

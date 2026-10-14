@@ -82,10 +82,8 @@ class CArchiveDeckle : public IHyprWindowDecoration {
 class CDecklePassElement : public IPassElement {
   public:
     struct SData {
-        // weak: a window (and its decoration) can go between the pass being
-        // built and drawn
-        WP<CArchiveDeckle> deco;
-        float              a = 1.F;
+        CArchiveDeckle* deco = nullptr;
+        float           a    = 1.F;
     };
 
     CDecklePassElement(const SData& data);
