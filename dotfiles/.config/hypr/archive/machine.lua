@@ -12,9 +12,22 @@ local state = require("archive.state")
 -- Colour profiles: archive-icc (or the Colour row in quick settings) links
 -- a .icc file at ~/.config/archive/icc/<output>.icc; it is passed on here.
 local icc_dir = state.config_dir .. "/archive/icc/"
+-- The laptop's own panel is eDP-1 or eDP-2 depending on which GPU drives
+-- it, so it keeps its profile under either name ("internal.icc").
 local function with_icc(rule)
-    local icc = icc_dir .. rule.output .. ".icc"
-    if rule.output ~= "" and state.exists(icc) then rule.icc = icc end
+    if rule.output == "" then return rule end
+    local candidates = { icc_dir .. rule.output .. ".icc" }
+    if rule.output:match("^eDP%-") then
+        for _, n in ipairs({ "internal", "eDP-1", "eDP-2" }) do
+            table.insert(candidates, icc_dir .. n .. ".icc")
+        end
+    end
+    for _, icc in ipairs(candidates) do
+        if state.exists(icc) then
+            rule.icc = icc
+            break
+        end
+    end
     return rule
 end
 
@@ -29,7 +42,7 @@ local ls = io.popen('ls "' .. icc_dir .. '" 2>/dev/null')
 if ls ~= nil then
     for file in ls:lines() do
         local name = file:match("^(.+)%.icc$")
-        if name ~= nil and not name:match("^eDP%-") then
+        if name ~= nil and name ~= "internal" and not name:match("^eDP%-") then
             hl.monitor(with_icc({ output = name, mode = "preferred", position = "auto", scale = "auto" }))
         end
     end

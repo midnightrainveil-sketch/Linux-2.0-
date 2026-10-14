@@ -46,7 +46,9 @@ apply() { hyprctl reload >/dev/null 2>&1 || true; }
 case ${1:-list} in
     list) list ;;
     current)
-        l="$links/$(output "${2:-}").icc"
+        o=$(output "${2:-}")
+        [[ $o == eDP-* ]] && o=internal
+        l="$links/$o.icc"
         if [[ -L $l || -f $l ]]; then readlink -f "$l"; else echo none; fi
         ;;
     set)
@@ -70,12 +72,16 @@ case ${1:-list} in
             "$store"/* | /usr/share/*) ;;
             *) cp -f "$file" "$store/" && file="$store/$(basename "$file")" ;;
         esac
+        # the laptop panel's name moves between eDP-1 and eDP-2 with the GPU
+        # mode: keep its profile under one name for both
+        [[ $out == eDP-* ]] && { rm -f "$links"/eDP-*.icc; out=internal; }
         ln -sfn "$file" "$links/$out.icc"
         apply
         echo "$out: $(basename "$file")"
         ;;
     off)
         out=$(output "${2:-}")
+        [[ $out == eDP-* ]] && rm -f "$links"/eDP-*.icc && out=internal
         rm -f "$links/$out.icc"
         apply
         echo "$out: no profile"
