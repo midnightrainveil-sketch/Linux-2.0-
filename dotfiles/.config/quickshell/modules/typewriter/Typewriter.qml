@@ -95,30 +95,50 @@ PanelWindow {
 
     function act(): void {
         const p = plan;
-        if (p.kind === "") return;
-        carriageReturn.restart();
+        if (p.kind === "" || finishing.running) return;
         Sounds.play("bell");
         if (p.kind === "sum") {
             Quickshell.execDetached(["wl-copy", p.value]);
             copied.visible = true;
             copied.press();
-            closeLater.interval = Theme.dur(900);
+            finishing.pause = Theme.dur(650);
         } else {
             if (p.kind === "run")
                 Quickshell.execDetached([Settings.terminal, "-e", "sh", "-c", p.cmd + "; printf '\\n(Return closes this) '; read _"]);
             else
                 Quickshell.execDetached(["xdg-open", p.url]);
-            closeLater.interval = Theme.dur(380);
+            finishing.pause = 0;
         }
-        closeLater.restart();
+        finishing.restart();
     }
-    Timer { id: closeLater; onTriggered: Panels.close() }
+    // Return: the carriage flies back, the slip is wound up and out of the
+    // platen, and the cover goes on
+    SequentialAnimation {
+        id: finishing
+        property int pause: 0
+        ScriptAction { script: carriageReturn.restart() }
+        PauseAnimation { duration: Theme.dur(280) + finishing.pause }
+        NumberAnimation { target: win; property: "feed"; to: 2.3; duration: Theme.dur(420); easing.type: Easing.InCubic }
+        ScriptAction { script: Panels.close() }
+    }
+
+    // the slip winding in when the cover comes off (0: inside the machine,
+    // 1: in place, more: wound out of the top)
+    property real feed: 0
+    SequentialAnimation {
+        id: feedIn
+        PauseAnimation { duration: Theme.dur(160) }
+        NumberAnimation { target: win; property: "feed"; from: 0; to: 1; duration: Theme.dur(520); easing.type: Easing.OutCubic }
+    }
 
     onShownChanged: {
         if (shown) {
             input.text = "";
             copied.visible = false;
             carriage.back = 0;
+            finishing.stop();
+            feed = 0;
+            feedIn.restart();
             input.forceActiveFocus();
         }
     }
@@ -200,7 +220,9 @@ PanelWindow {
                 enabled: !carriageReturn.running
                 NumberAnimation { duration: 60; easing.type: Easing.OutQuad }
             }
-            y: 0
+            // wound in from behind the platen; wound out over the top
+            y: (1 - win.feed) * 205
+            opacity: win.feed > 1.6 ? Math.max(0, 2.3 - win.feed) / 0.7 : 1
             width: slip.width
             height: stage.platenY + 20
 
@@ -424,6 +446,49 @@ PanelWindow {
                 // the keyboard's well
                 g.fillStyle = Qt.rgba(0, 0, 0, 0.28);
                 g.beginPath(); g.roundedRect(54, 96, w - 108, h - 150, 14, 14); g.fill();
+            }
+        }
+
+        // the typebar: on every key one swings up out of the basket and
+        // strikes the paper at the guide
+        Rectangle {
+            id: typebar
+            readonly property string order: "1QAZ2WSX3EDC4RFV5TGB6YHN7UJM8IK,9OL.0P;/- "
+            readonly property real fanAngle: {
+                const i = Math.max(0, order.indexOf(win.struck));
+                return Math.PI * (0.94 - 0.88 * i / (order.length - 1));
+            }
+            readonly property point from: Qt.point(stage.width / 2 + Math.cos(fanAngle) * 176, body.y + 8 + Math.sin(fanAngle) * 62)
+            readonly property point to: Qt.point(stage.strikeX, stage.platenY + 18)
+            property real reach: 0
+            visible: reach > 0.01
+            x: from.x
+            y: from.y - height / 2
+            height: 4
+            radius: 2
+            width: Math.hypot(to.x - from.x, to.y - from.y) * reach
+            transformOrigin: Item.Left
+            rotation: Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI
+            gradient: Gradient {
+                GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.3) }
+                GradientStop { position: 1; color: Qt.darker(win.chrome, 1.4) }
+            }
+            // the slug at its end, with the letter on it
+            Rectangle {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: 9; height: 8; radius: 1.5
+                color: Qt.darker(win.chrome, 1.2)
+                visible: typebar.reach > 0.6
+            }
+            SequentialAnimation {
+                id: swing
+                NumberAnimation { target: typebar; property: "reach"; from: 0.15; to: 1; duration: 45; easing.type: Easing.InQuad }
+                NumberAnimation { target: typebar; property: "reach"; to: 0; duration: 95; easing.type: Easing.OutQuad }
+            }
+            Connections {
+                target: win
+                function onStrikesChanged() { if (win.struck !== " ") swing.restart(); }
             }
         }
 

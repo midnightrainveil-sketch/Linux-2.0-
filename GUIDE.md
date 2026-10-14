@@ -285,6 +285,8 @@ number is the current air pressure in hPa.
 | `Super + ←↑→↓` or `H K L` | Move focus (`J` toggles the split) |
 | `Super + Shift + ←↑→↓` | Swap windows |
 | `Super + 1…9` / `Super + Shift + 1…9` | Go to / send to workspace |
+| `Super + Tab` | Back to the workspace you were just on (press again to come back) |
+| `Super + Ctrl + ← →`, `Super + PageUp / PageDown`, three-finger swipe | Previous / next workspace |
 | `Super + -` | Put the window in the drawer (minimise) |
 | `` Super + ` `` | Open the drawer (scratchpad) |
 | `Super + C` | Ledger (calendar) |
