@@ -40,11 +40,15 @@ Item {
     signal volumeAsked(int v)
 
     // ---------------------------------------------------------------- geometry
-    readonly property point centre: Qt.point(250, 290)
-    readonly property real recordR: 210
-    readonly property real outerGroove: 204
+    // The deck is the photograph in assets/phonograph (tools/import_objects.py)
+    // when it is there, else drawn. The places are measured on the photograph:
+    // the spindle, the felt's edge, the arm's mount, the knob.
+    readonly property bool art: plinthImg.status === Image.Ready && armImg.status === Image.Ready
+    readonly property point centre: art ? Qt.point(250.9, 264.5) : Qt.point(250, 290)
+    readonly property real recordR: art ? 204 : 210
+    readonly property real outerGroove: art ? 198 : 204
     readonly property real innerGroove: 80
-    readonly property point pivot: Qt.point(490, 92)
+    readonly property point pivot: art ? Qt.point(496.8, 83.2) : Qt.point(490, 92)
     readonly property real armLength: 310
     readonly property real restAngle: 90
 
@@ -68,9 +72,17 @@ Item {
     readonly property color vinyl: Theme.night > 0.5 ? "#0b1220" : "#151416"
 
     // ---------------------------------------------------------------- the plinth
+    Image {
+        id: plinthImg
+        anchors.fill: parent
+        source: Qt.resolvedUrl("../../assets/phonograph/turntable.jpg")
+        sourceSize: Qt.size(1140, 1140)
+        smooth: true
+        visible: false
+    }
     DropShadow {
         anchors.fill: plinth
-        source: plinth
+        source: deck.art ? plinthImg : plinth
         radius: 24
         samples: 33
         verticalOffset: 10
@@ -79,6 +91,7 @@ Item {
     Canvas {
         id: plinth
         anchors.fill: parent
+        visible: !deck.art
         readonly property string woodTile: Qt.resolvedUrl("../../assets/drawer/wood.jpg")
         readonly property real nightTint: Theme.night
         readonly property color tone: deck.wood
@@ -132,8 +145,40 @@ Item {
         }
     }
 
+    // by night the photograph goes blue like the rest of the desk
+    Colorize {
+        anchors.fill: parent
+        source: plinthImg
+        visible: deck.art && Theme.night > 0.01
+        opacity: Theme.night
+        hue: 0.6; saturation: 0.35; lightness: -0.12
+    }
+    // the photograph's brass plate, engraved
+    Column {
+        visible: deck.art
+        x: 22.7; y: 31
+        width: 85
+        spacing: 3
+        Repeater {
+            model: ["SOUND ARCHIVE", "33⅓ R.P.M."]
+            Text {
+                required property string modelData
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: modelData
+                font.family: Theme.typewriter
+                font.pixelSize: 7
+                font.letterSpacing: 0.5
+                font.bold: true
+                color: Qt.rgba(0.12, 0.08, 0.04, 0.7)
+                style: Text.Raised
+                styleColor: Qt.rgba(1, 0.9, 0.7, 0.25)
+            }
+        }
+    }
+
     // a little brass plate, engraved
     Rectangle {
+        visible: !deck.art
         x: 30; y: 28
         width: plateText.implicitWidth + 22
         height: 24
@@ -170,6 +215,7 @@ Item {
         Canvas {
             id: rim
             anchors.fill: parent
+            visible: !deck.art
             rotation: record.rotation
             onPaint: {
                 const g = getContext("2d");
@@ -193,6 +239,7 @@ Item {
         }
         // night: the steel goes blue like everything else
         Rectangle {
+            visible: !deck.art
             anchors.fill: parent
             radius: width / 2
             color: "#1c2f4d"
@@ -230,7 +277,7 @@ Item {
                     return out;
                 }
                 readonly property color base: deck.vinyl
-                readonly property string key: bands.join(",") + String(base)
+                readonly property string key: bands.join(",") + String(base) + deck.recordR
                 onKeyChanged: requestPaint()
                 onPaint: {
                     const g = getContext("2d");
@@ -363,6 +410,7 @@ Item {
             width: record.width
             height: record.height
             visible: record.visible
+            onWidthChanged: requestPaint()
             opacity: 1 - 0.5 * Theme.night
             onPaint: {
                 const g = getContext("2d");
@@ -399,7 +447,7 @@ Item {
         // the felt mat, when no record is on
         Rectangle {
             anchors.centerIn: parent
-            visible: !record.visible
+            visible: !record.visible && !deck.art
             width: 2 * deck.recordR - 6
             height: width
             radius: width / 2
@@ -434,6 +482,7 @@ Item {
     // ---------------------------------------------------------------- the arm
     // its rest, and the cue lever
     Rectangle {
+        visible: !deck.art
         x: deck.pivot.x - 7
         y: deck.pivot.y + deck.armLength - 92
         width: 14; height: 26; radius: 4
@@ -444,6 +493,7 @@ Item {
     }
     Item {
         id: lever
+        visible: !deck.art
         x: deck.pivot.x + 48
         y: deck.pivot.y + 70
         width: 20; height: 60
@@ -472,6 +522,7 @@ Item {
 
     // the arm's base, under it
     Canvas {
+        visible: !deck.art
         x: deck.pivot.x - 38
         y: deck.pivot.y - 38
         width: 76; height: 76
@@ -537,7 +588,49 @@ Item {
         scale: 1 + 0.025 * lift
         Behavior on lift { NumberAnimation { duration: Theme.dur(220); easing.type: Easing.OutCubic } }
 
+        // the photographed arm: pivot (85.6, 44.7) on the 447 x 112 picture,
+        // its stylus 1.65° below the line of the tube
+        Item {
+            id: armArt
+            visible: deck.art
+            rotation: -1.65
+            Image {
+                id: armImg
+                x: -85.6
+                y: -44.7
+                width: 447
+                height: 112
+                source: Qt.resolvedUrl("../../assets/phonograph/tonearm.png")
+                sourceSize: Qt.size(894, 224)
+                smooth: true
+                visible: false
+            }
+            DropShadow {
+                anchors.fill: armImg
+                source: armImg
+                radius: 6 + 8 * arm.lift
+                samples: 21
+                horizontalOffset: 3 + 7 * arm.lift
+                verticalOffset: 4 + 10 * arm.lift
+                color: Qt.rgba(0, 0, 0, 0.5 - 0.15 * arm.lift)
+            }
+            Image {
+                anchors.fill: armImg
+                source: armImg.source
+                sourceSize: armImg.sourceSize
+                smooth: true
+            }
+            Colorize {
+                anchors.fill: armImg
+                source: armImg
+                visible: Theme.night > 0.01
+                opacity: Theme.night
+                hue: 0.6; saturation: 0.2; lightness: 0.0
+            }
+        }
+
         DropShadow {
+            visible: !deck.art
             anchors.fill: armBody
             source: armBody
             radius: 6 + 6 * arm.lift
@@ -548,6 +641,7 @@ Item {
         }
         Canvas {
             id: armBody
+            visible: !deck.art
             readonly property real len: deck.armLength
             x: -84
             y: -30
@@ -602,30 +696,30 @@ Item {
                 g.restore();
             }
 
-            // take the arm by its headshell
-            MouseArea {
-                x: 84 + armBody.len - 60
-                y: 0
-                width: 90
-                height: 60
-                cursorShape: deck.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                preventStealing: true
-                onPressed: { deck.dragAngle = deck.armAngle; deck.dragging = true; }
-                onPositionChanged: mouse => {
-                    if (!deck.dragging) return;
-                    const p = mapToItem(deck, mouse.x, mouse.y);
-                    let a = Math.atan2(p.y - deck.pivot.y, p.x - deck.pivot.x) * 180 / Math.PI;
-                    deck.dragAngle = Math.max(deck.restAngle, Math.min(deck.endAngle, a));
-                }
-                onReleased: {
-                    const a = deck.dragAngle;
-                    deck.dragging = false;
-                    if (a < deck.startAngle - 4) { deck.armRested(); return; }
-                    const r = deck.radiusAt(Math.max(a, deck.startAngle));
-                    deck.needleDropped(Math.max(0, Math.min(0.999, (deck.outerGroove - r) / (deck.outerGroove - deck.innerGroove))));
-                }
-                onCanceled: deck.dragging = false
+        }
+        // take the arm by its headshell
+        MouseArea {
+            x: deck.armLength - 60
+            y: -30
+            width: 90
+            height: 60
+            cursorShape: deck.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+            preventStealing: true
+            onPressed: { deck.dragAngle = deck.armAngle; deck.dragging = true; }
+            onPositionChanged: mouse => {
+                if (!deck.dragging) return;
+                const p = mapToItem(deck, mouse.x, mouse.y);
+                let a = Math.atan2(p.y - deck.pivot.y, p.x - deck.pivot.x) * 180 / Math.PI;
+                deck.dragAngle = Math.max(deck.restAngle, Math.min(deck.endAngle, a));
             }
+            onReleased: {
+                const a = deck.dragAngle;
+                deck.dragging = false;
+                if (a < deck.startAngle - 4) { deck.armRested(); return; }
+                const r = deck.radiusAt(Math.max(a, deck.startAngle));
+                deck.needleDropped(Math.max(0, Math.min(0.999, (deck.outerGroove - r) / (deck.outerGroove - deck.innerGroove))));
+            }
+            onCanceled: deck.dragging = false
         }
     }
 
@@ -679,8 +773,9 @@ Item {
     Item {
         id: knob
         visible: deck.volumeShown
-        x: deck.width - 96
-        y: deck.height - 92
+        // on the photograph's own knob (509, 482), else drawn
+        x: deck.art ? 477 : deck.width - 96
+        y: deck.art ? 450 : deck.height - 92
         width: 64; height: 64
         Canvas {
             anchors.fill: parent
@@ -704,6 +799,7 @@ Item {
         }
         Rectangle {
             id: knobCap
+            visible: !deck.art
             anchors.centerIn: parent
             width: 42; height: 42; radius: 21
             rotation: -135 + 270 * Math.min(1, deck.volume / 130)
@@ -715,6 +811,15 @@ Item {
             border.width: 1
             border.color: Qt.rgba(0, 0, 0, 0.5)
             Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 4; width: 3; height: 12; radius: 1.5; color: Qt.rgba(0.1, 0.07, 0.04, 0.8) }
+        }
+        // the photographed knob's pointer: a scratched line that turns
+        Item {
+            visible: deck.art
+            anchors.centerIn: parent
+            width: 44; height: 44
+            rotation: -135 + 270 * Math.min(1, deck.volume / 130)
+            Behavior on rotation { NumberAnimation { duration: Theme.dur(120) } }
+            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 4; width: 2.5; height: 12; radius: 1.2; color: Qt.rgba(0.1, 0.06, 0.03, 0.75) }
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter

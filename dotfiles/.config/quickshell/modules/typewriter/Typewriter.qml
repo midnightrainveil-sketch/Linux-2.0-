@@ -177,6 +177,20 @@ PanelWindow {
     property string struck: ""
     property int strikes: 0
 
+    // The machine is the photograph in assets/typewriter (tools/import_objects.py)
+    // when it is there, else drawn. Measured on the 1586 x 992 photograph: the
+    // keys' centres, the space bar, the type guide where the letters strike,
+    // the platen's top, the basket of typebars.
+    readonly property bool art: machineImg.status === Image.Ready
+    readonly property real artScale: 800 / 1586
+    readonly property var keyAt: {
+        const at = {};
+        const rows = [["QWERTYUIOP", 388, 1192, 557], ["ASDFGHJKL", 420, 1153, 641], ["ZXCVBNM", 455, 1017, 722]];
+        for (const [keys, x0, x1, y] of rows)
+            for (let i = 0; i < keys.length; i++) at[keys[i]] = Qt.point(x0 + (x1 - x0) * i / (keys.length - 1), y);
+        return at;
+    }
+
     TextInput {
         id: input
         visible: false
@@ -194,7 +208,7 @@ PanelWindow {
     Item {
         id: stage
         width: 840
-        height: 600
+        height: win.art ? 660 : 600
         anchors.horizontalCenter: parent.horizontalCenter
         y: win.height - Theme.barHeight - height - 10 + (1 - win.slide) * (height + 60)
         opacity: Math.min(1, win.slide * 3)
@@ -202,7 +216,12 @@ PanelWindow {
         MouseArea { anchors.fill: parent; onClicked: input.forceActiveFocus() }
 
         readonly property real strikeX: width / 2          // where the type hits the paper
-        readonly property real platenY: 196
+        readonly property real platenY: win.art ? 190 : 196
+        // the photograph's place: its platen's top at platenY, its type
+        // guide under strikeX
+        readonly property real mx: strikeX - 782 * win.artScale
+        readonly property real my: platenY - 95 * win.artScale
+        function onMachine(x, y) { return Qt.point(mx + x * win.artScale, my + y * win.artScale); }
 
         // ------------------------------------------------------------ the slip, in the carriage
         TextMetrics {
@@ -314,9 +333,113 @@ PanelWindow {
             }
         }
 
+        // ------------------------------------------------------------ the photographed machine
+        DropShadow {
+            visible: win.art
+            anchors.fill: machine
+            source: machine
+            radius: 26
+            samples: 33
+            verticalOffset: 12
+            color: Qt.rgba(0, 0, 0, 0.42)
+        }
+        Item {
+            id: machine
+            visible: win.art
+            x: stage.mx
+            y: stage.my
+            width: 800
+            height: 992 * win.artScale
+            // every key jolts the frame a little
+            transform: Translate { y: hold.running ? 1 : 0 }
+            Image {
+                id: machineImg
+                anchors.fill: parent
+                source: Qt.resolvedUrl("../../assets/typewriter/typewriter.png")
+                sourceSize: Qt.size(1586, 992)
+                smooth: true
+                mipmap: true
+            }
+            Colorize {
+                anchors.fill: parent
+                source: machineImg
+                visible: Theme.night > 0.01
+                opacity: Theme.night
+                hue: 0.6; saturation: 0.3; lightness: -0.08
+            }
+        }
+        // the brass decal, on the front band between the pinstripes
+        Rectangle {
+            visible: win.art
+            readonly property point at: stage.onMachine(790, 893)
+            x: at.x - width / 2
+            y: at.y - height / 2
+            width: artDecal.implicitWidth + 22
+            height: 16
+            radius: 2
+            gradient: Gradient {
+                GradientStop { position: 0; color: Qt.lighter(win.brass, 1.2) }
+                GradientStop { position: 1; color: Qt.darker(win.brass, 1.25) }
+            }
+            border.width: 1
+            border.color: Qt.rgba(0, 0, 0, 0.45)
+            Text {
+                id: artDecal
+                anchors.centerIn: parent
+                text: "❦  LABEL TYPEWRITER  ❦"
+                font.family: Theme.typewriter
+                font.pixelSize: 8
+                font.letterSpacing: 2
+                font.bold: true
+                color: Qt.rgba(0.12, 0.09, 0.05, 0.8)
+            }
+        }
+        // a key going down: its own picture, a little lower and smaller, in
+        // the shadow of its well
+        Item {
+            id: pressed
+            readonly property var at: win.keyAt[win.struck] ?? null
+            readonly property real r: 19
+            visible: win.art && hold.running && at !== null
+            x: stage.mx + (at ? at.x : 0) * win.artScale - r
+            y: stage.my + (at ? at.y : 0) * win.artScale - r
+            width: 2 * r
+            height: 2 * r
+            Rectangle { anchors.fill: parent; anchors.margins: -1; radius: width / 2; color: Qt.rgba(0.04, 0.05, 0.04, 0.9) }
+            ShaderEffectSource {
+                anchors.fill: parent
+                sourceItem: machine
+                sourceRect: Qt.rect((pressed.at ? pressed.at.x : 0) * win.artScale - pressed.r, (pressed.at ? pressed.at.y : 0) * win.artScale - pressed.r, 2 * pressed.r, 2 * pressed.r)
+                y: 4
+                scale: 0.88
+                // further from the light, down in its well
+                Rectangle { anchors.fill: parent; radius: width / 2; color: "black"; opacity: 0.2 }
+            }
+        }
+        // the space bar, likewise
+        Item {
+            id: spacePressed
+            readonly property rect bar: Qt.rect(402, 785, 778, 55)
+            visible: win.art && hold.running && win.struck === " "
+            x: stage.mx + bar.x * win.artScale
+            y: stage.my + bar.y * win.artScale
+            width: bar.width * win.artScale
+            height: bar.height * win.artScale
+            Rectangle { anchors.fill: parent; radius: 6; color: Qt.rgba(0.04, 0.05, 0.04, 0.9) }
+            ShaderEffectSource {
+                anchors.fill: parent
+                sourceItem: machine
+                sourceRect: Qt.rect(spacePressed.bar.x * win.artScale, spacePressed.bar.y * win.artScale, spacePressed.width, spacePressed.height)
+                y: 4
+                scale: 0.97
+                Rectangle { anchors.fill: parent; radius: 6; color: "black"; opacity: 0.18 }
+            }
+        }
+
         // ------------------------------------------------------------ the platen and the bail
         Item {
             id: platen
+            visible: !win.art
             x: 30
             y: stage.platenY - 6
             width: stage.width - 60
@@ -373,6 +496,7 @@ PanelWindow {
 
         // the carriage return lever
         Canvas {
+            visible: !win.art
             x: 6
             y: stage.platenY - 52
             width: 90; height: 60
@@ -393,6 +517,7 @@ PanelWindow {
 
         // ------------------------------------------------------------ the body
         DropShadow {
+            visible: !win.art
             anchors.fill: body
             source: body
             radius: 24
@@ -402,6 +527,7 @@ PanelWindow {
         }
         Canvas {
             id: body
+            visible: !win.art
             x: 0
             y: stage.platenY + 34
             width: stage.width
@@ -458,8 +584,11 @@ PanelWindow {
                 const i = Math.max(0, order.indexOf(win.struck));
                 return Math.PI * (0.94 - 0.88 * i / (order.length - 1));
             }
-            readonly property point from: Qt.point(stage.width / 2 + Math.cos(fanAngle) * 176, body.y + 8 + Math.sin(fanAngle) * 62)
-            readonly property point to: Qt.point(stage.strikeX, stage.platenY + 18)
+            // from its place in the basket's ring to the type guide
+            readonly property point from: win.art
+                ? stage.onMachine(790 + Math.cos(fanAngle) * 315, 300 + Math.sin(fanAngle) * 170)
+                : Qt.point(stage.width / 2 + Math.cos(fanAngle) * 176, body.y + 8 + Math.sin(fanAngle) * 62)
+            readonly property point to: win.art ? stage.onMachine(782, 200) : Qt.point(stage.strikeX, stage.platenY + 18)
             property real reach: 0
             visible: reach > 0.01
             x: from.x
@@ -494,6 +623,7 @@ PanelWindow {
 
         // the type guide and the ribbon, where the letters strike
         Item {
+            visible: !win.art
             x: stage.strikeX - 22
             y: stage.platenY - 2
             width: 44
@@ -533,6 +663,7 @@ PanelWindow {
 
         // the brass decal
         Rectangle {
+            visible: !win.art
             anchors.horizontalCenter: parent.horizontalCenter
             y: stage.platenY + 128
             width: decal.implicitWidth + 30
@@ -556,6 +687,7 @@ PanelWindow {
         // ------------------------------------------------------------ the keys
         Column {
             id: keyboard
+            visible: !win.art
             anchors.horizontalCenter: parent.horizontalCenter
             y: stage.platenY + 168
             spacing: 6
