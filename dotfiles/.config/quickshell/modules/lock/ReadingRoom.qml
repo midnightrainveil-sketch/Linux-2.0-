@@ -7,8 +7,9 @@ import qs.services
 import qs.components
 
 // Reading Room (lock screen): the sheet with a large Time Record centred and a
-// "Signature: ______" field. A wrong password stamps REJECTED in madder; a
-// right one stamps ADMITTED in blue, then the sheet fades away.
+// "Signature: ______" field, sealed in wax as it locks. A wrong password
+// stamps REJECTED in madder; a right one stamps ADMITTED in blue and breaks
+// the seal, then the sheet fades away.
 // Lock with:  qs ipc call lock lock   (hypridle and Super+Escape do this)
 Scope {
     id: room
@@ -124,7 +125,7 @@ Scope {
                     title: Settings.archiveName
                     subtitle: "Time Record."
                     number: Clock.timeRecordNo
-                    labelWidth: 120
+                    labelWidth: 134
                     seed: 1001
                     lift: 1.8
 
@@ -226,6 +227,16 @@ Scope {
                         }
                     }
                     Item { width: 1; height: 6 }
+                }
+
+                // the room's seal, pressed over the card's edge beside the
+                // time; the right signature breaks it
+                WaxSeal {
+                    x: card.x - width / 2 + 8
+                    y: card.y + Theme.headerHeight + 62 - height / 2
+                    landed: sessionLock.locked
+                    cracked: room.verdict === "admitted"
+                    seed: 1907
                 }
 
                 // the verdict stamp, pressed onto the card's corner
