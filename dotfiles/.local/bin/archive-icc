@@ -50,9 +50,22 @@ case ${1:-list} in
         if [[ -L $l || -f $l ]]; then readlink -f "$l"; else echo none; fi
         ;;
     set)
-        [[ -n ${2:-} && -f $2 ]] || { echo "usage: archive-icc set <file.icc> [output]" >&2; exit 2; }
-        file=$(realpath "$2")
-        out=$(output "${3:-}")
+        shift
+        out_arg=""
+        if [[ -n ${1:-} && -f $1 ]]; then
+            file=$1
+            out_arg=${2:-}
+        elif [[ -f "$*" ]]; then
+            file="$*"   # a path with spaces, typed without quotes
+        elif (($# > 1)) && [[ -f "${*:1:$#-1}" ]]; then
+            file="${*:1:$#-1}"   # the same, then a screen name
+            out_arg=${!#}
+        else
+            echo "usage: archive-icc set <file.icc> [output]   (quote a path with spaces)" >&2
+            exit 2
+        fi
+        file=$(realpath "$file")
+        out=$(output "$out_arg")
         case $file in
             "$store"/* | /usr/share/*) ;;
             *) cp -f "$file" "$store/" && file="$store/$(basename "$file")" ;;
