@@ -233,7 +233,9 @@ BarPopup {
             padding: Theme.headerPadH
             spacing: 10
             ArchiveButton { text: "Mixer"; onClicked: { Quickshell.execDetached(["pavucontrol"]); Panels.close(); } }
-            ArchiveButton { text: "Networks"; onClicked: { Quickshell.execDetached(["nm-connection-editor"]); Panels.close(); } }
+            // nmtui: scan, pick a network, type its password (the connection editor
+            // only edits saved ones)
+            ArchiveButton { text: "Wi-Fi"; onClicked: { Quickshell.execDetached(["foot", "--title=Wi-Fi", "-e", "nmtui-connect"]); Panels.close(); } }
             ArchiveButton { text: "Devices"; onClicked: { Quickshell.execDetached(["blueman-manager"]); Panels.close(); } }
             ArchiveButton { text: "Machine"; onClicked: { Quickshell.execDetached(["rog-control-center"]); Panels.close(); } }
         }
