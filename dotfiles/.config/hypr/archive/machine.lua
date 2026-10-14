@@ -66,7 +66,9 @@ hl.config({
         kb_layout = "us",
         follow_mouse = 1,
         sensitivity = 0,
-        accel_profile = "adaptive",
+        -- no acceleration: the pointer moves as far as the hand does (sensitivity,
+        -- -1 to 1, sets the speed; override both in user.lua)
+        accel_profile = "flat",
         touchpad = {
             natural_scroll = true,
             tap_to_click = true,
