@@ -298,9 +298,9 @@ PanelWindow {
                         // standing cards step back and up; tipped ones lie at the front
                         y: !wanted ? stage.frontTop + 120
                            : lifted ? -260
-                           : flipped ? stage.frontTop + 60 - height + 5 * (-r)
+                           : flipped ? stage.frontTop + 70 - height + 4 * (-r)
                            : stage.frontTop + 80 - height - 26 * k
-                        scale: flipped ? 1 : 1 - 0.03 * k
+                        scale: flipped ? 0.84 - 0.02 * (-r) : 1 - 0.03 * k
                         transformOrigin: Item.Bottom
                         opacity: !wanted || lifted ? 0 : (k >= 9 ? 0.55 : 1)
 
@@ -308,8 +308,9 @@ PanelWindow {
                             origin.x: slot.width / 2
                             origin.y: slot.height
                             axis { x: 1; y: 0; z: 0 }
-                            // leaning back a little; tipped toward you; lying flat until the drawer opens
-                            angle: slot.flipped ? 58 + 5 * (-slot.r)
+                            // leaning back a little; riffled past: tipped forward, toward you (top
+                            // edge nearer, so wider); lying flat until the drawer opens
+                            angle: slot.flipped ? -(66 + 4 * (-slot.r))
                                    : !slot.stood ? 70
                                    : slot.lifted ? -2 : -7
                             Behavior on angle { NumberAnimation { duration: Theme.dur(300); easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
