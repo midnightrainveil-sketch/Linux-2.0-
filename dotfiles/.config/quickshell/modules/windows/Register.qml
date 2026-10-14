@@ -2,6 +2,7 @@ import QtQuick
 import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.theme
 import qs.services
 import qs.components
@@ -28,7 +29,11 @@ BarPopup {
     property int pendingSelect: 0
 
     // ---------------------------------------------------------------- opening
+    // events from the opening itself are not reasons to close
+    Timer { id: settle; interval: 400 }
+
     function openWith(step: int, alt: bool): void {
+        settle.restart();
         altMode = alt;
         pendingSelect = step;
         selected = 0;
@@ -50,6 +55,16 @@ BarPopup {
     }
 
     onOpened: keys.forceActiveFocus()
+
+    // another window focused, or another desk: the card has done its job
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (Panels.open !== "register" || settle.running) return;
+            // (the card taking the keyboard is reported as no window: not a change)
+            if (event.name === "workspacev2" || (event.name === "activewindowv2" && event.data.length > 1)) Panels.close();
+        }
+    }
 
     Process {
         id: lister

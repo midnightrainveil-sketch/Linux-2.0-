@@ -42,7 +42,10 @@ PanelWindow {
     WlrLayershell.keyboardFocus: shown ? (exclusiveKeys ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand)
                                        : WlrKeyboardFocus.None
 
-    onShownChanged: if (shown) opened()
+    onShownChanged: {
+        if (shown) opened();
+        else grabArmed = false;
+    }
 
     Item {
         id: holder
@@ -57,9 +60,18 @@ PanelWindow {
     }
 
     // Click anywhere else (or press Escape in the card) to put it away.
+    // The grab starts a moment after the card is on screen: started in the
+    // same instant, before the surface is mapped, it can fail silently and
+    // the card then never closes on an outside click.
+    property bool grabArmed: false
+    Timer {
+        interval: 80
+        running: win.shown && !win.grabArmed
+        onTriggered: win.grabArmed = true
+    }
     HyprlandFocusGrab {
         windows: [win]
-        active: win.shown
+        active: win.shown && win.grabArmed
         onCleared: if (Panels.open === win.name) Panels.close()
     }
 }

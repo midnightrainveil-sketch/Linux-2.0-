@@ -95,7 +95,7 @@ PanelWindow {
     // open; opens the Register (also Super+W, Alt+Tab)
     Item {
         id: registerButton
-        x: deskButton.x + deskButton.width + 10
+        x: deskButton.x + deskButton.width + 22
         width: 26 + countText.implicitWidth
         height: Theme.barHeight
         readonly property color ink: registerMouse.containsMouse || Panels.open === "register" ? Theme.accent : Theme.soft

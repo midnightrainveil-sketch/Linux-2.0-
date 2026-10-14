@@ -8,7 +8,7 @@
 # the left (the reference picture). Drag them around, close them, send the
 # terminal to the drawer: this brings it all back. The cards return to their
 # places; the terminal comes to the workspace you are on, floating, at its
-# place and size, and is focused. If it was closed, a new one opens (it
+# place and size (the pointer stays where it is). If it was closed, a new one opens (it
 # greets you with fastfetch).
 set -uo pipefail
 
@@ -61,7 +61,8 @@ terminal() {
     hyprctl dispatch "hl.dsp.window.float({ action = \"on\", $win })" >/dev/null
     hyprctl dispatch "hl.dsp.window.resize({ x = $pw, y = $ph, $win })" >/dev/null
     hyprctl dispatch "hl.dsp.window.move({ x = $px, y = $py, $win })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ $win })" >/dev/null
+    # (not focused: focusing moves the pointer onto it, and focus follows the
+    # pointer anyway; click the terminal to type)
 }
 
 case ${1:-all} in
