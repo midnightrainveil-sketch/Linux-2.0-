@@ -126,7 +126,7 @@ local home = os.getenv("HOME") or ""
 local bars_crashed = state.exists(bars_so) and os.execute(home .. "/.local/bin/archive-bars crashed") == true
 if bars_crashed then
     hl.on("hyprland.start", function()
-        hl.exec_cmd([[notify-send --app-name Archive "Title bars are off." "Hyprland crashed in them last time. Run: archive-bars retry"]])
+        hl.exec_cmd([[notify-send --app-name Archive "Title bars are off." "Switched off, or Hyprland crashed in them last time. Run: archive-bars on"]])
     end)
 elseif state.exists(bars_so) then
     hl.plugin.load(bars_so)

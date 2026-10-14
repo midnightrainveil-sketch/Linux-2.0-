@@ -10,6 +10,9 @@
 #                          plugin (the config then leaves it out; rebuild or
 #                          `archive-bars retry` to try again)
 #   archive-bars retry     forget such a crash
+#   archive-bars off       leave the title bars out from the next login on,
+#                          until `archive-bars on`
+#   archive-bars on
 #
 # archivebars is hyprbars with the additions the reference windows need: a
 # ruled line under the bar, a typed glyph ("-") on its right, and the torn
@@ -117,7 +120,10 @@ activate() {
 # Hyprland writes a crash report with a backtrace; if a report newer than this
 # build has the plugin in its backtrace, the plugin caused it
 crash_reports="${XDG_CACHE_HOME:-$HOME/.cache}/hyprland"
+off_flag="${XDG_STATE_HOME:-$HOME/.local/state}/archive/bars-off"
+
 crashed() {
+    [[ -f $off_flag ]] && return 0      # switched off by hand: the config leaves them out the same way
     [[ -f $so ]] || return 1
     local r
     while IFS= read -r -d '' r; do
@@ -152,6 +158,16 @@ case ${1:-build} in
         fi
         ;;
     crashed) crashed ;;
+    off)
+        mkdir -p "$(dirname "$off_flag")"
+        touch "$off_flag"
+        echo "archive-bars: the title bars stay off from your next login (archive-bars on brings them back)"
+        ;;
+    on)
+        rm -f "$off_flag"
+        touch "$so" 2>/dev/null || true
+        echo "archive-bars: the title bars load again at your next login"
+        ;;
     retry)
         touch "$so" 2>/dev/null || true   # older reports no longer count
         echo "archive-bars: the title bars load again at your next login"
@@ -163,5 +179,5 @@ case ${1:-build} in
             echo "not built"
         fi
         ;;
-    *) echo "usage: archive-bars build|update|ensure|status|crashed|retry" >&2; exit 2 ;;
+    *) echo "usage: archive-bars build|update|ensure|status|crashed|retry|off|on" >&2; exit 2 ;;
 esac
