@@ -494,8 +494,9 @@ CDecklePassElement::CDecklePassElement(const SData& data) : m_data(data) {
 }
 
 std::vector<UP<IPassElement>> CDecklePassElement::draw() {
-    if (const auto deco = m_data.deco.lock(); deco)
-        deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    // (a weak pointer over a unique one: checked, never locked)
+    if (m_data.deco.valid())
+        m_data.deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
     return {};
 }
 
@@ -508,9 +509,9 @@ bool CDecklePassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CDecklePassElement::boundingBox() {
-    const auto deco    = m_data.deco.lock();
+    const auto deco    = m_data.deco.get();
     const auto monitor = g_pHyprRenderer->m_renderData.pMonitor.lock();
-    if (!deco || !monitor || !deco->getOwner())
+    if (!m_data.deco.valid() || !deco || !monitor || !deco->getOwner())
         return std::nullopt;
     return deco->cardBox().translate(-monitor->m_position).expand(deco->reach());
 }
