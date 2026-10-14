@@ -256,79 +256,92 @@ PanelWindow {
             }
         }
 
-        // the cards
-        Repeater {
-            model: win.apps
-
+        // the cards, seen only within the drawer: a card dropping out of the
+        // search, or still rising, never shows below the drawer's front
+        Item {
+            id: cardWell
+            y: -400
+            width: stage.width
+            height: 400 + stage.frontTop + front.height   // down to the front's bottom edge
+            clip: true
             Item {
-                id: slot
-                required property var modelData
-                required property int index
+                y: 400
+                width: stage.width
+                height: stage.height
+                Repeater {
+                    model: win.apps
 
-                readonly property int rank: win.rankByKey[win.key(modelData)] ?? -1
-                readonly property int r: rank - win.selected
-                readonly property bool wanted: rank >= 0 && r >= -4 && r <= 10 && win.slide > 0.001
-                readonly property bool flipped: r < 0
-                readonly property bool lifted: win.launching && r === 0
-                readonly property int k: Math.max(0, r)                 // depth behind the current card
-                readonly property bool stood: k < win.standing || win.standing > 12
+                    Item {
+                        id: slot
+                        required property var modelData
+                        required property int index
 
-                // stay a moment after leaving, so a card can be seen to drop
-                property bool alive: false
-                onWantedChanged: if (wanted) alive = true; else dropTimer.restart()
-                Timer { id: dropTimer; interval: Theme.dur(320); onTriggered: slot.alive = slot.wanted }
-                Component.onCompleted: alive = wanted
+                        readonly property int rank: win.rankByKey[win.key(modelData)] ?? -1
+                        readonly property int r: rank - win.selected
+                        readonly property bool wanted: rank >= 0 && r >= -4 && r <= 10 && win.slide > 0.001
+                        readonly property bool flipped: r < 0
+                        readonly property bool lifted: win.launching && r === 0
+                        readonly property int k: Math.max(0, r)                 // depth behind the current card
+                        readonly property bool stood: k < win.standing || win.standing > 12
 
-                visible: alive
-                z: flipped ? 600 + (-r) : 500 - k
-                width: stage.cardW
-                height: stage.cardH
-                x: (stage.width - width) / 2
-                // standing cards step back and up; tipped ones lie at the front
-                y: !wanted ? stage.frontTop + 120
-                   : lifted ? -260
-                   : flipped ? stage.frontTop + 60 - height + 5 * (-r)
-                   : stage.frontTop + 80 - height - 26 * k
-                scale: flipped ? 1 : 1 - 0.03 * k
-                transformOrigin: Item.Bottom
-                opacity: !wanted || lifted ? 0 : (k >= 9 ? 0.55 : 1)
+                        // stay a moment after leaving, so a card can be seen to drop
+                        property bool alive: false
+                        onWantedChanged: if (wanted) alive = true; else dropTimer.restart()
+                        Timer { id: dropTimer; interval: Theme.dur(320); onTriggered: slot.alive = slot.wanted }
+                        Component.onCompleted: alive = wanted
 
-                transform: Rotation {
-                    origin.x: slot.width / 2
-                    origin.y: slot.height
-                    axis { x: 1; y: 0; z: 0 }
-                    // leaning back a little; tipped toward you; lying flat until the drawer opens
-                    angle: slot.flipped ? 58 + 5 * (-slot.r)
-                           : !slot.stood ? 70
-                           : slot.lifted ? -2 : -7
-                    Behavior on angle { NumberAnimation { duration: Theme.dur(300); easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
-                }
+                        visible: alive
+                        z: flipped ? 600 + (-r) : 500 - k
+                        width: stage.cardW
+                        height: stage.cardH
+                        x: (stage.width - width) / 2
+                        // standing cards step back and up; tipped ones lie at the front
+                        y: !wanted ? stage.frontTop + 120
+                           : lifted ? -260
+                           : flipped ? stage.frontTop + 60 - height + 5 * (-r)
+                           : stage.frontTop + 80 - height - 26 * k
+                        scale: flipped ? 1 : 1 - 0.03 * k
+                        transformOrigin: Item.Bottom
+                        opacity: !wanted || lifted ? 0 : (k >= 9 ? 0.55 : 1)
 
-                Behavior on y { NumberAnimation { duration: Theme.dur(slot.lifted ? 300 : 260); easing.type: slot.lifted ? Easing.InCubic : Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: Theme.dur(260); easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: Theme.dur(220) } }
+                        transform: Rotation {
+                            origin.x: slot.width / 2
+                            origin.y: slot.height
+                            axis { x: 1; y: 0; z: 0 }
+                            // leaning back a little; tipped toward you; lying flat until the drawer opens
+                            angle: slot.flipped ? 58 + 5 * (-slot.r)
+                                   : !slot.stood ? 70
+                                   : slot.lifted ? -2 : -7
+                            Behavior on angle { NumberAnimation { duration: Theme.dur(300); easing.type: Easing.OutBack; easing.overshoot: 1.4 } }
+                        }
 
-                Loader {
-                    anchors.fill: parent
-                    active: slot.alive
-                    sourceComponent: CatalogueCard {
-                        app: slot.modelData
-                        number: slot.index + 1
-                        category: win.category(slot.modelData)
-                        tabSlot: slot.index % 3
-                        face: slot.r >= 0 && slot.r <= 1
-                        current: slot.r === 0
-                        shade: slot.flipped ? 0.12 : Math.min(0.5, 0.06 * slot.k) * (Theme.night > 0.5 ? 1.3 : 1)
+                        Behavior on y { NumberAnimation { duration: Theme.dur(slot.lifted ? 300 : 260); easing.type: slot.lifted ? Easing.InCubic : Easing.OutCubic } }
+                        Behavior on scale { NumberAnimation { duration: Theme.dur(260); easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: Theme.dur(220) } }
+
+                        Loader {
+                            anchors.fill: parent
+                            active: slot.alive
+                            sourceComponent: CatalogueCard {
+                                app: slot.modelData
+                                number: slot.index + 1
+                                category: win.category(slot.modelData)
+                                tabSlot: slot.index % 3
+                                face: slot.r >= 0 && slot.r <= 1
+                                current: slot.r === 0
+                                shade: slot.flipped ? 0.12 : Math.min(0.5, 0.06 * slot.k) * (Theme.night > 0.5 ? 1.3 : 1)
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.topMargin: -30           // the tab too
+                            enabled: slot.wanted && !win.launching
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: slot.r === 0 ? win.launch() : (win.selected = slot.rank)
+                            onWheel: wheel => win.riffle(wheel.angleDelta.y > 0 ? -1 : 1)
+                        }
                     }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.topMargin: -30           // the tab too
-                    enabled: slot.wanted && !win.launching
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: slot.r === 0 ? win.launch() : (win.selected = slot.rank)
-                    onWheel: wheel => win.riffle(wheel.angleDelta.y > 0 ? -1 : 1)
                 }
             }
         }

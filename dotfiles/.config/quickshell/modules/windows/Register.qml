@@ -3,6 +3,7 @@ import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import qs.theme
 import qs.services
 import qs.components
@@ -22,6 +23,26 @@ BarPopup {
     side: "left"
     offset: 60
     exclusiveKeys: true
+    // above the click-catcher below
+    WlrLayershell.layer: WlrLayer.Overlay
+
+    // A click anywhere outside the card closes it: a clear sheet over the
+    // whole screen, just under the card (as the catalogue drawer has)
+    PanelWindow {
+        screen: popup.screen
+        anchors { top: true; bottom: true; left: true; right: true }
+        exclusionMode: ExclusionMode.Ignore
+        color: "transparent"
+        visible: popup.shown
+        WlrLayershell.layer: WlrLayer.Top
+        WlrLayershell.namespace: "archive-catcher"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onPressed: Panels.close()
+        }
+    }
 
     property var windows: []
     property int selected: 0

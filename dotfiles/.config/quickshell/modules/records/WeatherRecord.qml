@@ -33,21 +33,23 @@ IndexCard {
             color: Theme.soft
         }
 
-        // temperature: tall typewriter figures, like the clock
+        // temperature: typewriter figures stretched a little upright, as
+        // much as the clock's and no more
         Item {
             id: temp
+            readonly property real stretch: Theme.clockStretch
             x: 155
-            y: 57
             width: 82
-            height: 46
+            height: Math.round(0.592 * Theme.sizeDisplay * stretch)
+            y: 57 + (46 - height) / 2
             InkText {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: -(0.782 - 0.592) * Theme.sizeDisplay * 1.45
+                y: -(0.782 - 0.592) * Theme.sizeDisplay * temp.stretch
                 text: Weather.ready ? Math.round(Weather.temperature) + "°C" : "--°C"
                 color: Theme.graphite
                 font.pixelSize: Theme.sizeDisplay
                 spread: 1.0
-                transform: Scale { yScale: 1.45; origin.x: 0; origin.y: 0 }
+                transform: Scale { yScale: temp.stretch; origin.x: 0; origin.y: 0 }
             }
         }
         InkText {
