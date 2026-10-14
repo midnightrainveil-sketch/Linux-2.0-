@@ -27,6 +27,7 @@ import qs.modules.lock
 import qs.modules.photo
 import qs.modules.phonograph
 import qs.modules.notebook
+import qs.modules.typewriter
 
 ShellRoot {
     id: shell
@@ -58,6 +59,7 @@ ShellRoot {
     Photograph  { id: photograph; screen: shell.focusedScreen }
     Phonograph  { screen: shell.focusedScreen }
     Notebook    { screen: shell.focusedScreen }
+    Typewriter  { screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
 
@@ -70,6 +72,7 @@ ShellRoot {
         function disposition(): void { Panels.toggle("disposition"); }
         function phonograph(): void { Panels.toggle("phonograph"); }
         function notebook(): void { Panels.toggle("notebook"); }
+        function typewriter(): void { Panels.toggle("typewriter"); }
         function close(): void { Panels.close(); }
         // the Register (open windows): the bar button, and Alt+Tab
         function register(): void { registerCard.toggle(); }

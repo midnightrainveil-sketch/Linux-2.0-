@@ -21,7 +21,8 @@ Singleton {
         volume:   "audio-volume-change",    // pencil tick
         plug:     "power-plug",             // paper clip
         battery:  "battery-low",            // brass desk bell
-        error:    "dialog-error"            // two knuckle taps
+        error:    "dialog-error",           // two knuckle taps
+        bell:     "bell"                    // the typewriter's bell, on Return
     })
 
     property double lastVolumeTick: 0

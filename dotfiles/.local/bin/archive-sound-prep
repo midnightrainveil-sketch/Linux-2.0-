@@ -3,7 +3,7 @@
 #
 #   archive-sound-prep recording.wav EVENT
 #
-# EVENT is one of: login lock message urgent capture volume plug battery error
+# EVENT is one of: login lock message urgent capture volume plug battery error bell
 # Mixing (spec section 12): mono, 48 kHz, dry, peak -12 dBFS, about -24 LUFS,
 # last 10 ms faded to avoid clicks. Trim the recording to the sound first.
 set -euo pipefail
@@ -12,7 +12,7 @@ in=$1 event=$2
 declare -A names=(
     [login]=desktop-login [lock]=desktop-logout [message]=message-new-instant
     [urgent]=dialog-warning [capture]=screen-capture [volume]=audio-volume-change
-    [plug]=power-plug [battery]=battery-low [error]=dialog-error
+    [plug]=power-plug [battery]=battery-low [error]=dialog-error [bell]=bell
 )
 name=${names[$event]:-}
 [[ -n $name ]] || { echo "unknown event: $event" >&2; exit 2; }

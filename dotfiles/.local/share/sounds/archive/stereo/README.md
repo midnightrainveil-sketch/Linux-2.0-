@@ -14,6 +14,7 @@ Record these yourself (phone, quiet room) and run each through
 | `power-plug.oga` | `plug` | a paper clip snapping onto a card | ~120 ms |
 | `battery-low.oga` | `battery` | a small brass desk bell, struck lightly once | ~800 ms |
 | `dialog-error.oga` | `error` | two quick knuckle taps on a wooden desk | ~200 ms |
+| `bell.oga` | `bell` | a typewriter's carriage bell (the label typewriter's Return) | ~400 ms |
 
 CC0 sounds from freesound.org work as a fallback (filter by the CC0 licence).
 Silent on purpose: typing, focus changes, opening and closing windows,

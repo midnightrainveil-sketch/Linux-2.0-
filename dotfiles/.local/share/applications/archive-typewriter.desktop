@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Label Typewriter
+GenericName=Quick line
+Comment=Work a sum, run a command, open a page or look something up
+Exec=qs ipc call shell typewriter
+Icon=accessories-calculator
+Categories=Utility;
+Keywords=calculator;run;search;command;
