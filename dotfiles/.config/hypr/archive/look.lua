@@ -158,12 +158,13 @@ local function bars(name, extras)
 
     -- three ink dots: file away (close), full sheet (maximise), drawer (minimise)
     local api = hl.plugin[name]
-    for _, action in ipairs({
-        [[hyprctl dispatch 'hl.dsp.window.close()']],
-        [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']],
-        drawer,
+    -- each in its own muted pigment (palette.lua); grey on unfocused windows
+    for _, b in ipairs({
+        { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close },
+        { [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']], c.dot_full },
+        { drawer, c.dot_away },
     }) do
-        api.add_button({ bg_color = rgb(c.dot), fg_color = rgb(c.dot), size = 11, icon = "", action = action })
+        api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
     end
 
     hl.window_rule({ name = "archive-bar-unfocused", match = { focus = false }, [name .. ":title_color"] = rgb(c.faded) })
