@@ -71,13 +71,28 @@ calm() {
 # ---------------------------------------------------------------- the dGPU
 gpu() {
     # headers for every installed kernel (linux, linux-lts, linux-g14, ...)
-    local pkgs=(nvidia-open-dkms nvidia-utils supergfxctl) k
+    local pkgs=(nvidia-open-dkms nvidia-utils) k
     for k in /usr/lib/modules/*/pkgbase; do
         [[ -f $k ]] && pkgs+=("$(cat "$k")-headers")
     done
     echo ":: the NVIDIA driver and headers: ${pkgs[*]}"
-    sudo pacman -S --needed --noconfirm "${pkgs[@]}" || sudo pacman -S --needed "${pkgs[@]}"
+    sudo pacman -S --needed --noconfirm "${pkgs[@]}" || sudo pacman -S --needed "${pkgs[@]}" || echo "   (see the error above)"
     sudo pacman -S --needed --noconfirm lib32-nvidia-utils 2>/dev/null || echo "   (lib32-nvidia-utils skipped: enable [multilib] for 32-bit games)"
+
+    # supergfxctl (GPU modes) is not in Arch's repositories: the AUR, or the
+    # asus-linux [g14] repository if you added it
+    if ! command -v supergfxctl >/dev/null; then
+        echo ":: supergfxctl (GPU modes)"
+        if ! sudo pacman -S --needed --noconfirm supergfxctl 2>/dev/null; then
+            local helper=""
+            for h in paru yay; do command -v "$h" >/dev/null && { helper=$h; break; }; done
+            if [[ -n $helper ]]; then
+                "$helper" -S --needed --noconfirm supergfxctl || echo "   (supergfxctl did not install; see above)"
+            else
+                echo "   (no AUR helper: install yay, then: yay -S supergfxctl)"
+            fi
+        fi
+    fi
 
     echo ":: dGPU power: sleeps when unused, survives suspend"
     printf '%s\n' \
@@ -90,7 +105,7 @@ gpu() {
 
     echo ":: rebuilding the driver and the boot images"
     sudo dkms autoinstall || true
-    sudo mkinitcpio -P
+    sudo mkinitcpio -P || echo "   (mkinitcpio reported a problem; see above)"
 
     echo ":: Hybrid mode"
     supergfxctl -m Hybrid 2>/dev/null || echo "   (supergfxctl answers after the reboot; Hybrid is its default)"
