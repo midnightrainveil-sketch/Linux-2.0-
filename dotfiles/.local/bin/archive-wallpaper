@@ -11,11 +11,22 @@
 set -euo pipefail
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/archive"
 importer="$HOME/archive/tools/import_wallpaper.py"
+[[ -f $importer ]] || { echo "archive-wallpaper: the theme is not in ~/archive (run setup.sh)" >&2; exit 1; }
 mkdir -p "$dir"
 
 case ${1:-} in
     "" | -h | --help) sed -n '2,11p' "$0"; exit 0 ;;
-    reset) rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp} ;;
+    reset)
+        rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp}
+        # the theme's sheet again: links back to it where yours was written
+        theme_plates="$HOME/archive/dotfiles/.local/share/archive/plates"
+        data_plates="${XDG_DATA_HOME:-$HOME/.local/share}/archive/plates"
+        while IFS= read -r -d '' f; do
+            rel=${f#"$theme_plates"/}
+            mkdir -p "$(dirname "$data_plates/$rel")"
+            ln -sfn "$f" "$data_plates/$rel"
+        done < <(find "$theme_plates" -type f -print0)
+        ;;
     *)
         [[ -f $1 ]] || { echo "archive-wallpaper: no such file: $1" >&2; exit 1; }
         ext=${1##*.}
@@ -29,10 +40,11 @@ esac
 python3 "$importer"
 # the shell picks up the new sheet when it starts again
 # (it runs as qs or as quickshell, depending on how it was started)
+qs kill >/dev/null 2>&1 || true
 pkill -x qs 2>/dev/null || true
 pkill -x quickshell 2>/dev/null || true
 sleep 0.5
 if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
     setsid -f qs >/dev/null 2>&1
 fi
-echo "done"
+echo "done: the desk shows it now"

@@ -41,7 +41,10 @@ def source():
         if os.path.exists(mine):
             return mine
     return THEME_SRC
-OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "plates")
+THEME_OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "plates")
+# where the shell reads plates from; your own wallpaper is written straight
+# there (real files, not links into the theme), so nothing can stand between
+DATA_OUT = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "archive", "plates")
 PLATE = "0001-geranium-pratense"
 # the sheet is sized to cover the G14's 2880 x 1800 panel (a 16:9 sheet:
 # 3200 x 1800), up or down from whatever the source is
@@ -56,8 +59,9 @@ NIGHT_INK = np.array([0xe6, 0xe1, 0xd6], np.float32)
 
 def main():
     path = source()
-    print("wallpaper:", path)
+    out = THEME_OUT if path == THEME_SRC else DATA_OUT
     src = Image.open(path).convert("RGB")
+    print("wallpaper:", path, "(%d x %d)" % src.size)
     scale = max(COVER[0] / src.width, COVER[1] / src.height)
     big = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
     if scale > 1.05:   # enlarged: bring the pencil lines back a little
@@ -84,7 +88,7 @@ def main():
     night = base * (1 - ink[..., None]) + NIGHT_INK[None, None, :] * ink[..., None]
     night = np.clip(night, 0, 255).astype(np.uint8)
 
-    folder = os.path.join(OUT, PLATE)
+    folder = os.path.join(out, PLATE)
     os.makedirs(folder, exist_ok=True)
     for name in os.listdir(folder):
         if name.endswith(".png") or name.startswith("sheet-"):
@@ -104,18 +108,23 @@ def main():
         "day": "sheet-day.jpg",
         "night": "sheet-night.jpg",
     }
-    with open(os.path.join(folder, "meta.json"), "w") as f:
+    meta_path = os.path.join(folder, "meta.json")
+    if os.path.islink(meta_path):
+        os.remove(meta_path)   # a real file of its own, not the theme's through a link
+    with open(meta_path, "w") as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    index_path = os.path.join(OUT, "index.json")
+    index_path = os.path.join(out, "index.json")
     index = json.load(open(index_path)) if os.path.exists(index_path) else []
+    if os.path.islink(index_path):
+        os.remove(index_path)
     if PLATE not in index:
         index.append(PLATE)
     with open(index_path, "w") as f:
         json.dump(sorted(index), f, indent=2)
         f.write("\n")
-    print("plate written:", folder, day.shape[1], "x", day.shape[0])
+    print("sheet written:", folder, "(%d x %d)" % (day.shape[1], day.shape[0]))
 
 
 if __name__ == "__main__":

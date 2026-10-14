@@ -74,8 +74,12 @@ link_file() { # link_file <repo file> <target>
 
 if (( want_link )); then
     say "linking dotfiles into $HOME"
+    own_wallpaper=0
+    compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null && own_wallpaper=1
     while IFS= read -r -d '' f; do
         rel=${f#"$src"/}
+        # your own wallpaper (archive-wallpaper) is made right there: leave it
+        if ((own_wallpaper)) && [[ $rel == .local/share/archive/plates/* ]]; then continue; fi
         link_file "$f" "$HOME/$rel"
     done < <(find "$src" \( -type f -o -type l \) -print0)
     # links left by files a newer version no longer has
