@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# archive-icons: the "Archive" icon theme (Papirus in aged inks on old paper).
+#
+#   archive-icons          build it (or rebuild) from the installed Papirus
+#   archive-icons ensure   rebuild only if Papirus changed (run at login)
+#   archive-icons off      plain Papirus colours again (the theme stays
+#                          selected but becomes an empty layer over Papirus)
+#
+# App icons are muted and tinted sepia, folders turned manila, symbolic icons
+# warmed (tools/make_icons.py). GTK, Qt and the shell use it by name; apps
+# already open show it when they start again.
+set -euo pipefail
+src=/usr/share/icons/Papirus
+dst="${XDG_DATA_HOME:-$HOME/.local/share}/icons/Archive"
+maker="$HOME/archive/tools/make_icons.py"
+stamp="$dst/.made-from"
+
+want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(sha1sum "$maker" | cut -c1-12)"; }
+
+build() {
+    [[ -d $src ]] || { echo "archive-icons: Papirus is not installed (sudo pacman -S papirus-icon-theme)" >&2; exit 1; }
+    python3 "$maker" "$src" "$dst"
+    if command -v gtk-update-icon-cache >/dev/null; then gtk-update-icon-cache -f -q "$dst" 2>/dev/null || true; fi
+    want >"$stamp"
+}
+
+use_theme() {
+    if command -v gsettings >/dev/null; then gsettings set org.gnome.desktop.interface icon-theme 'Archive' 2>/dev/null || true; fi
+}
+
+case ${1:-build} in
+    build) build; use_theme ;;
+    ensure)
+        if [[ ! -f $stamp || $(cat "$stamp") != "$(want)" ]] && [[ ! -f $dst/.off ]]; then build; fi
+        ;;
+    off)
+        rm -rf "$dst"
+        mkdir -p "$dst"
+        printf '[Icon Theme]\nName=Archive\nComment=Papirus as it comes (archive-icons off)\nInherits=Papirus,breeze,hicolor\nDirectories=\n' >"$dst/index.theme"
+        touch "$dst/.off"
+        echo "plain Papirus colours (archive-icons to age them again)"
+        ;;
+    *) echo "usage: archive-icons [build|ensure|off]" >&2; exit 2 ;;
+esac

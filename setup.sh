@@ -115,6 +115,10 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
 "$here/install.sh" || warn "linking reported a problem; see above"
+# the icons: Papirus in aged inks, folders manila (archive-icons)
+say "the icons"
+"$HOME/.local/bin/archive-icons" build || warn "could not make the icons; run archive-icons"
+
 # your own wallpaper (archive-wallpaper), kept outside the theme: the update
 # just replaced the sheet, so make it again from yours
 if compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null; then

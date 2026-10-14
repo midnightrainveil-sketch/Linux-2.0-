@@ -107,7 +107,7 @@ if (( want_link )); then
     if command -v gsettings >/dev/null; then
         gsettings set org.gnome.desktop.interface font-name 'IBM Plex Sans 10' || true
         gsettings set org.gnome.desktop.interface monospace-font-name 'IBM Plex Mono 11' || true
-        gsettings set org.gnome.desktop.interface icon-theme 'Papirus' || true
+        gsettings set org.gnome.desktop.interface icon-theme 'Archive' || true
         gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita' || true
         gsettings set org.gnome.desktop.interface cursor-size 24 || true
         gsettings set org.gnome.desktop.wm.preferences button-layout ':' || true

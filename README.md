@@ -64,7 +64,7 @@ dotfiles/
   .config/quickshell/       the shell: theme/, services/, components/, modules/, assets/
   .config/archive/          settings.json, GTK colour sheets
   .config/foot, fastfetch, zsh, gtk-3.0, gtk-4.0, qt6ct, fontconfig, systemd/user
-  .local/bin/               archive-mode, archive-update, archive-ros, archive-grain, archive-brightness, archive-icc, archive-plate, archive-screenshot, ...
+  .local/bin/               archive-mode, archive-update, archive-icons, archive-ros, archive-grain, archive-brightness, archive-icc, archive-plate, archive-screenshot, ...
   .local/share/archive/     plates (starter: Geranium pratense)
   .local/share/fonts/       Courier Prime, Pinyon Script (SIL OFL)
   .local/share/sounds/      the archive sound theme (record your own)
