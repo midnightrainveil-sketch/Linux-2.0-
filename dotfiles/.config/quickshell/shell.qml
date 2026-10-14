@@ -25,6 +25,7 @@ import qs.modules.notifications
 import qs.modules.osd
 import qs.modules.lock
 import qs.modules.photo
+import qs.modules.phonograph
 
 ShellRoot {
     id: shell
@@ -54,6 +55,7 @@ ShellRoot {
     Instrument  { screen: shell.focusedScreen }
     Correspondence { screen: shell.focusedScreen }
     Photograph  { id: photograph; screen: shell.focusedScreen }
+    Phonograph  { screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
 
@@ -64,6 +66,7 @@ ShellRoot {
         function ledger(): void { Panels.toggle("ledger"); }
         function instruments(): void { Panels.toggle("instrument"); }
         function disposition(): void { Panels.toggle("disposition"); }
+        function phonograph(): void { Panels.toggle("phonograph"); }
         function close(): void { Panels.close(); }
         // the Register (open windows): the bar button, and Alt+Tab
         function register(): void { registerCard.toggle(); }

@@ -8,7 +8,8 @@ import Quickshell
 Singleton {
     id: root
 
-    // "", "catalogue", "ledger", "instrument", "disposition"
+    // "", "catalogue", "ledger", "instrument", "disposition", "register",
+    // "phonograph", "notebook", "typewriter"
     property string open: ""
 
     function toggle(name: string): void { open = (open === name) ? "" : name; }

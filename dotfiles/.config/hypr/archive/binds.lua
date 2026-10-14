@@ -15,6 +15,7 @@ hl.bind(mod .. " + C", shell("shell", "ledger"), { description = "Ledger (calend
 hl.bind(mod .. " + I", shell("shell", "instruments"), { description = "Instrument card (quick settings)" })
 hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Reading Room (lock)" })
 hl.bind(mod .. " + SHIFT + Escape", shell("shell", "disposition"), { description = "Disposition (power menu)" })
+hl.bind(mod .. " + A", shell("shell", "phonograph"), { description = "Phonograph (music from ~/Music)" })
 hl.bind(mod .. " + N", exec("archive-mode toggle"), { description = "Turn the sheet: day / night" })
 hl.bind(mod .. " + SHIFT + G", exec("archive-grain window"), { description = "Paper grain on / off for this window" })
 hl.bind(mod .. " + ALT + L", shell("lamp", "toggle"), { description = "Desk lamp on / off (night)" })

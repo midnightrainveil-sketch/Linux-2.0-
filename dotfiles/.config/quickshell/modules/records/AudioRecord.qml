@@ -9,9 +9,20 @@ import qs.components
 //   the cover as a grey print | artist, title, album
 //   progress: 4 px accent fill on a 2 px track, times under it
 // No. = release year of the current track.
-// Click the print to play / pause; scroll over the card to skip.
+// Click the print to play / pause; click anywhere else on the card for the
+// gramophone (the music in ~/Music); scroll over the card to skip.
 IndexCard {
     id: card
+
+    // (under everything else, so the print keeps its own click, and a drag
+    // still moves the card)
+    MouseArea {
+        parent: card
+        anchors.fill: parent
+        z: -1
+        cursorShape: Qt.PointingHandCursor
+        onClicked: Panels.toggle("phonograph")
+    }
 
     title: "Audio Archive"
     number: Media.year !== "" ? Media.year : (Media.active ? "----" : "")
