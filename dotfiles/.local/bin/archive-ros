@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+# archive-ros: ROS Noetic in an Ubuntu 20.04 container (distrobox + podman).
+#
+#   archive-ros            a ROS shell (sets everything up the first time)
+#   archive-ros rviz       RViz (starts roscore first if none is running)
+#   archive-ros setup      set up, or finish a setup that stopped
+#   archive-ros remove     delete the container (your files stay)
+#
+# The container shares your home folder, screen, sound and USB devices, so
+# ~/catkin_ws is the same folder inside and out, and ROS windows open on
+# the desk like any other. It draws with the CPU (integrated graphics only:
+# Ubuntu 20.04's drivers predate the Radeon 780M, and the NVIDIA card is not
+# used), which is plenty for RViz. The app drawer gets "ROS Noetic" (a
+# shell) and "RViz".
+set -euo pipefail
+box=ros-noetic
+image=docker.io/library/ubuntu:20.04
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/archive/ros"
+rc="$conf/bashrc"
+apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+
+say() { printf '\n\033[1m:: %s\033[0m\n' "$*"; }
+
+have_box() { command -v distrobox >/dev/null && distrobox list 2>/dev/null | grep -qw "$box"; }
+ready() { have_box && [[ -f $conf/installed ]]; }
+
+# ------------------------------------------------------------------ the shell's settings inside
+write_rc() {
+    mkdir -p "$conf"
+    cat >"$rc" <<'EOF'
+# ROS Noetic shell (archive-ros); your own ~/.bashrc is not used in here
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+source /opt/ros/noetic/setup.bash
+[ -f "$HOME/catkin_ws/devel/setup.bash" ] && source "$HOME/catkin_ws/devel/setup.bash"
+export ROS_MASTER_URI=${ROS_MASTER_URI:-http://localhost:11311}
+export ROS_HOSTNAME=${ROS_HOSTNAME:-localhost}
+# Qt 5.12 here talks X11 (XWayland), and draws 3D on the CPU
+export QT_QPA_PLATFORM=xcb
+export LIBGL_ALWAYS_SOFTWARE=1
+alias cm='(cd ~/catkin_ws && catkin_make)'
+PS1='\[\e[1m\](noetic)\[\e[0m\] \w \$ '
+echo "ROS Noetic. Workspace: ~/catkin_ws   (build: cm   |   roscore, rviz, rqt, roslaunch ...)"
+EOF
+}
+
+# ------------------------------------------------------------------ setup
+setup() {
+    say "container tools (podman, distrobox)"
+    sudo pacman -S --needed --noconfirm podman distrobox
+    # rootless containers need a range of user ids
+    if ! grep -q "^$USER:" /etc/subuid 2>/dev/null; then
+        sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 "$USER"
+        podman system migrate >/dev/null 2>&1 || true
+    fi
+
+    if ! have_box; then
+        say "the Ubuntu 20.04 container"
+        distrobox create --name "$box" --image "$image" --yes
+    fi
+
+    say "ROS Noetic inside it (a few GB; 10 to 30 minutes)"
+    distrobox enter "$box" -- bash -s <<'INNER'
+set -e
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get update
+sudo -E apt-get install -y curl gnupg2 lsb-release ca-certificates locales software-properties-common
+sudo locale-gen en_US.UTF-8 >/dev/null || true
+
+# the ROS package source and its signing key: the ros-apt-source package
+# (current), else the key from rosdistro
+if ! ls /etc/apt/sources.list.d/ros* >/dev/null 2>&1; then
+    ok=0
+    ver=$(curl -fsSL https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest 2>/dev/null | grep -F '"tag_name"' | awk -F'"' '{print $4}' || true)
+    if [ -n "$ver" ] && curl -fsSL -o /tmp/ros-apt-source.deb \
+        "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ver}/ros-apt-source_${ver}.focal_all.deb"; then
+        sudo -E apt-get install -y /tmp/ros-apt-source.deb && ok=1
+    fi
+    if [ $ok = 0 ]; then
+        echo "   (ros-apt-source not available; using the key from rosdistro)"
+        curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | sudo gpg --dearmor --yes -o /usr/share/keyrings/ros-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu focal main" |
+            sudo tee /etc/apt/sources.list.d/ros1-latest.list >/dev/null
+    fi
+fi
+
+sudo -E apt-get update 2>&1 | tee /tmp/ros-apt.log
+if grep -qiE 'EXPKEYSIG|NO_PUBKEY|is not signed' /tmp/ros-apt.log; then
+    echo "!! the ROS package key was refused (see /tmp/ros-apt.log in the container)"
+    exit 1
+fi
+sudo -E apt-get install -y ros-noetic-desktop-full \
+    python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool \
+    python3-catkin-tools build-essential git
+[ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || sudo rosdep init
+rosdep update || echo "   (rosdep update failed; run it later inside: rosdep update)"
+INNER
+
+    write_rc
+    mkdir -p "$HOME/catkin_ws/src"
+
+    say "app drawer entries"
+    mkdir -p "$apps"
+    cat >"$apps/archive-ros.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=ROS Noetic
+GenericName=Robot Operating System
+Comment=A shell in the Ubuntu 20.04 ROS container
+Exec=foot --title=ROS -e $HOME/.local/bin/archive-ros
+Icon=utilities-terminal
+Categories=Development;
+EOF
+    cat >"$apps/archive-rviz.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=RViz
+GenericName=ROS 3D visualiser
+Comment=RViz from the ROS Noetic container
+Exec=$HOME/.local/bin/archive-ros rviz
+Icon=applications-science
+Categories=Development;Science;
+EOF
+    touch "$conf/installed"
+    say "done: run archive-ros (or open \"ROS Noetic\" from the drawer)"
+}
+
+# ------------------------------------------------------------------ use
+case ${1:-shell} in
+    shell)
+        ready || setup
+        [[ -f $rc ]] || write_rc
+        exec distrobox enter "$box" -- bash --rcfile "$rc" -i
+        ;;
+    rviz)
+        ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
+        [[ -f $rc ]] || write_rc
+        # roscore first if none is running; stopped again with RViz
+        exec distrobox enter "$box" -- bash -c "source '$rc' >/dev/null
+            if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
+            rviz; [ -n \"\${core:-}\" ] && kill \$core"
+        ;;
+    setup) setup ;;
+    remove)
+        distrobox rm --force "$box" || true
+        rm -f "$conf/installed" "$apps/archive-ros.desktop" "$apps/archive-rviz.desktop"
+        echo "removed the container (~/catkin_ws is untouched)"
+        ;;
+    *) echo "usage: archive-ros [rviz|setup|remove]" >&2; exit 2 ;;
+esac
