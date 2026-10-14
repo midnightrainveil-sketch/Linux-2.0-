@@ -95,7 +95,11 @@ PanelWindow {
     // open; opens the Register (also Super+W, Alt+Tab)
     Item {
         id: registerButton
-        x: deskButton.x + deskButton.width + 22
+        // on the same beat as the workspace numbers and the desk button: its
+        // card stack (centred 12 px in) as far past the desk button's centre
+        // as that is past the last number's (cells are 50 wide)
+        readonly property real beat: (deskButton.x + deskButton.width / 2) - (workspaces.x + workspaces.width - 25)
+        x: deskButton.x + deskButton.width / 2 + beat - 12
         width: 26 + countText.implicitWidth
         height: Theme.barHeight
         readonly property color ink: registerMouse.containsMouse || Panels.open === "register" ? Theme.accent : Theme.soft
