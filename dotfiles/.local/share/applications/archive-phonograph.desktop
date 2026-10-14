@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Phonograph
+GenericName=Music player
+Comment=Play the records in ~/Music on the archive's gramophone
+Exec=qs ipc call shell phonograph
+Icon=audio-x-generic
+Categories=AudioVideo;Audio;Player;
+Keywords=music;record;gramophone;album;
