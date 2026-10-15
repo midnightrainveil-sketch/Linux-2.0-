@@ -32,7 +32,7 @@ alias ls='ls --color=auto --group-directories-first'
 alias ll='ls -lh'
 alias la='ls -lah'
 alias grep='grep --color=auto'
-alias ff='fastfetch'
+alias ff='archive-card'
 
 [[ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] &&
     source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
@@ -52,5 +52,5 @@ fi
 # The desk terminal (opened by Hyprland at login) begins with the index card.
 if [[ -n ${ARCHIVE_DESK:-} ]]; then
     unset ARCHIVE_DESK
-    fastfetch
+    archive-card
 fi

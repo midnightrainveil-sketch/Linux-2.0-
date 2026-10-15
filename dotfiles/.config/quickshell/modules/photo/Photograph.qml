@@ -8,9 +8,10 @@ import qs.components
 
 // A screenshot, developed: the screen flashes like a magnesium lamp, and the
 // shot drops onto the desk as a bordered print at a slight angle, held by a
-// paperclip, with its date typed underneath. After a few seconds it is
-// filed: an envelope comes up behind it, the print slides in, the flap folds
-// down, the archive's postmark lands on it and it is sent off (the file is
+// paperclip, with its date typed underneath. A second later (longer while
+// the pointer is on it, or pinned) it is filed, in another second: an
+// envelope comes up behind it, the print slides in, the flap folds down,
+// the archive's postmark lands on it and it is sent off (the file is
 // already in ~/Pictures/Archive and on the clipboard).
 //   hover      keep it on the desk        click    open it
 //   right      file it now                middle   pin it (stays till clicked)
@@ -196,13 +197,13 @@ PanelWindow {
             }
         }
         ParallelAnimation {
-            NumberAnimation { target: shot; property: "opacity"; to: 1; duration: Theme.dur(200) }
-            NumberAnimation { target: shot; property: "scale"; to: 1; duration: Theme.dur(520); easing.type: Easing.OutBack; easing.overshoot: 0.8 }
-            NumberAnimation { target: shot; property: "y"; to: win.restY; duration: Theme.dur(520); easing.type: Easing.OutBounce }
-            NumberAnimation { target: shot; property: "rotation"; to: win.restAngle; duration: Theme.dur(560); easing.type: Easing.OutBack }
+            NumberAnimation { target: shot; property: "opacity"; to: 1; duration: Theme.dur(150) }
+            NumberAnimation { target: shot; property: "scale"; to: 1; duration: Theme.dur(380); easing.type: Easing.OutBack; easing.overshoot: 0.8 }
+            NumberAnimation { target: shot; property: "y"; to: win.restY; duration: Theme.dur(380); easing.type: Easing.OutBounce }
+            NumberAnimation { target: shot; property: "rotation"; to: win.restAngle; duration: Theme.dur(400); easing.type: Easing.OutBack }
         }
-        NumberAnimation { target: clip; property: "opacity"; from: 0; to: 1; duration: Theme.dur(120) }
-        NumberAnimation { target: clip; property: "y"; from: -30; to: -16; duration: Theme.dur(140); easing.type: Easing.OutBack }
+        NumberAnimation { target: clip; property: "opacity"; from: 0; to: 1; duration: Theme.dur(80) }
+        NumberAnimation { target: clip; property: "y"; from: -30; to: -16; duration: Theme.dur(100); easing.type: Easing.OutBack }
         // from here on it follows its resting place (the picture's size, the screen)
         ScriptAction { script: { shot.x = Qt.binding(() => win.restX); shot.y = Qt.binding(() => win.restY); linger.restart(); } }
     }
@@ -216,7 +217,7 @@ PanelWindow {
 
     Timer {
         id: linger
-        interval: 6000
+        interval: 420
         onTriggered: if (hover.containsMouse || win.pinned) restart(); else win.fileNow()
     }
 
@@ -394,24 +395,24 @@ PanelWindow {
         }
         // the envelope comes up behind; the print is made to fit
         ParallelAnimation {
-            NumberAnimation { target: back; property: "opacity"; to: 1; duration: Theme.dur(110) }
-            NumberAnimation { target: envelope; property: "rise"; to: 0; duration: Theme.dur(190); easing.type: Easing.OutCubic }
-            NumberAnimation { target: clip; property: "opacity"; to: 0; duration: Theme.dur(110) }
-            NumberAnimation { target: shot; property: "scale"; to: (win.envW - 40) / shot.width; duration: Theme.dur(190); easing.type: Easing.InOutQuad }
+            NumberAnimation { target: back; property: "opacity"; to: 1; duration: Theme.dur(90) }
+            NumberAnimation { target: envelope; property: "rise"; to: 0; duration: Theme.dur(150); easing.type: Easing.OutCubic }
+            NumberAnimation { target: clip; property: "opacity"; to: 0; duration: Theme.dur(90) }
+            NumberAnimation { target: shot; property: "scale"; to: (win.envW - 40) / shot.width; duration: Theme.dur(150); easing.type: Easing.InOutQuad }
         }
         // slid in
         NumberAnimation {
             target: shot; property: "y"
             to: 700 + 12 - shot.height * (1 - (win.envW - 40) / shot.width) / 2
-            duration: Theme.dur(230); easing.type: Easing.InOutCubic
+            duration: Theme.dur(180); easing.type: Easing.InOutCubic
         }
         // the flap folds over
-        NumberAnimation { target: envelope; property: "flapAngle"; to: 0; duration: Theme.dur(190); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: envelope; property: "flapAngle"; to: 0; duration: Theme.dur(150); easing.type: Easing.InOutQuad }
         // postmarked
         ScriptAction { script: { postmark.visible = true; postmark.press(); Sounds.play("message"); } }
-        PauseAnimation { duration: Theme.dur(170) }
+        PauseAnimation { duration: Theme.dur(120) }
         // and sent: picked up off the desk and away over the top right
-        NumberAnimation { target: envelope; property: "sent"; from: 0; to: 1; duration: Theme.dur(420) }
+        NumberAnimation { target: envelope; property: "sent"; from: 0; to: 1; duration: Theme.dur(400) }
         ScriptAction {
             script: {
                 win.unpack();

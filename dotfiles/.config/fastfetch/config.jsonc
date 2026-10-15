@@ -8,14 +8,12 @@
 //   Loc.   ROG Zephyrus G14 · GA403UV     where it was found
 //   Hab.   Hyprland · zsh · foot          what it lives in
 //   ...
-//   then six ink swatches, chalked on: palette slots 16-21, which foot.ini
-//   sets per mode (graphite and slate by day, cream and ice blue at night).
-//   They are a picture (sixel, which foot shows inline), drawn by
-//   tools/chalk_swatches.py: square, rubbed on in strokes with the paper
-//   showing through the grain, one for day and one for night.
+//   then the six ink swatches of foot.ini (slots 16-21), chalked on.
 //
-// The logo is the Arch mark retyped on a typewriter (logo.txt); a portrait
-// (portrait.png, shown as a picture by foot) takes its place when there is one.
+// Run through archive-card (the desk terminal does; so does `ff`): it draws
+// the pictures for this terminal's cell size and the time of day, the
+// portrait (portrait.png) in place of the logo below and the swatches the
+// last module shows. Plain `fastfetch` gives the typed Arch mark (logo.txt).
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
@@ -54,7 +52,7 @@
       "key": " ",
       // the cursor put back where the picture began, so the lines after it
       // (the logo's) are not pushed down by its height
-      "text": "printf '\\0337'; cat ~/.config/fastfetch/chalk-$(cat ~/.local/state/archive/mode 2>/dev/null || echo day).six; printf '\\0338'"
+      "text": "f=${XDG_CACHE_HOME:-$HOME/.cache}/archive/card/swatches.six; [ -f \"$f\" ] && { printf '\\0337'; cat \"$f\"; printf '\\0338'; }; true"
     },
     "break",
     "break"

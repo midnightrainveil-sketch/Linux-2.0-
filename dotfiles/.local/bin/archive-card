@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""archive-card: the desk terminal's index card (fastfetch), with its pictures.
+
+    archive-card            show the card (the desk terminal runs this; so does `ff`)
+    archive-card clean      forget the drawn pictures (they are drawn again)
+
+The card has two pictures, drawn for this terminal's own cell size and for
+the time of day, and kept in ~/.cache/archive/card:
+
+  the portrait   ~/.config/fastfetch/portrait.png (tools/import_portrait.py):
+                 by day printed onto the card's paper in its own colours; by
+                 night by moonlight, on a pale blue card cut out round the
+                 meadow and laid on the blue.
+  the swatches   the six ink colours of foot.ini (slots 16-21), rubbed on in
+                 chalk: squares one line high, a letter apart.
+
+Both are sixel pictures, which foot shows inline. Where the pictures cannot
+be drawn (no Python imaging, a terminal without sixel), the card falls back
+to the typed Arch mark (logo.txt) and no swatches.
+"""
+import fcntl
+import math
+import os
+import pathlib
+import random
+import shutil
+import struct
+import sys
+import termios
+
+HOME = pathlib.Path.home()
+CONF = pathlib.Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "fastfetch"
+STATE = pathlib.Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "archive"
+CACHE = pathlib.Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "archive" / "card"
+
+# foot.ini: the card's paper, its ink, and the six swatch inks, by mode
+PAPER = {"day": "d5d0ca", "night": "22385a"}
+NIGHT_CARD = "c3cedd"   # the pale blue card the portrait is mounted on by night
+SWATCHES = {
+    "day": ["545356", "6b6a6e", "737176", "626a78", "848991", "7f8796"],
+    "night": ["e6e1d6", "c9ccd2", "aeb5c2", "8e9cb3", "a9c4e4", "7c93b8"],
+}
+PORTRAIT_ROWS = 15
+VERSION = 4          # bump to redraw cached pictures after a change here
+
+
+def rgb(h):
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def mode():
+    try:
+        m = (STATE / "mode").read_text().strip()
+    except OSError:
+        m = "day"
+    return m if m in PAPER else "day"
+
+
+def cell_size():
+    """The terminal's cell in pixels (what sixel pictures are measured in)."""
+    for fd in (sys.stdout.fileno(), sys.stdin.fileno()):
+        try:
+            rows, cols, xpix, ypix = struct.unpack("HHHH", fcntl.ioctl(fd, termios.TIOCGWINSZ, b"\0" * 8))
+            if rows and cols and xpix and ypix:
+                return xpix / cols, ypix / rows
+        except OSError:
+            pass
+    return None
+
+
+# ------------------------------------------------------------------ sixel
+def sixel(index, palette):
+    """index: 2-D numpy array of palette indices, -1 transparent."""
+    import numpy as np
+    h, w = index.shape
+    out = ['\x1bP0;1;0q"1;1;%d;%d' % (w, h)]
+    for i, (r, g, b) in enumerate(palette):
+        out.append("#%d;2;%d;%d;%d" % (i, round(r * 100 / 255), round(g * 100 / 255), round(b * 100 / 255)))
+    weights = (1 << np.arange(6)).reshape(6, 1)
+    for top in range(0, h, 6):
+        band = index[top:top + 6]
+        if band.shape[0] < 6:
+            band = np.vstack([band, np.full((6 - band.shape[0], w), -1, band.dtype)])
+        first = True
+        for c in np.unique(band):
+            if c < 0:
+                continue
+            bits = ((band == c) * weights).sum(axis=0)
+            chars = (bits + 63).astype(np.uint8)
+            # run-length encoded: !<count><char>
+            edges = np.flatnonzero(np.diff(chars)) + 1
+            starts = np.concatenate([[0], edges])
+            ends = np.concatenate([edges, [w]])
+            line = []
+            for s, e in zip(starts, ends):
+                ch = chr(chars[s])
+                n = e - s
+                line.append("!%d%s" % (n, ch) if n > 3 else ch * n)
+            out.append(("" if first else "$") + "#%d" % c + "".join(line))
+            first = False
+        out.append("-")
+    out.append("\x1b\\")
+    return "".join(out)
+
+
+def to_sixel(rgba):
+    """An RGBA picture (PIL) as sixel: see-through where it is mostly clear."""
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(rgba.getchannel("A"))
+    opaque = rgba.convert("RGB").quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    index = np.asarray(opaque).astype(np.int16)
+    index[a < 40] = -1
+    pal = opaque.getpalette()[:255 * 3]
+    palette = [tuple(pal[i:i + 3]) for i in range(0, len(pal), 3)]
+    return sixel(index, palette)
+
+
+# ------------------------------------------------------------------ the portrait
+def portrait(m, cw, ch):
+    import numpy as np
+    from PIL import Image
+    src = Image.open(CONF / "portrait.png").convert("RGBA")
+    rows = PORTRAIT_ROWS
+    h = int(rows * ch)
+    w = round(src.width * h / src.height)
+    cols = math.ceil(w / cw)
+    pic = src.resize((w, h), Image.Resampling.LANCZOS)
+    p = np.asarray(pic).astype(np.float32) / 255.0
+    col, a = p[..., :3], p[..., 3:4]
+    paper = np.array(rgb(PAPER[m]), np.float32) / 255.0
+    if m == "day":
+        # printed onto the paper: the ink over the card's own colour
+        out = paper * (1 - a) + col * a
+    else:
+        # by moonlight: the drawing on a pale blue card, cut out round the
+        # meadow's edge like a pressed specimen and laid on the blue
+        moon = np.array(rgb(NIGHT_CARD), np.float32) / 255.0
+        on_card = moon * (1 - a) + col * a
+        lum = (on_card * np.array([0.299, 0.587, 0.114], np.float32)).sum(axis=2, keepdims=True)
+        out = (0.55 * on_card + 0.45 * lum * moon / moon.max()) * 0.92
+        a = cut_out(a[..., 0])[..., None]
+    alpha = (a[..., 0] * 255).astype(np.uint8)
+    img = Image.fromarray(np.dstack([(out * 255).clip(0, 255).astype(np.uint8), alpha]), "RGBA")
+    return to_sixel(img), cols, rows
+
+
+def cut_out(a):
+    """The drawing's outline, filled: 1 inside the meadow, 0 round it."""
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter
+    ink = Image.fromarray(((a > 0.12) * 255).astype(np.uint8), "L").filter(ImageFilter.MaxFilter(5))
+    w, h = ink.size
+    edge = Image.new("L", (w + 2, h + 2), 0)
+    edge.paste(ink, (1, 1))
+    ImageDraw.floodfill(edge, (0, 0), 128)
+    inside = np.asarray(edge)[1:-1, 1:-1] != 128
+    soft = Image.fromarray((inside * 255).astype(np.uint8), "L").filter(ImageFilter.MinFilter(3))
+    return np.asarray(soft).astype(np.float32) / 255.0
+
+
+# ------------------------------------------------------------------ the swatches
+def swatches(m, cw, ch):
+    import numpy as np
+    from PIL import Image
+    s = max(10, int(ch * 0.9))
+    gap = max(4, int(cw))
+    w = 6 * s + 5 * gap
+    pic = np.zeros((s, w, 4), np.uint8)
+    for k, ink in enumerate(SWATCHES[m]):
+        r = random.Random(1009 + 31 * k)
+        base = np.array(rgb(ink), np.float32)
+        heavy = base * 0.86
+        x0 = k * (s + gap)
+        angle = r.uniform(0.55, 0.85)
+        ca, sa, phase = math.cos(angle), math.sin(angle), r.uniform(0, 6.3)
+        # the edges wander a little, as drawn by hand
+        wob = [r.uniform(-1, 1) for _ in range(4)]
+        e = max(1.0, s * 0.06)
+        for y in range(s):
+            for x in range(s):
+                inside = (y > e * (1 + 0.6 * wob[0] * math.sin(x * 0.4)) and y < s - 1 - e * (1 + 0.6 * wob[1] * math.sin(x * 0.35))
+                          and x > e * (1 + 0.6 * wob[2] * math.sin(y * 0.45)) and x < s - 1 - e * (1 + 0.6 * wob[3] * math.sin(y * 0.3)))
+                u = x * ca + y * sa
+                band = 0.5 + 0.5 * math.sin(u * 12.0 / s + phase)
+                if inside and r.random() < 0.8 + 0.17 * band:
+                    c = heavy if r.random() < 0.25 * band else base
+                    pic[y, x0 + x] = (*c.astype(np.uint8), 255)
+                elif not inside and r.random() < 0.03 * band:
+                    pic[y, x0 + x] = (*base.astype(np.uint8), 255)
+    return to_sixel(Image.fromarray(pic, "RGBA"))
+
+
+# ------------------------------------------------------------------ the card
+def drawn(name, m, cw, ch, make):
+    """A picture from the cache, or drawn now and kept."""
+    key = "%s-%s-%dx%d-v%d" % (name, m, round(cw * 10), round(ch * 10), VERSION)
+    f = CACHE / (key + ".six")
+    meta = CACHE / (key + ".size")
+    if f.exists() and (name != "portrait" or meta.exists()):
+        return f, meta.read_text().split() if meta.exists() else None
+    CACHE.mkdir(parents=True, exist_ok=True)
+    result = make(m, cw, ch)
+    if isinstance(result, tuple):
+        data, cols, rows = result
+        meta.write_text("%d %d" % (cols, rows))
+    else:
+        data, cols, rows = result, None, None
+    f.write_text(data)
+    return f, ([str(cols), str(rows)] if cols else None)
+
+
+def main():
+    if sys.argv[1:2] == ["clean"]:
+        shutil.rmtree(CACHE, ignore_errors=True)
+        return
+    args = ["fastfetch"]
+    size = cell_size()
+    m = mode()
+    try:
+        if size is None or not (CONF / "portrait.png").exists():
+            raise RuntimeError("no cell size or no portrait")
+        cw, ch = size
+        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait)
+        sf, _ = drawn("swatches", m, cw, ch, swatches)
+        # the swatches' module reads the current one from here
+        cur = CACHE / "swatches.six"
+        if cur.is_symlink() or cur.exists():
+            cur.unlink()
+        cur.symlink_to(sf.name)
+        args += ["--logo-type", "raw", "--logo", str(pf),
+                 "--logo-width", cols, "--logo-height", rows,
+                 "--logo-padding-top", "1", "--logo-padding-left", "2", "--logo-padding-right", "3"]
+    except Exception:
+        # the typed mark, no swatches
+        try:
+            (CACHE / "swatches.six").unlink()
+        except OSError:
+            pass
+    sys.stdout.flush()
+    os.execvp("fastfetch", args)
+
+
+if __name__ == "__main__":
+    main()
