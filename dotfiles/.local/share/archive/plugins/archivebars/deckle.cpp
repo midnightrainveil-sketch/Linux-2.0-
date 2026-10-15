@@ -766,6 +766,10 @@ namespace Deckle {
     }
 
     cairo_surface_t* grainTile(int size, double strength) {
+        // Paper, looked at closely: a fine tooth, faint small-scale cloudiness
+        // (the pulp settling unevenly), short fibres lying mostly one way,
+        // some darker and some catching the light, and the odd inclusion.
+        // Each pixel lightens (white) or darkens (black) the window a little.
         size              = std::max(64, size / 64 * 64);
         strength          = std::clamp(strength, 0.0, 3.0);
         auto*        s    = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
@@ -775,26 +779,43 @@ namespace Deckle {
 
         for (int y = 0; y < size; ++y) {
             for (int x = 0; x < size; ++x) {
-                const double mottle = tileNoise(x, y, size / 64, 64, 11) * 0.55 + tileNoise(x, y, size / 16, 16, 12) * 0.45;
-                const double tooth  = random01(13, (uint32_t)x, (uint32_t)y);
-                const double speck  = random01(14, (uint32_t)(x / 2), (uint32_t)(y / 2)) > 0.9993 ? 1.0 : 0.0;
-                const double g      = (mottle - 0.5) * 0.070 + (tooth - 0.5) * 0.030 - speck * 0.12;
-                const double a      = std::clamp((0.02 - g) * strength, 0.0, 0.5);
-                px[y * rows + x]    = (uint32_t)std::lround(a * 255) << 24; // black, premultiplied
+                // formation: small flocs over a very gentle larger swell
+                const double cloud = tileNoise(x, y, size / 4, 4, 21) * 0.55 + tileNoise(x, y, size / 8, 8, 22) * 0.30 + tileNoise(x, y, size / 32, 32, 23) * 0.15;
+                // tooth: per-pixel, softened with its neighbour along the grain
+                const double tooth = 0.6 * random01(24, (uint32_t)x, (uint32_t)y) + 0.4 * random01(24, (uint32_t)((x + 1) % size), (uint32_t)y);
+                const bool   speck = random01(25, (uint32_t)(x / 2), (uint32_t)(y / 2)) > 0.99985;
+                const double g     = ((cloud - 0.5) * 0.040 + (tooth - 0.5) * 0.045) * strength - (speck ? 0.10 : 0.0) * std::min(1.0, strength) - 0.006 * strength;
+                uint32_t     v     = 0;
+                if (g < 0) {
+                    const double a = std::clamp(-g, 0.0, 0.45);
+                    v              = (uint32_t)std::lround(a * 255) << 24; // black, premultiplied
+                } else {
+                    const double a = std::clamp(g * 0.8, 0.0, 0.30);
+                    const auto   c = (uint32_t)std::lround(a * 255);
+                    v              = (c << 24) | (c << 16) | (c << 8) | c; // white, premultiplied
+                }
+                px[y * rows + x] = v;
             }
         }
         cairo_surface_mark_dirty(s);
 
-        // pale fibres, drawn on the torus so the tile still repeats
+        // fibres, drawn on the torus so the tile still repeats: mostly along
+        // one direction (the way the paper ran through the machine)
         cairo_t* cr = cairo_create(s);
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-        cairo_set_line_width(cr, 0.7);
-        cairo_set_source_rgba(cr, 1, 1, 1, std::min(1.0, 0.035 * strength));
-        const int fibres = size * size / 2600;
+        const int fibres = size * size / 900;
         for (int i = 0; i < fibres; ++i) {
-            const double x0 = random01(15, i, 0) * size, y0 = random01(15, i, 1) * size;
-            const double ang = random01(15, i, 2) * 3.14159265358979, len = 6 + 16 * random01(15, i, 3), bend = (random01(15, i, 4) - 0.5) * len * 0.6;
+            const bool   light = random01(26, i, 5) < 0.55;
+            const double x0 = random01(26, i, 0) * size, y0 = random01(26, i, 1) * size;
+            const double ang  = (random01(26, i, 2) - 0.5) * (random01(26, i, 6) < 0.8 ? 1.1 : 3.14159265358979);
+            const double len  = 3 + 11 * random01(26, i, 3) * random01(26, i, 7);
+            const double bend = (random01(26, i, 4) - 0.5) * len * 0.5;
             const double dx = std::cos(ang) * len, dy = std::sin(ang) * len;
+            cairo_set_line_width(cr, 0.45 + 0.4 * random01(26, i, 8));
+            if (light)
+                cairo_set_source_rgba(cr, 1, 1, 1, std::min(1.0, (0.05 + 0.05 * random01(26, i, 9)) * strength));
+            else
+                cairo_set_source_rgba(cr, 0, 0, 0, std::min(1.0, (0.025 + 0.03 * random01(26, i, 9)) * strength));
             for (int ox = -1; ox <= 1; ++ox) {
                 for (int oy = -1; oy <= 1; ++oy) {
                     const double bx = x0 + ox * size, by = y0 + oy * size;

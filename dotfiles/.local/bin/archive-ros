@@ -161,6 +161,7 @@ EOF
 # talks both ways, so the robot must reach this laptop too: it is told this
 # laptop's address on the robot's network (not a name it cannot look up).
 robot_env=""
+robot_up=1
 robot() {
     local host=$1 addr me
     addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
@@ -170,6 +171,7 @@ robot() {
     echo ":: robot master http://$host:11311, this laptop $me"
     if ! timeout 3 bash -c "exec 3<>/dev/tcp/$addr/11311" 2>/dev/null; then
         echo "!! nothing answers on $host port 11311: is the robot's roscore (its bringup) running?" >&2
+        robot_up=0
     fi
     robot_env="export ROS_MASTER_URI=http://$host:11311 ROS_IP=$me ROS_HOSTNAME=$me;"
 }
@@ -223,10 +225,18 @@ case $cmd in
     rviz)
         ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
         write_rc
+        if [[ -n ${2:-} ]]; then
+            robot "$2"
+            # RViz shows nothing until it reaches the master: say so, rather
+            # than open an empty black window
+            if ((!robot_up)); then
+                echo "   RViz would only wait for it. Start the robot's ROS (or check you are on its Wi-Fi), then try again." >&2
+                exit 1
+            fi
+        fi
         read -r disp geo < <(private_x)
         show="export DISPLAY=$disp _archive_geo=$geo; rviz"
         if [[ -n ${2:-} ]]; then
-            robot "$2"
             exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; $show"
         fi
         # roscore first if none is running; stopped again with RViz
