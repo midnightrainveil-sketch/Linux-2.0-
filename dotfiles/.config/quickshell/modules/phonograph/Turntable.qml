@@ -69,6 +69,7 @@ Item {
 
     readonly property color wood: Theme.night > 0.5 ? "#101a2b" : "#3a2f27"
     readonly property color brass: Theme.night > 0.5 ? "#7d8aa1" : "#a68a5b"
+    readonly property real printTone: 0.32       // how much of the photographs' colour is let down
     readonly property color vinyl: Theme.night > 0.5 ? "#0b1220" : "#151416"
 
     // ---------------------------------------------------------------- the plinth
@@ -83,10 +84,18 @@ Item {
     DropShadow {
         anchors.fill: plinth
         source: deck.art ? plinthImg : plinth
-        radius: 24
-        samples: 33
-        verticalOffset: 10
-        color: Qt.rgba(0, 0, 0, 0.42)
+        radius: 16
+        samples: 25
+        verticalOffset: 5
+        color: Qt.rgba(0, 0, 0, 0.36)
+    }
+    // the photograph printed for the plate: its colour let down, so it sits
+    // on the paper with the drawings rather than on top of them
+    Desaturate {
+        anchors.fill: parent
+        source: plinthImg
+        visible: deck.art
+        desaturation: deck.printTone
     }
     Canvas {
         id: plinth
@@ -614,11 +623,10 @@ Item {
                 verticalOffset: 4 + 10 * arm.lift
                 color: Qt.rgba(0, 0, 0, 0.5 - 0.15 * arm.lift)
             }
-            Image {
+            Desaturate {
                 anchors.fill: armImg
-                source: armImg.source
-                sourceSize: armImg.sourceSize
-                smooth: true
+                source: armImg
+                desaturation: deck.printTone
             }
             Colorize {
                 anchors.fill: armImg
