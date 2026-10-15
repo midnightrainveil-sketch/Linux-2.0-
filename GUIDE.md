@@ -272,7 +272,7 @@ number is the current air pressure in hPa.
 
 | Keys | Does |
 | --- | --- |
-| `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out |
+| `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out. When no card matches, `Enter` looks the words up on DuckDuckGo |
 | `Alt + Tab`, `Super + W` | The Register: every open window, put-away ones too |
 | `Super + A`, or click the Audio Archive card | The Phonograph: a turntable beside your albums (each folder in `~/Music`, filed as a herbarium sheet). Click a track or `Enter`; `← →` other folders, `↑ ↓` tracks, `Space` or click the record to pause, `N`/`P` next/previous, drag the tone arm to drop the needle. Needs `mpv` (and `mpv-mpris` for media keys); the music plays on when it closes |
 | `Super + O` | The field notebook: write straight onto the page; every page is a file in `~/Documents/Field Notes`, saved as you write. `PageDown`/`PageUp` or the corners turn pages, `Ctrl + N` a fresh one |

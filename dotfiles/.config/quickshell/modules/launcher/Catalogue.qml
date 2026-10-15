@@ -92,8 +92,18 @@ PanelWindow {
         selected = Math.max(0, Math.min(results.length - 1, selected + by));
     }
     function launch() {
+        if (launching) return;
         const app = results[selected];
-        if (!app || launching) return;
+        // no card under that heading: look the words up on the web instead
+        if (!app) {
+            const q = query.trim();
+            if (q === "") return;
+            launching = true;
+            const engine = Settings.get("search", "https://duckduckgo.com/?q=%s");
+            Quickshell.execDetached(["xdg-open", engine.replace("%s", encodeURIComponent(q))]);
+            closeAfterLift.restart();
+            return;
+        }
         launching = true;
         // programs that live in a terminal (htop, btop...) get one
         if (app.runInTerminal)
@@ -352,7 +362,7 @@ PanelWindow {
             visible: win.results.length === 0
             anchors.horizontalCenter: parent.horizontalCenter
             y: stage.frontTop - 70
-            text: "No card under that heading."
+            text: "No card under that heading.  Return looks it up on DuckDuckGo."
             color: Theme.night > 0.5 ? Theme.faded : "#d9cdbd"
             font.pixelSize: 17
         }

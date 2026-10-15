@@ -35,6 +35,14 @@ PanelWindow {
 
     // ---------------------------------------------------------------- what the line means
     readonly property string line: input.text
+    // the letters on the slip so far: a letter is there once its typebar
+    // has struck, not when its key goes down
+    property int stamped: 0
+    readonly property string inked: line.slice(0, Math.min(stamped, line.length))
+    property bool keyed: false           // the next change to the line comes from a key
+    function stamp(upTo: int): void {
+        if (upTo > stamped) { stamped = upTo; fresh.land(); }
+    }
     readonly property var plan: decide(line)
 
     // a sum, worked safely: only numbers, operators, brackets and a few
@@ -134,6 +142,7 @@ PanelWindow {
     onShownChanged: {
         if (shown) {
             input.text = "";
+            stamped = 0;
             copied.visible = false;
             carriage.back = 0;
             finishing.stop();
@@ -202,6 +211,17 @@ PanelWindow {
             if (e.key === Qt.Key_Left || e.key === Qt.Key_Right || e.key === Qt.Key_Home || e.key === Qt.Key_End) { e.accepted = true; return; }
             win.struck = e.key === Qt.Key_Space ? " " : e.text.toUpperCase();
             win.strikes += 1;
+            // a letter: a typebar swings up and strikes it onto the slip
+            if (e.key !== Qt.Key_Space && e.text.length === 1 && e.text >= "!" && !(e.modifiers & Qt.ControlModifier)) {
+                win.keyed = true;
+                arms.itemAt(win.strikes % arms.count).fire(win.struck, win.line.length + 1);
+            }
+        }
+        // spaces, rubbing out, pasting: on the slip at once
+        onTextChanged: {
+            if (win.keyed) win.keyed = false;
+            else win.stamped = text.length;
+            if (win.stamped > text.length) win.stamped = text.length;
         }
     }
 
@@ -228,7 +248,12 @@ PanelWindow {
             id: typed
             font.family: Theme.typewriter
             font.pixelSize: 21
-            text: win.line
+            text: win.inked
+        }
+        TextMetrics {
+            id: typedBefore
+            font: typed.font
+            text: win.inked.slice(0, -1)
         }
         Item {
             id: carriage
@@ -282,10 +307,30 @@ PanelWindow {
                     id: lineText
                     x: Math.min(0, parent.width - 18 - typed.advanceWidth)
                     anchors.verticalCenter: parent.verticalCenter
-                    text: win.line
+                    text: win.inked
                     font.pixelSize: 21
                     color: Theme.graphite
                     spread: 0.6
+                }
+                // the letter just struck: hit hard, a little ink squeezed
+                // out round it, settling into the paper
+                InkText {
+                    id: fresh
+                    x: lineText.x + typedBefore.advanceWidth
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: win.inked.slice(-1)
+                    font.pixelSize: 21
+                    color: Theme.graphite
+                    spread: 1.4
+                    opacity: 0
+                    function land() { landing.restart(); }
+                    SequentialAnimation {
+                        id: landing
+                        ParallelAnimation {
+                            NumberAnimation { target: fresh; property: "opacity"; from: 1; to: 0; duration: Theme.dur(320); easing.type: Easing.InQuad }
+                            NumberAnimation { target: fresh; property: "scale"; from: 1.3; to: 1; duration: Theme.dur(90); easing.type: Easing.OutQuad }
+                        }
+                    }
                 }
                 // where the next letter lands
                 Rectangle {
@@ -575,49 +620,112 @@ PanelWindow {
             }
         }
 
-        // the typebar: on every key one swings up out of the basket and
-        // strikes the paper at the guide
+        // the typebars: on every letter one swings up out of the basket,
+        // strikes the slip at the guide (the letter is printed then) and
+        // falls back. A few of them, so quick typing has several in the air.
+        Repeater {
+            id: arms
+            model: 6
+            Item {
+                id: arm
+                required property int index
+                readonly property string order: "1QAZ2WSX3EDC4RFV5TGB6YHN7UJM8IK,9OL.0P;/-"
+                property real fan: Math.PI / 2
+                property int prints: 0           // the slip's length once this one has struck
+                property real reach: 0
+                function fire(letter: string, upTo: int): void {
+                    const i = order.indexOf(letter);
+                    const k = i >= 0 ? i : (letter.charCodeAt(0) * 7) % order.length;
+                    fan = Math.PI * (0.94 - 0.88 * k / (order.length - 1));
+                    prints = upTo;
+                    fly.restart();
+                }
+                // Measured on the photograph: the bars lie in the basket
+                // radiating round (795, 230), turning on the outer ring
+                // (rx 320, ry 240), their heads resting on the inner one
+                // (rx 150, ry 120); they strike at the guide (795, 195).
+                // Seen from the front, a rising bar's head comes up off its
+                // rest, bulging towards you, to the guide.
+                function ring(rx: real, ry: real): point {
+                    return win.art ? stage.onMachine(795 + Math.cos(fan) * rx, 230 + Math.sin(fan) * ry)
+                                   : Qt.point(stage.width / 2 + Math.cos(fan) * rx * 0.55, body.y + 8 + Math.sin(fan) * ry * 0.26);
+                }
+                readonly property point pivot: ring(320, 240)
+                readonly property point rest: ring(150, 120)
+                readonly property point guide: win.art ? stage.onMachine(795, 195) : Qt.point(stage.strikeX, stage.platenY + 18)
+                readonly property real lift: Math.sin(Math.PI * reach) * (win.art ? 22 : 14)
+                readonly property point head: Qt.point(rest.x + (guide.x - rest.x) * reach,
+                                                       rest.y + (guide.y - rest.y) * reach - lift)
+                readonly property real seen: Math.hypot(head.x - pivot.x, head.y - pivot.y)
+                readonly property real thick: 4.5 + 3.5 * reach      // nearer as it rises
+                visible: reach > 0.02
+                x: pivot.x
+                y: pivot.y
+                rotation: Math.atan2(head.y - pivot.y, head.x - pivot.x) * 180 / Math.PI
+
+                // its shadow on the machine
+                Rectangle {
+                    x: 3; y: 3 + 8 * arm.reach - arm.thick / 2
+                    width: arm.seen; height: arm.thick; radius: arm.thick / 2
+                    color: "black"
+                    opacity: 0.25 + 0.2 * arm.reach
+                }
+                // the bar: a flat steel strip, lit along its top edge
+                Rectangle {
+                    x: 0; y: -arm.thick / 2
+                    width: arm.seen - 6; height: arm.thick; radius: arm.thick / 2
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.45) }
+                        GradientStop { position: 0.4; color: win.chrome }
+                        GradientStop { position: 1; color: Qt.darker(win.chrome, 1.9) }
+                    }
+                    border.width: 0.8
+                    border.color: Qt.rgba(0, 0, 0, 0.55)
+                }
+                // the knuckle it turns on
+                Rectangle {
+                    x: -5; y: -5; width: 10; height: 10; radius: 5
+                    color: Qt.darker(win.chrome, 1.4)
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.6)
+                }
+                // the type slug at its head
+                Rectangle {
+                    x: arm.seen - 14
+                    y: -height / 2
+                    width: 16; height: 13 + 3 * arm.reach; radius: 2.5
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.3) }
+                        GradientStop { position: 1; color: Qt.darker(win.chrome, 2.0) }
+                    }
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.6)
+                }
+                SequentialAnimation {
+                    id: fly
+                    NumberAnimation { target: arm; property: "reach"; from: 0.1; to: 1; duration: 75; easing.type: Easing.InQuad }
+                    ScriptAction { script: { win.stamp(arm.prints); impact.restart(); } }
+                    PauseAnimation { duration: 35 }
+                    NumberAnimation { target: arm; property: "reach"; to: 0.1; duration: 140; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: arm; property: "reach"; to: 0; duration: 40 }
+                }
+            }
+        }
+        // where they strike: a puff of ribbon ink, and the machine jolts
         Rectangle {
-            id: typebar
-            readonly property string order: "1QAZ2WSX3EDC4RFV5TGB6YHN7UJM8IK,9OL.0P;/- "
-            readonly property real fanAngle: {
-                const i = Math.max(0, order.indexOf(win.struck));
-                return Math.PI * (0.94 - 0.88 * i / (order.length - 1));
-            }
-            // from its place in the basket's ring to the type guide
-            readonly property point from: win.art
-                ? stage.onMachine(790 + Math.cos(fanAngle) * 315, 300 + Math.sin(fanAngle) * 170)
-                : Qt.point(stage.width / 2 + Math.cos(fanAngle) * 176, body.y + 8 + Math.sin(fanAngle) * 62)
-            readonly property point to: win.art ? stage.onMachine(782, 200) : Qt.point(stage.strikeX, stage.platenY + 18)
-            property real reach: 0
-            visible: reach > 0.01
-            x: from.x
-            y: from.y - height / 2
-            height: 4
-            radius: 2
-            width: Math.hypot(to.x - from.x, to.y - from.y) * reach
-            transformOrigin: Item.Left
-            rotation: Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI
-            gradient: Gradient {
-                GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.3) }
-                GradientStop { position: 1; color: Qt.darker(win.chrome, 1.4) }
-            }
-            // the slug at its end, with the letter on it
-            Rectangle {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: 9; height: 8; radius: 1.5
-                color: Qt.darker(win.chrome, 1.2)
-                visible: typebar.reach > 0.6
-            }
-            SequentialAnimation {
-                id: swing
-                NumberAnimation { target: typebar; property: "reach"; from: 0.15; to: 1; duration: 45; easing.type: Easing.InQuad }
-                NumberAnimation { target: typebar; property: "reach"; to: 0; duration: 95; easing.type: Easing.OutQuad }
-            }
-            Connections {
-                target: win
-                function onStrikesChanged() { if (win.struck !== " ") swing.restart(); }
+            id: inkPuff
+            readonly property point at: win.art ? stage.onMachine(795, 195) : Qt.point(stage.strikeX, stage.platenY + 18)
+            x: at.x - width / 2
+            y: at.y - height / 2
+            width: 14; height: 14; radius: 7
+            color: "transparent"
+            border.width: 2
+            border.color: Qt.rgba(0.08, 0.07, 0.07, 0.8)
+            opacity: 0
+            ParallelAnimation {
+                id: impact
+                NumberAnimation { target: inkPuff; property: "opacity"; from: 0.9; to: 0; duration: 200; easing.type: Easing.OutQuad }
+                NumberAnimation { target: inkPuff; property: "scale"; from: 0.5; to: 2.2; duration: 200; easing.type: Easing.OutQuad }
             }
         }
 
