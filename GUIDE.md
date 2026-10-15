@@ -383,6 +383,13 @@ with a 10 ms fade-out.
   with a light grey frame, or leave the system theme on.
 - **Electron apps** (VS Code, Discord): they follow the GTK colour scheme where
   they support it. In VS Code, pick a light low-contrast theme by day.
+- **Cursors**: the archive's own (a pencil, white gloves, a pocket watch, a
+  compass star, a loupe, a scale bar), drawn from `art/cursors/sheet.webp` by
+  `tools/import_cursors.py`. Size 32 is set in `hypr/hyprland.lua`
+  (`XCURSOR_SIZE`) and the GTK settings.
+- **Text and code files** (md, py, cpp, json, ...) open in VS Code when it is
+  installed (the setup makes it the default; `xdg-mime default code.desktop
+  text/plain` does it by hand).
 - **Calls** (Teams, Meet, Discord): pick **Microphone (clear)**, the laptop's
   microphone with the hiss, fan hum and echo taken out. `archive-mic test`
   records five seconds and plays them back; `archive-mic tone soft` or `softer`

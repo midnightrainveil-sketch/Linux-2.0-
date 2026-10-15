@@ -1,0 +1,4 @@
+[Icon Theme]
+Name=Default
+Comment=The cursors programs use when they are told none (the archive's)
+Inherits=Archive-Cursors

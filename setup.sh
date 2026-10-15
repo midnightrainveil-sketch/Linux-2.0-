@@ -120,6 +120,21 @@ if systemctl --user is-active --quiet pipewire; then
     say "the microphone"
     "$HOME/.local/bin/archive-mic" on || warn "could not set up the clear microphone; run archive-mic"
 fi
+# text and code (md, py, cpp, json, ...) open in VS Code, when it is installed
+for id in code visual-studio-code code-oss codium; do
+    if [[ -f /usr/share/applications/$id.desktop ]]; then
+        xdg-mime default "$id.desktop" text/plain text/markdown text/x-markdown text/x-python \
+            text/x-python3 application/x-python-code text/x-c text/x-csrc text/x-chdr text/x-c++src \
+            text/x-c++hdr text/x-c++ text/x-java text/x-rust text/x-go text/javascript \
+            application/javascript text/x-typescript application/x-typescript application/json \
+            application/x-yaml text/x-yaml application/yaml application/toml text/x-toml \
+            application/xml text/xml text/x-shellscript application/x-shellscript text/x-script.python \
+            text/x-lua text/x-cmake text/x-makefile text/x-log text/csv text/x-csv application/x-ini \
+            text/x-ini text/x-diff text/x-patch application/x-desktop text/x-qml application/sql \
+            text/x-sql || warn "could not make VS Code the text editor"
+        break
+    fi
+done
 # pictures (screenshots included) open in gThumb: viewer and simple editor
 for id in org.gnome.gThumb gthumb; do
     if [[ -f /usr/share/applications/$id.desktop ]]; then
