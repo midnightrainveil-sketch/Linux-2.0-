@@ -12,7 +12,7 @@ the time of day, and kept in ~/.cache/archive/card:
                  night by moonlight, on a pale blue card cut out round the
                  meadow and laid on the blue.
   the swatches   the six ink colours of foot.ini (slots 16-21), rubbed on in
-                 chalk: squares one line high, a letter apart.
+                 chalk: squares one line high, close together.
 
 Both are sixel pictures, which foot shows inline. Where the pictures cannot
 be drawn (no Python imaging, a terminal without sixel), the card falls back
@@ -44,7 +44,7 @@ SWATCHES = {
 # (less the prompt), and no wider than leaves INFO_COLS for the label
 INFO_COLS = 39
 MAX_ROWS = 24
-VERSION = 5          # bump to redraw cached pictures after a change here
+VERSION = 6          # bump to redraw cached pictures after a change here
 
 
 def rgb(h):
@@ -176,7 +176,7 @@ def swatches(m, cw, ch):
     import numpy as np
     from PIL import Image
     s = max(10, int(ch * 0.9))
-    gap = max(4, int(cw))
+    gap = max(3, round(cw * 0.4))      # a little under half a letter apart
     w = 6 * s + 5 * gap
     pic = np.zeros((s, w, 4), np.uint8)
     for k, ink in enumerate(SWATCHES[m]):
