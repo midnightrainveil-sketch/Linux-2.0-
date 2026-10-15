@@ -179,14 +179,14 @@ Row {
             anchors.verticalCenter: parent.verticalCenter
             text: Clock.barDate
             font.pixelSize: Theme.sizeSmall
-            color: dateMouse.containsMouse || Panels.open === "ledger" ? Theme.graphite : Theme.soft
+            color: dateMouse.containsMouse || Panels.open.startsWith("ledger") ? Theme.graphite : Theme.soft
         }
         MouseArea {
             id: dateMouse
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: Panels.toggle("ledger")
+            onClicked: Panels.open.startsWith("ledger") ? Panels.close() : Panels.show("ledger")
         }
     }
 }

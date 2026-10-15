@@ -8,9 +8,13 @@ import Quickshell
 Singleton {
     id: root
 
-    // "", "catalogue", "ledger", "instrument", "disposition", "register",
-    // "phonograph", "notebook", "typewriter"
+    // "", "catalogue", "ledger", "ledger-year", "instrument", "disposition",
+    // "register", "phonograph", "notebook", "typewriter"
     property string open: ""
+
+    // the month the Ledger opens at next, in months from this one (set by
+    // the year's ledger when a month is picked there; read once)
+    property int ledgerAt: 0
 
     function toggle(name: string): void { open = (open === name) ? "" : name; }
     function show(name: string): void { open = name; }

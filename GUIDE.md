@@ -289,7 +289,7 @@ number is the current air pressure in hPa.
 | `Super + Ctrl + ← →`, `Super + PageUp / PageDown`, three-finger swipe | Previous / next workspace |
 | `Super + -` | Put the window in the drawer (minimise) |
 | `` Super + ` `` | Open the drawer (scratchpad) |
-| `Super + C` | Ledger (calendar) |
+| `Super + C` | Ledger (calendar): scroll (or ← →) through the months, `Home` for today; "Year" in its corner (or `F`) opens the whole year in the middle of the desk, where a click on a month opens that month |
 | `Super + I` | Instrument card (quick settings) |
 | `Super + N` | Turn the sheet: day or night (holds until the next sunrise or sunset) |
 | `Super + Shift + G` | Paper grain on this window, on or off (the "░" in its title bar does the same; quick settings' Grain row turns it off everywhere) |

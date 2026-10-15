@@ -51,6 +51,7 @@ ShellRoot {
     // ---- one at a time, on the focused screen
     Catalogue   { screen: shell.focusedScreen }
     Ledger      { screen: shell.focusedScreen }
+    LedgerYear  { screen: shell.focusedScreen }
     InstrumentCard { screen: shell.focusedScreen }
     Disposition { screen: shell.focusedScreen }
     Register    { id: registerCard; screen: shell.focusedScreen }
@@ -68,6 +69,7 @@ ShellRoot {
         target: "shell"
         function catalogue(): void { Panels.toggle("catalogue"); }
         function ledger(): void { Panels.toggle("ledger"); }
+        function ledgerYear(): void { Panels.toggle("ledger-year"); }
         function instruments(): void { Panels.toggle("instrument"); }
         function disposition(): void { Panels.toggle("disposition"); }
         function phonograph(): void { Panels.toggle("phonograph"); }
