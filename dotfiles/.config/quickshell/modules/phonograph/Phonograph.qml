@@ -287,8 +287,16 @@ PanelWindow {
             volume: Gramophone.volume
             volumeShown: win.ours
 
+            cover: win.ours ? Gramophone.cover : (win.other ? Media.art : "")
+            trackProgress: win.ours ? (Gramophone.duration > 0 ? Gramophone.position / Gramophone.duration : 0) : Media.progress
+            trackTimes: win.ours && Gramophone.duration > 0 ? Media.time(Gramophone.position) + " / " + Media.time(Gramophone.duration)
+                      : (win.other && Media.length > 0 ? Media.time(Media.position) + " / " + Media.time(Media.length) : "")
+
             onToggled: win.toggle()
-            onWound: s => Gramophone.seek(s)
+            onWound: s => win.ours ? Gramophone.seek(s) : Media.seekBy(s)
+            onPreviousAsked: win.ours ? Gramophone.previous() : Media.previous()
+            onNextAsked: win.ours ? Gramophone.next() : Media.next()
+            onScrubbed: f => win.ours ? Gramophone.seekTo(f * Gramophone.duration) : Media.seekTo(f * Media.length)
             onVolumeAsked: v => Gramophone.setVolume(v)
             onArmRested: { if (win.ours && !Gramophone.paused) Gramophone.toggle(); else if (win.other && Media.playing) Media.toggle(); }
             onNeedleDropped: f => {

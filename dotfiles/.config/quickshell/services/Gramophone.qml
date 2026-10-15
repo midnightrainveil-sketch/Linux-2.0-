@@ -67,6 +67,8 @@ Singleton {
     readonly property var album: albumIndex >= 0 ? albums[albumIndex] : null
     readonly property int trackIndex: album ? album.tracks.findIndex(t => t.file === path) : -1
     readonly property var track: album && trackIndex >= 0 ? album.tracks[trackIndex] : null
+    // the playing track's picture (its own, else its folder's), for the label
+    readonly property string cover: track?.cover || album?.cover || ""
 
     // how far through the whole record (all its tracks), 0..1: where the
     // needle is
@@ -191,6 +193,7 @@ Singleton {
         else send(["playlist-prev"]);
     }
     function seek(by: real): void { if (loaded) send(["seek", by, "relative"]); }
+    function seekTo(seconds: real): void { if (loaded) send(["seek", Math.max(0, seconds), "absolute"]); }
     // drop the needle at a point on the record (0..1 of the whole album)
     function setNeedle(f: real): void {
         if (!album) { if (loaded) send(["seek", f * 100, "absolute-percent"]); return; }

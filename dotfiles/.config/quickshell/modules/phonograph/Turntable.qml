@@ -11,8 +11,11 @@ import "../../components/Rand.js" as Rand
 // you are; the bands in the grooves are its tracks.
 //
 //   click the record, the cue lever    pause / play
+//   turn the record by hand            wind back (anticlockwise) or on, as you turn
 //   drag the arm onto the record       play from there; back to its rest: pause
 //   scroll on the record               wind on / back 10 s
+//   the brass buttons                  previous, pause / play, next
+//   the line on the title card         where in the song; drag along it
 //   scroll on the knob                 volume
 Item {
     id: deck
@@ -32,12 +35,18 @@ Item {
     property real progress: 0           // 0..1 of the whole record
     property int volume: 100
     property bool volumeShown: true
+    property string cover: ""           // the playing track's picture: on the label
+    property real trackProgress: 0      // 0..1 of the song playing
+    property string trackTimes: ""      // "0:21 / 3:15"
 
     signal toggled()
     signal needleDropped(real f)        // 0..1 across the record
     signal armRested()
     signal wound(real seconds)
     signal volumeAsked(int v)
+    signal previousAsked()
+    signal nextAsked()
+    signal scrubbed(real f)             // 0..1 of the song
 
     // ---------------------------------------------------------------- geometry
     // The deck is the photograph in assets/phonograph (tools/import_objects.py)
@@ -401,6 +410,47 @@ Item {
                     maskSource: Rectangle { width: label.width; height: label.height; radius: width / 2 }
                 }
             }
+            // the track's own picture printed on the label, when it has one
+            Item {
+                id: labelArt
+                anchors.fill: label
+                visible: coverImg.status === Image.Ready
+                Image {
+                    id: coverImg
+                    anchors.fill: parent
+                    source: deck.cover === "" ? "" : (deck.cover.startsWith("/") ? "file://" + deck.cover : deck.cover)
+                    sourceSize: Qt.size(264, 264)
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    smooth: true
+                    visible: false
+                }
+                OpacityMask {
+                    anchors.fill: parent
+                    source: coverImg
+                    maskSource: Rectangle { width: labelArt.width; height: labelArt.height; radius: width / 2 }
+                }
+                // printed on paper: a little of the colour let down, the
+                // paper's grain over it, a pressed ring at the edge
+                Rectangle {
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Theme.paperRaised
+                    opacity: 0.12
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Qt.rgba(0, 0, 0, 0.35)
+                }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 14; height: 14; radius: 7
+                    color: Qt.rgba(0, 0, 0, 0.28)
+                }
+            }
         }
 
         // the light lying on the record: it does not turn with it, which is
@@ -462,20 +512,49 @@ Item {
             }
         }
 
+        // a click: pause / play. Held and turned: the record goes round
+        // under the hand and the music winds with it, one turn 8 s
         MouseArea {
+            id: hand
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: deck.toggled()
+            cursorShape: deck.held ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+            property real lastAngle: 0
+            property real moved: 0
+            function angleAt(m) { return Math.atan2(m.y - height / 2, m.x - width / 2) * 180 / Math.PI; }
+            onPressed: m => { lastAngle = angleAt(m); moved = 0; }
+            onPositionChanged: m => {
+                if (!pressed) return;
+                let d = angleAt(m) - lastAngle;
+                if (d > 180) d -= 360;
+                if (d < -180) d += 360;
+                lastAngle = angleAt(m);
+                moved += Math.abs(d);
+                if (moved < 4) return;
+                deck.held = true;
+                record.rotation = (record.rotation + d + 360) % 360;
+                deck.windOwed += d / 360 * 8;
+                if (!windTick.running) windTick.start();
+            }
+            onReleased: {
+                if (deck.held) { windTick.stop(); deck.payWind(); deck.held = false; }
+                else deck.toggled();
+            }
             onWheel: wheel => deck.wound(wheel.angleDelta.y > 0 ? -10 : 10)
         }
     }
+    property bool held: false
+    property real windOwed: 0           // seconds turned by hand, not yet sent
+    function payWind(): void {
+        if (Math.abs(windOwed) >= 0.25) { deck.wound(windOwed); windOwed = 0; }
+    }
+    Timer { id: windTick; interval: 160; repeat: true; onTriggered: deck.payWind() }
 
     // ---------------------------------------------------------------- turning
     // 33⅓ turns a minute; it runs up to speed and coasts down
     property real speed: spinning ? 1 : 0
     Behavior on speed { NumberAnimation { duration: Theme.dur(1100); easing.type: Easing.InOutQuad } }
     FrameAnimation {
-        running: deck.speed > 0.001 && deck.visible
+        running: deck.speed > 0.001 && deck.visible && !deck.held
         onTriggered: record.rotation = (record.rotation + frameTime * 200 * deck.speed) % 360
     }
 
@@ -728,9 +807,9 @@ Item {
     Rectangle {
         id: holder
         x: 30
-        y: deck.height - 64
-        width: 330
-        height: 40
+        y: deck.height - 72
+        width: 306
+        height: 50
         radius: 3
         gradient: Gradient {
             GradientStop { position: 0; color: Qt.lighter(deck.brass, 1.2) }
@@ -746,14 +825,59 @@ Item {
             border.color: Qt.rgba(0, 0, 0, 0.35)
             Grain { anchors.fill: parent; strength: 0.9 }
             InkText {
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: times.left
                 anchors.leftMargin: 9
-                anchors.rightMargin: 9
-                verticalAlignment: Text.AlignVCenter
+                anchors.rightMargin: 8
+                y: 3
                 text: deck.nowPlaying !== "" ? deck.nowPlaying : "Nothing on the platter."
                 color: deck.nowPlaying !== "" ? Theme.graphite : Theme.faded
                 font.pixelSize: 14
                 elide: Text.ElideRight
+            }
+            InkText {
+                id: times
+                anchors.right: parent.right
+                anchors.rightMargin: 9
+                y: 5
+                text: deck.trackTimes
+                color: Theme.faded
+                font.pixelSize: 11
+            }
+            // where in the song: a ruled line, a brass slider on it; drag it
+            Item {
+                id: scrub
+                visible: deck.nowPlaying !== ""
+                x: 9
+                width: parent.width - 18
+                y: parent.height - 12
+                height: 10
+                readonly property real at: scrubArea.pressed ? scrubArea.f : Math.max(0, Math.min(1, deck.trackProgress))
+                Rectangle { y: 4.5; width: parent.width; height: 1; color: Theme.faded; opacity: 0.6 }
+                Rectangle { y: 4; width: parent.width * scrub.at; height: 2; color: Theme.graphite; opacity: 0.8 }
+                Rectangle {
+                    x: parent.width * scrub.at - 3
+                    y: 0
+                    width: 6; height: 10; radius: 1.5
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Qt.lighter(deck.brass, 1.25) }
+                        GradientStop { position: 1; color: Qt.darker(deck.brass, 1.25) }
+                    }
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.5)
+                }
+                MouseArea {
+                    id: scrubArea
+                    anchors.fill: parent
+                    anchors.topMargin: -6
+                    anchors.bottomMargin: -4
+                    cursorShape: Qt.PointingHandCursor
+                    property real f: 0
+                    function fAt(m) { return Math.max(0, Math.min(1, m.x / width)); }
+                    onPressed: m => f = fAt(m)
+                    onPositionChanged: m => { if (pressed) f = fAt(m); }
+                    onReleased: deck.scrubbed(f)
+                }
             }
         }
         // rivets
@@ -765,6 +889,72 @@ Item {
                 x: index === 0 ? 1.5 : holder.width - 6.5
                 anchors.verticalCenter: parent.verticalCenter
                 color: Qt.darker(deck.brass, 1.4)
+            }
+        }
+    }
+
+    // previous, pause / play, next: brass push buttons in the plinth
+    Row {
+        x: holder.x + holder.width + 12
+        anchors.verticalCenter: holder.verticalCenter
+        spacing: 6
+        Repeater {
+            model: ["previous", "toggle", "next"]
+            Item {
+                id: button
+                required property string modelData
+                width: modelData === "toggle" ? 34 : 28
+                height: width
+                readonly property bool down: press.pressed
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.topMargin: button.down ? 2 : 0
+                    radius: width / 2
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: Qt.lighter(deck.brass, button.down ? 1.05 : 1.3) }
+                        GradientStop { position: 1; color: Qt.darker(deck.brass, 1.35) }
+                    }
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.55)
+                    // the engraved sign
+                    Canvas {
+                        anchors.fill: parent
+                        property string kind: button.modelData
+                        property bool playing: deck.spinning
+                        onPlayingChanged: requestPaint()
+                        onPaint: {
+                            const g = getContext("2d");
+                            g.reset();
+                            const c = width / 2, s = width * 0.18;
+                            g.fillStyle = "rgba(30, 22, 12, 0.78)";
+                            const tri = (x, dir) => {
+                                g.beginPath();
+                                g.moveTo(x - dir * s * 0.55, c - s);
+                                g.lineTo(x + dir * s * 0.75, c);
+                                g.lineTo(x - dir * s * 0.55, c + s);
+                                g.closePath(); g.fill();
+                            };
+                            if (kind === "toggle") {
+                                if (playing) { g.fillRect(c - s * 0.75, c - s, s * 0.5, 2 * s); g.fillRect(c + s * 0.25, c - s, s * 0.5, 2 * s); }
+                                else tri(c + s * 0.15, 1);
+                            } else {
+                                const dir = kind === "next" ? 1 : -1;
+                                tri(c - dir * s * 0.45, dir);
+                                g.fillRect(c + dir * s * 0.55 - s * 0.14, c - s, s * 0.28, 2 * s);
+                            }
+                        }
+                    }
+                }
+                MouseArea {
+                    id: press
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (button.modelData === "previous") deck.previousAsked();
+                        else if (button.modelData === "next") deck.nextAsked();
+                        else deck.toggled();
+                    }
+                }
             }
         }
     }

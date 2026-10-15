@@ -42,6 +42,8 @@ Singleton {
     function toggle(): void { if (player?.canTogglePlaying) player.togglePlaying(); }
     function next(): void { if (player?.canGoNext) player.next(); }
     function previous(): void { if (player?.canGoPrevious) player.previous(); }
+    function seekTo(seconds: real): void { if (player?.canSeek) player.position = Math.max(0, Math.min(length, seconds)); }
+    function seekBy(seconds: real): void { if (player?.canSeek) player.seek(seconds); }
 
     // MPRIS does not push position updates; poke it once a second while playing.
     Timer {

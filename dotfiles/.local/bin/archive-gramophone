@@ -134,6 +134,26 @@ def cover_for(folder, files, tags):
     return ""
 
 
+def track_cover(f, tags):
+    """The picture inside one track (cached as a jpg), or ""."""
+    if not tags.get(f, {}).get("pic"):
+        return ""
+    try:
+        st = os.stat(f)
+    except OSError:
+        return ""
+    key = hashlib.sha1(f"{f}|{st.st_mtime}|{st.st_size}".encode()).hexdigest()[:16]
+    out = os.path.join(CACHE, "covers", key + ".jpg")
+    if not os.path.exists(out):
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        try:
+            subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", f, "-an", "-frames:v", "1",
+                            "-vf", "scale='min(800,iw)':-2", out], timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            return ""
+    return out if os.path.exists(out) else ""
+
+
 # ---------------------------------------------------------------- the library
 def library():
     root = music_dir()
@@ -179,6 +199,10 @@ def library():
     except OSError:
         pass
 
+    # each track's own picture (the record's label shows it), drawn out once
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        own = dict(zip(every, pool.map(lambda f: track_cover(f, tags), every)))
+
     albums = []
     for folder, files in folders.items():
         loose = os.path.normpath(folder) == os.path.normpath(root)
@@ -195,6 +219,7 @@ def library():
                 artist = m.group(1)
                 if not first.get("album"):
                     album = m.group(2)
+        folder_cover = "" if loose else cover_for(folder, files, tags)
         albums.append({
             "key": folder,
             "name": album,
@@ -202,12 +227,13 @@ def library():
             "year": next((tags[f].get("date") for f in files if tags[f].get("date")), ""),
             "dir": folder,
             "where": "~/" + os.path.relpath(folder, HOME) if folder.startswith(HOME) else folder,
-            "cover": "" if loose else cover_for(folder, files, tags),
+            "cover": folder_cover,
             "tracks": [{
                 "file": f,
                 "title": tags[f].get("title") or name_title(f),
                 "artist": tags[f].get("artist", ""),
                 "length": tags[f].get("length", 0),
+                "cover": own.get(f) or folder_cover,
             } for f in files],
         })
     albums.sort(key=lambda a: (a["name"] == "Loose leaves", a["artist"].lower(), a["name"].lower()))
