@@ -3,6 +3,7 @@
 
     python3 tools/import_cursors.py [art/cursors/sheet.webp]
 
+(The pointing glove comes from its own drawing, art/cursors/pointer.jpg.)
 The sheet is 12 drawings in a 4 x 3 grid on white (pencil, gloved hand,
 I-beam, pocket watch, pencil with watch, open glove, gloved fist, compass
 star, loupe, no-entry stamp, scale bar, diagonal scale bar). Each is cut out
@@ -32,6 +33,12 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHEET = ROOT / "art" / "cursors" / "sheet.webp"
 THEME = ROOT / "dotfiles" / ".local" / "share" / "icons" / "Archive-Cursors"
 SIZES = (24, 32, 40, 48, 60, 64, 80, 96)
+
+# drawings redrawn on their own, used instead of the sheet's: name -> (file,
+# its box). The pointing glove, drawn again with a straight finger.
+OWN = {
+    "glove": ("art/cursors/pointer.jpg", (129, 85, 624, 906)),
+}
 
 # measured on the 1254 px sheet: each drawing's box
 BOXES = {
@@ -235,7 +242,6 @@ def bigger_cuff(img, top, scale=1.22, angle=0.0):
 # size bigger (the row just above each cuff's top edge, as a fraction of the
 # drawing's height; the fist's cuff is turned 14 degrees)
 TOUCH_UP = {
-    "glove": lambda im: bigger_cuff(straighten_finger(im), 0.81),
     "open": lambda im: bigger_cuff(im, 0.81),
     "fist": lambda im: bigger_cuff(im, 0.71, angle=-14),
 }
@@ -315,7 +321,11 @@ def main():
     for name, (drawing, frac, how, clear, turn) in CURSORS.items():
         key = (drawing, clear)
         if key not in cuts:
-            cuts[key] = cut(sheet, BOXES[drawing], clear)
+            if drawing in OWN:
+                path, box = OWN[drawing]
+                cuts[key] = cut(Image.open(ROOT / path).convert("RGB"), box, clear)
+            else:
+                cuts[key] = cut(sheet, BOXES[drawing], clear)
             if drawing in TOUCH_UP:
                 cuts[key] = TOUCH_UP[drawing](cuts[key])
         img = cuts[key]
