@@ -41,7 +41,14 @@ PanelWindow {
     readonly property string inked: line.slice(0, Math.min(stamped, line.length))
     property bool keyed: false           // the next change to the line comes from a key
     function stamp(upTo: int): void {
-        if (upTo > stamped) { stamped = upTo; fresh.land(); }
+        if (upTo > stamped) { stamped = upTo; fresh.land(); knock.restart(); }
+    }
+    // the slip jumps a hair as each letter is struck into it from behind
+    property real knocked: 0
+    SequentialAnimation {
+        id: knock
+        NumberAnimation { target: win; property: "knocked"; to: 1; duration: 35; easing.type: Easing.OutQuad }
+        NumberAnimation { target: win; property: "knocked"; to: 0; duration: 140; easing.type: Easing.OutBack }
     }
     readonly property var plan: decide(line)
 
@@ -265,7 +272,7 @@ PanelWindow {
                 NumberAnimation { duration: 60; easing.type: Easing.OutQuad }
             }
             // wound in from behind the platen; wound out over the top
-            y: (1 - win.feed) * 205
+            y: (1 - win.feed) * 205 - 2.5 * win.knocked
             opacity: win.feed > 1.6 ? Math.max(0, 2.3 - win.feed) / 0.7 : 1
             width: slip.width
             height: stage.platenY + 20
@@ -620,9 +627,9 @@ PanelWindow {
             }
         }
 
-        // the typebars: on every letter one swings up out of the basket,
-        // strikes the slip at the guide (the letter is printed then) and
-        // falls back. A few of them, so quick typing has several in the air.
+        // the typebars: on every letter its own bar, lying in the photographed
+        // basket, catches the light for a moment (a glint along it), and the
+        // letter is printed on the slip then. A few at once, for quick typing.
         Repeater {
             id: arms
             model: 6
@@ -632,100 +639,54 @@ PanelWindow {
                 readonly property string order: "1QAZ2WSX3EDC4RFV5TGB6YHN7UJM8IK,9OL.0P;/-"
                 property real fan: Math.PI / 2
                 property int prints: 0           // the slip's length once this one has struck
-                property real reach: 0
+                property real glow: 0
                 function fire(letter: string, upTo: int): void {
                     const i = order.indexOf(letter);
                     const k = i >= 0 ? i : (letter.charCodeAt(0) * 7) % order.length;
                     fan = Math.PI * (0.94 - 0.88 * k / (order.length - 1));
                     prints = upTo;
-                    fly.restart();
+                    flash.restart();
                 }
-                // Measured on the photograph: the bars lie in the basket
-                // radiating round (795, 230), turning on the outer ring
-                // (rx 320, ry 240), their heads resting on the inner one
-                // (rx 150, ry 120); they strike at the guide (795, 195).
-                // Seen from the front, a rising bar's head comes up off its
-                // rest, bulging towards you, to the guide.
+                // measured on the photograph: the bars lie in the basket
+                // radiating round (795, 230), from the outer ring (rx 320,
+                // ry 240) where they turn to the inner one (rx 150, ry 120)
+                // where their heads rest
                 function ring(rx: real, ry: real): point {
                     return win.art ? stage.onMachine(795 + Math.cos(fan) * rx, 230 + Math.sin(fan) * ry)
                                    : Qt.point(stage.width / 2 + Math.cos(fan) * rx * 0.55, body.y + 8 + Math.sin(fan) * ry * 0.26);
                 }
                 readonly property point pivot: ring(320, 240)
-                readonly property point rest: ring(150, 120)
-                readonly property point guide: win.art ? stage.onMachine(795, 195) : Qt.point(stage.strikeX, stage.platenY + 18)
-                readonly property real lift: Math.sin(Math.PI * reach) * (win.art ? 22 : 14)
-                readonly property point head: Qt.point(rest.x + (guide.x - rest.x) * reach,
-                                                       rest.y + (guide.y - rest.y) * reach - lift)
-                readonly property real seen: Math.hypot(head.x - pivot.x, head.y - pivot.y)
-                readonly property real thick: 4.5 + 3.5 * reach      // nearer as it rises
-                visible: reach > 0.02
+                readonly property point head: ring(150, 120)
+                readonly property real len: Math.hypot(head.x - pivot.x, head.y - pivot.y)
+                visible: glow > 0.01
                 x: pivot.x
                 y: pivot.y
                 rotation: Math.atan2(head.y - pivot.y, head.x - pivot.x) * 180 / Math.PI
 
-                // its shadow on the machine
+                // the light running along the bar, brightest at its head
                 Rectangle {
-                    x: 3; y: 3 + 8 * arm.reach - arm.thick / 2
-                    width: arm.seen; height: arm.thick; radius: arm.thick / 2
-                    color: "black"
-                    opacity: 0.25 + 0.2 * arm.reach
-                }
-                // the bar: a flat steel strip, lit along its top edge
-                Rectangle {
-                    x: 0; y: -arm.thick / 2
-                    width: arm.seen - 6; height: arm.thick; radius: arm.thick / 2
+                    x: 0; y: -3
+                    width: arm.len; height: 6; radius: 3
+                    opacity: arm.glow
                     gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.45) }
-                        GradientStop { position: 0.4; color: win.chrome }
-                        GradientStop { position: 1; color: Qt.darker(win.chrome, 1.9) }
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: Qt.rgba(1, 0.97, 0.88, 0.0) }
+                        GradientStop { position: 0.55; color: Qt.rgba(1, 0.97, 0.88, 0.55) }
+                        GradientStop { position: 1.0; color: Qt.rgba(1, 0.98, 0.92, 0.95) }
                     }
-                    border.width: 0.8
-                    border.color: Qt.rgba(0, 0, 0, 0.55)
                 }
-                // the knuckle it turns on
                 Rectangle {
-                    x: -5; y: -5; width: 10; height: 10; radius: 5
-                    color: Qt.darker(win.chrome, 1.4)
-                    border.width: 1
-                    border.color: Qt.rgba(0, 0, 0, 0.6)
-                }
-                // the type slug at its head
-                Rectangle {
-                    x: arm.seen - 14
-                    y: -height / 2
-                    width: 16; height: 13 + 3 * arm.reach; radius: 2.5
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.lighter(win.chrome, 1.3) }
-                        GradientStop { position: 1; color: Qt.darker(win.chrome, 2.0) }
-                    }
-                    border.width: 1
-                    border.color: Qt.rgba(0, 0, 0, 0.6)
+                    x: arm.len - 5; y: -5
+                    width: 10; height: 10; radius: 5
+                    color: Qt.rgba(1, 0.98, 0.92, 0.9)
+                    opacity: arm.glow
                 }
                 SequentialAnimation {
-                    id: fly
-                    NumberAnimation { target: arm; property: "reach"; from: 0.1; to: 1; duration: 75; easing.type: Easing.InQuad }
-                    ScriptAction { script: { win.stamp(arm.prints); impact.restart(); } }
-                    PauseAnimation { duration: 35 }
-                    NumberAnimation { target: arm; property: "reach"; to: 0.1; duration: 140; easing.type: Easing.OutQuad }
-                    NumberAnimation { target: arm; property: "reach"; to: 0; duration: 40 }
+                    id: flash
+                    NumberAnimation { target: arm; property: "glow"; from: 0; to: 1; duration: 55; easing.type: Easing.OutQuad }
+                    ScriptAction { script: win.stamp(arm.prints) }
+                    NumberAnimation { target: arm; property: "glow"; to: 0; duration: 280; easing.type: Easing.InQuad }
                 }
-            }
-        }
-        // where they strike: a puff of ribbon ink, and the machine jolts
-        Rectangle {
-            id: inkPuff
-            readonly property point at: win.art ? stage.onMachine(795, 195) : Qt.point(stage.strikeX, stage.platenY + 18)
-            x: at.x - width / 2
-            y: at.y - height / 2
-            width: 14; height: 14; radius: 7
-            color: "transparent"
-            border.width: 2
-            border.color: Qt.rgba(0.08, 0.07, 0.07, 0.8)
-            opacity: 0
-            ParallelAnimation {
-                id: impact
-                NumberAnimation { target: inkPuff; property: "opacity"; from: 0.9; to: 0; duration: 200; easing.type: Easing.OutQuad }
-                NumberAnimation { target: inkPuff; property: "scale"; from: 0.5; to: 2.2; duration: 200; easing.type: Easing.OutQuad }
             }
         }
 
