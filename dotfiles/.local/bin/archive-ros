@@ -175,6 +175,34 @@ robot() {
         robot_up=0
     fi
     robot_env="export ROS_MASTER_URI=http://$host:11311 ROS_IP=$me ROS_HOSTNAME=$me;"
+    ((robot_up)) && robot_routes "$addr"
+}
+
+# robot_routes <robot address>: a robot's programs may announce addresses on a
+# network inside the robot (192.168.1.10 ...) that this laptop cannot reach
+# (RViz then hangs on "Connection timed out"). Ask its master where they are,
+# and send that network through the robot (sudo ip route replace ... via ...;
+# until the next reboot).
+xmlrpc() { # xmlrpc <url> <method> [string argument]
+    curl -s -m 3 -H 'Content-Type: text/xml' --data \
+        "<?xml version=\"1.0\"?><methodCall><methodName>$2</methodName><params><param><value><string>/archive_ros</string></value></param>${3:+<param><value><string>$3</string></value></param>}</params></methodCall>" "$1"
+}
+robot_routes() {
+    local addr=$1 master="http://$1:11311/" name uri ip port seen="" tries=0
+    command -v curl >/dev/null || return 0
+    while IFS= read -r name; do
+        ((++tries > 60)) && break
+        uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1)
+        [[ -n $uri ]] || continue
+        ip=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri")
+        port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
+        [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && $ip != "$addr" && " $seen " != *" $ip "* ]] || continue
+        seen+=" $ip"
+        timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null && continue
+        echo ":: the robot's programs are at $ip, which this laptop cannot reach directly;"
+        echo "   routing ${ip%.*}.0/24 through the robot (sudo, until the next reboot)"
+        sudo ip route replace "${ip%.*}.0/24" via "$addr" || echo "!! could not add the route: RViz may get no data" >&2
+    done < <(xmlrpc "$master" getSystemState | grep -oP '<string>\K/[^<]+' | sort -u)
 }
 # ------------------------------------------------------------------ the private screen
 # private_x: a private X server in a window of its own (rootful XWayland,
