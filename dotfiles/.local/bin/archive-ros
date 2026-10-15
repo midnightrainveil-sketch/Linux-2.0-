@@ -5,6 +5,7 @@
 #   archive-ros rviz       RViz (starts roscore first if none is running)
 #   archive-ros ROBOT      a ROS shell talking to a robot's ROS master
 #   archive-ros rviz ROBOT RViz on a robot (ROBOT: its IP, e.g. 192.168.68.153)
+#   archive-ros rviz [ROBOT] -d FILE.rviz   ... with a saved RViz setup
 #   archive-ros setup      set up, or finish a setup that stopped
 #   archive-ros remove     delete the container (your files stay)
 #
@@ -225,8 +226,13 @@ case $cmd in
     rviz)
         ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
         write_rc
-        if [[ -n ${2:-} ]]; then
-            robot "$2"
+        shift
+        robot_host=""
+        if [[ -n ${1:-} ]] && looks_like_host "$1"; then robot_host=$1; shift; fi
+        rviz_args=""                         # the rest goes to RViz (-d setup.rviz)
+        (($#)) && rviz_args=$(printf ' %q' "$@")
+        if [[ -n $robot_host ]]; then
+            robot "$robot_host"
             # RViz shows nothing until it reaches the master: say so, rather
             # than open an empty black window
             if ((!robot_up)); then
@@ -235,8 +241,8 @@ case $cmd in
             fi
         fi
         read -r disp geo < <(private_x)
-        show="export DISPLAY=$disp _archive_geo=$geo; rviz"
-        if [[ -n ${2:-} ]]; then
+        show="export DISPLAY=$disp _archive_geo=$geo; rviz$rviz_args"
+        if [[ -n $robot_host ]]; then
             exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; $show"
         fi
         # roscore first if none is running; stopped again with RViz
