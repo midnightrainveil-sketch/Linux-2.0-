@@ -59,10 +59,10 @@ rviz() {
     _archive_x
     local t=$SECONDS
     if [ -n "${_archive_geo:-}" ]; then
-        nice -n 10 command rviz -geometry "${_archive_geo}+0+0" "$@" && return
+        nice -n 10 rviz -geometry "${_archive_geo}+0+0" "$@" && return
         [ $((SECONDS - t)) -lt 4 ] || return
     fi
-    nice -n 10 command rviz "$@"
+    nice -n 10 rviz "$@"
 }
 onx() { _archive_x; "$@"; }     # any other window: onx rqt_graph
 rqt() { _archive_x; command rqt "$@"; }
