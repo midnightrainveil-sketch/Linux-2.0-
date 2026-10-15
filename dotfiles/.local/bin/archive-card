@@ -287,7 +287,8 @@ def main():
         if cur.is_symlink() or cur.exists():
             cur.unlink()
         cur.symlink_to(sf.name)
-        drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2))
+        # (one line higher than the true middle reads as level)
+        drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2) - 1)
         try:
             args += ["--config", str(centred_config(drop))]
         except (OSError, ValueError):
