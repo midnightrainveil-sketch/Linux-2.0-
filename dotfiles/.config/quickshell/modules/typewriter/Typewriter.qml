@@ -96,7 +96,7 @@ PanelWindow {
         if (s.startsWith("=")) return { kind: "", says: "= …" };
         if (/^(https?:\/\/)\S+$/i.test(s) || /^(www\.)?[\w-]+(\.[\w-]+)*\.[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(s))
             return { kind: "open", says: "Open " + s.replace(/^https?:\/\//i, ""), url: /^https?:\/\//i.test(s) ? s : "https://" + s };
-        const engine = Settings.get("search", "https://duckduckgo.com/?q=%s");
+        const engine = Settings.get("search", "https://www.google.com/search?q=%s");
         const host = (engine.match(/^https?:\/\/(?:www\.)?([^/]+)/) ?? ["", "the web"])[1];
         return { kind: "search", says: "Look it up (" + host + ")", url: engine.replace("%s", encodeURIComponent(s)) };
     }

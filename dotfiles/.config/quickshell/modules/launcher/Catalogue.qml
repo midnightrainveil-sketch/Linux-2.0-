@@ -99,7 +99,7 @@ PanelWindow {
             const q = query.trim();
             if (q === "") return;
             launching = true;
-            const engine = Settings.get("search", "https://duckduckgo.com/?q=%s");
+            const engine = Settings.get("search", "https://www.google.com/search?q=%s");
             Quickshell.execDetached(["xdg-open", engine.replace("%s", encodeURIComponent(q))]);
             closeAfterLift.restart();
             return;
@@ -362,7 +362,7 @@ PanelWindow {
             visible: win.results.length === 0
             anchors.horizontalCenter: parent.horizontalCenter
             y: stage.frontTop - 70
-            text: "No card under that heading.  Return looks it up on DuckDuckGo."
+            text: "No card under that heading.  Return looks it up on Google."
             color: Theme.night > 0.5 ? Theme.faded : "#d9cdbd"
             font.pixelSize: 17
         }

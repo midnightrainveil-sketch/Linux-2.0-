@@ -272,11 +272,11 @@ number is the current air pressure in hPa.
 
 | Keys | Does |
 | --- | --- |
-| `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out. When no card matches, `Enter` looks the words up on DuckDuckGo |
+| `Super + Space` | Card Catalogue (launcher): a catalogue drawer slides out of the bar. Type to narrow it, `↑ ↓` or scroll to riffle the cards, `Enter` to take one out. When no card matches, `Enter` looks the words up on Google |
 | `Alt + Tab`, `Super + W` | The Register: every open window, put-away ones too |
 | `Super + A`, or click the Audio Archive card | The Phonograph: a turntable beside your albums (each folder in `~/Music`, filed as a herbarium sheet). Click a track or `Enter`; `← →` other folders, `↑ ↓` tracks, `Space` or click the record to pause, `N`/`P` next/previous, drag the tone arm to drop the needle. Needs `mpv` (and `mpv-mpris` for media keys); the music plays on when it closes |
 | `Super + O` | The field notebook: write straight onto the page; every page is a file in `~/Documents/Field Notes`, saved as you write. `PageDown`/`PageUp` or the corners turn pages, `Ctrl + N` a fresh one |
-| `Super + R` | The label typewriter, one quick line: a sum (`12*4.5`, `= sqrt(2)`; `Enter` copies the answer), `> command` runs it in a terminal, an address opens it, anything else is looked up on DuckDuckGo. Each letter is struck onto the slip by its own typebar |
+| `Super + R` | The label typewriter, one quick line: a sum (`12*4.5`, `= sqrt(2)`; `Enter` copies the answer), `> command` runs it in a terminal, an address opens it, anything else is looked up on Google. Each letter is struck onto the slip by its own typebar |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |
