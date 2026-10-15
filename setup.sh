@@ -166,6 +166,10 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     fi
     # Quiet on battery, Balanced plugged in; no ROG Control notifications
     "$HOME/.local/bin/archive-rog" power || warn "could not set the power profiles; run archive-rog power"
+    # waking without the black text screen: the NVIDIA driver suspends itself when it can
+    if lsmod | grep -q '^nvidia '; then
+        "$HOME/.local/bin/archive-rog" sleep || warn "could not change how the NVIDIA driver sleeps; run archive-rog sleep"
+    fi
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, supergfxctl)"
 fi
 

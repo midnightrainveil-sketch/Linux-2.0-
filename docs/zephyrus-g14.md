@@ -54,6 +54,13 @@ echo 'options nvidia NVreg_PreserveVideoMemoryAllocations=1' | sudo tee /etc/mod
 sudo systemctl enable nvidia-suspend nvidia-resume nvidia-hibernate
 ```
 
+Those services switch to a text console on the way to sleep and back on
+waking (a black screen with a blinking cursor, and a few seconds before the
+lock screen). With driver 595 or newer (open modules) the driver can suspend
+itself instead: `archive-rog sleep` sets
+`NVreg_UseKernelSuspendNotifiers=1` and switches the services off (the setup
+does it when the driver is new enough). Reboot afterwards.
+
 Then rebuild the initramfs and reboot:
 
 ```sh

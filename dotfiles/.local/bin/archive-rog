@@ -8,6 +8,11 @@
 #   archive-rog power     the profile follows the charger: Quiet on battery,
 #                         Balanced plugged in (asusd switches it)
 #   archive-rog calm      the profile stays what you chose: no switching
+#   archive-rog sleep     quick, clean waking: with NVIDIA driver 595 or newer
+#                         (open modules) the driver suspends itself, so its
+#                         systemd services, which switch to a text console
+#                         (the black screen with a blinking cursor) and back,
+#                         are switched off. Reboot afterwards.
 #   archive-rog status    what is set, and what the dGPU is doing
 #
 # power and calm also quieten ROG Control: no notifications, and it quits
@@ -103,6 +108,8 @@ gpu() {
     sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service 2>/dev/null || true
     sudo systemctl enable --now supergfxd.service || true
 
+    suspend_mode --no-rebuild || true
+
     echo ":: rebuilding the driver and the boot images"
     sudo dkms autoinstall || true
     sudo mkinitcpio -P || echo "   (mkinitcpio reported a problem; see above)"
@@ -110,6 +117,42 @@ gpu() {
     echo ":: Hybrid mode"
     supergfxctl -m Hybrid 2>/dev/null || echo "   (supergfxctl answers after the reboot; Hybrid is its default)"
     echo ":: done: reboot, then check with: archive-rog status"
+}
+
+# suspend_mode [--no-rebuild]: the driver's own suspend (kernel notifiers)
+# when it has it, else the systemd services with their console switch
+suspend_mode() {
+    local conf=/etc/modprobe.d/nvidia-power.conf ver major lic
+    ver=$(modinfo -F version nvidia 2>/dev/null || true)
+    if [[ -z $ver ]]; then
+        echo "sleep: no NVIDIA driver installed; nothing to do"
+        return 0
+    fi
+    major=${ver%%.*}
+    lic=$(modinfo -F license nvidia 2>/dev/null || true)
+    if (( major < 595 )) || [[ $lic != *GPL* && $lic != *MIT* ]]; then
+        echo "sleep: NVIDIA $ver ($lic) suspends through its systemd services (595+ open modules can do without)"
+        return 0
+    fi
+    if grep -q 'NVreg_UseKernelSuspendNotifiers=1' "$conf" 2>/dev/null \
+        && ! systemctl is-enabled --quiet nvidia-suspend.service 2>/dev/null; then
+        echo "sleep: already set (NVIDIA $ver suspends itself)"
+        return 0
+    fi
+    echo ":: NVIDIA $ver suspends itself: no console switch on sleep and wake"
+    printf '%s\n' \
+        "# archive-rog: the dGPU powers off when nothing uses it; the driver" \
+        "# suspends itself (keeping its memory), without the systemd services" \
+        "# and their switch to a text console" \
+        "options nvidia NVreg_DynamicPowerManagement=0x02 NVreg_UseKernelSuspendNotifiers=1" |
+        sudo tee "$conf" >/dev/null
+    sudo systemctl disable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service \
+        nvidia-suspend-then-hibernate.service 2>/dev/null || true
+    if [[ ${1:-} != --no-rebuild ]] && grep -Eq '^MODULES=.*nvidia' /etc/mkinitcpio.conf 2>/dev/null; then
+        echo ":: the boot images carry the driver: rebuilding them"
+        sudo mkinitcpio -P || echo "   (mkinitcpio reported a problem; see above)"
+    fi
+    echo ":: done: takes effect after a reboot"
 }
 
 status() {
@@ -124,6 +167,11 @@ status() {
     fi
     echo "gpu mode:    $(supergfxctl -g 2>/dev/null || echo '?')  (supported: $(supergfxctl -s 2>/dev/null | tr -d '[]\n' || echo '?'))"
     echo "profile:     $(powerprofilesctl get 2>/dev/null || echo '?')"
+    if grep -q 'NVreg_UseKernelSuspendNotifiers=1' /etc/modprobe.d/nvidia-power.conf 2>/dev/null; then
+        echo "sleep:       the driver suspends itself (no console switch)"
+    else
+        echo "sleep:       through nvidia-suspend/resume (switches to a text console; see archive-rog sleep)"
+    fi
     grep -E '^\s*(change_)?platform_profile_on_(ac|battery)' "$asusd_cfg" 2>/dev/null | sed 's/^\s*/asusd:       /' || true
 }
 
@@ -131,6 +179,7 @@ case ${1:-status} in
     gpu) gpu ;;
     power) power ;;
     calm) calm ;;
+    sleep) suspend_mode ;;
     status) status ;;
-    *) echo "usage: archive-rog gpu|power|calm|status" >&2; exit 2 ;;
+    *) echo "usage: archive-rog gpu|power|calm|sleep|status" >&2; exit 2 ;;
 esac
