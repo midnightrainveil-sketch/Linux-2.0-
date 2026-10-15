@@ -8,9 +8,10 @@ import qs.components
 
 // A screenshot, developed: the screen flashes like a magnesium lamp, and the
 // shot drops onto the desk as a bordered print at a slight angle, held by a
-// paperclip, with its date typed underneath. After a few seconds it files
-// itself away down into the bar (the file is already in ~/Pictures/Archive
-// and on the clipboard).
+// paperclip, with its date typed underneath. After a few seconds it is
+// filed: an envelope comes up behind it, the print slides in, the flap folds
+// down, the archive's postmark lands on it and it is sent off (the file is
+// already in ~/Pictures/Archive and on the clipboard).
 //   hover      keep it on the desk        click    open it
 //   right      file it now                middle   pin it (stays till clicked)
 // archive-screenshot calls: qs ipc call photo develop <file>
@@ -58,10 +59,12 @@ PanelWindow {
         fileAway.stop();
         linger.stop();
         flash.opacity = 0;
+        unpack();
         shot.visible = false;
         shot.filing = false;
         clip.opacity = 0;
     }
+    function fileNow(): void { if (!fileAway.running) fileAway.restart(); }
 
     // ------------------------------------------------------------ the flash
     Rectangle {
@@ -173,7 +176,7 @@ PanelWindow {
             onClicked: e => {
                 if (e.button === Qt.MiddleButton) { win.pinned = !win.pinned; return; }
                 if (e.button === Qt.LeftButton && win.path !== "") Quickshell.execDetached(["xdg-open", win.path]);
-                fileAway.restart();
+                win.fileNow();
             }
         }
     }
@@ -214,18 +217,209 @@ PanelWindow {
     Timer {
         id: linger
         interval: 6000
-        onTriggered: if (hover.containsMouse || win.pinned) restart(); else fileAway.restart()
+        onTriggered: if (hover.containsMouse || win.pinned) restart(); else win.fileNow()
     }
 
-    // filed: it slides down into the bar's drawer
+    // ------------------------------------------------------------ the envelope
+    // Comes up behind the print; the print is put into it (moved inside,
+    // between its back and its pocket), the flap folds over, the postmark
+    // lands, and off it goes.
+    readonly property real envW: 400
+    readonly property real envH: 250
+    readonly property color envPaper: Theme.night > 0.5 ? Theme.paperRaised : "#e2ddd3"
+    property Item shotHome: null
+
+    // the print back on the desk (after filing, or if filing is cut short)
+    function unpack(): void {
+        if (shotHome !== null) {
+            shot.parent = shotHome;
+            shotHome = null;
+        }
+        envelope.visible = false;
+        postmark.visible = false;
+    }
+
+    Item {
+        id: envelope
+        visible: false
+        width: win.envW
+        height: win.envH
+        transformOrigin: Item.Center
+        property real rise: 0             // the envelope's own parts, coming up from below
+        property real flapAngle: 180      // 180 open (standing up behind), 0 folded down
+        // sent: 0 on the desk, 1 gone over the top right; a little dip
+        // first, as it is picked up
+        property real baseX: 0
+        property real baseY: 0
+        property real baseRot: 0
+        property real sent: 0
+        readonly property real away: sent * sent * sent
+        x: baseX + (win.width + 120 - baseX) * away
+        y: baseY + 40 * sent - 420 * away
+        rotation: baseRot + 22 * away
+        scale: 1 - 0.28 * away
+
+        RectangularGlow {
+            anchors.fill: parent
+            anchors.topMargin: 6 + envelope.rise
+            anchors.bottomMargin: -envelope.rise
+            glowRadius: 12
+            spread: 0.1
+            cornerRadius: 12
+            color: Theme.shadow
+            opacity: back.opacity
+        }
+        // the inside of its far wall, seen through the opening
+        Rectangle {
+            id: back
+            y: envelope.rise
+            width: parent.width
+            height: parent.height
+            color: Qt.darker(win.envPaper, 1.16)
+            border.width: 1
+            border.color: Qt.rgba(0, 0, 0, 0.2)
+        }
+        // the flap while it stands open, behind the print
+        Item {
+            id: flapBehind
+            y: envelope.rise
+            width: parent.width
+            height: parent.height
+            opacity: back.opacity
+            visible: envelope.flapAngle > 90
+            EnvelopeFlap { paper: win.envPaper; angle: envelope.flapAngle }
+        }
+        // where the print goes: anything of it below the envelope is out of sight
+        Item {
+            id: slot
+            y: -700
+            width: parent.width
+            height: 700 + parent.height
+            clip: true
+        }
+        // the pocket: the side and bottom flaps, folded and glued
+        Canvas {
+            id: pocket
+            y: envelope.rise
+            width: parent.width
+            height: parent.height
+            opacity: back.opacity
+            property color paper: win.envPaper
+            onPaperChanged: requestPaint()
+            onPaint: {
+                const g = getContext("2d");
+                g.reset();
+                const w = width, h = height;
+                g.fillStyle = paper;
+                g.beginPath();
+                g.moveTo(0, 0); g.lineTo(w * 0.5, h * 0.47); g.lineTo(w, 0);
+                g.lineTo(w, h); g.lineTo(0, h); g.closePath();
+                g.fill();
+                // the bottom flap a shade darker, over the sides
+                g.fillStyle = Qt.rgba(0, 0, 0, 0.045);
+                g.beginPath();
+                g.moveTo(0, h); g.lineTo(w * 0.5, h * 0.5); g.lineTo(w, h); g.closePath();
+                g.fill();
+                // the folds and the cut edges
+                g.strokeStyle = Qt.rgba(0, 0, 0, 0.22);
+                g.lineWidth = 1;
+                g.beginPath();
+                g.moveTo(0, 0); g.lineTo(w * 0.5, h * 0.47); g.lineTo(w, 0);
+                g.moveTo(1, h - 1); g.lineTo(w * 0.5, h * 0.5); g.lineTo(w - 1, h - 1);
+                g.stroke();
+                g.strokeStyle = Qt.rgba(0, 0, 0, 0.3);
+                g.strokeRect(0.5, 0.5, w - 1, h - 1);
+                // light along the fold of the bottom flap
+                g.strokeStyle = Qt.rgba(1, 1, 1, 0.35);
+                g.beginPath(); g.moveTo(3, h - 2); g.lineTo(w * 0.5, h * 0.5 + 2); g.lineTo(w - 3, h - 2); g.stroke();
+            }
+            InkText {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height * 0.76
+                text: "Pictures  ·  Archive."
+                font.pixelSize: 12
+                color: "#6e6c6d"
+            }
+        }
+        // the flap once folded past upright, over the pocket
+        Item {
+            y: envelope.rise
+            width: parent.width
+            height: parent.height
+            opacity: back.opacity
+            visible: envelope.flapAngle <= 90
+            EnvelopeFlap { paper: win.envPaper; angle: envelope.flapAngle }
+        }
+        Stamp {
+            id: postmark
+            visible: false
+            kind: "oval"
+            number: Qt.formatDate(new Date(), "d.M.yy")
+            footer: "PICTURES"
+            ink: Theme.accent
+            seed: 7311
+            scale: 0.66
+            x: parent.width * 0.5 - width / 2 + 34
+            y: parent.height * 0.52 - height / 2
+        }
+    }
+
+    // filed: into the envelope, sealed, postmarked and sent off
     SequentialAnimation {
         id: fileAway
-        ScriptAction { script: { linger.stop(); shot.filing = true; } }
-        ParallelAnimation {
-            NumberAnimation { target: shot; property: "y"; to: win.height + 20; duration: Theme.dur(380); easing.type: Easing.InCubic }
-            NumberAnimation { target: shot; property: "scale"; to: 0.5; duration: Theme.dur(380); easing.type: Easing.InCubic }
-            NumberAnimation { target: shot; property: "rotation"; to: win.restAngle + 8; duration: Theme.dur(380) }
+        ScriptAction {
+            script: {
+                linger.stop();
+                shot.filing = true;
+                // the envelope where the print is, turned as it is, a
+                // little lower so the print stands over its opening (and
+                // clear of the bar)
+                const cx = shot.x + shot.width / 2, cy = shot.y + shot.height / 2;
+                envelope.sent = 0;
+                envelope.baseRot = shot.rotation;
+                envelope.baseX = cx - win.envW / 2;
+                envelope.baseY = Math.min(cy - win.envH / 2 + 34, win.height - Theme.barHeight - win.envH - 14);
+                envelope.rise = 90;
+                envelope.flapAngle = 180;
+                back.opacity = 0;
+                postmark.visible = false;
+                envelope.visible = true;
+                // the print into the envelope's slot, where it already stands
+                win.shotHome = shot.parent;
+                shot.parent = slot;
+                shot.rotation = 0;
+                shot.x = win.envW / 2 - shot.width / 2;
+                shot.y = 700 + (cy - envelope.baseY) - shot.height / 2;
+            }
         }
-        ScriptAction { script: { shot.visible = false; shot.filing = false; clip.opacity = 0; } }
+        // the envelope comes up behind; the print is made to fit
+        ParallelAnimation {
+            NumberAnimation { target: back; property: "opacity"; to: 1; duration: Theme.dur(160) }
+            NumberAnimation { target: envelope; property: "rise"; to: 0; duration: Theme.dur(300); easing.type: Easing.OutCubic }
+            NumberAnimation { target: clip; property: "opacity"; to: 0; duration: Theme.dur(160) }
+            NumberAnimation { target: shot; property: "scale"; to: (win.envW - 40) / shot.width; duration: Theme.dur(300); easing.type: Easing.InOutQuad }
+        }
+        // slid in
+        NumberAnimation {
+            target: shot; property: "y"
+            to: 700 + 12 - shot.height * (1 - (win.envW - 40) / shot.width) / 2
+            duration: Theme.dur(360); easing.type: Easing.InOutCubic
+        }
+        // the flap folds over
+        NumberAnimation { target: envelope; property: "flapAngle"; to: 0; duration: Theme.dur(320); easing.type: Easing.InOutQuad }
+        // postmarked
+        ScriptAction { script: { postmark.visible = true; postmark.press(); Sounds.play("message"); } }
+        PauseAnimation { duration: Theme.dur(380) }
+        // and sent: picked up off the desk and away over the top right
+        NumberAnimation { target: envelope; property: "sent"; from: 0; to: 1; duration: Theme.dur(650) }
+        ScriptAction {
+            script: {
+                win.unpack();
+                shot.visible = false;
+                shot.filing = false;
+                shot.scale = 1;
+                clip.opacity = 0;
+            }
+        }
     }
 }
