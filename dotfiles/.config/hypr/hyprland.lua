@@ -48,6 +48,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("archive-idle start")                 -- dim, lock, screen off (archive-idle <minutes>)
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("wl-paste --watch cliphist store")
+    hl.exec_cmd("sh -c 'sleep 4; archive-mic tone'")   -- the microphone's tone, as last chosen
     hl.exec_cmd("sh -c 'sleep 2; qs ipc call sound play login'")   -- the drawer slides open
     -- the desk terminal, as on the mockup (set "deskTerminal": false to skip)
     if require("archive.state").setting_bool("deskTerminal", true) then
