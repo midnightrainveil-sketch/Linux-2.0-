@@ -31,7 +31,7 @@
   },
   "modules": [
     { "type": "title", "format": "{#1}{user-name}{#} {#@17}@{#} {#1}{host-name}{#}" },
-    { "type": "custom", "format": "{#@17}Specimen of the machine.{#} {#@17}───────────────{#}" },
+    { "type": "custom", "format": "{#@17}Specimen of the machine.{#} {#@17}──────────{#}" },
     { "type": "os", "key": "Spec.", "format": "{name} {arch}" },
     { "type": "host", "key": "Loc.", "format": "{name}" },
     { "type": "wm", "key": "Hab.", "format": "{pretty-name} · zsh · foot" },
@@ -39,14 +39,14 @@
     {
       "type": "command",
       "key": "Proc.",
-      "text": "n=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1 | sed 's/ w\\/.*//; s/ [0-9]*-Core Processor//; s/(R)//g; s/(TM)//g'); echo \"$n · $(nproc) threads\""
+      "text": "n=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1 | sed 's/ w\\/.*//; s/ [0-9]*-Core Processor//; s/(R)//g; s/(TM)//g; s/^AMD //; s/^Intel //'); echo \"$n · $(nproc) threads\""
     },
     { "type": "gpu", "key": "Gr.", "format": "{name}", "hideType": "none" },
     { "type": "memory", "key": "Mem.", "format": "{used} / {total}" },
     { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-used} / {size-total}" },
     { "type": "packages", "key": "Pkgs.", "format": "{all}" },
     { "type": "command", "key": "Dat.", "text": "echo \"$(date '+%-d %b %Y') · up $(uptime -p | sed 's/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g')\"" },
-    { "type": "custom", "format": "{#@17}────────────────────────────────────────{#}" },
+    { "type": "custom", "format": "{#@17}──────────────────────────────────{#}" },
     {
       "type": "command",
       "key": " ",

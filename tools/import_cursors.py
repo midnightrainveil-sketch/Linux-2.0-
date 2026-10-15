@@ -16,7 +16,8 @@ show on dark ground), and written as an Xcursor theme:
         cursors/<name>           one file per cursor, every size in it
         cursors/<other names>    links: the names programs ask for
 
-Sizes 24, 32, 48, 64 and 96 (Hyprland picks the one for the screen's scale).
+Sizes 24 to 96 (Hyprland picks the one for the size and the screen's scale:
+40 at scale 1.5 is 60).
 """
 import math
 import os
@@ -30,7 +31,7 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHEET = ROOT / "art" / "cursors" / "sheet.webp"
 THEME = ROOT / "dotfiles" / ".local" / "share" / "icons" / "Archive-Cursors"
-SIZES = (24, 32, 48, 64, 96)
+SIZES = (24, 32, 40, 48, 60, 64, 80, 96)
 
 # measured on the 1254 px sheet: each drawing's box
 BOXES = {

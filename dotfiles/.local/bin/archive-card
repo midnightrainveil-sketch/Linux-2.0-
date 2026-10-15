@@ -40,8 +40,11 @@ SWATCHES = {
     "day": ["545356", "6b6a6e", "737176", "626a78", "848991", "7f8796"],
     "night": ["e6e1d6", "c9ccd2", "aeb5c2", "8e9cb3", "a9c4e4", "7c93b8"],
 }
-PORTRAIT_ROWS = 15
-VERSION = 4          # bump to redraw cached pictures after a change here
+# the portrait is as big as the terminal allows: as many rows as it has
+# (less the prompt), and no wider than leaves INFO_COLS for the label
+INFO_COLS = 39
+MAX_ROWS = 24
+VERSION = 5          # bump to redraw cached pictures after a change here
 
 
 def rgb(h):
@@ -56,16 +59,26 @@ def mode():
     return m if m in PAPER else "day"
 
 
-def cell_size():
-    """The terminal's cell in pixels (what sixel pictures are measured in)."""
+def term_size():
+    """The terminal: rows, columns, and its cell in pixels (what sixel
+    pictures are measured in)."""
     for fd in (sys.stdout.fileno(), sys.stdin.fileno()):
         try:
             rows, cols, xpix, ypix = struct.unpack("HHHH", fcntl.ioctl(fd, termios.TIOCGWINSZ, b"\0" * 8))
             if rows and cols and xpix and ypix:
-                return xpix / cols, ypix / rows
+                return rows, cols, xpix / cols, ypix / rows
         except OSError:
             pass
     return None
+
+
+def portrait_rows(trows, tcols, cw, ch):
+    from PIL import Image
+    with Image.open(CONF / "portrait.png") as im:
+        aspect = im.width / im.height
+    by_height = trows - 4                       # the padding, the prompt, a spare line
+    by_width = math.floor((tcols - INFO_COLS - 5) * cw / (aspect * ch))
+    return max(8, min(MAX_ROWS, by_height, by_width))
 
 
 # ------------------------------------------------------------------ sixel
@@ -117,11 +130,10 @@ def to_sixel(rgba):
 
 
 # ------------------------------------------------------------------ the portrait
-def portrait(m, cw, ch):
+def portrait(m, cw, ch, rows):
     import numpy as np
     from PIL import Image
     src = Image.open(CONF / "portrait.png").convert("RGBA")
-    rows = PORTRAIT_ROWS
     h = int(rows * ch)
     w = round(src.width * h / src.height)
     cols = math.ceil(w / cw)
@@ -192,15 +204,15 @@ def swatches(m, cw, ch):
 
 
 # ------------------------------------------------------------------ the card
-def drawn(name, m, cw, ch, make):
+def drawn(name, m, cw, ch, make, rows=0):
     """A picture from the cache, or drawn now and kept."""
-    key = "%s-%s-%dx%d-v%d" % (name, m, round(cw * 10), round(ch * 10), VERSION)
+    key = "%s-%s-%dx%d-r%d-v%d" % (name, m, round(cw * 10), round(ch * 10), rows, VERSION)
     f = CACHE / (key + ".six")
     meta = CACHE / (key + ".size")
     if f.exists() and (name != "portrait" or meta.exists()):
         return f, meta.read_text().split() if meta.exists() else None
     CACHE.mkdir(parents=True, exist_ok=True)
-    result = make(m, cw, ch)
+    result = make(m, cw, ch, rows) if rows else make(m, cw, ch)
     if isinstance(result, tuple):
         data, cols, rows = result
         meta.write_text("%d %d" % (cols, rows))
@@ -215,13 +227,13 @@ def main():
         shutil.rmtree(CACHE, ignore_errors=True)
         return
     args = ["fastfetch"]
-    size = cell_size()
+    size = term_size()
     m = mode()
     try:
         if size is None or not (CONF / "portrait.png").exists():
             raise RuntimeError("no cell size or no portrait")
-        cw, ch = size
-        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait)
+        trows, tcols, cw, ch = size
+        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch))
         sf, _ = drawn("swatches", m, cw, ch, swatches)
         # the swatches' module reads the current one from here
         cur = CACHE / "swatches.six"

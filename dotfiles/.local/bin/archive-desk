@@ -12,7 +12,7 @@
 # greets you with fastfetch).
 set -uo pipefail
 
-# the terminal's place, as fractions of the screen, and its shape: 16:9 with
+# the terminal's place, as fractions of the screen, and its shape: 4:3 with
 # its title bar (as in hypr/archive/rules.lua)
 X=0.019 Y=0.25 W=0.3125 BAR=46
 # the desk card is smaller than a working terminal, so its type is too: the
@@ -54,7 +54,7 @@ terminal() {
     px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
     py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
     pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
-    ph=$(awk -v w="$mw" -v f="$W" -v bar="$BAR" 'BEGIN { printf "%d", w * f * 9 / 16 - bar }')
+    ph=$(awk -v w="$mw" -v f="$W" -v bar="$BAR" 'BEGIN { printf "%d", w * f * 3 / 4 - bar }')
 
     local win="window = \"address:$addr\""
     hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null

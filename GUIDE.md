@@ -385,7 +385,7 @@ with a 10 ms fade-out.
   they support it. In VS Code, pick a light low-contrast theme by day.
 - **Cursors**: the archive's own (a pencil, white gloves, a pocket watch, a
   compass star, a loupe, a scale bar), drawn from `art/cursors/sheet.webp` by
-  `tools/import_cursors.py`. Size 32 is set in `hypr/hyprland.lua`
+  `tools/import_cursors.py`. Size 40 is set in `hypr/hyprland.lua`
   (`XCURSOR_SIZE`) and the GTK settings.
 - **Text and code files** (md, py, cpp, json, ...) open in VS Code when it is
   installed (the setup makes it the default; `xdg-mime default code.desktop

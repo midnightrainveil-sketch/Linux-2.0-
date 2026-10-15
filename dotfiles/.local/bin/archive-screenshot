@@ -10,8 +10,13 @@ mkdir -p "$dir"
 file="$dir/record-$(date +%Y%m%d-%H%M%S).png"
 
 # a print from the last shot (pinned or not) must not end up in this one:
-# take it off the desk, and give the screen a moment to be drawn without it
-if qs ipc call photo clear >/dev/null 2>&1; then sleep 0.15; fi
+# if one is on the desk, take it off and give the screen a moment to be
+# drawn without it (asking the shell costs a moment, so only then)
+if hyprctl layers -j 2>/dev/null | grep -q '"archive-photograph"'; then
+    qs ipc call photo clear >/dev/null 2>&1 && sleep 0.12
+fi
+# quick PNG compression: the full panel at the default level takes a while
+grim() { command grim -l 1 "$@"; }
 
 case ${1:-region} in
     region)
@@ -34,8 +39,10 @@ case ${1:-region} in
     *) echo "usage: archive-screenshot region|window|screen" >&2; exit 2 ;;
 esac
 
-wl-copy --type image/png <"$file"
-qs ipc call photo develop "$file" >/dev/null 2>&1 && exit 0
+# the print on the desk and the clipboard at the same time
+wl-copy --type image/png <"$file" &
+if qs ipc call photo develop "$file" >/dev/null 2>&1; then wait; exit 0; fi
+wait
 notify-send --app-name "Camera Lucida" \
     --hint string:x-archive-stamp:FILED \
     --hint string:x-archive-sound:capture \

@@ -23,8 +23,8 @@ hl.env("PATH", os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or "/us
 -- the archive's cursors: the pencil, the gloves, the instruments
 -- (~/.local/share/icons/Archive-Cursors, tools/import_cursors.py)
 hl.env("XCURSOR_THEME", "Archive-Cursors")
-hl.env("XCURSOR_SIZE", "32")
-hl.env("HYPRCURSOR_SIZE", "32")
+hl.env("XCURSOR_SIZE", "40")
+hl.env("HYPRCURSOR_SIZE", "40")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
@@ -47,7 +47,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("archive-brightness init")            -- a software dim, if the panel needs one
     hl.exec_cmd("archive-bars ensure")                -- title bars: rebuild if Hyprland was updated
     hl.exec_cmd("archive-icons ensure")               -- icons: remake if Papirus was updated
-    hl.exec_cmd("hyprctl setcursor Archive-Cursors 32") -- the archive's cursors
+    hl.exec_cmd("hyprctl setcursor Archive-Cursors 40") -- the archive's cursors
     hl.exec_cmd("qs")                                 -- the shell
     hl.exec_cmd("archive-idle start")                 -- dim, lock, screen off (archive-idle <minutes>)
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
