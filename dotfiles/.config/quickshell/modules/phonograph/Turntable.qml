@@ -893,67 +893,24 @@ Item {
         }
     }
 
-    // previous, pause / play, next: brass push buttons in the plinth
+    // previous, pause / play, next: brass push buttons standing in the plinth,
+    // all one size, their caps centred on the title holder
     Row {
-        x: holder.x + holder.width + 12
-        anchors.verticalCenter: holder.verticalCenter
-        spacing: 6
+        x: holder.x + holder.width + 10
+        y: holder.y + holder.height / 2 - (30 / 2 + 4)
+        spacing: 2
         Repeater {
             model: ["previous", "toggle", "next"]
-            Item {
-                id: button
+            RaisedButton {
                 required property string modelData
-                width: modelData === "toggle" ? 34 : 28
-                height: width
-                readonly property bool down: press.pressed
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.topMargin: button.down ? 2 : 0
-                    radius: width / 2
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.lighter(deck.brass, button.down ? 1.05 : 1.3) }
-                        GradientStop { position: 1; color: Qt.darker(deck.brass, 1.35) }
-                    }
-                    border.width: 1
-                    border.color: Qt.rgba(0, 0, 0, 0.55)
-                    // the engraved sign
-                    Canvas {
-                        anchors.fill: parent
-                        property string kind: button.modelData
-                        property bool playing: deck.spinning
-                        onPlayingChanged: requestPaint()
-                        onPaint: {
-                            const g = getContext("2d");
-                            g.reset();
-                            const c = width / 2, s = width * 0.18;
-                            g.fillStyle = "rgba(30, 22, 12, 0.78)";
-                            const tri = (x, dir) => {
-                                g.beginPath();
-                                g.moveTo(x - dir * s * 0.55, c - s);
-                                g.lineTo(x + dir * s * 0.75, c);
-                                g.lineTo(x - dir * s * 0.55, c + s);
-                                g.closePath(); g.fill();
-                            };
-                            if (kind === "toggle") {
-                                if (playing) { g.fillRect(c - s * 0.75, c - s, s * 0.5, 2 * s); g.fillRect(c + s * 0.25, c - s, s * 0.5, 2 * s); }
-                                else tri(c + s * 0.15, 1);
-                            } else {
-                                const dir = kind === "next" ? 1 : -1;
-                                tri(c - dir * s * 0.45, dir);
-                                g.fillRect(c + dir * s * 0.55 - s * 0.14, c - s, s * 0.28, 2 * s);
-                            }
-                        }
-                    }
-                }
-                MouseArea {
-                    id: press
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (button.modelData === "previous") deck.previousAsked();
-                        else if (button.modelData === "next") deck.nextAsked();
-                        else deck.toggled();
-                    }
+                kind: modelData
+                tone: "brass"
+                size: 30
+                playing: deck.spinning
+                onClicked: {
+                    if (modelData === "previous") deck.previousAsked();
+                    else if (modelData === "next") deck.nextAsked();
+                    else deck.toggled();
                 }
             }
         }
