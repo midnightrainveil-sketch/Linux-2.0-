@@ -8,12 +8,14 @@
 #   archive-ros setup      set up, or finish a setup that stopped
 #   archive-ros remove     delete the container (your files stay)
 #
-# The container shares your home folder, screen, sound and USB devices, so
-# ~/catkin_ws is the same folder inside and out, and ROS windows open on
-# the desk like any other. It draws with the CPU (integrated graphics only:
-# Ubuntu 20.04's drivers predate the Radeon 780M, and the NVIDIA card is not
-# used), which is plenty for RViz. The app drawer gets "ROS Noetic" (a
-# shell) and "RViz".
+# The container shares your home folder, sound and USB devices, so
+# ~/catkin_ws is the same folder inside and out. It draws with the CPU
+# (Ubuntu 20.04's drivers predate the Radeon 780M), which is plenty for RViz.
+# ROS windows (RViz, rqt) open in a screen of their own: a private X server
+# in a window on the desk, drawing without the graphics driver. The desk's
+# own X server (XWayland) crashes in Arch's Mesa when RViz draws on it, and
+# takes every X program with it; the private one cannot. The app drawer gets
+# "ROS Noetic" (a shell) and "RViz".
 set -euo pipefail
 box=ros-noetic
 image=docker.io/library/ubuntu:20.04
@@ -36,12 +38,37 @@ source /opt/ros/noetic/setup.bash
 [ -f "$HOME/catkin_ws/devel/setup.bash" ] && source "$HOME/catkin_ws/devel/setup.bash"
 export ROS_MASTER_URI=${ROS_MASTER_URI:-http://localhost:11311}
 export ROS_HOSTNAME=${ROS_HOSTNAME:-localhost}
-# Qt 5.12 here talks X11 (XWayland), and draws 3D on the CPU
+# Qt 5.12 here talks X11, and draws 3D on the CPU
 export QT_QPA_PLATFORM=xcb
 export LIBGL_ALWAYS_SOFTWARE=1
 # drawing on the processor: leave some of it for the rest of the desk
 export LP_NUM_THREADS=${LP_NUM_THREADS:-4}
-alias rviz='nice -n 10 rviz'
+# ROS windows go on a private X server in a window of its own (archive-ros
+# starts it on request; the desk's XWayland crashes on RViz)
+_archive_x() {
+    local req=${ARCHIVE_X_REQ:-} ans=${ARCHIVE_X_REQ:-}.ans i
+    [ -n "$req" ] && [ -p "$req" ] || return 0
+    rm -f "$ans"
+    echo start >"$req"
+    for i in $(seq 80); do [ -s "$ans" ] && break; sleep 0.1; done
+    [ -s "$ans" ] || return 0
+    read -r DISPLAY _archive_geo <"$ans"
+    export DISPLAY
+}
+rviz() {
+    _archive_x
+    local t=$SECONDS
+    if [ -n "${_archive_geo:-}" ]; then
+        nice -n 10 command rviz -geometry "${_archive_geo}+0+0" "$@" && return
+        [ $((SECONDS - t)) -lt 4 ] || return
+    fi
+    nice -n 10 command rviz "$@"
+}
+onx() { _archive_x; "$@"; }     # any other window: onx rqt_graph
+rqt() { _archive_x; command rqt "$@"; }
+rqt_graph() { _archive_x; command rqt_graph "$@"; }
+rqt_plot() { _archive_x; command rqt_plot "$@"; }
+rqt_image_view() { _archive_x; command rqt_image_view "$@"; }
 alias cm='(cd ~/catkin_ws && catkin_make)'
 PS1='\[\e[1m\](noetic)\[\e[0m\] \w \$ '
 echo "ROS Noetic. Workspace: ~/catkin_ws   (build: cm   |   roscore, rviz, rqt, roslaunch ...)"
@@ -146,6 +173,37 @@ robot() {
     fi
     robot_env="export ROS_MASTER_URI=http://$host:11311 ROS_IP=$me ROS_HOSTNAME=$me;"
 }
+# ------------------------------------------------------------------ the private screen
+# private_x: a private X server in a window of its own (rootful XWayland,
+# drawing in shared memory, not through the graphics driver), sized to the
+# screen. Prints "DISPLAY WIDTHxHEIGHT". It closes with its last window.
+private_x() {
+    local n=12 geo=1600x1000 w h shm=-shm
+    if read -r w h < <(hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused) | "\((.width / .scale * 0.92) | floor) \((.height / .scale * 0.86) | floor)"' 2>/dev/null) &&
+        [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]]; then
+        geo="${w}x${h}"
+    fi
+    if [[ -S /tmp/.X11-unix/X$n ]] && pgrep -f "Xwayland :$n " >/dev/null; then
+        echo ":$n $(cat "${XDG_RUNTIME_DIR:-/tmp}/archive-ros-x.geo" 2>/dev/null || echo "$geo")"
+        return
+    fi
+    rm -f "/tmp/.X11-unix/X$n" "/tmp/.X$n-lock" 2>/dev/null || true
+    Xwayland -help 2>&1 | grep -q -- '-shm' || shm=""
+    setsid -f Xwayland ":$n" -geometry "$geo" $shm -terminate >/dev/null 2>&1
+    echo "$geo" >"${XDG_RUNTIME_DIR:-/tmp}/archive-ros-x.geo"
+    for _ in $(seq 50); do [[ -S /tmp/.X11-unix/X$n ]] && break; sleep 0.1; done
+    sleep 0.3
+    echo ":$n $geo"
+}
+
+# while a shell is open, it may ask for the private screen through a pipe
+x_broker() { # x_broker <fifo>
+    local fifo=$1
+    while [[ -p $fifo ]]; do
+        if read -r _ <"$fifo"; then private_x >"$fifo.ans"; fi
+    done
+}
+
 looks_like_host() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || ( $1 == *.* && $1 != */* ) ]]; }
 
 # ------------------------------------------------------------------ use
@@ -155,19 +213,26 @@ case $cmd in
     shell)
         ready || setup
         write_rc
-        exec distrobox enter "$box" -- bash -c "$robot_env exec bash --rcfile '$rc' -i"
+        fifo="${XDG_RUNTIME_DIR:-/tmp}/archive-ros-x.$$"
+        rm -f "$fifo" "$fifo.ans"; mkfifo "$fifo"
+        x_broker "$fifo" &
+        broker=$!
+        trap 'rm -f "$fifo" "$fifo.ans"; kill $broker 2>/dev/null' EXIT
+        distrobox enter "$box" -- bash -c "$robot_env export ARCHIVE_X_REQ='$fifo'; exec bash --rcfile '$rc' -i"
         ;;
     rviz)
         ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
         write_rc
+        read -r disp geo < <(private_x)
+        show="export DISPLAY=$disp _archive_geo=$geo; rviz"
         if [[ -n ${2:-} ]]; then
             robot "$2"
-            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; nice -n 10 rviz"
+            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; $show"
         fi
         # roscore first if none is running; stopped again with RViz
         exec distrobox enter "$box" -- bash -c "source '$rc' >/dev/null
             if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
-            nice -n 10 rviz; [ -n \"\${core:-}\" ] && kill \$core"
+            $show; [ -n \"\${core:-}\" ] && kill \$core"
         ;;
     setup) setup ;;
     remove)
