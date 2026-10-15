@@ -3,7 +3,9 @@
 #
 #   archive-mode day | night     set it, and hold until the next sunrise / sunset
 #   archive-mode toggle          the other one, held the same way
-#   archive-mode auto            follow the clock (run by archive-mode.timer and at login)
+#   archive-mode auto            follow the clock (run by archive-mode.timer and at login),
+#                                only when "autoMode": true in settings.json; it is off,
+#                                so the sheet stays as you last set it
 #   archive-mode status          print the current mode
 #
 # Day / night times come from ~/.config/archive/settings.json ("dayStart",
@@ -113,6 +115,12 @@ case $cmd in
         next_boundary >"$state_dir/mode-hold"
         ;;
     auto)
+        if ! grep -Eq '"autoMode"[[:space:]]*:[[:space:]]*true' "$settings" 2>/dev/null; then
+            # no following the clock: keep the mode as last set (only make
+            # sure the terminals' theme file is there, first time round)
+            [[ -f $state_dir/foot-theme.ini ]] || apply "$(current)"
+            exit 0
+        fi
         hold=$(cat "$state_dir/mode-hold" 2>/dev/null || echo 0)
         if (( $(date +%s) < hold )); then
             exit 0      # a manual choice holds until the next sunrise / sunset

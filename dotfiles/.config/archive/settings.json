@@ -9,6 +9,7 @@
     "latitude": 1.3521,
     "longitude": 103.8198
   },
+  "autoMode": false,
   "dayStart": "07:00",
   "nightStart": "19:10",
   "bar": {

@@ -291,7 +291,7 @@ number is the current air pressure in hPa.
 | `` Super + ` `` | Open the drawer (scratchpad) |
 | `Super + C` | Ledger (calendar): scroll (or ← →) through the months, `Home` for today; "Year" in its corner (or `F`) opens the whole year in the middle of the desk, where a click on a month opens that month |
 | `Super + I` | Instrument card (quick settings) |
-| `Super + N` | Turn the sheet: day or night (holds until the next sunrise or sunset) |
+| `Super + N` | Turn the sheet: day or night. It stays as you set it (to follow the clock again, set `"autoMode": true` in `~/.config/archive/settings.json`) |
 | `Super + Shift + G` | Paper grain on this window, on or off (the "░" in its title bar does the same; quick settings' Grain row turns it off everywhere) |
 | `Super + Alt + L` | Desk lamp at night (a warm pool of light that follows the pointer over the desk), on or off |
 | `Super + Escape` | Reading Room (lock): the card is sealed in wax; the right signature breaks the seal |
