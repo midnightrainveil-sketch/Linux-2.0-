@@ -131,6 +131,70 @@ def cut(sheet, box, clear_inside):
     return out.crop(out.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox())
 
 
+def straighten_finger(img, until=0.25, fade=0.36):
+    """The pointing finger stood upright. Its middle is measured row by row
+    above `until` (a fraction of the height) and fitted with a straight line;
+    each row is moved sideways onto the plumb line over the finger's base,
+    and from there down to `fade` the move dies away smoothly."""
+    a = np.asarray(img)
+    h, w = a.shape[:2]
+    alpha = a[..., 3] > 128
+    y_base = int(until * h)
+    ys, ms = [], []
+    for y in range(int(0.04 * h), y_base + 1):
+        xs = np.nonzero(alpha[y])[0]
+        if len(xs):
+            ys.append(y); ms.append((xs.min() + xs.max()) / 2)
+    slope, icept = np.polyfit(ys, ms, 1)
+    base = slope * y_base + icept
+    out = np.zeros_like(a)
+    for y in range(h):
+        if y <= y_base:
+            shift = base - (slope * y + icept)
+        elif y < fade * h:
+            t = (y - y_base) / (fade * h - y_base)
+            shift = (base - (slope * y_base + icept)) * (1 - t * t * (3 - 2 * t))
+        else:
+            shift = 0
+        # moved by fractions of a pixel too, so the edge stays smooth
+        row = Image.fromarray(a[y:y + 1], "RGBA")
+        moved = row.transform(row.size, Image.Transform.AFFINE, (1, 0, -shift, 0, 1, 0), resample=Image.Resampling.BILINEAR)
+        out[y] = np.asarray(moved)[0]
+    return Image.fromarray(out, "RGBA")
+
+
+def bigger_cuff(img, top, scale=1.22, angle=0.0):
+    """The cuff (the picture below the row `top`, a fraction of its height,
+    just above the cuff's top edge) drawn `scale` times bigger, hanging from
+    the same place at the wrist. `angle`: how far the cuff is turned
+    (degrees, anticlockwise), so a tilted one is enlarged along itself."""
+    if angle:
+        turned = img.rotate(-angle, expand=True, resample=Image.Resampling.BICUBIC)
+        big = bigger_cuff(turned, top, scale)
+        back = big.rotate(angle, expand=True, resample=Image.Resampling.BICUBIC)
+        return back.crop(back.getchannel("A").point(lambda v: 255 if v > 10 else 0).getbbox())
+    w, h = img.size
+    y0 = int(top * h)
+    band = img.crop((0, y0, w, h))
+    bw, bh = round(w * scale), round((h - y0) * scale)
+    band = band.resize((bw, bh), Image.Resampling.LANCZOS)
+    W, H = max(w, bw), y0 + bh
+    canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    canvas.alpha_composite(img.crop((0, 0, w, y0 + 1)), ((W - w) // 2, 0))
+    canvas.alpha_composite(band, ((W - bw) // 2, y0))
+    return canvas
+
+
+# the drawings, touched up: the pointing finger stood straight, the cuffs a
+# size bigger (the row just above each cuff's top edge, as a fraction of the
+# drawing's height; the fist's cuff is turned 14 degrees)
+TOUCH_UP = {
+    "glove": lambda im: bigger_cuff(straighten_finger(im), 0.81),
+    "open": lambda im: bigger_cuff(im, 0.81),
+    "fist": lambda im: bigger_cuff(im, 0.71, angle=-14),
+}
+
+
 def point_of(img, how):
     a = np.asarray(img.getchannel("A")) > 120
     ys, xs = np.nonzero(a)
@@ -206,6 +270,8 @@ def main():
         key = (drawing, clear)
         if key not in cuts:
             cuts[key] = cut(sheet, BOXES[drawing], clear)
+            if drawing in TOUCH_UP:
+                cuts[key] = TOUCH_UP[drawing](cuts[key])
         img = cuts[key]
         if turn == "rot90":
             img = img.rotate(90, expand=True)
