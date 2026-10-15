@@ -39,6 +39,9 @@ export ROS_HOSTNAME=${ROS_HOSTNAME:-localhost}
 # Qt 5.12 here talks X11 (XWayland), and draws 3D on the CPU
 export QT_QPA_PLATFORM=xcb
 export LIBGL_ALWAYS_SOFTWARE=1
+# drawing on the processor: leave some of it for the rest of the desk
+export LP_NUM_THREADS=${LP_NUM_THREADS:-4}
+alias rviz='nice -n 10 rviz'
 alias cm='(cd ~/catkin_ws && catkin_make)'
 PS1='\[\e[1m\](noetic)\[\e[0m\] \w \$ '
 echo "ROS Noetic. Workspace: ~/catkin_ws   (build: cm   |   roscore, rviz, rqt, roslaunch ...)"
@@ -151,20 +154,20 @@ if looks_like_host "$cmd"; then robot "$cmd"; cmd=shell; fi
 case $cmd in
     shell)
         ready || setup
-        [[ -f $rc ]] || write_rc
+        write_rc
         exec distrobox enter "$box" -- bash -c "$robot_env exec bash --rcfile '$rc' -i"
         ;;
     rviz)
         ready || { echo "archive-ros: not set up yet: run archive-ros in a terminal first" >&2; exit 1; }
-        [[ -f $rc ]] || write_rc
+        write_rc
         if [[ -n ${2:-} ]]; then
             robot "$2"
-            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; rviz"
+            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; nice -n 10 rviz"
         fi
         # roscore first if none is running; stopped again with RViz
         exec distrobox enter "$box" -- bash -c "source '$rc' >/dev/null
             if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
-            rviz; [ -n \"\${core:-}\" ] && kill \$core"
+            nice -n 10 rviz; [ -n \"\${core:-}\" ] && kill \$core"
         ;;
     setup) setup ;;
     remove)
