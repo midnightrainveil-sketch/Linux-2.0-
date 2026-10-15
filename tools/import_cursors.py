@@ -132,35 +132,81 @@ def cut(sheet, box, clear_inside):
 
 
 def straighten_finger(img, until=0.25, fade=0.36):
-    """The pointing finger stood upright. Its middle is measured row by row
-    above `until` (a fraction of the height) and fitted with a straight line;
-    each row is moved sideways onto the plumb line over the finger's base,
-    and from there down to `fade` the move dies away smoothly."""
-    a = np.asarray(img)
+    """The pointing finger made straight. Above `until` (a fraction of the
+    height, where the other fingers begin) each row is redrawn so the finger
+    stands plumb over its base with straight, parallel sides: centred on the
+    base's middle, and stretched or narrowed to the finger's usual width (the
+    rounded tip keeps its own shape). Down to `fade` the correction dies away."""
+    a = np.asarray(img).astype(np.float32)
     h, w = a.shape[:2]
     alpha = a[..., 3] > 128
     y_base = int(until * h)
-    ys, ms = [], []
-    for y in range(int(0.04 * h), y_base + 1):
+    edges = {}
+    for y in range(0, y_base + 1):
         xs = np.nonzero(alpha[y])[0]
         if len(xs):
-            ys.append(y); ms.append((xs.min() + xs.max()) / 2)
-    slope, icept = np.polyfit(ys, ms, 1)
-    base = slope * y_base + icept
-    out = np.zeros_like(a)
+            edges[y] = (xs.min(), xs.max())
+    rows = sorted(edges)
+    widths = np.array([edges[y][1] - edges[y][0] for y in rows], np.float32)
+    usual = float(np.median(widths[len(widths) // 3:]))
+    tip_end = next(y for y, wd in zip(rows, widths) if wd >= 0.92 * usual)
+    c0 = (edges[y_base][0] + edges[y_base][1]) / 2
+    xs = np.arange(w, dtype=np.float32)
+    xs_all = xs
+    out = a.copy()
+
+    def resample(y, centre, stretch):
+        src = centre + (xs - c0) * stretch
+        lo = np.clip(np.floor(src).astype(int), 0, w - 1)
+        hi = np.clip(lo + 1, 0, w - 1)
+        f = (src - np.floor(src))[:, None]
+        row = a[y, lo] * (1 - f) + a[y, hi] * f
+        row[(src < 0) | (src > w - 1)] = 0
+        return row
+
+    # the tip: a true half-round on the finger's width
+    y_top = rows[0]
+    radius = usual / 2
+
+    def round_width(y):
+        d = radius - (y - y_top + 0.5)
+        return 2 * math.sqrt(max(0.0, radius * radius - d * d)) if d > 0 else usual
+
+    last_c, last_s = c0, 1.0
     for y in range(h):
-        if y <= y_base:
-            shift = base - (slope * y + icept)
-        elif y < fade * h:
+        if y in edges and y <= y_base:
+            l, r = edges[y]
+            centre = (l + r) / 2
+            want = round_width(y) if y < y_top + radius else usual
+            stretch = max(0.2, (r - l) / max(1.0, want))
+            out[y] = resample(y, centre, stretch)
+            last_c, last_s = centre, stretch
+        elif y_base < y < fade * h:
             t = (y - y_base) / (fade * h - y_base)
-            shift = (base - (slope * y_base + icept)) * (1 - t * t * (3 - 2 * t))
-        else:
-            shift = 0
-        # moved by fractions of a pixel too, so the edge stays smooth
-        row = Image.fromarray(a[y:y + 1], "RGBA")
-        moved = row.transform(row.size, Image.Transform.AFFINE, (1, 0, -shift, 0, 1, 0), resample=Image.Resampling.BILINEAR)
-        out[y] = np.asarray(moved)[0]
-    return Image.fromarray(out, "RGBA")
+            k = 1 - t * t * (3 - 2 * t)
+            out[y] = resample(y, c0 + (last_c - c0) * k, 1 + (last_s - 1) * k)
+    # below the other fingertips the finger's left side still runs on down
+    # to the palm: drawn plumb too, by moving only the row's left part
+    a2 = out.copy()
+    left0 = edges[y_base][0]
+    al2 = a2[..., 3] > 128
+    for y in range(y_base + 1, int(fade * h)):
+        xs = np.nonzero(al2[y])[0]
+        if not len(xs) or xs.min() < left0 - 3:
+            break                                   # the palm swells out here
+        l = xs.min()
+        if l == left0:
+            continue
+        # columns left of the finger's middle: [l, c0] drawn onto [left0, c0]
+        src = c0 - (c0 - xs_all) * (c0 - l) / max(1.0, c0 - left0)
+        part = xs_all < c0
+        lo = np.clip(np.floor(src).astype(int), 0, w - 1)
+        hi = np.clip(lo + 1, 0, w - 1)
+        f = (src - np.floor(src))[:, None]
+        row = a2[y, lo] * (1 - f) + a2[y, hi] * f
+        row[src < 0] = 0
+        out[y, part] = row[part]
+    return Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGBA")
 
 
 def bigger_cuff(img, top, scale=1.22, angle=0.0):
