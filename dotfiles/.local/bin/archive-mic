@@ -3,9 +3,9 @@
 #
 #   archive-mic          make "Microphone (clear)" the default microphone and
 #                        turn the raw one's gain down (less hiss and grain)
-#   archive-mic tone soft|softer|bright
-#                        how much of the sharp top is taken off (soft: the
-#                        default; softer: warmer still; bright: none)
+#   archive-mic tone flat|soft|softer
+#                        how much of the sharp top is taken off (flat: none,
+#                        the default; soft: some; softer: more, and warmer)
 #   archive-mic check    what microphones the laptop has (for the G14's array)
 #   archive-mic test     record 5 seconds from the default mic and play it back
 #   archive-mic off      back to the raw microphone
@@ -27,7 +27,7 @@ tone_file="${XDG_STATE_HOME:-$HOME/.local/state}/archive/mic-tone"
 # tone <name>: the tone filter's settings (warmth, presence, air, top)
 tone_values() {
     case $1 in
-        bright) echo "0 0 0 18000" ;;
+        flat | bright) echo "0 0 0 18000" ;;
         soft) echo "2 -2 -6 11000" ;;
         softer) echo "3 -3.5 -10 8500" ;;
         *) return 1 ;;
@@ -35,7 +35,7 @@ tone_values() {
 }
 set_tone() { # set_tone <name>
     local v warmth presence air top id
-    v=$(tone_values "$1") || { echo "tones: soft, softer, bright" >&2; return 2; }
+    v=$(tone_values "$1") || { echo "tones: flat, soft, softer" >&2; return 2; }
     read -r warmth presence air top <<<"$v"
     # the filter's controls live on its nodes; set them on both ends
     for n in archive_mic_tone archive_mic; do
@@ -51,9 +51,9 @@ tone)
     if [[ -n ${2:-} ]]; then
         set_tone "$2" && echo "microphone tone: $2"
     else
-        # at login: the tone chosen last time (soft is built in)
-        t=$(cat "$tone_file" 2>/dev/null || echo soft)
-        [[ $t == soft ]] || set_tone "$t"
+        # at login: the tone chosen last time (flat is built in)
+        t=$(cat "$tone_file" 2>/dev/null || echo flat)
+        [[ $t == flat || $t == bright ]] || set_tone "$t"
     fi
     ;;
 on)
