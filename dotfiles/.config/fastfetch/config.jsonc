@@ -1,44 +1,62 @@
-// fastfetch: the desk terminal's index card (the reference's left card).
-// The logo is the Arch mark retyped on a typewriter (logo.txt).
+// fastfetch: the desk terminal's index card, written as a herbarium
+// specimen label (the one on the sheet: Loc. / Hab. / Leg. / Det. / Dat.).
+// The machine is the specimen:
 //
-// Typed like the reference: the name in bold with a rule under it, then one
-// "Key: value" per line with no column alignment, then six ink swatches. The
-// swatches use palette slots 16-21, which foot.ini sets per mode (graphite
-// and slate by day, cream and ice blue at night), so the 16 standard colours
-// stay free for programs.
+//   snowglobe_express @ ZephyG14
+//   Specimen of the machine.  ──────────
+//   Spec.  Arch Linux x86_64              the species: the system
+//   Loc.   ROG Zephyrus G14 · GA403UV     where it was found
+//   Hab.   Hyprland · zsh · foot          what it lives in
+//   ...
+//   then six ink swatches, chalked on: palette slots 16-21, which foot.ini
+//   sets per mode (graphite and slate by day, cream and ice blue at night).
+//   They are a picture (sixel, which foot shows inline), drawn by
+//   tools/chalk_swatches.py: square, rubbed on in strokes with the paper
+//   showing through the grain, one for day and one for night.
+//
+// The logo is the Arch mark retyped on a typewriter (logo.txt); a portrait
+// (portrait.png, shown as a picture by foot) takes its place when there is one.
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
     "type": "file",
     "source": "~/.config/fastfetch/logo.txt",
     "color": { "1": "default" },
-    "padding": { "top": 1, "left": 2, "right": 1 }
+    "padding": { "top": 1, "left": 2, "right": 3 }
   },
   "display": {
-    "separator": " ",
-    "color": { "keys": "default", "title": "default", "separator": "default", "output": "default" },
-    "key": { "type": "string" },
-    "brightColor": false
+    "separator": "",
+    "color": { "keys": "@17", "title": "default", "separator": "default", "output": "default" },
+    "key": { "width": 7 },
+    "brightColor": false,
+    "size": { "binaryPrefix": "iec", "ndigits": 1 }
   },
   "modules": [
-    { "type": "title", "format": "{#1}{user-name}@{host-name}{#}" },
-    { "type": "custom", "format": "────────────" },
-    { "type": "os", "key": "OS:", "format": "{name} {arch}" },
-    { "type": "host", "key": "Host:", "format": "{name}" },
-    { "type": "kernel", "key": "Kernel:", "format": "{release}" },
-    { "type": "uptime", "key": "Uptime:" },
-    { "type": "packages", "key": "Packages:" },
-    { "type": "shell", "key": "Shell:", "format": "{pretty-name} {version}" },
-    { "type": "display", "key": "Resolution:", "format": "{width}x{height}" },
-    { "type": "wm", "key": "WM:", "format": "{pretty-name}" },
-    { "type": "theme", "key": "Theme:" },
-    { "type": "icons", "key": "Icons:" },
-    { "type": "terminal", "key": "Terminal:", "format": "{pretty-name}" },
-    { "type": "terminalfont", "key": "Font:", "format": "{name} {size}" },
-    "break",
+    { "type": "title", "format": "{#1}{user-name}{#} {#@17}@{#} {#1}{host-name}{#}" },
+    { "type": "custom", "format": "{#@17}Specimen of the machine.{#} {#@17}───────────────{#}" },
+    { "type": "os", "key": "Spec.", "format": "{name} {arch}" },
+    { "type": "host", "key": "Loc.", "format": "{name}" },
+    { "type": "wm", "key": "Hab.", "format": "{pretty-name} · zsh · foot" },
+    { "type": "kernel", "key": "Kern.", "format": "{release}" },
     {
-      "type": "custom",
-      "format": "{#48;5;16}   {#} {#48;5;17}   {#} {#48;5;18}   {#} {#48;5;19}   {#} {#48;5;20}   {#} {#48;5;21}   {#}"
-    }
+      "type": "command",
+      "key": "Proc.",
+      "text": "n=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1 | sed 's/ w\\/.*//; s/ [0-9]*-Core Processor//; s/(R)//g; s/(TM)//g'); echo \"$n · $(nproc) threads\""
+    },
+    { "type": "gpu", "key": "Gr.", "format": "{name}", "hideType": "none" },
+    { "type": "memory", "key": "Mem.", "format": "{used} / {total}" },
+    { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-used} / {size-total}" },
+    { "type": "packages", "key": "Pkgs.", "format": "{all}" },
+    { "type": "command", "key": "Dat.", "text": "echo \"$(date '+%-d %b %Y') · up $(uptime -p | sed 's/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g')\"" },
+    { "type": "custom", "format": "{#@17}────────────────────────────────────────{#}" },
+    {
+      "type": "command",
+      "key": " ",
+      // the cursor put back where the picture began, so the lines after it
+      // (the logo's) are not pushed down by its height
+      "text": "printf '\\0337'; cat ~/.config/fastfetch/chalk-$(cat ~/.local/state/archive/mode 2>/dev/null || echo day).six; printf '\\0338'"
+    },
+    "break",
+    "break"
   ]
 }
