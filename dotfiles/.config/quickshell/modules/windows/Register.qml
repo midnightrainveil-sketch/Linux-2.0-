@@ -11,37 +11,37 @@ import qs.components
 // The Register: every open window on one card, the most recently used
 // first, put-away (minimised) ones included. Opened from the bar's register
 // button, or with Alt+Tab: Tab again steps down the list, letting go of Alt
-// goes to the one marked, like any window switcher.
+// goes to the one marked, like any window switcher. Beside the card, the
+// marked window itself, live, as a mounted photograph.
 //
 //   click, Return            go to the window (a put-away one comes back)
 //   right-click, -           put it away, or take it out again
 //   middle-click, x          close it
 //   arrows, Tab, j / k       step; Escape closes the card
-BarPopup {
+PanelWindow {
     id: popup
-    name: "register"
-    side: "left"
-    offset: 60
-    exclusiveKeys: true
-    // above the click-catcher below
-    WlrLayershell.layer: WlrLayer.Overlay
 
-    // A click anywhere outside the card closes it: a clear sheet over the
-    // whole screen, just under the card (as the catalogue drawer has)
-    PanelWindow {
-        screen: popup.screen
-        anchors { top: true; bottom: true; left: true; right: true }
-        exclusionMode: ExclusionMode.Ignore
-        color: "transparent"
-        visible: popup.shown
-        WlrLayershell.layer: WlrLayer.Top
-        WlrLayershell.namespace: "archive-catcher"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.AllButtons
-            onPressed: Panels.close()
-        }
+    readonly property string name: "register"
+    readonly property bool shown: Panels.open === name
+    signal opened()
+    onShownChanged: if (shown) opened()
+
+    // the whole screen, clear: a click anywhere off the card lands here and
+    // closes it (an outside click on another surface is not always reported)
+    anchors { top: true; bottom: true; left: true; right: true }
+    exclusionMode: ExclusionMode.Ignore
+    color: "transparent"
+    visible: shown || holder.opacity > 0.01
+    mask: Region { item: popup.shown ? catcher : null }
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "archive-register"
+    WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+    MouseArea {
+        id: catcher
+        anchors.fill: parent
+        acceptedButtons: Qt.AllButtons
+        onPressed: Panels.close()
     }
 
     property var windows: []
@@ -153,169 +153,282 @@ BarPopup {
     Timer { id: refresh; interval: 250; onTriggered: { popup.pendingSelect = popup.selected; lister.running = true; } }
 
     // ---------------------------------------------------------------- the card
-    IndexCard {
-        id: card
-        width: 560
-        title: "Register"
-        subtitle: popup.windows.length === 0 ? "Nothing open." : "Of open documents."
-        number: String(popup.windows.length).padStart(3, "0")
-        labelWidth: 46
-        seed: 808
-        lift: 1.5
+    // rises out of the bar like the other cards
+    Item {
+        id: holder
+        x: 60
+        y: popup.height - Theme.barHeight - 12 - height + (popup.shown ? 0 : Theme.popupRise)
+        width: card.width
+        height: card.height
+        opacity: popup.shown ? 1 : 0
+        Behavior on y { NumberAnimation { duration: popup.shown ? Theme.durPopup : Theme.durWindowOut; easing.type: Easing.Bezier; easing.bezierCurve: popup.shown ? Theme.place : Theme.lift } }
+        Behavior on opacity { NumberAnimation { duration: popup.shown ? Theme.durPopup : Theme.durWindowOut; easing.type: Easing.Bezier; easing.bezierCurve: popup.shown ? Theme.place : Theme.lift } }
+        // the card itself takes its clicks (not the catcher under it)
+        MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
 
-        Item {
-            id: keys
-            width: 1; height: 0
-            focus: true
-            Keys.onPressed: e => {
-                const n = popup.windows.length;
-                if (e.key === Qt.Key_Escape) { Panels.close(); return; }
-                if (n === 0) return;
-                if (e.key === Qt.Key_Down || e.key === Qt.Key_Tab || e.key === Qt.Key_J) { popup.selected = (popup.selected + 1) % n; e.accepted = true; return; }
-                if (e.key === Qt.Key_Up || e.key === Qt.Key_Backtab || e.key === Qt.Key_K) { popup.selected = (popup.selected + n - 1) % n; e.accepted = true; return; }
-                if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { popup.activate(popup.selected); return; }
-                if (e.key === Qt.Key_Minus) { popup.toggleAway(popup.selected); return; }
-                if (e.key === Qt.Key_X || e.key === Qt.Key_Delete) { popup.closeWindow(popup.selected); return; }
-            }
-            Keys.onReleased: e => {
-                if (e.key === Qt.Key_Alt && popup.altMode) popup.commit();
-            }
-        }
+        IndexCard {
+            id: card
+            width: 560
+            title: "Register"
+            subtitle: popup.windows.length === 0 ? "Nothing open." : "Of open documents."
+            number: String(popup.windows.length).padStart(3, "0")
+            labelWidth: 46
+            seed: 808
+            lift: 1.5
 
-        ListView {
-            id: list
-            visible: popup.windows.length > 0
-            width: card.width
-            height: Math.min(Math.max(popup.windows.length, 1), 11) * rowH
-            readonly property int rowH: Theme.rowHeight + 6
-            clip: true
-            interactive: popup.windows.length > 11
-            model: popup.windows
-            currentIndex: popup.selected
-            onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-            boundsBehavior: Flickable.StopAtBounds
-
-            delegate: Item {
-                id: row
-                required property var modelData
-                required property int index
-                readonly property bool current: popup.selected === index
-                readonly property bool away: popup.putAway(modelData)
-                readonly property var entry: popup.entryFor(modelData)
-                width: list.width
-                height: list.rowH
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.leftMargin: 4; anchors.rightMargin: 4
-                    color: Theme.paperRaised
-                    opacity: row.current || mouse.containsMouse ? 1 : 0
+            Item {
+                id: keys
+                width: 1; height: 0
+                focus: true
+                Keys.onPressed: e => {
+                    const n = popup.windows.length;
+                    if (e.key === Qt.Key_Escape) { Panels.close(); return; }
+                    if (n === 0) return;
+                    if (e.key === Qt.Key_Down || e.key === Qt.Key_Tab || e.key === Qt.Key_J) { popup.selected = (popup.selected + 1) % n; e.accepted = true; return; }
+                    if (e.key === Qt.Key_Up || e.key === Qt.Key_Backtab || e.key === Qt.Key_K) { popup.selected = (popup.selected + n - 1) % n; e.accepted = true; return; }
+                    if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { popup.activate(popup.selected); return; }
+                    if (e.key === Qt.Key_Minus) { popup.toggleAway(popup.selected); return; }
+                    if (e.key === Qt.Key_X || e.key === Qt.Key_Delete) { popup.closeWindow(popup.selected); return; }
                 }
-                Rectangle { visible: row.current; x: 4; width: 2; height: parent.height; color: Theme.accent }
+                Keys.onReleased: e => {
+                    if (e.key === Qt.Key_Alt && popup.altMode) popup.commit();
+                }
+            }
 
-                // the application's picture, small and in grey, like the catalogue's
-                Item {
-                    x: 14
-                    width: 22; height: 22
-                    anchors.verticalCenter: parent.verticalCenter
-                    Image {
-                        id: icon
+            ListView {
+                id: list
+                visible: popup.windows.length > 0
+                width: card.width
+                height: Math.min(Math.max(popup.windows.length, 1), 11) * rowH
+                readonly property int rowH: Theme.rowHeight + 6
+                clip: true
+                interactive: popup.windows.length > 11
+                model: popup.windows
+                currentIndex: popup.selected
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                boundsBehavior: Flickable.StopAtBounds
+
+                delegate: Item {
+                    id: row
+                    required property var modelData
+                    required property int index
+                    readonly property bool current: popup.selected === index
+                    readonly property bool away: popup.putAway(modelData)
+                    readonly property var entry: popup.entryFor(modelData)
+                    width: list.width
+                    height: list.rowH
+
+                    Rectangle {
                         anchors.fill: parent
-                        sourceSize: Qt.size(44, 44)
-                        source: row.entry && row.entry.icon ? Quickshell.iconPath(row.entry.icon, true) : ""
-                        visible: false
-                        asynchronous: true
+                        anchors.leftMargin: 4; anchors.rightMargin: 4
+                        color: Theme.paperRaised
+                        opacity: row.current || mouse.containsMouse ? 1 : 0
                     }
-                    Desaturate {
-                        anchors.fill: icon
-                        source: icon
-                        desaturation: 0.85
-                        opacity: row.away ? 0.45 : 0.85
-                        visible: icon.status === Image.Ready
+                    Rectangle { visible: row.current; x: 4; width: 2; height: parent.height; color: Theme.accent }
+
+                    // the application's picture, small and in grey, like the catalogue's
+                    Item {
+                        x: 14
+                        width: 16; height: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        Image {
+                            id: icon
+                            anchors.fill: parent
+                            sourceSize: Qt.size(44, 44)
+                            source: row.entry && row.entry.icon ? Quickshell.iconPath(row.entry.icon, true) : ""
+                            visible: false
+                            asynchronous: true
+                        }
+                        Desaturate {
+                            anchors.fill: icon
+                            source: icon
+                            desaturation: 0.85
+                            opacity: row.away ? 0.45 : 0.85
+                            visible: icon.status === Image.Ready
+                        }
+                        InkText {
+                            anchors.centerIn: parent
+                            visible: icon.status !== Image.Ready
+                            text: "·"
+                            color: Theme.faded
+                        }
+                    }
+                    Rule {
+                        vertical: true
+                        x: card.labelWidth
+                        anchors.top: parent.top; anchors.bottom: parent.bottom
+                        width: implicitWidth
+                        seed: 810 + row.index
+                    }
+
+                    InkText {
+                        id: titleText
+                        anchors.left: parent.left
+                        anchors.leftMargin: card.labelWidth + 14
+                        anchors.right: whereText.left
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (row.entry?.name ?? row.modelData.class ?? "") + (row.modelData.title && row.modelData.title !== (row.entry?.name ?? "") ? "  " + row.modelData.title : "")
+                        elide: Text.ElideRight
+                        color: row.away ? Theme.faded : Theme.graphite
                     }
                     InkText {
-                        anchors.centerIn: parent
-                        visible: icon.status !== Image.Ready
-                        text: "·"
-                        color: Theme.faded
+                        id: whereText
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.headerPadH
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: popup.where(row.modelData)
+                        color: row.away ? Theme.madder : Theme.faded
+                        font.pixelSize: Theme.sizeLabel
                     }
-                }
-                Rule {
-                    vertical: true
-                    x: card.labelWidth
-                    anchors.top: parent.top; anchors.bottom: parent.bottom
-                    width: implicitWidth
-                    seed: 810 + row.index
-                }
-
-                InkText {
-                    id: titleText
-                    anchors.left: parent.left
-                    anchors.leftMargin: card.labelWidth + 14
-                    anchors.right: whereText.left
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: (row.entry?.name ?? row.modelData.class ?? "") + (row.modelData.title && row.modelData.title !== (row.entry?.name ?? "") ? "  " + row.modelData.title : "")
-                    elide: Text.ElideRight
-                    color: row.away ? Theme.faded : Theme.graphite
-                }
-                InkText {
-                    id: whereText
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.headerPadH
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: popup.where(row.modelData)
-                    color: row.away ? Theme.madder : Theme.faded
-                    font.pixelSize: Theme.sizeLabel
-                }
-                Rule {
-                    visible: row.index < popup.windows.length - 1
-                    anchors.left: parent.left; anchors.right: parent.right
-                    anchors.leftMargin: 6; anchors.rightMargin: 6
-                    anchors.bottom: parent.bottom
-                    height: implicitHeight
-                    weight: 1
-                    color: Theme.ruleFaint
-                    seed: 830 + row.index
-                }
-                MouseArea {
-                    id: mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: popup.selected = row.index
-                    onClicked: m => {
-                        if (m.button === Qt.RightButton) popup.toggleAway(row.index);
-                        else if (m.button === Qt.MiddleButton) popup.closeWindow(row.index);
-                        else popup.activate(row.index);
+                    Rule {
+                        visible: row.index < popup.windows.length - 1
+                        anchors.left: parent.left; anchors.right: parent.right
+                        anchors.leftMargin: 6; anchors.rightMargin: 6
+                        anchors.bottom: parent.bottom
+                        height: implicitHeight
+                        weight: 1
+                        color: Theme.ruleFaint
+                        seed: 830 + row.index
+                    }
+                    MouseArea {
+                        id: mouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: popup.selected = row.index
+                        onClicked: m => {
+                            if (m.button === Qt.RightButton) popup.toggleAway(row.index);
+                            else if (m.button === Qt.MiddleButton) popup.closeWindow(row.index);
+                            else popup.activate(row.index);
+                        }
                     }
                 }
             }
-        }
 
-        // nothing open
-        Item {
-            visible: popup.windows.length === 0
-            width: card.width
-            height: list.rowH
+            // nothing open
+            Item {
+                visible: popup.windows.length === 0
+                width: card.width
+                height: list.rowH
+                InkText {
+                    x: Theme.headerPadH
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "The desk is clear."
+                    color: Theme.faded
+                }
+            }
+
             InkText {
                 x: Theme.headerPadH
-                anchors.verticalCenter: parent.verticalCenter
-                text: "The desk is clear."
+                width: card.width - 2 * Theme.headerPadH
+                topPadding: 8
+                bottomPadding: 6
+                text: "Click: go to.  Right-click: put away / take out.  Middle-click: close."
                 color: Theme.faded
+                font.pixelSize: Theme.sizeLabel
+                wrapMode: Text.WordWrap
             }
         }
+    }
 
+    // ---------------------------------------------------------------- the photograph
+    // the marked window, live, printed and mounted beside the card
+    readonly property var marked: windows[selected] ?? null
+    readonly property var markedToplevel: {
+        const w = popup.marked;
+        if (!w) return null;
+        const want = parseInt(String(w.address), 16);
+        const all = Hyprland.toplevels.values;
+        for (let i = 0; i < all.length; i++)
+            if (parseInt(String(all[i].address), 16) === want) return all[i];
+        return null;
+    }
+
+    Item {
+        id: photo
+        readonly property real maxW: Math.min(620, popup.width - x - 60)
+        readonly property real maxH: 420
+        readonly property real ratio: view.sourceSize.width > 0 ? view.sourceSize.width / view.sourceSize.height
+                                     : (popup.marked && popup.marked.size ? popup.marked.size[0] / Math.max(1, popup.marked.size[1]) : 1.6)
+        readonly property real picW: Math.min(maxW - 28, (maxH - 64) * ratio)
+        readonly property real picH: picW / ratio
+        x: holder.x + holder.width + 34
+        y: holder.y + holder.height - height + 6
+        width: picW + 28
+        height: picH + 60
+        visible: popup.marked !== null && popup.windows.length > 0
+        opacity: holder.opacity * (view.hasContent ? 1 : 0.0)
+        rotation: 1.2
+        Behavior on opacity { NumberAnimation { duration: Theme.durPopup } }
+
+        RectangularGlow {
+            anchors.fill: parent
+            anchors.topMargin: 6
+            glowRadius: 14
+            spread: 0.1
+            cornerRadius: 16
+            color: Theme.shadow
+        }
+        // the print's border, cream by night
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.night > 0.5 ? "#e6e1d6" : "#f4f1ea"
+            border.width: 1
+            border.color: Qt.rgba(0, 0, 0, 0.12)
+        }
+        ScreencopyView {
+            id: view
+            x: 14
+            y: 14
+            width: photo.picW
+            height: photo.picH
+            captureSource: popup.shown ? (popup.markedToplevel?.wayland ?? null) : null
+            live: popup.shown
+        }
+        // photo corners holding it to the page
+        Repeater {
+            model: 4
+            Canvas {
+                required property int index
+                readonly property bool atRight: index % 2 === 1
+                readonly property bool atBottom: index >= 2
+                width: 16; height: 16
+                x: atRight ? view.x + view.width - 10 : view.x - 6
+                y: atBottom ? view.y + view.height - 10 : view.y - 6
+                onPaint: {
+                    const g = getContext("2d");
+                    g.reset();
+                    g.fillStyle = "#3e3d42";
+                    g.globalAlpha = 0.6;
+                    g.beginPath();
+                    // a little triangle pocket over the corner
+                    const a = atRight ? 16 : 0, b = atBottom ? 16 : 0;
+                    g.moveTo(a, b);
+                    g.lineTo(atRight ? 0 : 16, b);
+                    g.lineTo(a, atBottom ? 0 : 16);
+                    g.closePath();
+                    g.fill();
+                }
+            }
+        }
         InkText {
-            x: Theme.headerPadH
-            width: card.width - 2 * Theme.headerPadH
-            topPadding: 8
-            bottomPadding: 6
-            text: "Click: go to.  Right-click: put away / take out.  Middle-click: close."
-            color: Theme.faded
-            font.pixelSize: Theme.sizeLabel
-            wrapMode: Text.WordWrap
+            x: 14
+            width: photo.picW
+            y: view.y + view.height + 12
+            text: popup.marked ? ((popup.entryFor(popup.marked)?.name ?? popup.marked.class ?? "") + (popup.marked.title ? "  ·  " + popup.marked.title : "")) : ""
+            elide: Text.ElideRight
+            font.pixelSize: 14
+            color: "#3e3d42"
+        }
+        InkText {
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            y: view.y + view.height + 32
+            text: popup.marked ? popup.where(popup.marked) + "." : ""
+            font.pixelSize: 11
+            color: "#6e6c6d"
         }
     }
 }
