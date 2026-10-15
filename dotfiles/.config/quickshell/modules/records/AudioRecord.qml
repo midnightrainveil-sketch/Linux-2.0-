@@ -10,7 +10,8 @@ import qs.components
 //   progress: 4 px accent fill on a 2 px track, times under it
 // No. = release year of the current track.
 // Under the progress line, between the times: previous, pause / play, next,
-// as ivory push buttons; drag along the line to move through the song.
+// drawn in pen like the wallpaper's plates; drag along the line to move
+// through the song.
 // Click the print to play / pause; click anywhere else on the card for the
 // gramophone (the music in ~/Music); scroll over the card to skip.
 IndexCard {
@@ -248,19 +249,21 @@ IndexCard {
             font.pixelSize: Theme.sizeSmall
         }
 
-        // previous, pause / play, next: their caps level with the times
+        // previous, pause / play, next: drawn in pen, level with the times
         Row {
             visible: card.going
             x: progress.x + progress.width / 2 - width / 2
-            y: elapsed.y + elapsed.height / 2 - (24 / 2 + 4)
-            spacing: 2
+            y: elapsed.y + elapsed.height / 2 - height / 2
+            spacing: 12
             Repeater {
                 model: ["previous", "toggle", "next"]
-                RaisedButton {
+                InkButton {
                     required property string modelData
+                    required property int index
+                    anchors.verticalCenter: parent.verticalCenter
                     kind: modelData
-                    tone: "ivory"
-                    size: 24
+                    size: modelData === "toggle" ? 26 : 22
+                    seed: 331 + index * 17
                     playing: card.playing
                     onClicked: {
                         if (modelData === "previous") card.previous();
