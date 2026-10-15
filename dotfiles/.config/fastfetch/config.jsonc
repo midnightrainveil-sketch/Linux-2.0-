@@ -33,7 +33,12 @@
     { "type": "title", "format": "{#1}{user-name}{#} {#@17}@{#} {#1}{host-name}{#}" },
     { "type": "custom", "format": "{#@17}Specimen of the machine.{#} {#@17}──────────{#}" },
     { "type": "os", "key": "Spec.", "format": "{name} {arch}" },
-    { "type": "host", "key": "Loc.", "format": "{name}" },
+    {
+      // the model, once (the firmware writes it twice: GA403UV_GA403UV)
+      "type": "command",
+      "key": "Loc.",
+      "text": "n=$(cat /sys/class/dmi/id/product_name 2>/dev/null | sed 's/_.*//; s/ \\([A-Z][A-Z0-9]*\\)$/ · \\1/'); echo \"${n:-$(uname -n)}\""
+    },
     { "type": "wm", "key": "Hab.", "format": "{pretty-name} · zsh · foot" },
     { "type": "kernel", "key": "Kern.", "format": "{release}" },
     {
@@ -41,7 +46,13 @@
       "key": "Proc.",
       "text": "n=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1 | sed 's/ w\\/.*//; s/ [0-9]*-Core Processor//; s/(R)//g; s/(TM)//g; s/^AMD //; s/^Intel //'); echo \"$n · $(nproc) threads\""
     },
-    { "type": "gpu", "key": "Gr.", "format": "{name}", "hideType": "none" },
+    {
+      // both graphics chips on one line, without the makers' words
+      // (GeForce RTX 4060 Max-Q / Mobile, AMD Radeon 780M Graphics)
+      "type": "command",
+      "key": "Gr.",
+      "text": "fastfetch -c none -s gpu --format json 2>/dev/null | jq -r '.[0].result[].name' | sed 's/^NVIDIA //; s/^AMD //; s/^Intel(R) //; s/GeForce //; s| / Mobile||; s/ Graphics$//' | awk 'NR > 1 { printf \" · \" } { printf \"%s\", $0 } END { print \"\" }'"
+    },
     { "type": "memory", "key": "Mem.", "format": "{used} / {total}" },
     { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-used} / {size-total}" },
     { "type": "packages", "key": "Pkgs.", "format": "{all}" },
@@ -51,8 +62,9 @@
       "type": "command",
       "key": " ",
       // the cursor put back where the picture began, so the lines after it
-      // (the logo's) are not pushed down by its height
-      "text": "f=${XDG_CACHE_HOME:-$HOME/.cache}/archive/card/swatches.six; [ -f \"$f\" ] && { printf '\\0337'; cat \"$f\"; printf '\\0338'; }; true"
+      // (the logo's) are not pushed down by its height. (Not while
+      // archive-card measures the label.)
+      "text": "f=${XDG_CACHE_HOME:-$HOME/.cache}/archive/card/swatches.six; if [ -n \"$ARCHIVE_CARD_MEASURE\" ]; then echo .; elif [ -f \"$f\" ]; then printf '\\0337'; cat \"$f\"; printf '\\0338'; fi; true"
     },
     "break",
     "break"

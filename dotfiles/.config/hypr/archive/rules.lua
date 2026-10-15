@@ -5,7 +5,7 @@ local c = palette[state.mode()]
 
 ------------------------------------------------------------------ the desk terminal
 -- At rest the left desk holds one terminal card (the reference's fastfetch
--- card): floating by the left edge, 31 % of the screen wide, and 4:3 with
+-- card): floating by the left edge, 33 % of the screen wide (as far as leaves the gap to the leaf the same as to the screen edge), and 4:3 with
 -- its 46 px title bar (room for the card's portrait), clear of the plate's
 -- big leaf.
 -- archive-desk (the bar's desk button, Super+D) puts it back here and opens
@@ -14,7 +14,7 @@ hl.window_rule({
     name = "archive-desk",
     match = { class = "^archive\\.desk$" },
     float = true,
-    size = { "monitor_w*0.3125", "monitor_w*0.3125*3/4-46" },
+    size = { "monitor_w*0.328", "monitor_w*0.328*3/4-46" },
     move = { "monitor_w*0.019", "monitor_h*0.25" },
 })
 

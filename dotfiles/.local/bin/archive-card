@@ -14,7 +14,10 @@ the time of day, and kept in ~/.cache/archive/card:
   the swatches   the six ink colours of foot.ini (slots 16-21), rubbed on in
                  chalk: squares one line high, close together.
 
-Both are sixel pictures, which foot shows inline. Where the pictures cannot
+Both are sixel pictures, which foot shows inline. The label is measured
+first (a quiet run of fastfetch: how wide it is, how many lines), the
+portrait is made as large as the room beside it allows, and the label is
+set down level with the portrait's middle. Where the pictures cannot
 be drawn (no Python imaging, a terminal without sixel), the card falls back
 to the typed Arch mark (logo.txt) and no swatches.
 """
@@ -22,8 +25,11 @@ import fcntl
 import math
 import os
 import pathlib
+import json
 import random
+import re
 import shutil
+import subprocess
 import struct
 import sys
 import termios
@@ -41,10 +47,13 @@ SWATCHES = {
     "night": ["e6e1d6", "c9ccd2", "aeb5c2", "8e9cb3", "a9c4e4", "7c93b8"],
 }
 # the portrait is as big as the terminal allows: as many rows as it has
-# (less the prompt), and no wider than leaves INFO_COLS for the label
+# (less the prompt), and no wider than leaves room for the label (measured;
+# INFO_COLS / INFO_LINES if it cannot be)
 INFO_COLS = 39
-MAX_ROWS = 24
-VERSION = 6          # bump to redraw cached pictures after a change here
+INFO_LINES = 15
+MAX_ROWS = 30
+PAD_TOP, PAD_LEFT, PAD_RIGHT = 1, 1, 3     # round the portrait, in cells
+VERSION = 7          # bump to redraw cached pictures after a change here
 
 
 def rgb(h):
@@ -72,13 +81,50 @@ def term_size():
     return None
 
 
-def portrait_rows(trows, tcols, cw, ch):
+def measure():
+    """The label as fastfetch would print it beside no picture: its widest
+    line and how many lines it has."""
+    try:
+        out = subprocess.run(
+            ["fastfetch", "--config", str(CONF / "config.jsonc"), "--logo-type", "none", "--pipe", "true"],
+            capture_output=True, text=True, timeout=15,
+            env=dict(os.environ, ARCHIVE_CARD_MEASURE="1")).stdout
+    except (OSError, subprocess.SubprocessError):
+        return INFO_COLS, INFO_LINES
+    lines = []
+    for raw in out.rstrip().split("\n"):
+        # the values are set at a column (ESC [ n G); other escapes are colour
+        ln = ""
+        for text, col in re.findall(r"([^\x1b]*)(?:\x1b\[(\d*)G|\x1b\[[0-9;?]*[A-Za-z]|$)", raw):
+            ln += text
+            if col:
+                ln = ln.ljust(int(col) - 1)
+        lines.append(ln.rstrip())
+    if len(lines) < 3:
+        return INFO_COLS, INFO_LINES
+    return max(len(ln) for ln in lines), len(lines)
+
+
+def portrait_rows(trows, tcols, cw, ch, info_cols):
     from PIL import Image
     with Image.open(CONF / "portrait.png") as im:
         aspect = im.width / im.height
-    by_height = trows - 4                       # the padding, the prompt, a spare line
-    by_width = math.floor((tcols - INFO_COLS - 5) * cw / (aspect * ch))
+    by_height = trows - PAD_TOP - 2             # the padding, the prompt, a spare line
+    by_width = math.floor((tcols - info_cols - PAD_LEFT - PAD_RIGHT - 1) * cw / (aspect * ch))
     return max(8, min(MAX_ROWS, by_height, by_width))
+
+
+def centred_config(drop):
+    """config.jsonc with `drop` empty lines before the label, so it sits
+    level with the portrait's middle (kept in the cache)."""
+    text = (CONF / "config.jsonc").read_text()
+    # (its comments are whole lines)
+    conf = json.loads("\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("//")))
+    conf["modules"] = ["break"] * drop + conf["modules"]
+    CACHE.mkdir(parents=True, exist_ok=True)
+    f = CACHE / "config.json"
+    f.write_text(json.dumps(conf, ensure_ascii=False))
+    return f
 
 
 # ------------------------------------------------------------------ sixel
@@ -233,16 +279,23 @@ def main():
         if size is None or not (CONF / "portrait.png").exists():
             raise RuntimeError("no cell size or no portrait")
         trows, tcols, cw, ch = size
-        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch))
+        info_cols, info_lines = measure()
+        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch, info_cols))
         sf, _ = drawn("swatches", m, cw, ch, swatches)
         # the swatches' module reads the current one from here
         cur = CACHE / "swatches.six"
         if cur.is_symlink() or cur.exists():
             cur.unlink()
         cur.symlink_to(sf.name)
+        drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2))
+        try:
+            args += ["--config", str(centred_config(drop))]
+        except (OSError, ValueError):
+            pass
         args += ["--logo-type", "raw", "--logo", str(pf),
                  "--logo-width", cols, "--logo-height", rows,
-                 "--logo-padding-top", "1", "--logo-padding-left", "2", "--logo-padding-right", "3"]
+                 "--logo-padding-top", str(PAD_TOP), "--logo-padding-left", str(PAD_LEFT),
+                 "--logo-padding-right", str(PAD_RIGHT)]
     except Exception:
         # the typed mark, no swatches
         try:
