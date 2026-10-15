@@ -68,4 +68,5 @@ python-numpy
 ffmpeg
 # ---- everyday apps (swap for your own)
 nautilus
+gthumb
 firefox

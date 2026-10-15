@@ -109,6 +109,7 @@ local small_tools = {
     { class = "^rog-control-center$", size = { 960, 680 } },
     { class = "^(xdg-desktop-portal-gtk|org\\.freedesktop\\.impl\\.portal\\.desktop\\.gtk)$", size = { 980, 640 } },
     { class = "^(nwg-look|qt6ct)$", size = { 900, 640 } },
+    { class = "^(org\\.gnome\\.gThumb|gthumb|Gthumb)$", size = { 1240, 820 } },
 }
 for i, t in ipairs(small_tools) do
     hl.window_rule({ name = "archive-tool-" .. i, match = { class = t.class }, float = true, center = true, size = t.size })

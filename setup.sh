@@ -115,6 +115,14 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
 "$here/install.sh" || warn "linking reported a problem; see above"
+# pictures (screenshots included) open in gThumb: viewer and simple editor
+for id in org.gnome.gThumb gthumb; do
+    if [[ -f /usr/share/applications/$id.desktop ]]; then
+        xdg-mime default "$id.desktop" image/png image/jpeg image/webp image/gif image/bmp \
+            image/tiff image/avif image/heif image/svg+xml || warn "could not make gThumb the picture viewer"
+        break
+    fi
+done
 # the icons: Papirus in aged inks, folders manila (archive-icons)
 say "the icons"
 "$HOME/.local/bin/archive-icons" build || warn "could not make the icons; run archive-icons"

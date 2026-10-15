@@ -297,7 +297,7 @@ number is the current air pressure in hPa.
 | `Super + Escape` | Reading Room (lock): the card is sealed in wax; the right signature breaks the seal |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
 | `Ctrl + Backspace` | Screenshot of the whole screen, instantly (this takes Ctrl+Backspace from apps, where it deletes a word; remove the line in `archive/binds.lua` to give it back) |
-| `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window). It drops onto the desk as a print with a paperclip: click to open, right-click to file, middle-click to keep it |
+| `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window). It drops onto the desk as a print with a paperclip: click to open it in gThumb (crop, rotate, resize, colours: the edit button at the top right), right-click to file, middle-click to keep it. Any picture opens in gThumb too |
 | `Super + Shift + N` | File away all notifications |
 | G14 `Fn + F5` (fan key) | Quiet → Balanced → Performance |
 | G14 ROG key | ROG Control Center |
