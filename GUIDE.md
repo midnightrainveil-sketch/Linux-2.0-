@@ -383,6 +383,12 @@ with a 10 ms fade-out.
   with a light grey frame, or leave the system theme on.
 - **Electron apps** (VS Code, Discord): they follow the GTK colour scheme where
   they support it. In VS Code, pick a light low-contrast theme by day.
+- **Calls** (Teams, Meet, Discord): pick **Microphone (clear)**, the laptop's
+  microphone with the hiss, fan hum and echo taken out. `archive-mic test`
+  records five seconds and plays them back; `archive-mic off` goes back to the
+  raw one. ("Monitor of ..." in a microphone list is the speakers' sound, not a
+  microphone.) For calls on the speakers, also pick **Speakers (echo
+  cancelled)** as the output, so the others do not hear themselves.
 
 ---
 

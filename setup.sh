@@ -115,6 +115,11 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
 "$here/install.sh" || warn "linking reported a problem; see above"
+# the microphone, cleaned (archive-mic): load it and make it the default
+if systemctl --user is-active --quiet pipewire; then
+    say "the microphone"
+    "$HOME/.local/bin/archive-mic" on || warn "could not set up the clear microphone; run archive-mic"
+fi
 # pictures (screenshots included) open in gThumb: viewer and simple editor
 for id in org.gnome.gThumb gthumb; do
     if [[ -f /usr/share/applications/$id.desktop ]]; then

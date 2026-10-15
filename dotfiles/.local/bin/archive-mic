@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# archive-mic: the laptop microphone, made clear.
+#
+#   archive-mic          make "Microphone (clear)" the default microphone and
+#                        turn the raw one's gain down (less hiss and grain)
+#   archive-mic check    what microphones the laptop has (for the G14's array)
+#   archive-mic test     record 5 seconds from the default mic and play it back
+#   archive-mic off      back to the raw microphone
+#
+# "Microphone (clear)" comes from ~/.config/pipewire/pipewire.conf.d/60-archive-mic.conf.
+# "Monitor of ..." in a list of microphones is not a microphone: it is what
+# the speakers are playing (for recording the desktop's sound).
+set -u
+
+id_of() { # id_of <node.name>
+    pw-dump 2>/dev/null | jq -r --arg n "$1" '.[] | select(.info.props["node.name"] == $n) | .id' | head -n1
+}
+raw_mics() { # the hardware microphones' node names
+    pw-dump 2>/dev/null | jq -r '.[] | select(.info.props["media.class"] == "Audio/Source")
+        | select(.info.props["node.name"] | startswith("alsa_input.")) | .info.props["node.name"]'
+}
+
+case ${1:-on} in
+on)
+    clear=$(id_of archive_mic)
+    if [[ -z $clear ]]; then
+        echo "restarting the sound system to load the clear microphone..."
+        systemctl --user restart pipewire pipewire-pulse wireplumber
+        for _ in $(seq 20); do clear=$(id_of archive_mic); [[ -n $clear ]] && break; sleep 0.5; done
+    fi
+    if [[ -z $clear ]]; then
+        echo "the clear microphone did not appear; see: journalctl --user -u pipewire -n 30" >&2
+        exit 1
+    fi
+    # the raw mic at half: the hardware boost is what makes it grainy; the
+    # clear one evens the loudness out after the noise is taken away
+    while read -r name; do
+        [[ -n $name ]] && wpctl set-volume "$(id_of "$name")" 0.45
+    done < <(raw_mics)
+    wpctl set-default "$clear"
+    echo "default microphone: Microphone (clear)"
+    echo "in Teams / Firefox / Discord pick \"Microphone (clear)\"; try it: archive-mic test"
+    ;;
+off)
+    first=$(raw_mics | head -n1)
+    [[ -n $first ]] && wpctl set-default "$(id_of "$first")" && wpctl set-volume "$(id_of "$first")" 0.8
+    echo "default microphone: the raw one ($first)"
+    ;;
+test)
+    f=$(mktemp --suffix=.wav)
+    echo "recording 5 seconds: say something..."
+    timeout 5 pw-record "$f" 2>/dev/null
+    echo "playing it back"
+    pw-play "$f"; rm -f "$f"
+    ;;
+check)
+    echo "== sound cards"
+    cat /proc/asound/cards
+    echo; echo "== capture devices"
+    arecord -l 2>/dev/null || echo "(arecord not installed: sudo pacman -S alsa-utils)"
+    echo; echo "== AMD audio co-processor (the G14's microphone array sits on it)"
+    lsmod | grep -E '^snd_(pci_ps|ps_|acp|soc_ps|pci_acp|sof_amd)' || echo "(no ACP drivers loaded)"
+    lspci -nn | grep -iE 'audio|multimedia'
+    echo; echo "== microphones PipeWire sees"
+    wpctl status | sed -n '/Sources:/,/Filters:/p'
+    echo; echo "kernel: $(uname -r)"
+    ;;
+*)
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+esac

@@ -36,6 +36,7 @@ pavucontrol
 playerctl
 mpv
 mpv-mpris
+alsa-utils
 # ---- network, bluetooth, power
 networkmanager
 network-manager-applet
