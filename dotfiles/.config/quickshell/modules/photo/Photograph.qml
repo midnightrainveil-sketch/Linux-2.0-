@@ -394,24 +394,24 @@ PanelWindow {
         }
         // the envelope comes up behind; the print is made to fit
         ParallelAnimation {
-            NumberAnimation { target: back; property: "opacity"; to: 1; duration: Theme.dur(160) }
-            NumberAnimation { target: envelope; property: "rise"; to: 0; duration: Theme.dur(300); easing.type: Easing.OutCubic }
-            NumberAnimation { target: clip; property: "opacity"; to: 0; duration: Theme.dur(160) }
-            NumberAnimation { target: shot; property: "scale"; to: (win.envW - 40) / shot.width; duration: Theme.dur(300); easing.type: Easing.InOutQuad }
+            NumberAnimation { target: back; property: "opacity"; to: 1; duration: Theme.dur(110) }
+            NumberAnimation { target: envelope; property: "rise"; to: 0; duration: Theme.dur(190); easing.type: Easing.OutCubic }
+            NumberAnimation { target: clip; property: "opacity"; to: 0; duration: Theme.dur(110) }
+            NumberAnimation { target: shot; property: "scale"; to: (win.envW - 40) / shot.width; duration: Theme.dur(190); easing.type: Easing.InOutQuad }
         }
         // slid in
         NumberAnimation {
             target: shot; property: "y"
             to: 700 + 12 - shot.height * (1 - (win.envW - 40) / shot.width) / 2
-            duration: Theme.dur(360); easing.type: Easing.InOutCubic
+            duration: Theme.dur(230); easing.type: Easing.InOutCubic
         }
         // the flap folds over
-        NumberAnimation { target: envelope; property: "flapAngle"; to: 0; duration: Theme.dur(320); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: envelope; property: "flapAngle"; to: 0; duration: Theme.dur(190); easing.type: Easing.InOutQuad }
         // postmarked
         ScriptAction { script: { postmark.visible = true; postmark.press(); Sounds.play("message"); } }
-        PauseAnimation { duration: Theme.dur(380) }
+        PauseAnimation { duration: Theme.dur(170) }
         // and sent: picked up off the desk and away over the top right
-        NumberAnimation { target: envelope; property: "sent"; from: 0; to: 1; duration: Theme.dur(650) }
+        NumberAnimation { target: envelope; property: "sent"; from: 0; to: 1; duration: Theme.dur(420) }
         ScriptAction {
             script: {
                 win.unpack();
