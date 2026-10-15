@@ -59,6 +59,11 @@ if [[ $here != "$home_repo" && -z ${ARCHIVE_SETUP_MOVED:-} ]]; then
     ARCHIVE_SETUP_MOVED=1 exec "$home_repo/setup.sh" "$@"
 fi
 
+# New files of this version are linked into your home now, before the long
+# package step: if that is stopped halfway, the desktop still has every file
+# it refers to (the full linking, with the services, follows in step 3)
+"$here/install.sh" --link || warn "linking reported a problem; see above"
+
 # ------------------------------------------------------------------ 2. packages
 say "updating the system and installing packages (sudo pacman)"
 # Arch is upgraded as a whole; installing onto stale package lists breaks things

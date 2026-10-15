@@ -2,6 +2,7 @@
 # Archive desktop installer for Arch Linux + Hyprland.
 #
 #   ./install.sh                 link the dotfiles, enable the services (safe to re-run)
+#   ./install.sh --link          only link the dotfiles (setup.sh does this first)
 #   ./install.sh --packages      also install the official packages (sudo pacman)
 #   ./install.sh --g14           also set up the Zephyrus G14 GPU names (sudo, udev)
 #   ./install.sh --plugins       build the archivebars title bars (run inside Hyprland)
@@ -19,12 +20,13 @@ backup="$HOME/.archive-backup/$(date +%Y%m%d-%H%M%S)"
 say() { printf '\033[1m:: %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m!! %s\033[0m\n' "$*" >&2; }
 
-want_packages=0 want_g14=0 want_plugins=0 want_greeter=0 want_link=1
+want_packages=0 want_g14=0 want_plugins=0 want_greeter=0 want_link=1 link_only=0
 for arg in "$@"; do
     case $arg in
         --packages) want_packages=1 ;;
         --g14) want_g14=1 ;;
         --plugins) want_plugins=1; want_link=0 ;;
+        --link) link_only=1 ;;
         --greeter) want_greeter=1 ;;
         --all) want_packages=1; want_g14=1; want_greeter=1 ;;
         -h | --help) sed -n '2,13p' "$0"; exit 0 ;;
@@ -87,6 +89,7 @@ if (( want_link )); then
     [[ -d $backup ]] && say "previous files kept in $backup"
 
     chmod +x "$src/.local/bin/"archive-*
+    (( link_only )) && exit 0
 
     say "fonts"
     fc-cache -f >/dev/null 2>&1 || true
