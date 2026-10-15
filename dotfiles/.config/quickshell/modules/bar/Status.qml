@@ -9,7 +9,20 @@ import qs.components
 // Marks open the Instrument card; the date opens the Ledger.
 Row {
     id: root
-    spacing: 21
+    spacing: 22
+
+    // a figure and its unit, set close as a typesetter would ("120 Hz" in a
+    // typewriter face otherwise has a whole letter's gap)
+    component Measure: Row {
+        id: measure
+        property string figure: ""
+        property string unit: ""
+        property color ink: Theme.soft
+        property color unitInk: ink
+        spacing: 2
+        InkText { text: measure.figure; font.pixelSize: Theme.sizeSmall; color: measure.ink }
+        InkText { text: measure.unit; font.pixelSize: Theme.sizeSmall; color: measure.unitInk }
+    }
 
     // a mark that darkens on hover
     component Mark: Item {
@@ -17,11 +30,15 @@ Row {
         property string icon: ""
         property color ink: hover.containsMouse ? Theme.graphite : Theme.soft
         property alias hovered: hover.containsMouse
+        // the glyphs sit differently in their squares: a nudge on the left
+        // so the marks stand evenly apart by their ink, not by their boxes
+        property real lead: 0
         signal clicked()
-        width: 20
+        width: 20 + lead
         height: Theme.barHeight
         InkIcon {
             anchors.centerIn: parent
+            anchors.horizontalCenterOffset: mark.lead / 2
             name: mark.icon
             size: 20
             color: mark.ink
@@ -46,12 +63,12 @@ Row {
             onFileChanged: reload()
             printErrors: false
         }
-        InkText {
+        Measure {
             id: hz
             anchors.centerIn: parent
-            text: (refreshFile.text().trim() === "60" ? "60" : "120") + " Hz"
-            font.pixelSize: Theme.sizeSmall
-            color: hzMouse.containsMouse ? Theme.graphite : Theme.soft
+            figure: refreshFile.text().trim() === "60" ? "60" : "120"
+            unit: "Hz"
+            ink: hzMouse.containsMouse ? Theme.graphite : Theme.soft
         }
         MouseArea {
             id: hzMouse
@@ -69,17 +86,20 @@ Row {
     // Day / night: the screen mark. Click to turn the plate over.
     Mark {
         icon: Theme.night > 0.5 ? "screen-night" : "screen"
+        lead: 1
         onClicked: Mode.toggle()
     }
 
     Mark {
         icon: Audio.muted ? "speaker-muted" : (Audio.volume > 0.5 ? "speaker-loud" : "speaker")
+        lead: -1
         onClicked: Panels.toggle("instrument")
         WheelHandler { onWheel: e => Audio.setVolume(Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05)) }
     }
 
     Mark {
         icon: !Net.wifiOn ? "wifi-off" : (Net.online ? "wifi" : "wifi-none")
+        lead: -2
         ink: !Net.online ? Theme.faded : (hovered ? Theme.graphite : Theme.soft)
         onClicked: Panels.toggle("instrument")
     }
@@ -87,11 +107,12 @@ Row {
     // battery: outline in ink, filled level in accent (madder when low)
     Item {
         visible: Power.present
-        width: battery.width + 6 + pct.implicitWidth + (rate.visible ? 10 + rate.implicitWidth : 0) + 2
+        width: 2 + battery.width + 6 + pct.implicitWidth + (rate.visible ? 8 + rate.implicitWidth : 0)
         height: Theme.barHeight
 
         Canvas {
             id: battery
+            x: 2
             width: 22; height: 12
             anchors.verticalCenter: parent.verticalCenter
             property color outline: Theme.soft
@@ -132,15 +153,15 @@ Row {
             color: Power.low ? Theme.madder : Theme.soft
         }
         // the rate it fills or drains at: "+38 W", "−9.6 W"
-        InkText {
+        Measure {
             id: rate
-            visible: text !== ""
+            visible: Power.rateWord !== ""
             anchors.left: pct.right
-            anchors.leftMargin: 10
+            anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
-            text: Power.rateWord
-            font.pixelSize: Theme.sizeSmall
-            color: Theme.faded
+            figure: Power.rateWord.replace(/\s*W$/, "")
+            unit: "W"
+            ink: Theme.faded
         }
         MouseArea {
             anchors.fill: parent
@@ -150,11 +171,12 @@ Row {
     }
 
     Item {
-        width: date.implicitWidth
+        width: date.implicitWidth + 2
         height: Theme.barHeight
         InkText {
             id: date
-            anchors.centerIn: parent
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             text: Clock.barDate
             font.pixelSize: Theme.sizeSmall
             color: dateMouse.containsMouse || Panels.open === "ledger" ? Theme.graphite : Theme.soft
