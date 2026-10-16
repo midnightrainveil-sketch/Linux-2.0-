@@ -49,8 +49,12 @@ if [[ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.
     ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=2'
 fi
 
-# The desk terminal (opened by Hyprland at login) begins with the index card.
-if [[ -n ${ARCHIVE_DESK:-} ]]; then
+# The index card begins the desk terminal (opened by Hyprland at login) and
+# every new terminal window, though not a shell started inside one, nor VS
+# Code's terminal. Only on the desk:  touch ~/.config/archive/card-desk-only
+if [[ -n ${ARCHIVE_DESK:-} ]] || [[ $TERM == foot* && -z ${ARCHIVE_CARDED:-} \
+      && ! -e ${XDG_CONFIG_HOME:-$HOME/.config}/archive/card-desk-only ]]; then
     unset ARCHIVE_DESK
+    export ARCHIVE_CARDED=1
     archive-card
 fi
