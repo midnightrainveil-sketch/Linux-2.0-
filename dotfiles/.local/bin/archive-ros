@@ -165,7 +165,7 @@ robot_env=""
 robot_up=1
 robot() {
     local host=$1 addr me
-    addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
+    addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}' || true)
     [[ -n $addr ]] || { echo "archive-ros: cannot find $host" >&2; exit 1; }
     me=$(ip -4 route get "$addr" 2>/dev/null | grep -oP 'src \K\S+' || true)
     [[ -n $me ]] || { echo "archive-ros: no network route to $host (same Wi-Fi?)" >&2; exit 1; }
@@ -192,7 +192,8 @@ robot_routes() {
     command -v curl >/dev/null || return 0
     while IFS= read -r name; do
         ((++tries > 60)) && break
-        uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1)
+        # (the master lists topics and services too: they have no address)
+        uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1 || true)
         [[ -n $uri ]] || continue
         ip=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri")
         port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
