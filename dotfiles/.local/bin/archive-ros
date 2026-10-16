@@ -239,6 +239,12 @@ x_broker() { # x_broker <fifo>
 looks_like_host() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || ( $1 == *.* && $1 != */* ) ]]; }
 
 # ------------------------------------------------------------------ use
+# (your home is shared, so this can be typed inside the ROS shell too, where
+# it can neither set routes nor reach the container tools)
+if [[ -n ${CONTAINER_ID:-} || -e /run/.containerenv ]]; then
+    echo "archive-ros: this is the ROS shell itself; type exit, then run it again outside" >&2
+    exit 2
+fi
 cmd=${1:-shell}
 if looks_like_host "$cmd"; then robot "$cmd"; cmd=shell; fi
 case $cmd in
