@@ -1,0 +1,283 @@
+#!/usr/bin/env python3
+"""archive-health: what the laptop is spending its power and memory on.
+
+    archive-health               a report: power draw, the graphics chips,
+                                 the busiest programs, memory, the shell
+    archive-health launch APP    time how long APP takes to open a window,
+                                 and whether it woke the NVIDIA chip
+                                 (e.g. archive-health launch nautilus)
+
+Nothing is changed; nothing needs sudo. Run it when the laptop feels hot
+or slow and compare with a fresh boot.
+"""
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import time
+
+BOLD, DIM, OFF = "\033[1m", "\033[2m", "\033[0m"
+
+
+def sh(*cmd, timeout=5):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def read(p, default=""):
+    try:
+        return pathlib.Path(p).read_text().strip()
+    except OSError:
+        return default
+
+
+def head(title):
+    print("\n" + BOLD + title + OFF)
+
+
+def row(key, value, note=""):
+    print("  %-11s %s%s" % (key, value, ("   " + DIM + note + OFF) if note else ""))
+
+
+# ------------------------------------------------------------------ power
+def battery():
+    bats = sorted(pathlib.Path("/sys/class/power_supply").glob("BAT*"))
+    return bats[0] if bats else None
+
+
+def watts(b):
+    p = read(b / "power_now")
+    if p:
+        return int(p) / 1e6
+    i, v = read(b / "current_now"), read(b / "voltage_now")
+    return int(i) * int(v) / 1e12 if i and v else None
+
+
+def power():
+    head("Power")
+    b = battery()
+    if b is None:
+        row("battery", "none found")
+        return
+    status = read(b / "status")
+    samples = []
+    for _ in range(10):
+        w = watts(b)
+        if w is not None:
+            samples.append(w)
+        time.sleep(1)
+    if samples:
+        avg = sum(samples) / len(samples)
+        note = "on battery" if status == "Discharging" else "plugged in: the battery's figure is not the laptop's draw"
+        row("draw", "%.1f W now, %.1f W average over 10 s" % (samples[-1], avg), note)
+        if status == "Discharging":
+            verdict = "light" if avg < 9 else "moderate" if avg < 16 else "HIGH for desk work"
+            row("", verdict, "an idle G14 on the iGPU is about 6-9 W")
+    row("charge", read(b / "capacity") + " %  (" + status.lower() + ")")
+    prof = sh("powerprofilesctl", "get").strip() or "?"
+    row("profile", prof)
+    epp = read("/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference", "?")
+    gov = read("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "?")
+    row("cpu", "governor %s, energy preference %s" % (gov, epp))
+    boost = read("/sys/devices/system/cpu/cpufreq/boost")
+    if boost:
+        row("boost", "on" if boost == "1" else "off")
+    mons = []
+    try:
+        mons = json.loads(sh("hyprctl", "monitors", "-j") or "[]")
+    except ValueError:
+        pass
+    for m in mons:
+        row("screen", "%s %dx%d at %.0f Hz" % (m.get("name"), m.get("width"), m.get("height"), m.get("refreshRate", 0)),
+            "60 Hz saves ~1-2 W (bar: Hz)")
+
+
+# ------------------------------------------------------------------ graphics
+def dgpu_path():
+    for dev in pathlib.Path("/sys/bus/pci/devices").glob("*"):
+        if read(dev / "vendor") == "0x10de" and read(dev / "class").startswith("0x03"):
+            return dev
+    return None
+
+
+def dgpu_state(dev):
+    return read(dev / "power" / "runtime_status", "?") if dev else "none"
+
+
+def nvidia_users(dev):
+    """Programs holding the NVIDIA chip open (they keep it awake)."""
+    nodes = {"/dev/nvidia0", "/dev/nvidiactl", "/dev/nvidia-modeset", "/dev/nvidia-uvm"}
+    drm = pathlib.Path("/dev/dri/by-path")
+    if dev and drm.exists():
+        for link in drm.glob("pci-%s-*" % dev.name):
+            nodes.add(str(link.resolve()))
+    users = {}
+    for proc in pathlib.Path("/proc").glob("[0-9]*"):
+        try:
+            for fd in (proc / "fd").iterdir():
+                try:
+                    target = os.readlink(fd)
+                except OSError:
+                    continue
+                if target in nodes:
+                    users[proc.name] = read(proc / "comm")
+                    break
+        except OSError:
+            continue
+    return users
+
+
+def graphics():
+    head("Graphics")
+    dev = dgpu_path()
+    if dev is None:
+        row("NVIDIA", "not found (iGPU only, or the dGPU is switched off)")
+        return
+    state = dgpu_state(dev)
+    note = "asleep: good" if state == "suspended" else "awake: costs about 5-10 W"
+    row("NVIDIA", state, note)
+    mode = sh("supergfxctl", "-g").strip()
+    if mode:
+        row("mode", mode)
+    users = nvidia_users(dev)
+    if users:
+        row("kept awake", ", ".join("%s (%s)" % (c, p) for p, c in sorted(users.items(), key=lambda x: x[1])),
+            "close these, or start them on the iGPU")
+    elif state != "suspended":
+        row("kept awake", "no program of yours holds it; it should sleep within a few seconds")
+
+
+# ------------------------------------------------------------------ programs
+def busiest():
+    head("Busiest programs (CPU over 3 s)")
+    out = sh("top", "-b", "-n", "2", "-d", "3", "-w", "200", "-o", "%CPU", timeout=10)
+    last = out[out.rfind("PID"):] if "PID" in out else ""
+    lines = [ln for ln in last.splitlines()[1:] if ln.strip()]
+    shown = 0
+    for ln in lines:
+        f = ln.split(None, 11)
+        if len(f) < 12:
+            continue
+        cpu = float(f[8].replace(",", "."))
+        if cpu < 0.5 and shown >= 3:
+            break
+        row(f[11][:24], "%5.1f %% CPU" % cpu, "pid %s" % f[0])
+        shown += 1
+        if shown >= 8:
+            break
+    load = read("/proc/loadavg").split()[:3]
+    row("load", " ".join(load), "16 threads: under ~2 is quiet")
+
+
+def memory():
+    head("Memory")
+    mi = {}
+    for ln in read("/proc/meminfo").splitlines():
+        k, v = ln.split(":", 1)
+        mi[k] = int(v.split()[0])
+    tot, avail = mi["MemTotal"] / 1048576, mi["MemAvailable"] / 1048576
+    row("used", "%.1f of %.1f GiB (%.1f GiB free to use)" % (tot - avail, tot, avail))
+    swap = (mi.get("SwapTotal", 0) - mi.get("SwapFree", 0)) / 1048576
+    if mi.get("SwapTotal"):
+        row("swap", "%.1f GiB in use" % swap, "swapping makes everything sluggish" if swap > 1 else "")
+    procs = []
+    for proc in pathlib.Path("/proc").glob("[0-9]*"):
+        st = read(proc / "status")
+        m = re.search(r"VmRSS:\s+(\d+)", st)
+        if m:
+            procs.append((int(m.group(1)), read(proc / "comm"), proc.name))
+    procs.sort(reverse=True)
+    for kb, comm, pid in procs[:6]:
+        row(comm[:24], "%6.0f MiB" % (kb / 1024), "pid %s" % pid)
+
+
+def shell():
+    head("The desktop")
+    boot = time.time() - float(read("/proc/uptime", "0").split()[0])
+    hz = os.sysconf("SC_CLK_TCK")
+    for name in ("quickshell", "qs", "Hyprland"):
+        for proc in pathlib.Path("/proc").glob("[0-9]*"):
+            if read(proc / "comm") != name:
+                continue
+            st = read(proc / "status")
+            rss = int(re.search(r"VmRSS:\s+(\d+)", st).group(1)) / 1024 if "VmRSS" in st else 0
+            stat = read(proc / "stat").rsplit(")", 1)[-1].split()
+            started = boot + int(stat[19]) / hz
+            cpu_s = (int(stat[11]) + int(stat[12])) / hz
+            age = max(1, time.time() - started)
+            row(name, "%.0f MiB, running %s, CPU %.1f %% on average" % (rss, span(age), 100 * cpu_s / age),
+                "above ~600 MiB or ~3 %%: restart it with  pkill -x 'qs|quickshell'; setsid -f qs" if name != "Hyprland" else "")
+            break
+    row("up", span(time.time() - boot))
+
+
+def span(s):
+    s = int(s)
+    return "%dh %02dm" % (s // 3600, s % 3600 // 60) if s >= 3600 else "%dm" % (s // 60)
+
+
+def journal():
+    head("Chatty programs (log lines in the last hour)")
+    out = sh("journalctl", "-b", "--since", "-1h", "-o", "json", "--output-fields=SYSLOG_IDENTIFIER", timeout=10)
+    counts = {}
+    for ln in out.splitlines():
+        try:
+            ident = json.loads(ln).get("SYSLOG_IDENTIFIER", "?")
+        except ValueError:
+            continue
+        counts[ident] = counts.get(ident, 0) + 1
+    for ident, n in sorted(counts.items(), key=lambda x: -x[1])[:4]:
+        row(str(ident)[:24], "%d lines" % n, "thousands an hour means something is stuck retrying" if n > 1000 else "")
+
+
+# ------------------------------------------------------------------ launch timing
+def launch(cmd):
+    dev = dgpu_path()
+    before_state = dgpu_state(dev)
+    try:
+        before = {c["address"] for c in json.loads(sh("hyprctl", "clients", "-j") or "[]")}
+    except ValueError:
+        before = set()
+    t0 = time.time()
+    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    woke = False
+    took = None
+    while time.time() - t0 < 30:
+        if dev and dgpu_state(dev) == "active" and before_state != "active":
+            woke = True
+        try:
+            now = json.loads(sh("hyprctl", "clients", "-j") or "[]")
+        except ValueError:
+            now = []
+        new = [c for c in now if c["address"] not in before]
+        if new:
+            took = time.time() - t0
+            break
+        time.sleep(0.05)
+    head("Launching " + " ".join(cmd))
+    row("window", "after %.2f s" % took if took is not None else "none within 30 s")
+    if dev:
+        row("NVIDIA", "before: %s, during: %s" % (before_state, "woke up" if woke else dgpu_state(dev)),
+            "waking it costs ~1 s and power" if woke else "")
+
+
+def main():
+    if sys.argv[1:2] == ["launch"] and len(sys.argv) > 2:
+        launch(sys.argv[2:])
+        return
+    print(BOLD + "archive-health" + OFF + DIM + "  (takes about 15 s)" + OFF)
+    graphics()
+    power()
+    busiest()
+    memory()
+    shell()
+    journal()
+    print()
+
+
+if __name__ == "__main__":
+    main()
