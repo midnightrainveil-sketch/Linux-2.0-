@@ -3,35 +3,22 @@ import QtQuick.Effects
 import qs.theme
 import "Rand.js" as Rand
 
-// A sheet of card stock: the card's paper with fibre texture, and the same
-// torn edge as the windows' (the deckle): its shadow, the torn outline lit
-// from the top left, chips and worn corners, drawn by tools/card-frames.cpp
-// into frame images that stretch to any size. (The aged edge that lies over
-// the card's content is PaperOver, laid on top by IndexCard.) A sheet in
-// another colour keeps the older drawn edge below.
+// A sheet of card stock, as on the reference: paper.card fill with fibre
+// texture, an irregular cut edge drawn as a thin darker rim (darkest along
+// the bottom, where the card's thickness catches the shadow), a faint light
+// line just inside it, and a short soft shadow falling down onto the sheet.
 Item {
     id: root
 
     property color color: Theme.paperCard
-    readonly property bool framed: Qt.colorEqual(color, Theme.paperCard)
     property int seed: 1
     property real jag: 1.5               // edge variation in px
     property real lift: 1.0              // 0 = flat, 1 = resting card, >1 = lifted
     property bool grain: true
 
-    // ---- the windows' torn edge, under the card (day and night, crossfaded)
-    Item {
-        visible: root.framed
-        anchors.fill: parent
-        anchors.margins: -Theme.frameShadow
-        CardFrame { anchors.fill: parent; part: "under"; mode: "day"; opacity: 1 - Theme.night; visible: Theme.night < 0.999 }
-        CardFrame { anchors.fill: parent; part: "under"; mode: "night"; opacity: Theme.night; visible: Theme.night > 0.001 }
-    }
-
-    // ---- the card itself, drawn (a sheet in another colour)
+    // ---- the card itself
     Canvas {
         id: sheet
-        visible: !root.framed
         anchors.fill: parent
         renderStrategy: Canvas.Cooperative
 
@@ -119,7 +106,7 @@ Item {
         }
 
         // a short soft shadow, falling down onto the sheet
-        layer.enabled: root.lift > 0 && !root.framed
+        layer.enabled: root.lift > 0
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: Theme.shadow
@@ -134,7 +121,7 @@ Item {
     // fibre texture, kept inside the cut edge
     Item {
         anchors.fill: parent
-        anchors.margins: root.framed ? 5 : root.jag + 1.5
+        anchors.margins: root.jag + 1.5
         visible: root.grain
         clip: true
         Image {

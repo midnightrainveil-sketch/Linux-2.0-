@@ -24,7 +24,6 @@ Item {
     implicitHeight: header.height + body.implicitHeight + (footer.visible ? footerHeight : 0)
 
     Paper {
-        id: paper
         anchors.fill: parent
         seed: root.seed
         lift: root.lift
@@ -70,12 +69,5 @@ Item {
         value: root.footerValue
         labelWidth: root.labelWidth
         last: true
-    }
-
-    // the aged edge, over everything on the card
-    PaperOver {
-        visible: paper.framed
-        anchors.fill: parent
-        z: 100
     }
 }
