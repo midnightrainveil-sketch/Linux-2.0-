@@ -71,6 +71,10 @@ Singleton {
     // ---------------------------------------------------------------- live tokens
     readonly property color paperBase:   mix(day.paperBase, nite.paperBase)
     readonly property color paperCard:   mix(day.paperCard, nite.paperCard)
+    // the cards' torn edge (tools/card-frames.cpp prints these): room for its
+    // shadow around a card, and the frame images' border (shadow + corner)
+    readonly property int frameShadow: 20
+    readonly property int frameBorder: 44
     readonly property color paperRaised: mix(day.paperRaised, nite.paperRaised)
     readonly property color graphite:    mix(day.graphite, nite.graphite)
     readonly property color soft:        mix(day.soft, nite.soft)
