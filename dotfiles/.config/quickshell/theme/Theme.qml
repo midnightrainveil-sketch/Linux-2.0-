@@ -34,17 +34,17 @@ Singleton {
         readonly property color graphite:    "#1E1D22"
         readonly property color soft:        "#3E3D42"
         readonly property color faded:       "#6E6C6D"
-        readonly property color ruleInk:     "#4A4950"
+        readonly property color ruleInk:     "#3e3d43"
         readonly property color ruleFaint:   "#9C9995"
         readonly property color accent:      "#34405E"
         readonly property color wash:        "#7D8698"
         readonly property color madder:      "#7A4A46"
-        readonly property color shadow:      Qt.rgba(0x1E / 255, 0x1D / 255, 0x22 / 255, 0.30)
+        readonly property color shadow:      Qt.rgba(0x1E / 255, 0x1D / 255, 0x22 / 255, 0.44)
         readonly property color tape:        Qt.rgba(0xE8 / 255, 0xE4 / 255, 0xDC / 255, 0.55)
         readonly property color labelInk:    "#55535a"
         readonly property color sprigInk:    "#4f5a86"
-        readonly property color rimTop:      "#8c8780"
-        readonly property color rimBottom:   "#6b6660"
+        readonly property color rimTop:      "#78746e"
+        readonly property color rimBottom:   "#58544f"
     }
 
     // ---------------------------------------------------------------- night (cyanotype)
@@ -86,7 +86,7 @@ Singleton {
     // Paper grain strength (section 4): 6-10 % by day, 8-12 % at night.
     // (The windows' grain is the title-bar plugin's, per window; the shell's
     // own cards always carry theirs.)
-    readonly property real grainEase:  1.0
+    readonly property real grainEase:  1.70
     readonly property real grainDark:  (0.08 + 0.02 * night) * grainEase
     readonly property real grainLight: 0.10 * night * grainEase
     // fibre texture on the cards themselves
@@ -127,7 +127,7 @@ Singleton {
     readonly property int rowHeight:    38
     readonly property int barHeight:    60
     readonly property int recordWidth:  485
-    readonly property real rule:        1.6
+    readonly property real rule:        2.10
 
     // the cut edge of a card: a thin darker rim, darkest along the bottom
     readonly property color rimTop:     mix(day.rimTop, nite.rimTop)

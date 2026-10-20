@@ -12,7 +12,7 @@ Item {
 
     property color color: Theme.paperCard
     property int seed: 1
-    property real jag: 1.5               // edge variation in px
+    property real jag: 3.10               // edge variation in px
     property real lift: 1.0              // 0 = flat, 1 = resting card, >1 = lifted
     property bool grain: true
 
@@ -78,13 +78,13 @@ Item {
                 ctx.strokeStyle = Qt.rgba(rimTop.r + (rimBottom.r - rimTop.r) * t,
                                           rimTop.g + (rimBottom.g - rimTop.g) * t,
                                           rimTop.b + (rimBottom.b - rimTop.b) * t, 1);
-                ctx.globalAlpha = 0.45 + r2() * 0.55;
-                ctx.lineWidth = 0.9 + r2() * 0.9;
+                ctx.globalAlpha = 0.75 + r2() * 0.31;
+                ctx.lineWidth = 1.60 + r2() * 0.9;
                 ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
             }
             ctx.globalAlpha = 1;
             // the bottom edge is the card's thickness: a second, darker pass
-            ctx.lineWidth = 2.0;
+            ctx.lineWidth = 3.00;
             ctx.strokeStyle = rimBottom;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();
@@ -111,9 +111,9 @@ Item {
             shadowEnabled: true
             shadowColor: Theme.shadow
             blurMax: 32
-            shadowBlur: 0.24 + 0.08 * root.lift
-            shadowVerticalOffset: 1.5 + 2 * root.lift
-            shadowHorizontalOffset: -0.5
+            shadowBlur: 0.38 + 0.08 * root.lift
+            shadowVerticalOffset: 3.30 + 2 * root.lift
+            shadowHorizontalOffset: 0.50
             shadowOpacity: Math.min(1, 0.9 + 0.3 * (root.lift - 1))
         }
     }

@@ -218,8 +218,8 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
     if deckle then
         extras.deckle = true
         extras.deckle_margin = 6                  -- the card's edge, 6 px outside the window
-        extras.deckle_amplitude = 1.2             -- how far the cut wanders
-        extras.deckle_rim_width = 1.3
+        extras.deckle_amplitude = 1.8             -- how far the cut wanders
+        extras.deckle_rim_width = 1.8
         extras.deckle_paper = rgb(c.paper_card)   -- same paper as the title bar and terminal
         extras.deckle_rim_top = rgb(c.edge_top)
         extras.deckle_rim_bottom = rgb(c.rim_bottom)
@@ -228,9 +228,9 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         extras.deckle_bevel = rgba(c.bevel, c.bevel_alpha)
         extras.deckle_shadow = rgba(c.shadow, c.edge_shadow)
         extras.deckle_shadow_inactive = rgba(c.shadow, c.edge_shadow_flat)
-        extras.deckle_shadow_blur = 4.5           -- falls down and to the right
-        extras.deckle_shadow_x = 1.5
-        extras.deckle_shadow_y = 3
+        extras.deckle_shadow_blur = 5.5           -- falls down and to the right
+        extras.deckle_shadow_x = 2.3
+        extras.deckle_shadow_y = 4.6
         extras.deckle_tone = rgba(c.edge_tone, c.edge_tone_alpha)   -- the aged edge
         extras.deckle_tone_depth = 18
         extras.deckle_chips = 1                   -- chips, tears and wrinkles (0 = a clean cut)

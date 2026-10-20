@@ -13,14 +13,14 @@ return {
         accent       = "34405e",
         madder       = "7a4a46",
         shadow       = "1e1d22", shadow_active = "52", shadow_inactive = "33",   -- 32 % / 20 %
-        rim_top      = "8a857e", rim_bottom      = "57524d",   -- the cut edge, focused
+        rim_top      = "8a857e", rim_bottom      = "47433f",   -- the cut edge, focused
         rim_top_flat = "a39e97", rim_bottom_flat = "7b766f",   -- unfocused: lies flat
         dot          = "5f5b60", dot_flat        = "8a8688",   -- title-bar ink dots
         -- the three dots, colour-coded in old pigments: madder (close),
         -- yellow ochre (put away), sage green (full sheet); unfocused: dot_flat
         dot_close    = "8e5148", dot_away        = "a2834a", dot_full = "6e7b5a",
-        edge_top     = "a09b94", edge_top_flat   = "b3aea7",   -- torn edge (archivebars): fainter on top
-        edge_shadow  = "66",     edge_shadow_flat = "3d",      -- its shadow: 40 % / 24 %
+        edge_top     = "8a8580", edge_top_flat   = "a29d97",   -- torn edge (archivebars): fainter on top
+        edge_shadow  = "80",     edge_shadow_flat = "4d",      -- its shadow: 50 % / 30 %
         edge_tone    = "604c38", edge_tone_alpha  = "30",      -- the aged edge: a faint umber, 19 %
         bevel        = "ffffff", bevel_alpha     = "59",       -- light line inside the torn edge
     },
@@ -41,7 +41,7 @@ return {
         dot          = "8e9cb3", dot_flat        = "5f7193",
         dot_close    = "b9817a", dot_away        = "bba373", dot_full = "8d9d82",
         edge_top     = "4e6283", edge_top_flat   = "3c5274",
-        edge_shadow  = "8c",     edge_shadow_flat = "4d",
+        edge_shadow  = "a6",     edge_shadow_flat = "5c",
         edge_tone    = "050b16", edge_tone_alpha  = "40",
         bevel        = "9fb4d6", bevel_alpha     = "26",
     },
