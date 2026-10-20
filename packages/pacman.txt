@@ -71,3 +71,9 @@ ffmpeg
 nautilus
 gthumb
 firefox
+# ---- network tools (for robots and other machines on the Wi-Fi)
+openssh
+net-tools
+traceroute
+bind
+nmap
