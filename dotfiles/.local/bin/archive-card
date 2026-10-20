@@ -316,9 +316,11 @@ def battery_line():
 def label_values(lines):
     vals = {}
     for ln in lines:
-        k = ln[:KEY_W].strip()
-        if k.endswith(".") and k not in vals and ln[KEY_W:].strip():
-            vals[k] = ln[KEY_W:].strip()
+        # "Spec. Arch Linux x86_64": a short key ending in a full stop, then
+        # the value (however many spaces fastfetch puts between them)
+        m = re.match(r"^(\w{1,6}\.)\s+(\S.*)$", ln)
+        if m and m.group(1) not in vals:
+            vals[m.group(1)] = m.group(2).strip()
     vals["Disp."] = display_line()
     vals["Batt."] = battery_line()
     return vals

@@ -43,6 +43,9 @@ class CArchiveDeckle : public IHyprWindowDecoration {
 
     PHLWINDOW                          getOwner();
     void                               updateRules();
+    // the window went into or out of fullscreen: show or drop the edge and
+    // the space it takes
+    void                               fullscreenChanged();
 
     // grain over this window (the layer over the window keeps the state)
     bool                               grainOn();

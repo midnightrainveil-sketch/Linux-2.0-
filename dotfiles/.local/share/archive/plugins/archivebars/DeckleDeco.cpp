@@ -238,8 +238,9 @@ bool CArchiveDeckle::visible() {
     const auto PWINDOW = m_window.lock();
     if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return false;
-    // a fullscreen window is the whole sheet, not a card on it
-    if (Fullscreen::controller()->isFullscreen(PWINDOW))
+    // a fullscreen window is the whole sheet, not a card on it; a maximised
+    // one is still a card (Hyprland keeps its bar), only a large one
+    if (Fullscreen::controller()->getFullscreenModes(PWINDOW).internal == Fullscreen::FSMODE_FULLSCREEN)
         return false;
     if (m_over && !grain && !overlayWanted(styleFor(1.0, true)))
         return false;
@@ -286,6 +287,12 @@ void CArchiveDeckle::updateExtents() {
     const auto margin  = std::clamp((int)g_config.margin->value(), 1, 32);
     CBox       outer   = g_pDecorationPositioner->getBoxWithIncludedDecos(PWINDOW).expand(margin + reach());
     m_extents          = outer.extentsFrom(PWINDOW->getWindowMainSurfaceBox());
+}
+
+void CArchiveDeckle::fullscreenChanged() {
+    damageEntire(); // where the old edge was
+    updateExtents();
+    g_pDecorationPositioner->repositionDeco(this);
 }
 
 void CArchiveDeckle::damageEntire() {
@@ -570,6 +577,15 @@ void deckleInit(HANDLE handle) {
 
     // the rim and shadow change with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });
+    // into or out of fullscreen: the edge appears or goes, and the space it
+    // takes with it (else a stale margin and the old edge stay on screen)
+    static auto P3 = Event::bus()->m_events.window.fullscreen.listen([](PHLWINDOW w) {
+        for (auto& d : g_deckles) {
+            if (d && d->getOwner() == w)
+                d->fullscreenChanged();
+        }
+        damageAll();
+    });
     static auto P2 = Event::bus()->m_events.config.reloaded.listen([] {
         g_tiles.clear();
         g_grainTex = nullptr;
