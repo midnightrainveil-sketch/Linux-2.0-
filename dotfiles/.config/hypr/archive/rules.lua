@@ -135,6 +135,21 @@ hl.on("window.active", function(w)
     if w ~= nil then hl.dispatch(hl.dsp.window.tag({ tag = "-urgent", window = w })) end
 end)
 
+------------------------------------------------------------------ full redraws for older GTK programs
+-- GTK3 programs draw at 2x and are shown at the G14's 1.5, and when they
+-- redraw a small part (gThumb's crop frame) the edge of it can be left
+-- behind as a trail. While one of these is the active window, the whole
+-- screen is redrawn on every change (a little more power, only then).
+local full_redraw = { ["org.gnome.gThumb"] = true, gthumb = true, Gthumb = true }
+local redrawing = false
+local function redraw_all(on)
+    if on == redrawing then return end
+    redrawing = on
+    hl.config({ debug = { damage_tracking = on and 1 or 2 } })
+end
+hl.on("window.active", function(w) redraw_all(w ~= nil and full_redraw[w.class] == true) end)
+hl.on("window.close", function(w) if w ~= nil and full_redraw[w.class] then redraw_all(false) end end)
+
 ------------------------------------------------------------------ misc
 hl.window_rule({ name = "archive-no-maximize-requests", match = { class = ".*" }, suppress_event = "maximize" })
 hl.window_rule({
