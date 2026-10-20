@@ -62,7 +62,7 @@
       "text": "fastfetch -c none -s gpu --format json 2>/dev/null | jq -r '.[0].result[].name' | sed 's/^NVIDIA //; s/^AMD //; s/^Intel(R) //; s/GeForce //; s| / Mobile||; s/ Graphics$//' | awk 'NR > 1 { printf \" · \" } { printf \"%s\", $0 } END { print \"\" }'"
     },
     { "type": "memory", "key": "Mem.", "format": "{used} / {total}" },
-    { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-used} / {size-total} {size-percentage-bar} {size-percentage}" },
+    { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-percentage-bar} {size-percentage} of {size-total}" },
     { "type": "packages", "key": "Pkgs.", "format": "{all}" },
     { "type": "command", "key": "Dat.", "text": "echo \"$(date '+%-d %b %Y') · up $(uptime -p | sed 's/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g')\"" },
     { "type": "custom", "format": "{#@17}──────────────────────────────────{#}" },
