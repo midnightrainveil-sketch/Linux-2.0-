@@ -54,7 +54,6 @@ INFO_LINES = 15
 MAX_ROWS = 30
 PAD_TOP, PAD_LEFT, PAD_RIGHT = 1, 1, 3     # round the portrait, in cells
 TALLER = 9           # the portrait is at most this many lines taller than the label
-CENTRE_FROM = 12     # spare columns beyond which the card is centred in the window
 VERSION = 7          # bump to redraw cached pictures after a change here
 
 
@@ -293,16 +292,13 @@ def main():
         cur.symlink_to(sf.name)
         # (one line higher than the true middle reads as level)
         drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2) - 1)
-        # a wide window (a maximised terminal): the card in the middle of it
-        spare = tcols - (PAD_LEFT + int(cols) + PAD_RIGHT + info_cols)
-        pad_left = PAD_LEFT + spare // 2 if spare > CENTRE_FROM else PAD_LEFT
         try:
             args += ["--config", str(centred_config(drop))]
         except (OSError, ValueError):
             pass
         args += ["--logo-type", "raw", "--logo", str(pf),
                  "--logo-width", cols, "--logo-height", rows,
-                 "--logo-padding-top", str(PAD_TOP), "--logo-padding-left", str(pad_left),
+                 "--logo-padding-top", str(PAD_TOP), "--logo-padding-left", str(PAD_LEFT),
                  "--logo-padding-right", str(PAD_RIGHT)]
     except Exception:
         # the typed mark, no swatches
