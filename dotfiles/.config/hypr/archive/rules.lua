@@ -149,7 +149,7 @@ hl.window_rule({
     float = true, pin = true, size = { 480, 270 }, move = { "monitor_w-512", "monitor_h-342" },
 })
 -- a video or game in fullscreen keeps the screen awake
-hl.window_rule({ name = "archive-idle", match = { fullscreen = true }, idle_inhibit = "fullscreen" })
+hl.window_rule({ name = "archive-idle", match = { fullscreen_state_internal = 2 }, idle_inhibit = "fullscreen" })
 
 ------------------------------------------------------------------ the shell's own surfaces
 -- Quickshell animates its own cards (rise 8 px, fade); no second animation.

@@ -53,6 +53,8 @@ INFO_COLS = 39
 INFO_LINES = 15
 MAX_ROWS = 30
 PAD_TOP, PAD_LEFT, PAD_RIGHT = 1, 1, 3     # round the portrait, in cells
+TALLER = 9           # the portrait is at most this many lines taller than the label
+CENTRE_FROM = 12     # spare columns beyond which the card is centred in the window
 VERSION = 7          # bump to redraw cached pictures after a change here
 
 
@@ -105,13 +107,15 @@ def measure():
     return max(len(ln) for ln in lines), len(lines)
 
 
-def portrait_rows(trows, tcols, cw, ch, info_cols):
+def portrait_rows(trows, tcols, cw, ch, info_cols, info_lines):
     from PIL import Image
     with Image.open(CONF / "portrait.png") as im:
         aspect = im.width / im.height
     by_height = trows - PAD_TOP - 2             # the padding, the prompt, a spare line
     by_width = math.floor((tcols - info_cols - PAD_LEFT - PAD_RIGHT - 1) * cw / (aspect * ch))
-    return max(8, min(MAX_ROWS, by_height, by_width))
+    # in a big window it stays a portrait beside the label, not a wall
+    by_label = info_lines + TALLER
+    return max(8, min(MAX_ROWS, by_height, by_width, by_label))
 
 
 def centred_config(drop):
@@ -280,7 +284,7 @@ def main():
             raise RuntimeError("no cell size or no portrait")
         trows, tcols, cw, ch = size
         info_cols, info_lines = measure()
-        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch, info_cols))
+        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch, info_cols, info_lines))
         sf, _ = drawn("swatches", m, cw, ch, swatches)
         # the swatches' module reads the current one from here
         cur = CACHE / "swatches.six"
@@ -289,13 +293,16 @@ def main():
         cur.symlink_to(sf.name)
         # (one line higher than the true middle reads as level)
         drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2) - 1)
+        # a wide window (a maximised terminal): the card in the middle of it
+        spare = tcols - (PAD_LEFT + int(cols) + PAD_RIGHT + info_cols)
+        pad_left = PAD_LEFT + spare // 2 if spare > CENTRE_FROM else PAD_LEFT
         try:
             args += ["--config", str(centred_config(drop))]
         except (OSError, ValueError):
             pass
         args += ["--logo-type", "raw", "--logo", str(pf),
                  "--logo-width", cols, "--logo-height", rows,
-                 "--logo-padding-top", str(PAD_TOP), "--logo-padding-left", str(PAD_LEFT),
+                 "--logo-padding-top", str(PAD_TOP), "--logo-padding-left", str(pad_left),
                  "--logo-padding-right", str(PAD_RIGHT)]
     except Exception:
         # the typed mark, no swatches

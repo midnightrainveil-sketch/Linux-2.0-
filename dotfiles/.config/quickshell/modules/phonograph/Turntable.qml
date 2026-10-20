@@ -628,22 +628,48 @@ Item {
     property bool dragging: false
     property real dragAngle: restAngle
     readonly property real playAngle: startAngle + (endAngle - startAngle) * Math.max(0, Math.min(1, progress))
-    readonly property real armAngle: dragging ? dragAngle : (onRecord ? playAngle : restAngle)
+    // put on its rest by hand: it stays there (paused) until the music goes on
+    property bool parked: false
+    onLiftedChanged: if (!lifted) parked = false
+    onOnRecordChanged: { if (!onRecord) parked = false; go(true); }
+    // let down on the record by hand: it stays where it was put while the
+    // player finds that place, instead of swinging back to where the music
+    // was and then across again
+    property bool holding: false
+    property real holdAngle: restAngle
+    Timer { id: holdLimit; interval: 3000; onTriggered: deck.holding = false }
+    onPlayAngleChanged: {
+        if (holding && Math.abs(playAngle - holdAngle) < 2.5) holding = false;
+        go(false);
+    }
+    readonly property real armAngle: dragging ? dragAngle
+        : holding ? holdAngle
+        : (onRecord && !parked ? playAngle : restAngle)
 
     // Moving the arm: small steps (the music going on) it creeps; anything
-    // further is a cue: lift, swing across, lower into the groove.
+    // further is a cue: lift, swing across, lower into the groove. A jump in
+    // where the player says it is (a seek, a new track, reported in steps)
+    // must hold for a moment first, so a passing hiccup does not lift it.
     property real cueTo: restAngle
     property int cueTime: 400
     Component.onCompleted: arm.rotation = armAngle
-    onArmAngleChanged: {
-        if (dragging) { cue.stop(); creep.stop(); arm.rotation = armAngle; return; }
+    onDragAngleChanged: if (dragging) arm.rotation = dragAngle
+    onDraggingChanged: go(true)
+    onParkedChanged: go(true)
+    onHoldingChanged: go(true)
+    function go(now: bool): void {
+        if (dragging) { cue.stop(); creep.stop(); settle.stop(); arm.rotation = armAngle; return; }
         const d = Math.abs(armAngle - arm.rotation);
         if (cue.running) { cueTo = armAngle; return; }
-        if (d < 1.5) { creep.to = armAngle; creep.restart(); return; }
+        if (d < 1.5) { settle.stop(); creep.to = armAngle; creep.restart(); return; }
+        if (!now) { if (!settle.running) settle.restart(); return; }
+        settle.stop();
+        creep.stop();
         cueTo = armAngle;
         cueTime = Theme.dur(Math.round(260 + d * 22));
         cue.restart();
     }
+    Timer { id: settle; interval: 700; onTriggered: deck.go(true) }
     NumberAnimation { id: creep; target: arm; property: "rotation"; duration: 450 }
     SequentialAnimation {
         id: cue
@@ -793,10 +819,21 @@ Item {
             }
             onReleased: {
                 const a = deck.dragAngle;
-                deck.dragging = false;
-                if (a < deck.startAngle - 4) { deck.armRested(); return; }
+                if (a < deck.startAngle - 4) {
+                    deck.parked = true;
+                    deck.dragging = false;
+                    deck.armRested();
+                    return;
+                }
                 const r = deck.radiusAt(Math.max(a, deck.startAngle));
-                deck.needleDropped(Math.max(0, Math.min(0.999, (deck.outerGroove - r) / (deck.outerGroove - deck.innerGroove))));
+                const f = Math.max(0, Math.min(0.999, (deck.outerGroove - r) / (deck.outerGroove - deck.innerGroove)));
+                // held at that place on the record until the player gets there
+                deck.parked = false;
+                deck.holdAngle = deck.startAngle + (deck.endAngle - deck.startAngle) * f;
+                deck.holding = true;
+                holdLimit.restart();
+                deck.dragging = false;
+                deck.needleDropped(f);
             }
             onCanceled: deck.dragging = false
         }

@@ -2,7 +2,7 @@
 -- Shell surfaces are reached over Quickshell IPC: `qs ipc call <target> <fn>`.
 local terminal = "foot"
 local files = "nautilus"
-local browser = "firefox"
+local browser = "archive-browser"           -- your default browser (xdg-settings)
 local mod = "SUPER"
 
 local function exec(cmd) return hl.dsp.exec_cmd(cmd) end
@@ -64,6 +64,11 @@ hl.bind(mod .. " + CTRL + Right", hl.dsp.focus({ workspace = "e+1" }), { descrip
 hl.bind(mod .. " + CTRL + Left", hl.dsp.focus({ workspace = "e-1" }), { description = "Previous desk" })
 hl.bind(mod .. " + Page_Down", hl.dsp.focus({ workspace = "e+1" }), { description = "Next desk" })
 hl.bind(mod .. " + Page_Up", hl.dsp.focus({ workspace = "e-1" }), { description = "Previous desk" })
+-- carry the window along: to the next / previous desk (Super+Shift+1-9 for a numbered one)
+hl.bind(mod .. " + SHIFT + CTRL + Right", hl.dsp.window.move({ workspace = "r+1" }), { description = "Take the window to the next desk" })
+hl.bind(mod .. " + SHIFT + CTRL + Left", hl.dsp.window.move({ workspace = "r-1" }), { description = "Take the window to the previous desk" })
+hl.bind(mod .. " + SHIFT + Page_Down", hl.dsp.window.move({ workspace = "r+1" }), { description = "Take the window to the next desk" })
+hl.bind(mod .. " + SHIFT + Page_Up", hl.dsp.window.move({ workspace = "r-1" }), { description = "Take the window to the previous desk" })
 
 -- the drawer: minimised windows live in a special workspace
 hl.bind(mod .. " + grave", hl.dsp.workspace.toggle_special("drawer"), { description = "Open the drawer" })

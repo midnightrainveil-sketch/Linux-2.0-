@@ -156,19 +156,22 @@ local function bars(name, extras)
     for k, v in pairs(extras or {}) do opts[k] = v end
     hl.config({ plugin = { [name] = opts } })
 
-    -- three ink dots: file away (close), full sheet (maximise), drawer (minimise)
+    -- three ink dots, in the usual order: file away (close, red), drawer
+    -- (minimise, yellow), full sheet (maximise and back, green)
     local api = hl.plugin[name]
     -- each in its own muted pigment (palette.lua); grey on unfocused windows
     for _, b in ipairs({
         { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close },
-        { [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']], c.dot_full },
         { drawer, c.dot_away },
+        { [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']], c.dot_full },
     }) do
         api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
     end
 
     hl.window_rule({ name = "archive-bar-unfocused", match = { focus = false }, [name .. ":title_color"] = rgb(c.faded) })
-    hl.window_rule({ name = "archive-bar-fullscreen", match = { fullscreen = true }, [name .. ":no_bar"] = true })
+    -- true fullscreen (Super+F) has no bar; a maximised window keeps it, and
+    -- its green dot to go back ("fullscreen" alone matches maximised too)
+    hl.window_rule({ name = "archive-bar-fullscreen", match = { fullscreen_state_internal = 2 }, [name .. ":no_bar"] = true })
 end
 
 if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
