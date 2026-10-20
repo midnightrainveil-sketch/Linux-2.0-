@@ -41,7 +41,7 @@ PanelWindow {
 
     // over the cards the lamp keeps following
     HoverHandler {
-        onPointChanged: if (hovered) Lamp.moveTo(win.modelData?.name ?? "", point.position.x, point.position.y)
+        onPointChanged: if (hovered && Lamp.isOn && Theme.night > 0.5) Lamp.moveTo(win.modelData?.name ?? "", point.position.x, point.position.y)
     }
 
     DeskCard {

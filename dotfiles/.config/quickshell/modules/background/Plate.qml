@@ -34,7 +34,7 @@ PanelWindow {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         hoverEnabled: true
-        onPositionChanged: mouse => Lamp.moveTo(win.modelData?.name ?? "", mouse.x, mouse.y)
+        onPositionChanged: mouse => { if (Lamp.isOn && Theme.night > 0.5) Lamp.moveTo(win.modelData?.name ?? "", mouse.x, mouse.y); }
     }
 
     // ------------------------------------------------------------ a whole sheet

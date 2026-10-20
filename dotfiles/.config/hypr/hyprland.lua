@@ -28,6 +28,10 @@ hl.env("HYPRCURSOR_SIZE", "40")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
+-- GTK 4 programs (Nautilus...) draw with OpenGL, not Vulkan: Vulkan opens
+-- every graphics driver, the NVIDIA one too, which wakes that chip (a
+-- second's wait, and its power) at every launch. Games are not GTK.
+hl.env("GSK_RENDERER", "ngl")
 hl.env("GDK_BACKEND", "wayland,x11,*")
 hl.env("SDL_VIDEODRIVER", "wayland")
 hl.env("CLUTTER_BACKEND", "wayland")

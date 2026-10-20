@@ -32,6 +32,10 @@ case ${1:-build} in
     build) build; use_theme ;;
     ensure)
         if [[ ! -f $stamp || $(cat "$stamp") != "$(want)" ]] && [[ ! -f $dst/.off ]]; then build; fi
+        # without its cache GTK reads every folder of the theme at each program's start
+        if [[ ! -f $dst/icon-theme.cache && -f $dst/index.theme ]] && command -v gtk-update-icon-cache >/dev/null; then
+            gtk-update-icon-cache -f -q "$dst" || echo "archive-icons: could not make the icon cache" >&2
+        fi
         ;;
     off)
         rm -rf "$dst"

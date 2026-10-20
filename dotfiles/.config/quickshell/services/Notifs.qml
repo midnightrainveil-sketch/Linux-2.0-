@@ -22,6 +22,9 @@ Singleton {
     readonly property bool dnd: dndOverride === null ? Settings.doNotDisturb : dndOverride
     function toggleDnd(): void { dndOverride = !dnd; }
     property int received: 0          // running count, used for catalogue numbers
+    // the letter tray keeps at most this many; older ones are let go (each
+    // kept letter holds its picture in memory for as long as it is kept)
+    readonly property int trayLimit: 20
 
     function isCritical(n: var): bool {
         return n !== null && n !== undefined && n.urgency === NotificationUrgency.Critical;
@@ -57,7 +60,21 @@ Singleton {
             const last = popups.get(popups.count - 1);
             const nid = last.nid, serial = last.serial, opened = last.opened;
             popups.remove(popups.count - 1);
-            if (!opened && byId[nid] && indexIn(tray, nid) < 0) tray.insert(0, { nid: nid, serial: serial });
+            if (!opened && byId[nid] && indexIn(tray, nid) < 0) {
+                tray.insert(0, { nid: nid, serial: serial });
+                trimTray();
+            } else if (opened && byId[nid]) {
+                try { byId[nid].expire(); } catch (e) {}
+            }
+        }
+    }
+
+    // the oldest letters beyond the tray's limit are let go
+    function trimTray(): void {
+        while (tray.count > trayLimit) {
+            const n = byId[tray.get(tray.count - 1).nid];
+            tray.remove(tray.count - 1);
+            try { if (n) n.dismiss(); } catch (e) {}
         }
     }
 
@@ -66,7 +83,10 @@ Singleton {
         if (!n) return;
         const i = indexOf(n.id);
         if (i >= 0) popups.remove(i);
-        if (indexIn(tray, n.id) < 0) tray.insert(0, { nid: n.id, serial: serial });
+        if (indexIn(tray, n.id) < 0) {
+            tray.insert(0, { nid: n.id, serial: serial });
+            trimTray();
+        }
     }
 
     // the newest letter in the tray comes back up, and opens
@@ -106,18 +126,23 @@ Singleton {
             root.byId[n.id] = n;
             // after a shell reload the server hands back the letters it kept:
             // they are not new mail, so no envelope and no sound
-            if (n.lastGeneration) {
-                n.closed.connect(() => root.hide(n));
-                return;
-            }
+            // once closed it is let go (hide also clears it from the tray)
+            n.closed.connect(() => { root.hide(n); delete root.byId[n.id]; });
+            if (n.lastGeneration) return;
             root.received += 1;
             const critical = root.isCritical(n);
             const sound = n.hints["x-archive-sound"];
-            if (root.dnd && !critical) return;
+            // do not disturb: no envelope and no sound; it waits in the tray
+            if (root.dnd && !critical) {
+                if (root.indexIn(root.tray, n.id) < 0) {
+                    root.tray.insert(0, { nid: n.id, serial: root.received });
+                    root.trimTray();
+                }
+                return;
+            }
             if (root.indexOf(n.id) < 0) {
                 root.popups.insert(0, { nid: n.id, serial: root.received, opened: false });
                 root.trimPopups();
-                n.closed.connect(() => root.hide(n));
             }
             Sounds.play(sound ? sound : (critical ? "urgent" : "message"));
         }

@@ -50,7 +50,7 @@ PanelWindow {
                 x: 14 + depth * 9
                 property real drop: 0
                 y: 16 - depth * 5 + drop
-                rotation: [-3, 5, -8][Math.min(depth, 2)]
+                rotation: [-3, 5, -8][Math.max(0, Math.min(depth, 2))]
                 z: 10 - depth
 
                 RectangularGlow {

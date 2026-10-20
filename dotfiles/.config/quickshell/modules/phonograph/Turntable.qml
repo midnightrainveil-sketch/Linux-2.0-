@@ -30,6 +30,7 @@ Item {
     property string labelNo: ""
     property string nowPlaying: ""
     property bool spinning: false
+    property bool shown: true           // the phonograph is open (a closed layer keeps visible: true)
     property bool onRecord: false       // the arm is down on a record (playing or paused)
     property bool lifted: false         // paused: the arm hangs just above the groove
     property real progress: 0           // 0..1 of the whole record
@@ -554,7 +555,7 @@ Item {
     property real speed: spinning ? 1 : 0
     Behavior on speed { NumberAnimation { duration: Theme.dur(1100); easing.type: Easing.InOutQuad } }
     FrameAnimation {
-        running: deck.speed > 0.001 && deck.visible && !deck.held
+        running: deck.speed > 0.001 && deck.visible && deck.shown && !deck.held
         onTriggered: record.rotation = (record.rotation + frameTime * 200 * deck.speed) % 360
     }
 

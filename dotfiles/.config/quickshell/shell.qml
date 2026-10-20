@@ -103,6 +103,7 @@ ShellRoot {
     IpcHandler {
         target: "desk"
         function restore(): void { Desk.restore(); }
+        function covered(on: bool): void { Desk.covered = on; }
     }
 
     IpcHandler {

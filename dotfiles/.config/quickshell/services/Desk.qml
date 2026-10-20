@@ -10,6 +10,10 @@ import Quickshell
 Singleton {
     id: root
 
+    // a tiled or fullscreen window covers the desk on the active workspace
+    // (told by Hyprland, rules.lua): what lies on the desk need not move then
+    property bool covered: false
+
     // card name -> true once filed away
     property var closed: ({})
 

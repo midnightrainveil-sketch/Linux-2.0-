@@ -271,6 +271,7 @@ PanelWindow {
         // ------------------------------------------------------------ the gramophone
         Turntable {
             id: deck
+            shown: win.shown
             x: stage.width - width
             y: 40
             readonly property var onIt: win.ours ? Gramophone.album : null

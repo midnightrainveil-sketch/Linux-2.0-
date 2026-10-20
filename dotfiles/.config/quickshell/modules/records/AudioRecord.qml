@@ -34,7 +34,7 @@ IndexCard {
     readonly property string year: ours ? String(Gramophone.album?.year ?? "").slice(0, 4) : Media.year
 
     // while the card shows our record, ask the gramophone where in it we are
-    readonly property bool watching: visible && ours
+    readonly property bool watching: visible && ours && !Desk.covered
     property bool counted: false
     onWatchingChanged: {
         if (watching === counted) return;
@@ -109,7 +109,8 @@ IndexCard {
                         g.fillRect(c - 1, c - c * 0.3, 2, c * 0.12);
                     }
                     RotationAnimation on rotation {
-                        running: card.playing && blank.visible
+                        // (each frame redraws the whole desk: not while it is covered)
+                        running: card.playing && blank.visible && !Desk.covered
                         loops: Animation.Infinite
                         from: 0; to: 360
                         duration: 1800
@@ -203,10 +204,6 @@ IndexCard {
                 width: parent.width * progress.shown
                 height: 4
                 color: Theme.accent
-                Behavior on width {
-                    enabled: !scrub.pressed
-                    NumberAnimation { duration: 900; easing.type: Easing.Linear }
-                }
             }
             // a small nib where you are, while you hold it
             Rectangle {

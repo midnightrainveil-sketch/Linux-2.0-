@@ -77,10 +77,33 @@ local function keep_back(w)
     end
 end
 
-hl.on("window.open", function(w) if not is_desk(w) then tuck() end end)
-hl.on("window.close", function(w) if not is_desk(w) then tuck(w) end end)
-hl.on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end end)
-hl.on("window.update_rules", function(w) if not is_desk(w) then tuck() end end)   -- floated / tiled
+-- The shell is told when the desk is covered (a tiled or fullscreen window
+-- on the active workspace), so what moves on the desk (a turning record)
+-- rests while nobody can see it: each of its frames redraws the whole desk.
+local desk_covered = nil
+local function report_cover(gone)
+    local ws = hl.get_active_workspace()
+    local now = false
+    if ws ~= nil then
+        for _, w in ipairs(hl.get_workspace_windows(ws)) do
+            if not is_desk(w) and not w.hidden and (gone == nil or w.address ~= gone.address)
+                and (not w.floating or (w.fullscreen or 0) > 0) then
+                now = true
+                break
+            end
+        end
+    end
+    if now ~= desk_covered then
+        desk_covered = now
+        hl.exec_cmd("qs ipc call desk covered " .. tostring(now))
+    end
+end
+
+hl.on("window.open", function(w) if not is_desk(w) then tuck() end report_cover() end)
+hl.on("window.close", function(w) if not is_desk(w) then tuck(w) end report_cover(w) end)
+hl.on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end report_cover() end)
+hl.on("window.update_rules", function(w) if not is_desk(w) then tuck() end report_cover() end)   -- floated / tiled
+hl.on("window.fullscreen", function(w) report_cover() end)
 hl.on("window.active", function(w)
     keep_back(w)
     if not is_desk(w) then tuck() end
@@ -90,6 +113,7 @@ end)
 -- the terminal at its place (moved over, or opened again if it was closed)
 -- and the cards back in theirs, as at login.
 hl.on("workspace.active", function(ws)
+    report_cover()
     if ws == nil or ws.special then return end
     for _, w in ipairs(hl.get_workspace_windows(ws)) do
         if not is_desk(w) then return end

@@ -14,10 +14,11 @@ local function read(path)
     return s
 end
 
+-- (without opening it: opening a graphics device such as
+-- /dev/dri/nvidia-dgpu wakes the chip, on every load of the config)
 local function exists(path)
-    local f = io.open(path, "r")
-    if f then f:close() return true end
-    return false
+    local ok, _, code = os.rename(path, path)
+    return ok == true or code == 13 or code == 16 or code == 1 or code == 30   -- there, but not ours to rename
 end
 M.exists = exists
 

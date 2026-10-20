@@ -54,22 +54,15 @@ Singleton {
     }
 
     // ---- power profile
-    property string profile: "balanced"
+    // read from power-profiles-daemon over D-Bus as it changes (the G14's
+    // fan key included), instead of asking powerprofilesctl every 10 s
     readonly property var profiles: ["power-saver", "balanced", "performance"]
     readonly property var profileWords: ({ "power-saver": "Quiet", "balanced": "Balanced", "performance": "Performance" })
+    readonly property string profile: PowerProfiles.profile === PowerProfile.PowerSaver ? "power-saver"
+        : PowerProfiles.profile === PowerProfile.Performance ? "performance" : "balanced"
 
     function setProfile(p: string): void {
-        setter.command = ["powerprofilesctl", "set", p];
-        setter.running = true;
+        PowerProfiles.profile = p === "power-saver" ? PowerProfile.PowerSaver
+            : p === "performance" ? PowerProfile.Performance : PowerProfile.Balanced;
     }
-
-    Process { id: setter; onExited: getter.running = true }
-    Process {
-        id: getter
-        command: ["powerprofilesctl", "get"]
-        running: true
-        stdout: StdioCollector { onStreamFinished: root.profile = text.trim() || root.profile }
-    }
-    // Profiles can also change from the G14's fan key; re-read now and then.
-    Timer { interval: 10000; running: true; repeat: true; onTriggered: getter.running = true }
 }
