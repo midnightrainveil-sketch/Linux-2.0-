@@ -233,6 +233,14 @@ Singleton {
         if (at > 1) pendingSeek = at;
         play(a, i);
     }
+    // track t of album a, from a fraction f of the way through it
+    function playTrackAt(a: int, t: int, f: real): void {
+        const tr = albums[a]?.tracks?.[t];
+        if (!tr) return;
+        const at = f * (tr.length || 0);
+        if (at > 1) pendingSeek = at;
+        play(a, t);
+    }
     function setVolume(v: int): void { send(["set_property", "volume", Math.max(0, Math.min(130, v))]); }
     function stop(): void { send(["stop"]); }
 }

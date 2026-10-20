@@ -7,8 +7,8 @@ import "../../components/Rand.js" as Rand
 
 // The turntable, seen from straight above as it stands on the desk: an oak
 // plinth, a record whose label is typed like a herbarium label, and a brass
-// tone arm. The arm's place across the record is how far through the album
-// you are; the bands in the grooves are its tracks.
+// tone arm. The whole record is the track that is playing: the arm's place
+// across it is how far through that track you are.
 //
 //   click the record, the cue lever    pause / play
 //   turn the record by hand            wind back (anticlockwise) or on, as you turn
@@ -277,17 +277,8 @@ Item {
             Canvas {
                 id: grooves
                 anchors.fill: parent
-                readonly property var bands: {
-                    const ts = deck.album?.tracks ?? [];
-                    let total = 0;
-                    ts.forEach(t => total += t.length || 0);
-                    const out = [];
-                    let at = 0;
-                    for (let i = 0; i < ts.length - 1; i++) { at += ts[i].length || 0; if (total > 0) out.push(at / total); }
-                    return out;
-                }
                 readonly property color base: deck.vinyl
-                readonly property string key: bands.join(",") + String(base) + deck.recordR
+                readonly property string key: String(base) + deck.recordR
                 onKeyChanged: requestPaint()
                 onPaint: {
                     const g = getContext("2d");
@@ -300,14 +291,6 @@ Item {
                     for (let r = deck.innerGroove; r < deck.outerGroove; r += 1.6) {
                         g.strokeStyle = rnd() < 0.5 ? Qt.rgba(1, 1, 1, 0.025 + rnd() * 0.03) : Qt.rgba(0, 0, 0, 0.25);
                         g.lineWidth = 0.8;
-                        g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.stroke();
-                    }
-                    // the bands between tracks: smooth, so they catch the light
-                    const span = deck.outerGroove - deck.innerGroove;
-                    for (const f of bands) {
-                        const r = deck.outerGroove - f * span;
-                        g.strokeStyle = Qt.rgba(1, 1, 1, 0.10);
-                        g.lineWidth = 2.2;
                         g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.stroke();
                     }
                     // the lead-in and run-out, and the rolled edge

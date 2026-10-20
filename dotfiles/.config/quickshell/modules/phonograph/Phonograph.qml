@@ -284,7 +284,8 @@ PanelWindow {
             spinning: win.ours ? Gramophone.playing : (win.other && Media.playing)
             onRecord: win.ours || win.other
             lifted: win.ours ? Gramophone.paused : (win.other && !Media.playing)
-            progress: win.ours ? Gramophone.albumProgress : Media.progress
+            // the whole record is the track playing
+            progress: win.ours ? (Gramophone.duration > 0 ? Gramophone.position / Gramophone.duration : 0) : Media.progress
             volume: Gramophone.volume
             volumeShown: win.ours
 
@@ -301,11 +302,13 @@ PanelWindow {
             onVolumeAsked: v => Gramophone.setVolume(v)
             onArmRested: { if (win.ours && !Gramophone.paused) Gramophone.toggle(); else if (win.other && Media.playing) Media.toggle(); }
             onNeedleDropped: f => {
-                if (win.ours) Gramophone.setNeedle(f);
+                // a place in the track playing; nothing on: the marked track, from there
+                if (win.ours) Gramophone.seekTo(f * Gramophone.duration);
+                else if (win.other) Media.seekTo(f * Media.length);
                 else if (win.album) {
                     // nothing on: put the open folder's record on, from there
                     flight.start();
-                    Gramophone.playAt(win.folder, f);
+                    Gramophone.playTrackAt(win.folder, win.marked, f);
                 }
             }
         }
