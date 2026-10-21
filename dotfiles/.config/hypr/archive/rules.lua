@@ -3,6 +3,16 @@ local state = require("archive.state")
 local palette = require("archive.palette")
 local c = palette[state.mode()]
 
+-- every handler here runs guarded: a window or workspace that is gone by the
+-- time it runs (a three-finger swipe makes a workspace and drops it again)
+-- must not stop the others or put up Hyprland's error bar; it is logged
+local function on(event, fn)
+    hl.on(event, function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then print("archive rules: " .. event .. ": " .. tostring(err)) end
+    end)
+end
+
 ------------------------------------------------------------------ the desk terminal
 -- At rest the left desk holds one terminal card (the reference's fastfetch
 -- card): floating by the left edge, 33 % of the screen wide (as far as leaves the gap to the leaf the same as to the screen edge), and 4:3 with
@@ -99,12 +109,12 @@ local function report_cover(gone)
     end
 end
 
-hl.on("window.open", function(w) if not is_desk(w) then tuck() end report_cover() end)
-hl.on("window.close", function(w) if not is_desk(w) then tuck(w) end report_cover(w) end)
-hl.on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end report_cover() end)
-hl.on("window.update_rules", function(w) if not is_desk(w) then tuck() end report_cover() end)   -- floated / tiled
-hl.on("window.fullscreen", function(w) report_cover() end)
-hl.on("window.active", function(w)
+on("window.open", function(w) if not is_desk(w) then tuck() end report_cover() end)
+on("window.close", function(w) if not is_desk(w) then tuck(w) end report_cover(w) end)
+on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end report_cover() end)
+on("window.update_rules", function(w) if not is_desk(w) then tuck() end report_cover() end)   -- floated / tiled
+on("window.fullscreen", function(w) report_cover() end)
+on("window.active", function(w)
     keep_back(w)
     if not is_desk(w) then tuck() end
 end)
@@ -112,7 +122,7 @@ end)
 -- An empty workspace is a clean desk: going to one lays the desk out there,
 -- the terminal at its place (moved over, or opened again if it was closed)
 -- and the cards back in theirs, as at login.
-hl.on("workspace.active", function(ws)
+on("workspace.active", function(ws)
     report_cover()
     if ws == nil or ws.special then return end
     for _, w in ipairs(hl.get_workspace_windows(ws)) do
@@ -152,10 +162,10 @@ hl.window_rule({ name = "archive-fullscreen", match = { fullscreen = true }, bor
 
 ------------------------------------------------------------------ urgent windows: accent.ink border
 hl.window_rule({ name = "archive-urgent", match = { tag = "urgent" }, border_color = "rgb(" .. c.accent .. ")" })
-hl.on("window.urgent", function(w)
+on("window.urgent", function(w)
     if w ~= nil then hl.dispatch(hl.dsp.window.tag({ tag = "+urgent", window = w })) end
 end)
-hl.on("window.active", function(w)
+on("window.active", function(w)
     if w ~= nil then hl.dispatch(hl.dsp.window.tag({ tag = "-urgent", window = w })) end
 end)
 
@@ -171,8 +181,8 @@ local function redraw_all(on)
     redrawing = on
     hl.config({ debug = { damage_tracking = on and 1 or 2 } })
 end
-hl.on("window.active", function(w) redraw_all(w ~= nil and full_redraw[w.class] == true) end)
-hl.on("window.close", function(w) if w ~= nil and full_redraw[w.class] then redraw_all(false) end end)
+on("window.active", function(w) redraw_all(w ~= nil and full_redraw[w.class] == true) end)
+on("window.close", function(w) if w ~= nil and full_redraw[w.class] then redraw_all(false) end end)
 
 ------------------------------------------------------------------ misc
 hl.window_rule({ name = "archive-no-maximize-requests", match = { class = ".*" }, suppress_event = "maximize" })

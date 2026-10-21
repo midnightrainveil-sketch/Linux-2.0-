@@ -20,8 +20,16 @@ Row {
     }
     readonly property int activeId: Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1
 
-    function workspace(id) {
-        return Hyprland.workspaces.values.find(w => w.id === id) ?? null;
+    // what each numbered workspace holds, as plain values read afresh on each
+    // change: the cells keep no workspace object, which a swipe (that makes
+    // a workspace and drops it again) could pull out from under them
+    readonly property var state: {
+        const out = {};
+        for (const w of Hyprland.workspaces.values) {
+            if (!w || w.id < 1 || w.id > 9) continue;
+            out[w.id] = { occupied: (w.toplevels?.values?.length ?? 0) > 0, urgent: w.urgent === true };
+        }
+        return out;
     }
 
     Repeater {
@@ -30,10 +38,9 @@ Row {
         Item {
             id: cell
             required property int modelData
-            readonly property var ws: root.workspace(modelData)
             readonly property bool active: root.activeId === modelData
-            readonly property bool occupied: (ws?.toplevels?.values?.length ?? 0) > 0
-            readonly property bool urgent: ws?.urgent ?? false
+            readonly property bool occupied: root.state[modelData]?.occupied ?? false
+            readonly property bool urgent: root.state[modelData]?.urgent ?? false
 
             width: 50
             height: Theme.barHeight

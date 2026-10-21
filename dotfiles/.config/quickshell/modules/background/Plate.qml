@@ -76,8 +76,8 @@ PanelWindow {
         cache: false
     }
 
-    // Folio: daylight across the sheet, brighter from the top left and
-    // falling off softly toward the far corners (static: drawn once)
+    // Folio: daylight across the sheet, brighter from the top left, and a
+    // vignette darkening it toward the edges (static: drawn once)
     Item {
         anchors.fill: parent
         visible: Theme.folio
@@ -97,8 +97,10 @@ PanelWindow {
             horizontalRadius: parent.width * 0.78
             verticalRadius: parent.height * 0.82
             gradient: Gradient {
-                GradientStop { position: 0.55; color: "transparent" }
-                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.20) }
+                // the vignette: the sheet darkening toward its edges
+                GradientStop { position: 0.40; color: "transparent" }
+                GradientStop { position: 0.75; color: Qt.rgba(0.12, 0.11, 0.13, 0.13) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.34) }
             }
         }
     }

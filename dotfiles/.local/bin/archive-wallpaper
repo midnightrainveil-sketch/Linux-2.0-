@@ -45,6 +45,6 @@ pkill -x qs 2>/dev/null || true
 pkill -x quickshell 2>/dev/null || true
 sleep 0.5
 if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-    setsid -f qs >/dev/null 2>&1
+    setsid -f archive-shell >/dev/null 2>&1
 fi
 echo "done: the desk shows it now"

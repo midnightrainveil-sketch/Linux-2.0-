@@ -52,7 +52,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("archive-bars ensure")                -- title bars: rebuild if Hyprland was updated
     hl.exec_cmd("archive-icons ensure")               -- icons: remake if Papirus was updated
     hl.exec_cmd("hyprctl setcursor Archive-Cursors 40") -- the archive's cursors
-    hl.exec_cmd("qs")                                 -- the shell
+    hl.exec_cmd("archive-shell")                      -- the shell (started again if it crashes)
     hl.exec_cmd("archive-idle start")                 -- dim, lock, screen off (archive-idle <minutes>)
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("wl-paste --watch cliphist store")
