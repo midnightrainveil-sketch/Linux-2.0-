@@ -95,10 +95,11 @@ Singleton {
 
     // Paper grain strength (section 4): 6-10 % by day, 8-12 % at night.
     // (The windows' grain is the title-bar plugin's, per window; the shell's
-    // own cards always carry theirs.)
+    // own cards always carry theirs.) Folio turns up the desk cards' fibre
+    // only: the drawer, notebook, letters and bar keep their lighter grain.
     readonly property real grainEase:  folio ? 1.7 : 1.0
-    readonly property real grainDark:  (0.08 + 0.02 * night) * grainEase
-    readonly property real grainLight: 0.10 * night * grainEase
+    readonly property real grainDark:  0.08 + 0.02 * night
+    readonly property real grainLight: 0.10 * night
     // fibre texture on the cards themselves
     readonly property real cardTexture: (1.0 + 0.2 * night) * grainEase
 

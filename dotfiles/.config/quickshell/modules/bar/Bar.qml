@@ -21,8 +21,8 @@ PanelWindow {
     WlrLayershell.namespace: "archive-bar"
     color: Theme.paperBase
 
-    // the bar keeps a lighter grain than the cards (Folio turns the cards' up)
-    Grain { anchors.fill: parent; strength: Theme.folio ? 0.6 : 1.15 }
+    // a touch lighter in Folio, where the cards beside it carry more
+    Grain { anchors.fill: parent; strength: Theme.folio ? 1.0 : 1.15 }
 
     Rule {
         anchors.top: parent.top
