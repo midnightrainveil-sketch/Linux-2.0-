@@ -24,7 +24,7 @@ Item {
         text: root.title
         caps: true
         tracking: Theme.trackTitle
-        color: Theme.folio ? Theme.graphite : root.titleColor
+        color: Theme.fc(root.titleColor, Theme.graphite)
         font.pixelSize: Theme.sizeTitle
         font.bold: Theme.folio
         elide: Text.ElideRight
@@ -57,7 +57,7 @@ Item {
         x: root.width - Theme.headerPadH - width
         y: titleText.y
         text: "No. " + root.number
-        color: Theme.folio ? Theme.madder : Theme.soft
+        color: Theme.fc(Theme.soft, Theme.madder)
         font.pixelSize: Theme.sizeNumber
         tracking: 0.04
     }

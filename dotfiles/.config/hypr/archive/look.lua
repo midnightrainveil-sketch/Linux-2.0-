@@ -20,13 +20,23 @@ local c = palette[mode]
 -- Folio (by day, the default look): the windows' torn edge turned up a step,
 -- to match the shell's cards: a further-wandering cut, a heavier and darker
 -- rim, a longer shadow; title bars in bold. Original and dark as before.
+-- Each value sits folio_amount of the way from the original's (1 = the full
+-- Folio as designed; the shell's Theme.folioAmount is the same).
 local folio = state.folio()
+local folio_amount = folio and 0.8 or 0
+local function fv(original, full) return original + (full - original) * folio_amount end
+local function fhex(original, full) -- hex colours (or a lone alpha byte), blended
+    return (original:gsub("()(%x%x)", function(i, byte)
+        local v = fv(tonumber(byte, 16), tonumber(full:sub(i, i + 1), 16))
+        return string.format("%02x", math.floor(v + 0.5))
+    end))
+end
 if folio then
     local f = {}
     for k, v in pairs(c) do f[k] = v end
-    f.edge_top, f.edge_top_flat = "8a8580", "a29d97"
-    f.rim_bottom = "47433f"
-    f.edge_shadow, f.edge_shadow_flat = "80", "4d"
+    f.edge_top, f.edge_top_flat = fhex(c.edge_top, "8a8580"), fhex(c.edge_top_flat, "a29d97")
+    f.rim_bottom = fhex(c.rim_bottom, "47433f")
+    f.edge_shadow, f.edge_shadow_flat = fhex(c.edge_shadow, "80"), fhex(c.edge_shadow_flat, "4d")
     c = f
 end
 local reduced = state.setting_bool("reducedMotion", false)
@@ -234,8 +244,8 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
     if deckle then
         extras.deckle = true
         extras.deckle_margin = 6                  -- the card's edge, 6 px outside the window
-        extras.deckle_amplitude = folio and 1.8 or 1.2   -- how far the cut wanders
-        extras.deckle_rim_width = folio and 1.8 or 1.3
+        extras.deckle_amplitude = fv(1.2, 1.8)   -- how far the cut wanders
+        extras.deckle_rim_width = fv(1.3, 1.8)
         extras.deckle_paper = rgb(c.paper_card)   -- same paper as the title bar and terminal
         extras.deckle_rim_top = rgb(c.edge_top)
         extras.deckle_rim_bottom = rgb(c.rim_bottom)
@@ -244,9 +254,9 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         extras.deckle_bevel = rgba(c.bevel, c.bevel_alpha)
         extras.deckle_shadow = rgba(c.shadow, c.edge_shadow)
         extras.deckle_shadow_inactive = rgba(c.shadow, c.edge_shadow_flat)
-        extras.deckle_shadow_blur = folio and 5.5 or 4.5   -- falls down and to the right
-        extras.deckle_shadow_x = folio and 2.3 or 1.5
-        extras.deckle_shadow_y = folio and 4.6 or 3
+        extras.deckle_shadow_blur = fv(4.5, 5.5)   -- falls down and to the right
+        extras.deckle_shadow_x = fv(1.5, 2.3)
+        extras.deckle_shadow_y = fv(3, 4.6)
         extras.deckle_tone = rgba(c.edge_tone, c.edge_tone_alpha)   -- the aged edge
         extras.deckle_tone_depth = 18
         extras.deckle_chips = 1                   -- chips, tears and wrinkles (0 = a clean cut)

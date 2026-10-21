@@ -22,7 +22,7 @@ PanelWindow {
     color: Theme.paperBase
 
     // a touch lighter in Folio, where the cards beside it carry more
-    Grain { anchors.fill: parent; strength: Theme.folio ? 1.0 : 1.15 }
+    Grain { anchors.fill: parent; strength: Theme.fv(1.15, 1.0) }
 
     Rule {
         anchors.top: parent.top

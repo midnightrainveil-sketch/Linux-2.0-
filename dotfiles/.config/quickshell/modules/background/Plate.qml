@@ -59,8 +59,8 @@ PanelWindow {
         anchors.fill: parent
         visible: Plates.sheet && Theme.folio
         source: dayImg
-        brightness: -0.115
-        contrast: 0.14
+        brightness: -0.115 * Theme.folioAmount
+        contrast: 0.14 * Theme.folioAmount
     }
     Image {
         anchors.fill: parent
@@ -149,7 +149,7 @@ PanelWindow {
             horizontalRadius: parent.width * 0.75
             verticalRadius: parent.height * 0.9
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 0.99, 0.96, 0.16) }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 0.99, 0.96, 0.16 * Theme.folioAmount) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -160,8 +160,8 @@ PanelWindow {
             gradient: Gradient {
                 // the vignette: the sheet darkening toward its edges
                 GradientStop { position: 0.36; color: "transparent" }
-                GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.18) }
-                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.44) }
+                GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.18 * Theme.folioAmount) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.44 * Theme.folioAmount) }
             }
         }
     }
