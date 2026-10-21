@@ -22,7 +22,8 @@ Singleton {
         plug:     "power-plug",             // paper clip
         battery:  "battery-low",            // brass desk bell
         error:    "dialog-error",           // two knuckle taps
-        bell:     "bell"                    // the typewriter's bell, on Return
+        bell:     "bell",                   // the typewriter's bell, on Return
+        page:     "page-turn"               // a page turned: switching workspace (comes with the theme)
     })
 
     property double lastVolumeTick: 0

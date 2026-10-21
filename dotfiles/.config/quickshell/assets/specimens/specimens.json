@@ -1,0 +1,14 @@
+[
+  { "month": "Jan.", "latin": "Galanthus nivalis", "common": "Snowdrop" },
+  { "month": "Feb.", "latin": "Crocus vernus", "common": "Spring crocus" },
+  { "month": "Mar.", "latin": "Narcissus pseudonarcissus", "common": "Wild daffodil" },
+  { "month": "Apr.", "latin": "Prunus serrulata", "common": "Japanese cherry" },
+  { "month": "May", "latin": "Convallaria majalis", "common": "Lily of the valley" },
+  { "month": "Jun.", "latin": "Rosa canina", "common": "Dog rose" },
+  { "month": "Jul.", "latin": "Papaver rhoeas", "common": "Corn poppy" },
+  { "month": "Aug.", "latin": "Centaurea cyanus", "common": "Cornflower" },
+  { "month": "Sep.", "latin": "Calluna vulgaris", "common": "Heather" },
+  { "month": "Oct.", "latin": "Acer palmatum", "common": "Japanese maple" },
+  { "month": "Nov.", "latin": "Quercus robur", "common": "English oak" },
+  { "month": "Dec.", "latin": "Ilex aquifolium", "common": "Holly" }
+]

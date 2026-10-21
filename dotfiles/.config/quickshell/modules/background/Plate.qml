@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import Qt5Compat.GraphicalEffects
 import qs.theme
 import qs.services
@@ -76,6 +77,66 @@ PanelWindow {
         cache: false
     }
 
+    // ------------------------------------------------------------ the month's pressed specimen
+    // A small pressed plant laid in the empty bottom-left corner of the
+    // sheet, a different one each month, held by a strip of tape, with its
+    // name typed under it (assets/specimens: tools/import_specimens.py, the
+    // names in specimens.json). At night it is printed pale, like the sheet.
+    Item {
+        id: specimen
+        readonly property int month: Clock.now.getMonth()           // 0 = January
+        property var names: []
+        readonly property var entry: names[month] ?? null
+        visible: art.status === Image.Ready
+        x: 72
+        y: win.sheetH - 74 - art.height        // below the desk terminal, above the bar
+        width: art.width
+        height: art.height + 40
+        rotation: -4
+
+        FileView {
+            path: Qt.resolvedUrl("../../assets/specimens/specimens.json").toString().replace("file://", "")
+            onLoaded: { try { specimen.names = JSON.parse(text()); } catch (e) {} }
+        }
+
+        Image {
+            id: art
+            height: Math.round(win.sheetH * 0.215)
+            width: sourceSize.height > 0 ? Math.round(height * sourceSize.width / sourceSize.height) : 0
+            source: Qt.resolvedUrl("../../assets/specimens/" + String(specimen.month + 1).padStart(2, "0") + ".png")
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            smooth: true
+            mipmap: true
+            visible: false
+        }
+        // by day as drawn; by night a pale print of it
+        Item {
+            width: art.width
+            height: art.height
+            Image { anchors.fill: parent; source: art.source; mipmap: true; smooth: true; opacity: 1 - Theme.night }
+            ColorOverlay { anchors.fill: parent; source: art; color: Qt.rgba(0.85, 0.89, 0.95, 0.85); opacity: Theme.night; visible: Theme.night > 0.01 }
+        }
+        Tape {
+            x: art.width * 0.5 - width / 2
+            y: art.height * 0.62
+            width: Math.max(54, art.width * 0.42)
+            height: 18
+            rotation: 9
+            seed: 77 + specimen.month
+        }
+        InkText {
+            visible: specimen.entry !== null
+            x: 4
+            y: art.height + 10
+            text: specimen.entry ? specimen.entry.month + "  " + specimen.entry.latin + "." : ""
+            font.pixelSize: 14
+            font.italic: true
+            color: Theme.soft
+            rotation: 2
+        }
+    }
+
     // Folio: daylight across the sheet, brighter from the top left, and a
     // vignette darkening it toward the edges (static: drawn once)
     Item {
@@ -98,9 +159,9 @@ PanelWindow {
             verticalRadius: parent.height * 0.82
             gradient: Gradient {
                 // the vignette: the sheet darkening toward its edges
-                GradientStop { position: 0.40; color: "transparent" }
-                GradientStop { position: 0.75; color: Qt.rgba(0.12, 0.11, 0.13, 0.13) }
-                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.34) }
+                GradientStop { position: 0.36; color: "transparent" }
+                GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.18) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.44) }
             }
         }
     }
