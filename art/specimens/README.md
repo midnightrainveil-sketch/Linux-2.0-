@@ -5,7 +5,7 @@ corner of the sheet with a strip of tape and a typed label
 (`dotfiles/.config/quickshell/assets/specimens/`, names in `specimens.json`).
 
 Make them as one image (ChatGPT / an image model), save it here as
-`sheet.png`, then run:
+`sheet.png` (this one is `sheet.webp`, as ChatGPT made it), then run:
 
     python3 tools/import_specimens.py art/specimens/sheet.png
 
