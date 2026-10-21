@@ -62,6 +62,7 @@ ShellRoot {
     Phonograph  { screen: shell.focusedScreen }
     Notebook    { screen: shell.focusedScreen }
     Typewriter  { screen: shell.focusedScreen }
+    PowerHold   { id: powerHold; screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
 
@@ -105,6 +106,15 @@ ShellRoot {
         target: "desk"
         function restore(): void { Desk.restore(); }
         function covered(on: bool): void { Desk.covered = on; }
+    }
+
+    // the power button, from binds.lua (which keeps the time)
+    IpcHandler {
+        target: "powerkey"
+        function fill(ms: int): void { powerHold.show(ms); }
+        function cancel(): void { powerHold.cancel(); }
+        function close(): void { powerHold.close(); }
+        function quick(): void { powerHold.cancel(); Panels.powerKey(); }
     }
 
     IpcHandler {

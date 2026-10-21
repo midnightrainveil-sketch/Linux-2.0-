@@ -178,6 +178,13 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, supergfxctl)"
 fi
 
+# ------------------------------------------------------------------ a quiet start, and the power button
+# the herbarium's page while it starts and shuts down, not scrolling text;
+# a press of the power button opens the power menu, holding it shuts down
+say "a quiet start: the herbarium's page instead of the start-up text"
+"$HOME/.local/bin/archive-boot" quiet --auto || warn "the quiet start was not set up; run archive-boot quiet"
+"$HOME/.local/bin/archive-boot" power || warn "the power button was not set up; run archive-boot power"
+
 # ------------------------------------------------------------------ 5. the plugin
 say "building the title bars and paper edges for your Hyprland (a minute or two)"
 if "$HOME/.local/bin/archive-bars" update; then

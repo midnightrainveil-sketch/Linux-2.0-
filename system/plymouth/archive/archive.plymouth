@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Archive
+Description=The herbarium's paper, the archive's sprig and a typed heading, while the machine starts and stops
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/archive
+ScriptFile=/usr/share/plymouth/themes/archive/archive.script

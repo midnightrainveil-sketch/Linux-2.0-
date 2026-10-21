@@ -296,6 +296,7 @@ number is the current air pressure in hPa.
 | `Super + Alt + L` | Desk lamp at night (a warm pool of light that follows the pointer over the desk), on or off |
 | `Super + Escape` | Reading Room (lock): the card is sealed in wax; the right signature breaks the seal |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
+| Power button | A press opens Disposition asking to shut down; press again to confirm. Held (if your laptop reports holding it), a card fills and the machine shuts down when it is full. `archive-boot power` sets this up; setup.sh does it for you |
 | `Ctrl + Backspace` | Screenshot of the whole screen, instantly (this takes Ctrl+Backspace from apps, where it deletes a word; remove the line in `archive/binds.lua` to give it back) |
 | `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window). It drops onto the desk as a print with a paperclip, and a second later is sealed in an envelope and sent off (hover over it to keep it longer): click to open it in gThumb (crop, rotate, resize, colours: the edit button at the top right), right-click to file, middle-click to keep it. Any picture opens in gThumb too |
 | `Super + Shift + N` | File away all notifications |
@@ -310,6 +311,11 @@ an app is tiled on its workspace it steps off the desk, and it comes back
 when the last one closes. The small card button after the workspace numbers
 (or `Super + D`) puts everything back, the terminal in front until you click
 elsewhere.
+
+Starting and shutting down show the herbarium's page (a Plymouth splash)
+instead of scrolling text: `archive-boot quiet` sets it up (setup.sh does
+it), `archive-boot loud` brings the text back, `archive-boot status` shows
+what is set.
 
 Mouse: click the sprig for the catalogue, the date for the ledger and the
 status marks for the instruments. "120 Hz" flips the panel between 120 and

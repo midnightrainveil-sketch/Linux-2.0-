@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+# archive-boot: a quiet start and stop, and a power button you hold.
+#
+#   archive-boot quiet    the herbarium's page (a Plymouth splash) while the
+#                         machine starts and shuts down, in place of the
+#                         scrolling text: the splash in the start-up image,
+#                         and "quiet splash" for the kernel in your boot menu
+#                         (GRUB, systemd-boot, rEFInd, Limine or a unified
+#                         kernel image). Reboot afterwards.
+#   archive-boot loud     the text back (the splash stays installed, unused;
+#                         updates leave it so until archive-boot quiet)
+#   archive-boot power    the power button: a press opens the power menu,
+#                         holding it shuts down (the shell shows it filling;
+#                         outside the desktop, a 5 s hold does it)
+#   archive-boot status   what is set
+#
+# Every file changed is first kept as <file>.archive-bak. Safe to run again:
+# it only rebuilds what changed.
+set -euo pipefail
+repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
+theme_src="$repo/system/plymouth/archive"
+theme_dst=/usr/share/plymouth/themes/archive
+sum_file=/etc/plymouth/archive.sum
+added_file=/etc/plymouth/archive-added   # which options were ours, per file (for loud)
+loud_file=/etc/plymouth/archive-loud     # you chose the text: updates leave it
+opts=(quiet splash loglevel=3 rd.udev.log_level=3 systemd.show_status=auto rd.systemd.show_status=auto)
+
+say() { printf ':: %s\n' "$*"; }
+warn() { printf '\033[33m!! %s\033[0m\n' "$*" >&2; }
+
+keep() { # keep <file>: its original, once
+    if sudo test -f "$1" && ! sudo test -f "$1.archive-bak"; then sudo cp -a "$1" "$1.archive-bak"; fi
+    return 0
+}
+there() { sudo test -f "$1"; }    # /boot is often readable by root only
+
+# ------------------------------------------------------------------ the kernel's options
+# cmdline <add|remove> <file> <kind> <options...>: the options added to (or
+# taken from) each kernel line of a boot-menu file. Prints "changed" and the
+# options it added, if it changed the file.
+cmdline() {
+    local how=$1 file=$2 kind=$3
+    shift 3
+    sudo python3 - "$how" "$file" "$kind" "$@" <<'EOF'
+import re, sys
+how, path, kind, opts = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
+text = open(path).read()
+added = []
+
+def fix(words):
+    ws = words.split()
+    if how == "add":
+        new = [o for o in opts if o not in ws]
+        added.extend(o for o in new if o not in added)
+        ws += new
+    else:
+        ws = [w for w in ws if w not in opts]
+    return " ".join(ws)
+
+if kind == "grub":       # GRUB_CMDLINE_LINUX_DEFAULT="..."
+    new = re.sub(r'^(GRUB_CMDLINE_LINUX_DEFAULT=)(["\']?)(.*?)\2[ \t]*$',
+                 lambda m: '%s"%s"' % (m.group(1), fix(m.group(3))), text, flags=re.M)
+elif kind == "sdboot":   # options ...   (Linux entries only: they name a root)
+    new = re.sub(r'^(options[ \t]+)(.*root=.*)$', lambda m: m.group(1) + fix(m.group(2)), text, flags=re.M)
+elif kind == "uki":      # /etc/kernel/cmdline: the whole file
+    new = fix(text) + "\n"
+elif kind == "refind":   # "Boot with standard options"  "root=... rw"
+    new = re.sub(r'^(\s*"[^"]*"\s+")([^"]*root=[^"]*)(")',
+                 lambda m: m.group(0) if " single" in m.group(2) else m.group(1) + fix(m.group(2)) + m.group(3), text, flags=re.M)
+elif kind == "limine":   # cmdline: ...  /  kernel_cmdline: ...
+    new = re.sub(r'^(\s*(?:kernel_)?cmdline:\s*)(.*)$', lambda m: m.group(1) + fix(m.group(2)), text, flags=re.M | re.I)
+elif kind == "limine-default":   # KERNEL_CMDLINE[default]="..."
+    new = re.sub(r'^(KERNEL_CMDLINE\[default\]\+?=)(["\']?)(.*?)\2[ \t]*$',
+                 lambda m: '%s"%s"' % (m.group(1), fix(m.group(3))), text, flags=re.M)
+else:
+    sys.exit("unknown kind " + kind)
+if new != text:
+    open(path, "w").write(new)
+    print("changed", *added)
+EOF
+}
+
+# every boot-menu file there is, as "kind path"
+menus() {
+    local f d
+    if there /etc/default/grub && command -v grub-mkconfig >/dev/null; then echo "grub /etc/default/grub"; fi
+    for d in /boot/loader/entries /efi/loader/entries /boot/efi/loader/entries; do
+        while IFS= read -r f; do
+            if sudo grep -q '^options.*root=' "$f"; then echo "sdboot $f"; fi
+        done < <(sudo find "$d" -maxdepth 1 -name '*.conf' 2>/dev/null)
+    done
+    if there /etc/kernel/cmdline; then echo "uki /etc/kernel/cmdline"; fi
+    for f in /boot/refind_linux.conf /efi/refind_linux.conf; do if there "$f"; then echo "refind $f"; fi; done
+    if there /etc/default/limine; then echo "limine-default /etc/default/limine"; fi
+    for f in /boot/limine.conf /boot/limine/limine.conf /efi/limine.conf /boot/EFI/limine/limine.conf /efi/EFI/limine/limine.conf; do
+        if there "$f"; then echo "limine $f"; fi
+    done
+    return 0
+}
+
+set_cmdline() { # set_cmdline add|remove
+    local how=$1 found=0 kind file grub_changed=0
+    while read -r kind file; do
+        [[ -n $kind ]] || continue
+        found=1
+        keep "$file"
+        local words=("${opts[@]}") out
+        if [[ $how == remove ]]; then
+            # only what was added here: options you had before stay
+            read -r -a words < <(sudo awk -v f="$file" -F '\t' '$1 == f { print $2 }' "$added_file" 2>/dev/null | tail -n1; echo)
+            ((${#words[@]})) || continue
+        fi
+        out=$(cmdline "$how" "$file" "$kind" "${words[@]}" </dev/null)
+        if [[ -n $out ]]; then
+            say "boot menu: $file"
+            if [[ $how == add ]]; then
+                printf '%s\t%s\n' "$file" "${out#changed }" | sudo tee -a "$added_file" >/dev/null
+            else
+                sudo sed -i "\|^${file}\t|d" "$added_file"
+            fi
+            if [[ $kind == grub ]]; then grub_changed=1; fi
+            if [[ $kind == limine-default ]] && command -v limine-update >/dev/null; then sudo limine-update </dev/null || true; fi
+        fi
+    done < <(menus)
+    if ((grub_changed)); then
+        local cfg
+        cfg=$(sudo sh -c 'ls /boot/grub/grub.cfg /efi/grub/grub.cfg /boot/efi/grub/grub.cfg 2>/dev/null' | head -n1 || true)
+        sudo grub-mkconfig -o "${cfg:-/boot/grub/grub.cfg}"
+    fi
+    if ((!found)); then
+        warn "no boot menu found that I know (GRUB, systemd-boot, rEFInd, Limine)"
+        warn "add these to your kernel's options yourself: ${opts[*]}"
+    fi
+}
+
+# ------------------------------------------------------------------ the start-up image
+# the file that sets HOOKS=(...) last (a drop-in overrides mkinitcpio.conf)
+hooks_file() {
+    local f last=""
+    for f in /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d/*.conf; do
+        [[ -f $f ]] && grep -qE '^\s*HOOKS=' "$f" && last=$f
+    done
+    echo "$last"
+}
+
+add_plymouth_hook() { # prints "changed" if it added it
+    local f
+    f=$(hooks_file)
+    [[ -n $f ]] || { warn "no HOOKS=(...) in /etc/mkinitcpio.conf"; return 1; }
+    grep -qE '^\s*HOOKS=.*\bplymouth\b' "$f" && return 0
+    keep "$f"
+    # after udev (or systemd), so before any disk unlocking: the passphrase is asked on the page
+    sudo sed -i -E '/^\s*HOOKS=/ { s/\b(systemd|udev)\b/\1 plymouth/; t; s/\bbase\b/base plymouth/ }' "$f"
+    grep -qE '^\s*HOOKS=.*\bplymouth\b' "$f" && echo changed
+}
+
+quiet() {
+    # setup.sh runs "quiet --auto" at every update: not after you chose loud
+    if [[ ${1:-} == --auto ]] && [[ -f $loud_file ]]; then
+        say "the start-up text stays (archive-boot loud); archive-boot quiet brings the page back"
+        return 0
+    fi
+    command -v mkinitcpio >/dev/null || { warn "this needs mkinitcpio (Arch's start-up image builder)"; exit 1; }
+    pacman -Qq plymouth >/dev/null 2>&1 || { say "installing Plymouth"; sudo pacman -S --needed --noconfirm plymouth; }
+    [[ -f /usr/lib/initcpio/install/plymouth ]] || { warn "the plymouth mkinitcpio hook is missing"; exit 1; }
+
+    say "the splash: the herbarium's page"
+    sudo mkdir -p "$theme_dst" /etc/plymouth
+    sudo cp "$theme_src"/* "$theme_dst/"
+    keep /etc/plymouth/plymouthd.conf
+    # drawn at the screen's own pixels (not doubled on the G14), shown at once
+    printf '[Daemon]\nTheme=archive\nShowDelay=0\nDeviceScale=1\n' | sudo tee /etc/plymouth/plymouthd.conf >/dev/null
+
+    local rebuild=0 sum
+    sum=$(cat "$theme_src"/* /etc/plymouth/plymouthd.conf | sha256sum | cut -d' ' -f1)
+    [[ $(cat "$sum_file" 2>/dev/null) == "$sum" ]] || rebuild=1
+    [[ -n $(add_plymouth_hook) ]] && rebuild=1
+    if ((rebuild)); then
+        say "rebuilding the start-up image (a minute)"
+        if ! sudo mkinitcpio -P; then
+            warn "the start-up image did not build; putting the previous hooks back"
+            local f
+            f=$(hooks_file)
+            [[ -f $f.archive-bak ]] && sudo cp -a "$f.archive-bak" "$f"
+            sudo mkinitcpio -P || warn "mkinitcpio still fails: do not reboot; ask for help with its output"
+            exit 1
+        fi
+        echo "$sum" | sudo tee "$sum_file" >/dev/null
+    fi
+
+    set_cmdline add
+    sudo rm -f "$loud_file"
+    say "done: the page shows from the next start (reboot)"
+}
+
+loud() {
+    set_cmdline remove
+    sudo mkdir -p /etc/plymouth && sudo touch "$loud_file"
+    say "the start-up text is back from the next start (the splash is installed but not shown)"
+}
+
+# ------------------------------------------------------------------ the power button
+power() {
+    local f=/etc/systemd/logind.conf.d/archive-power.conf
+    say "power button: press for the power menu, hold to shut down"
+    sudo mkdir -p "$(dirname "$f")"
+    sudo tee "$f" >/dev/null <<'EOF'
+# The Archive (archive-boot power): a press does nothing here, so the
+# desktop gets the key (a press opens the power menu, held it shuts down);
+# outside the desktop, holding it for 5 s shuts down.
+[Login]
+HandlePowerKey=ignore
+HandlePowerKeyLongPress=poweroff
+EOF
+    # logind reads it again when asked to reload (never restarted: that would
+    # end the session); if it cannot, it takes it at the next start
+    if sudo systemctl reload systemd-logind.service 2>/dev/null; then
+        say "in effect now"
+    else
+        say "in effect from the next start"
+    fi
+}
+
+status() {
+    echo "kernel options now: $(cat /proc/cmdline)"
+    echo "splash theme: $(sed -n 's/^Theme=//p' /etc/plymouth/plymouthd.conf 2>/dev/null || echo none)"
+    echo "start-up hooks: $(grep -hE '^\s*HOOKS=' "$(hooks_file)" 2>/dev/null || echo '?')"
+    echo "boot menus:"; menus | sed 's/^/   /'
+    echo "power button: $(cat /etc/systemd/logind.conf.d/archive-power.conf 2>/dev/null | grep -E '^Handle' | tr '\n' ' ' || echo 'system default (a press shuts down)')"
+}
+
+case ${1:-status} in
+    quiet) quiet "${2:-}" ;;
+    loud) loud ;;
+    power) power ;;
+    status) status ;;
+    *) sed -n '2,17p' "$0"; exit 2 ;;
+esac

@@ -20,6 +20,11 @@ Singleton {
     function show(name: string): void { open = name; }
     function close(): void { open = ""; }
 
+    // a quick press of the power button (PowerHold): Disposition asks to
+    // shut down, and a second press says yes
+    property int powerSerial: 0
+    function powerKey(): void { powerSerial += 1; }
+
     // Instrument reading (OSD): "volume" | "brightness" | "keyboard"
     property string osdKind: ""
     property int osdSerial: 0

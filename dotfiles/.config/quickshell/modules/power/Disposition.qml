@@ -14,6 +14,8 @@ BarPopup {
 
     property int selected: 0
     property int confirming: -1
+    property bool askShutDown: false      // opened by the power button
+    readonly property int shutDown: actions.findIndex(a => a.key === "d")
 
     readonly property var actions: [
         { key: "l", word: "Lock",      note: "Close the reading room.",  cmd: ["qs", "ipc", "call", "lock", "lock"], confirm: false },
@@ -30,7 +32,27 @@ BarPopup {
         Quickshell.execDetached(a.cmd);
     }
 
-    onOpened: { selected = 0; confirming = -1; keys.forceActiveFocus(); }
+    onOpened: {
+        selected = askShutDown ? shutDown : 0;
+        confirming = askShutDown ? shutDown : -1;
+        askShutDown = false;
+        keys.forceActiveFocus();
+    }
+
+    // the power button: a press asks "Shut down?", a second press says yes
+    Connections {
+        target: Panels
+        function onPowerSerialChanged() {
+            if (Panels.open === "disposition") {
+                if (popup.confirming === popup.shutDown) { popup.run(popup.shutDown); return; }
+                popup.selected = popup.shutDown;
+                popup.confirming = popup.shutDown;
+                return;
+            }
+            popup.askShutDown = true;
+            Panels.show("disposition");
+        }
+    }
 
     IndexCard {
         id: card

@@ -10,6 +10,7 @@ Item {
     property real value: 0.5            // 0..1
     property bool numbered: true
     property bool interactive: true
+    property bool eased: true           // eases to a new value; off when the value moves by itself
     signal moved(real value)
 
     implicitWidth: 240
@@ -63,7 +64,7 @@ Item {
         width: Math.max(0, root.value * root.width)
         height: 3
         color: Theme.accent
-        Behavior on width { enabled: !mouse.pressed; NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
+        Behavior on width { enabled: root.eased && !mouse.pressed; NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
     }
 
     // knob: graphite triangle marker above the ruler
@@ -83,7 +84,7 @@ Item {
             ctx.closePath();
             ctx.fill();
         }
-        Behavior on x { enabled: !mouse.pressed; NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
+        Behavior on x { enabled: root.eased && !mouse.pressed; NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
     }
 
     MouseArea {

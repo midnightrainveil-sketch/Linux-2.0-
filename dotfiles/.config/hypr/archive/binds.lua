@@ -107,3 +107,51 @@ hl.bind("XF86KbdBrightnessDown", exec("brightnessctl -d asus::kbd_backlight set 
 hl.bind("XF86Launch4", exec("archive-profile next"), { locked = true })
 -- the ROG / Armoury Crate key
 hl.bind("XF86Launch1", exec("rog-control-center"))
+
+------------------------------------------------------------------ the power button
+-- (archive-boot power stops logind acting on a press, so it comes here.)
+-- Held: after a moment the shell shows a card whose ruler fills, and when
+-- it is full, if the button is still down, the machine shuts down. A quick
+-- press opens the power menu asking "Shut down?"; a second press says yes.
+-- The timing lives here, where the press and the let-go arrive in order;
+-- the shell only draws it. Many laptops report the let-go at the same
+-- instant as the press, however long it is held: they only see quick ones.
+local power_key = "XF86PowerOff"
+local hold_ms, show_ms, quick_ms = 1600, 220, 400
+local power = { down = false, slow = false, timers = {} }
+
+local function power_stop()
+    for _, t in ipairs(power.timers) do t:set_enabled(false) end
+    power.timers = {}
+end
+local function power_after(ms, fn)
+    power.timers[#power.timers + 1] = hl.timer(fn, { timeout = ms, type = "oneshot" })
+end
+
+hl.bind(power_key, function()
+    if power.down then return end
+    power.down, power.slow = true, false
+    power_stop()
+    power_after(quick_ms, function() power.slow = true end)
+    power_after(show_ms, function()
+        if power.down then hl.exec_cmd("qs ipc call powerkey fill " .. (hold_ms - show_ms)) end
+    end)
+    power_after(hold_ms, function()
+        -- only if it really is still held (a let-go that went missing must
+        -- never shut the machine down)
+        if power.down and hl.is_key_down(power_key) then
+            power.down = false             -- letting go now changes nothing
+            hl.exec_cmd("qs ipc call powerkey close; systemctl poweroff")
+        else
+            power.down = false
+            hl.exec_cmd("qs ipc call powerkey cancel")
+        end
+    end)
+end, { description = "Power button: a press asks to shut down, held shuts down" })
+
+hl.bind(power_key, function()
+    if not power.down then return end
+    power.down = false
+    power_stop()
+    hl.exec_cmd(power.slow and "qs ipc call powerkey cancel" or "qs ipc call powerkey quick")
+end, { release = true })
