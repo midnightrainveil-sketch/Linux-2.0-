@@ -161,7 +161,7 @@ IndexCard {
             vertical: true
             x: 382
             y: 0
-            height: parent.height - 4
+            height: parent.height - Theme.edgeInset     // inside the card's cut edge
             width: implicitWidth
             seed: 106
         }

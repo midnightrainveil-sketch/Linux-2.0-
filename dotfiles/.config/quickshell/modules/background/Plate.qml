@@ -39,8 +39,9 @@ PanelWindow {
 
     // ------------------------------------------------------------ a whole sheet
     Image {
+        id: dayImg
         anchors.fill: parent
-        visible: Plates.sheet
+        visible: Plates.sheet && !Theme.folio
         source: Plates.sheetDay
         fillMode: Image.PreserveAspectCrop
         // the sheet is made at the screen's own size (import_wallpaper):
@@ -50,6 +51,15 @@ PanelWindow {
         smooth: true
         mipmap: false
         cache: false
+    }
+    // Folio: the drawing's ink a step deeper (the paper's tone kept: the
+    // brightness takes back what the contrast adds to it)
+    BrightnessContrast {
+        anchors.fill: parent
+        visible: Plates.sheet && Theme.folio
+        source: dayImg
+        brightness: -0.115
+        contrast: 0.14
     }
     Image {
         anchors.fill: parent
@@ -64,6 +74,33 @@ PanelWindow {
         smooth: true
         mipmap: false
         cache: false
+    }
+
+    // Folio: daylight across the sheet, brighter from the top left and
+    // falling off softly toward the far corners (static: drawn once)
+    Item {
+        anchors.fill: parent
+        visible: Theme.folio
+        RadialGradient {
+            anchors.fill: parent
+            horizontalOffset: -parent.width * 0.28
+            verticalOffset: -parent.height * 0.30
+            horizontalRadius: parent.width * 0.75
+            verticalRadius: parent.height * 0.9
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(1, 0.99, 0.96, 0.16) }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
+        RadialGradient {
+            anchors.fill: parent
+            horizontalRadius: parent.width * 0.78
+            verticalRadius: parent.height * 0.82
+            gradient: Gradient {
+                GradientStop { position: 0.55; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.20) }
+            }
+        }
     }
 
     // ------------------------------------------------------------ a drawing, with typed labels

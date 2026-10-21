@@ -44,6 +44,8 @@ Item {
         x: root.labelWidth
         anchors.top: parent.top
         anchors.bottom: parent.bottom
+        // the card's last row: stop inside its cut edge
+        anchors.bottomMargin: root.last ? Math.max(0, Theme.edgeInset - 4) : 0
         width: implicitWidth
         seed: root.seed
     }

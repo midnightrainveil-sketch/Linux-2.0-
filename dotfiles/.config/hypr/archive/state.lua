@@ -22,6 +22,18 @@ local function exists(path)
 end
 M.exists = exists
 
+-- the look by day: "folio" (the default) or "original" (archive-mode)
+function M.style()
+    local s = read(M.state_dir .. "/style")
+    if s and s:match("original") then return "original" end
+    return "folio"
+end
+
+-- folio by day: the paper turned up (the windows' torn edge, title bars)
+function M.folio()
+    return M.mode() == "day" and M.style() == "folio"
+end
+
 function M.mode()
     local s = read(M.state_dir .. "/mode")
     if s and s:match("night") then return "night" end

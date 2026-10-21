@@ -90,9 +90,9 @@ BarPopup {
             labelWidth: card.labelWidth
             Toggle {
                 anchors.verticalCenter: parent.verticalCenter
-                options: ["Day", "Night"]
-                current: Mode.isNight ? 1 : 0
-                onPicked: i => Mode.set(i === 1 ? "night" : "day")
+                options: ["Folio", "Original", "Dark"]
+                current: Mode.look
+                onPicked: i => Mode.setLook(i)
             }
         }
 

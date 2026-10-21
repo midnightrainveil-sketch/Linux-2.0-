@@ -24,8 +24,9 @@ Item {
         text: root.title
         caps: true
         tracking: Theme.trackTitle
-        color: root.titleColor
+        color: Theme.folio ? Theme.graphite : root.titleColor
         font.pixelSize: Theme.sizeTitle
+        font.bold: Theme.folio
         elide: Text.ElideRight
     }
     InkText {
@@ -45,7 +46,7 @@ Item {
         vertical: true
         seed: root.seed + 1
         x: root.number !== "" ? numberText.x - 28 : root.width
-        y: 1
+        y: Theme.edgeInset          // inside the card's cut edge
         height: bottomRule.y - y + 1
         width: implicitWidth
     }
@@ -56,7 +57,7 @@ Item {
         x: root.width - Theme.headerPadH - width
         y: titleText.y
         text: "No. " + root.number
-        color: Theme.soft
+        color: Theme.folio ? Theme.madder : Theme.soft
         font.pixelSize: Theme.sizeNumber
         tracking: 0.04
     }

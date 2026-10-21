@@ -12,7 +12,7 @@ Item {
 
     property color color: Theme.paperCard
     property int seed: 1
-    property real jag: 3.10               // edge variation in px
+    property real jag: Theme.cardJag     // edge variation in px
     property real lift: 1.0              // 0 = flat, 1 = resting card, >1 = lifted
     property bool grain: true
 
@@ -25,6 +25,8 @@ Item {
         property color fill: root.color
         property color rimTop: Theme.rimTop
         property color rimBottom: Theme.rimBottom
+        property bool folio: Theme.folio
+        onFolioChanged: requestPaint()
         onFillChanged: requestPaint()
         onRimTopChanged: requestPaint()
         onWidthChanged: requestPaint()
@@ -78,13 +80,13 @@ Item {
                 ctx.strokeStyle = Qt.rgba(rimTop.r + (rimBottom.r - rimTop.r) * t,
                                           rimTop.g + (rimBottom.g - rimTop.g) * t,
                                           rimTop.b + (rimBottom.b - rimTop.b) * t, 1);
-                ctx.globalAlpha = 0.75 + r2() * 0.31;
-                ctx.lineWidth = 1.60 + r2() * 0.9;
+                ctx.globalAlpha = folio ? 0.75 + r2() * 0.31 : 0.45 + r2() * 0.55;
+                ctx.lineWidth = (folio ? 1.6 : 0.9) + r2() * 0.9;
                 ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
             }
             ctx.globalAlpha = 1;
             // the bottom edge is the card's thickness: a second, darker pass
-            ctx.lineWidth = 3.00;
+            ctx.lineWidth = folio ? 3.0 : 2.0;
             ctx.strokeStyle = rimBottom;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();
@@ -111,9 +113,9 @@ Item {
             shadowEnabled: true
             shadowColor: Theme.shadow
             blurMax: 32
-            shadowBlur: 0.38 + 0.08 * root.lift
-            shadowVerticalOffset: 3.30 + 2 * root.lift
-            shadowHorizontalOffset: 0.50
+            shadowBlur: (Theme.folio ? 0.38 : 0.24) + 0.08 * root.lift
+            shadowVerticalOffset: (Theme.folio ? 3.3 : 1.5) + 2 * root.lift
+            shadowHorizontalOffset: Theme.folio ? 0.5 : -0.5
             shadowOpacity: Math.min(1, 0.9 + 0.3 * (root.lift - 1))
         }
     }

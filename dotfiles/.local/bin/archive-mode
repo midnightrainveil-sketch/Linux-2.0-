@@ -2,6 +2,10 @@
 # archive-mode: turn the sheet between day (paper) and night (cyanotype).
 #
 #   archive-mode day | night     set it, and hold until the next sunrise / sunset
+#   archive-mode folio | original   the look by day (kept in ~/.local/state/archive/style),
+#                                and turn to day: folio is the paper turned up (crisper
+#                                edges, daylight, bold titles), original the sheet as
+#                                first made; night is the same for both
 #   archive-mode toggle          the other one, held the same way
 #   archive-mode auto            follow the clock (run by archive-mode.timer and at login),
 #                                only when "autoMode": true in settings.json; it is off,
@@ -109,6 +113,11 @@ case $cmd in
         apply "$cmd"
         next_boundary >"$state_dir/mode-hold"
         ;;
+    folio | original)
+        printf '%s\n' "$cmd" >"$state_dir/style"
+        apply day
+        next_boundary >"$state_dir/mode-hold"
+        ;;
     toggle)
         if [[ $(current) == night ]]; then new=day; else new=night; fi
         apply "$new"
@@ -135,7 +144,7 @@ case $cmd in
         current
         ;;
     *)
-        echo "usage: archive-mode day|night|toggle|auto|status" >&2
+        echo "usage: archive-mode day|night|folio|original|toggle|auto|status" >&2
         exit 2
         ;;
 esac

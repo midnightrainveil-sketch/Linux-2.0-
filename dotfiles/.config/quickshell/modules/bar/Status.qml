@@ -83,13 +83,6 @@ Row {
         Timer { id: rereadHz; interval: 400; onTriggered: refreshFile.reload() }
     }
 
-    // Day / night: the screen mark. Click to turn the plate over.
-    Mark {
-        icon: Theme.night > 0.5 ? "screen-night" : "screen"
-        lead: 1
-        onClicked: Mode.toggle()
-    }
-
     Mark {
         icon: Audio.muted ? "speaker-muted" : (Audio.volume > 0.5 ? "speaker-loud" : "speaker")
         lead: -1
