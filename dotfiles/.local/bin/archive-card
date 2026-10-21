@@ -273,6 +273,10 @@ def swatches(m, cw, ch):
 LEFT_KEYS = ["Spec.", "Hab.", "Kern.", "Pkgs.", "Loc.", "Dat."]
 RIGHT_KEYS = ["Proc.", "Gr.", "Mem.", "Disk.", "Disp.", "Batt."]
 KEY_W = 7
+# with room, the wide card spells its keys out
+FULL = {"Spec.": "Species", "Hab.": "Habitat", "Kern.": "Kernel", "Pkgs.": "Packages",
+        "Loc.": "Locality", "Dat.": "Date", "Proc.": "Processor", "Gr.": "Graphics",
+        "Mem.": "Memory", "Disk.": "Disk", "Disp.": "Display", "Batt.": "Battery"}
 WIDE_GAP = 4          # between the portrait and the box
 WIDE_FROM = 110       # columns from which the wide card is tried
 
@@ -336,8 +340,6 @@ def wide_card(tcols, trows, cw, ch, m, lines):
     right = [(k, vals[k]) for k in RIGHT_KEYS if vals.get(k)]
     if len(left) + len(right) < 6:
         return None
-    lw = KEY_W + max(len(v) for _, v in left)
-    rw = KEY_W + max(len(v) for _, v in right)
     who = "%s @ %s" % (getpass.getuser(), socket.gethostname().split(".")[0])
     n = max(len(left), len(right))
     # rules, title, the rows (a line of air between them when there is
@@ -353,7 +355,16 @@ def wide_card(tcols, trows, cw, ch, m, lines):
     pcols = math.ceil(rows * ch * aspect / cw)
     x0 = PAD_LEFT + pcols + WIDE_GAP           # the box's left edge (0-based column)
     inner = tcols - 2 - x0 - 1                 # inside the box, to a column short of the edge
-    if inner < 2 + lw + 3 + rw + 2 or inner < len("SPECIMEN OF THE MACHINE") + len(who) + 6:
+    # the keys spelled out (Graphics) when they fit, else as on the small card (Gr.)
+    for full in (True, False):
+        kw = max(len(FULL.get(k, k)) for k, _ in left + right) + 2 if full else KEY_W
+        lw = kw + max(len(v) for _, v in left)
+        rw = kw + max(len(v) for _, v in right)
+        if inner >= 2 + lw + 3 + rw + 2:
+            break
+    else:
+        return None
+    if inner < len("SPECIMEN OF THE MACHINE") + len(who) + 6:
         return None
     mid = 1 + 2 + lw + max(3, (inner - 2 - lw - rw - 2) // 2)   # the dividing rule, from the box's edge
 
@@ -368,7 +379,7 @@ def wide_card(tcols, trows, cw, ch, m, lines):
     def at(col):
         return "\x1b[%dG" % (x0 + 1 + col)
     def kv(k, v):
-        return KEYC + k.ljust(KEY_W) + INK + v
+        return KEYC + (FULL.get(k, k) if full else k).ljust(kw) + INK + v
 
     box = []
     box.append(at(0) + rule("┌", "┐"))
