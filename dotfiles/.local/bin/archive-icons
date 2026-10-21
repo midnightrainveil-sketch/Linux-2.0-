@@ -6,7 +6,8 @@
 #   archive-icons off      plain Papirus colours again (the theme stays
 #                          selected but becomes an empty layer over Papirus)
 #
-# App icons are muted and tinted sepia, folders turned manila, symbolic icons
+# App icons are muted and tinted sepia, folders drawn as torn-open kraft
+# envelopes (their glyph inked on the front), symbolic icons
 # warmed (tools/make_icons.py). GTK, Qt and the shell use it by name; apps
 # already open show it when they start again.
 set -euo pipefail

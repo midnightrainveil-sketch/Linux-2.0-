@@ -8,8 +8,12 @@ Every Papirus icon is kept and recoloured, so nothing goes missing:
   * apps, files, devices ...  muted (about 40 % of their colour), tinted
                               towards sepia, whites turned cream: still
                               recognisable, but printed rather than lit
-  * folders                   manila: the blue Papirus folders become
-                              buff card, like the archive's own folders
+  * folders                   envelopes: each Papirus folder is redrawn as a
+                              kraft envelope torn open along the top, a
+                              letter showing (pulled further out when the
+                              folder is open), its glyph inked on the front
+                              like a stamp (anything not laid out like a
+                              Papirus folder is just turned manila)
   * symbolic icons            their greys, warmed a touch
 
 Papirus's links are kept as links, its index.theme renamed, and the theme
@@ -18,6 +22,7 @@ falls back to Papirus for anything it does not have. The default output is
 """
 import colorsys
 import os
+import random
 import re
 import shutil
 import sys
@@ -79,6 +84,118 @@ def manila(rgb):
     return tuple(clamp(c) for c in sepia(out, 0.12))
 
 
+# ------------------------------------------------------------------ envelopes
+KRAFT_BACK = "#b59a6d"      # the back, seen above the pocket: torn open
+KRAFT = "#cbb48e"           # the pocket
+FLAP_SIDE = "#c2a882"
+FLAP_FOOT = "#d2bd99"
+CREASE = "#9c8259"
+LETTER = "#ece6da"
+LETTER_LINE = "#bfb196"
+
+ELEMENT = re.compile(r"<(rect|path|circle|ellipse|g)\b[^>]*?/>|<g\b.*?</g>", re.S)
+NUM = re.compile(r"(-?\d+(?:\.\d+)?)")
+
+
+def attr(el, name):
+    m = re.search(r'\b%s="([^"]*)"' % name, el)
+    return m.group(1) if m else None
+
+
+def rect_of(el):
+    try:
+        return tuple(float(attr(el, k)) for k in ("x", "y", "width", "height"))
+    except (TypeError, ValueError):
+        return None
+
+
+def envelope(text, name):
+    """A Papirus folder redrawn as a torn-open envelope, or None when the
+    file is not laid out like one: shadow, back, shadow, paper, front,
+    highlight, then the glyph."""
+    full = [m.group(0) for m in ELEMENT.finditer(text)]
+    if len(full) < 6:
+        return None
+    paper, front, light = full[3], full[4], full[5]
+    if not (paper.startswith("<rect") and front.startswith("<rect") and "#e4e4e4" in paper.lower()
+            and "opacity:0.1" in light.replace(" ", "")):
+        return None
+    P, F = rect_of(paper), rect_of(front)
+    if not P or not F:
+        return None
+    ys = [float(y) for _, y in re.findall(r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)", attr(full[1], "d") or "")]
+    if not ys:
+        return None
+    top = min(ys)
+    m = re.search(r'<svg\b[^>]*?\bwidth="([\d.]+)"', text)
+    size = float(m.group(1)) if m else 64
+    fx, fy, fw, fh = F
+    s = fw / 56                                  # the 64 px design's scale
+    small = size <= 24
+    rnd = random.Random(name)
+    glyph = "".join(full[6:])
+
+    out = ['<svg xmlns="http://www.w3.org/2000/svg" width="%g" height="%g" version="1">' % (size, size)]
+    out.append(full[0])                          # its shadow on the desk
+    def torn(y0, amp, n):
+        """A torn edge across the envelope's width, left to right."""
+        pts = []
+        for i in range(n + 1):
+            jag = rnd.uniform(-1, 1) * amp if 0 < i < n else rnd.uniform(0, 0.5) * amp
+            pts.append((fx + fw * i / n, y0 + jag))
+        return pts
+
+    def path(pts):
+        return " L ".join("%.2f,%.2f" % p for p in pts)
+
+    teeth = max(6, int(round(fw / (3.0 * s))))
+    amp = max(0.45, 1.0 * s)
+    # the back, torn open along the top
+    back = torn(top + (fy - top) * 0.32, amp, teeth)
+    out.append('<path style="fill:%s" d="M %.2f,%.2f L %s L %.2f,%.2f Z"/>'
+               % (KRAFT_BACK, fx, fy + fh, path(back), fx + fw, fy + fh))
+    # the letter inside, pulled further out when open
+    opened = "-open" in name or "drag-accept" in name
+    lx, lw = fx + fw * 0.14, fw * 0.72
+    ly = max(0.5, top + (fy - top) * (-0.15 if opened else 0.08))
+    out.append('<rect style="fill:%s" x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="%.2f"/>'
+               % (LETTER, lx, ly, lw, fy + fh * 0.5 - ly, 0.4 * s))
+    if not small:                                # a few lines of handwriting
+        for i in range(3):
+            y = ly + (2.6 + 2.4 * i) * s
+            if y > fy - 1.2 * s:
+                break
+            w = lw * (0.72 - 0.16 * i) * rnd.uniform(0.85, 1.0)
+            out.append('<rect style="fill:%s" x="%.2f" y="%.2f" width="%.2f" height="%.2f"/>'
+                       % (LETTER_LINE, lx + 3 * s, y, w, max(0.5, 0.7 * s)))
+    # the pocket, its top torn too
+    cx, apex = fx + fw / 2, fy + fh * 0.5
+    r = 1.2 * s                                  # envelopes have sharper corners than folders
+    edge = torn(fy + amp * 0.6, amp * 0.9, teeth + 3)
+    bottom = fy + fh
+    out.append('<path style="fill:%s" d="M %.2f,%.2f L %s L %.2f,%.2f Q %.2f,%.2f %.2f,%.2f L %.2f,%.2f Q %.2f,%.2f %.2f,%.2f Z"/>'
+               % (KRAFT, fx, bottom - r, path(edge), fx + fw, bottom - r,
+                  fx + fw, bottom, fx + fw - r, bottom, fx + r, bottom, fx, bottom, fx, bottom - r))
+    if small:
+        out.append('<path style="fill:none;stroke:%s;stroke-width:%.2f;opacity:0.7" d="M %.2f,%.2f L %.2f,%.2f L %.2f,%.2f"/>'
+                   % (CREASE, max(0.5, 0.9 * s), fx + 0.5, bottom - 0.5, cx, apex, fx + fw - 0.5, bottom - 0.5))
+    else:
+        flap_top = fy + 2.2 * amp
+        out.append('<path style="fill:%s" d="M %.2f,%.2f L %.2f,%.2f L %.2f,%.2f Z"/>'
+                   % (FLAP_SIDE, fx, flap_top, cx - 4 * s, apex, fx, bottom - 0.6 * s))
+        out.append('<path style="fill:%s" d="M %.2f,%.2f L %.2f,%.2f L %.2f,%.2f Z"/>'
+                   % (FLAP_SIDE, fx + fw, flap_top, cx + 4 * s, apex, fx + fw, bottom - 0.6 * s))
+        out.append('<path style="fill:%s;stroke:%s;stroke-width:%.2f;stroke-linejoin:round" d="M %.2f,%.2f L %.2f,%.2f L %.2f,%.2f Z"/>'
+                   % (FLAP_FOOT, CREASE, 0.45 * s, fx + 0.4 * s, bottom - 0.4 * s, cx, apex - 1.5 * s, fx + fw - 0.4 * s, bottom - 0.4 * s))
+        # the paper's fibres, light along the tear
+        out.append('<path style="fill:none;stroke:%s;stroke-width:%.2f;stroke-linejoin:round;opacity:0.8" d="M %s"/>'
+                   % (LETTER, 0.55 * s, path(edge)))
+    # the glyph, inked on like a stamp
+    out.append(recolour(glyph, manila))
+    out.append("</svg>")
+    return "\n".join(out)
+
+
 def symbolic(rgb):
     return tuple(clamp(c) for c in sepia(rgb, 0.18))
 
@@ -103,7 +220,9 @@ def work(rel):
     try:
         with open(src, encoding="utf-8") as f:
             text = f.read()
-        text = recolour(text, kind(rel))
+        fn = kind(rel)
+        env = envelope(text, os.path.basename(rel)) if fn is manila else None
+        text = env if env else recolour(text, fn)
         with open(dst, "w", encoding="utf-8") as f:
             f.write(text)
     except (UnicodeDecodeError, OSError):
