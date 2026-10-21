@@ -45,7 +45,6 @@ ShellRoot {
             Records { modelData: perScreen.modelData }
             LetterTray { screen: perScreen.modelData }
             Bar { modelData: perScreen.modelData }
-            PageTurn { modelData: perScreen.modelData }
         }
     }
 

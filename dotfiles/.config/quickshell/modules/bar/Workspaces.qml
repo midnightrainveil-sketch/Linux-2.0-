@@ -20,12 +20,6 @@ Row {
     }
     readonly property int activeId: Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1
 
-    // a page of the herbarium turned: switching workspace (not as the shell
-    // starts, and not for the drawer's special workspace)
-    property bool settled: false
-    Timer { running: true; interval: 3000; onTriggered: root.settled = true }
-    onActiveIdChanged: if (settled && activeId > 0) Sounds.play("page")
-
     // what each numbered workspace holds, as plain values read afresh on each
     // change: the cells keep no workspace object, which a swipe (that makes
     // a workspace and drops it again) could pull out from under them

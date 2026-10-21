@@ -113,8 +113,6 @@ hl.config({
 hl.curve("place", { type = "bezier", points = { { 0.22, 1 }, { 0.36, 1 } } })
 hl.curve("lift", { type = "bezier", points = { { 0.4, 0 }, { 1, 1 } } })
 hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
--- page  = cubic-bezier(0.7, 0, 0.2, 1):   a page turned: it lifts slowly, sweeps, lays down
-hl.curve("page", { type = "bezier", points = { { 0.7, 0 }, { 0.2, 1 } } })
 
 if reduced then
     -- reduced motion: every transition is a 100 ms fade
@@ -130,9 +128,7 @@ else
     hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.4, bezier = "lift" })
     hl.animation({ leaf = "fade", enabled = true, speed = 1.6, bezier = "place" })
     hl.animation({ leaf = "border", enabled = true, speed = 1.6, bezier = "place" })
-    -- workspaces turn like the pages of the herbarium: the windows on one go
-    -- aside whole and the next page's are laid in (the sheet stays put)
-    hl.animation({ leaf = "workspaces", enabled = true, speed = 4.4, bezier = "page", style = "slide" })
+    hl.animation({ leaf = "workspaces", enabled = true, speed = 3.2, bezier = "place", style = "slidefade 15%" })
     hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.2, bezier = "place", style = "slidefadevert 8%" })
 end
 -- the shell animates its own cards; Hyprland just shows them
