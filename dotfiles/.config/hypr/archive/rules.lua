@@ -13,6 +13,14 @@ local function on(event, fn)
     end)
 end
 
+-- A window handed to a handler can close before the handler acts on it (a
+-- swipe opens and drops a workspace's windows quickly). Hyprland puts up its
+-- error bar for a dispatcher given such a window, past any pcall; its fields
+-- read as nil, so look before dispatching.
+local function alive(w)
+    return w ~= nil and w.address ~= nil
+end
+
 ------------------------------------------------------------------ the desk terminal
 -- At rest the left desk holds one terminal card (the reference's fastfetch
 -- card): floating by the left edge, 33 % of the screen wide (as far as leaves the gap to the leaf the same as to the screen edge), and 4:3 with
@@ -69,20 +77,22 @@ local function tuck(gone)
         if desk.workspace.name ~= "special:desk" then return end
         local home = desk_home or hl.get_active_workspace().id
         if not covered(hl.get_workspace(tostring(home)), gone) then
-            hl.dispatch(hl.dsp.window.move({ workspace = tostring(home), follow = false, window = desk }))
+            if alive(desk) then
+                hl.dispatch(hl.dsp.window.move({ workspace = tostring(home), follow = false, window = desk }))
+            end
         end
         return
     end
     local active = hl.get_active_window()
     if active ~= nil and active.address == desk.address then return end   -- brought forward on purpose
-    if covered(desk.workspace, gone) then
+    if covered(desk.workspace, gone) and alive(desk) then
         desk_home = desk.workspace.id
         hl.dispatch(hl.dsp.window.move({ workspace = "special:desk", follow = false, window = desk }))
     end
 end
 
 local function keep_back(w)
-    if is_desk(w) and w.floating then
+    if is_desk(w) and w.floating and alive(w) then
         hl.dispatch(hl.dsp.window.alter_zorder({ mode = "bottom", window = w }))
     end
 end
@@ -163,10 +173,10 @@ hl.window_rule({ name = "archive-fullscreen", match = { fullscreen = true }, bor
 ------------------------------------------------------------------ urgent windows: accent.ink border
 hl.window_rule({ name = "archive-urgent", match = { tag = "urgent" }, border_color = "rgb(" .. c.accent .. ")" })
 on("window.urgent", function(w)
-    if w ~= nil then hl.dispatch(hl.dsp.window.tag({ tag = "+urgent", window = w })) end
+    if alive(w) then hl.dispatch(hl.dsp.window.tag({ tag = "+urgent", window = w })) end
 end)
 on("window.active", function(w)
-    if w ~= nil then hl.dispatch(hl.dsp.window.tag({ tag = "-urgent", window = w })) end
+    if alive(w) then hl.dispatch(hl.dsp.window.tag({ tag = "-urgent", window = w })) end
 end)
 
 ------------------------------------------------------------------ full redraws for older GTK programs

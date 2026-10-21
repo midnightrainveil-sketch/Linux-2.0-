@@ -24,14 +24,17 @@ PanelWindow {
     // a touch lighter in Folio, where the cards beside it carry more
     Grain { anchors.fill: parent; strength: Theme.fv(1.15, 1.0) }
 
+    // the rule is the bar's top edge: drawn from the very top, so no sliver
+    // of the bar's paper shows above it (its wobble only thins it there)
     Rule {
         anchors.top: parent.top
+        anchors.topMargin: -(implicitHeight - weight) / 2 - drift
         anchors.left: parent.left
         anchors.right: parent.right
         height: implicitHeight
         color: Theme.ruleInk
         weight: 1.7
-        drift: 0.45
+        drift: 0.2
         seed: 9001
     }
 
