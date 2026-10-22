@@ -7,7 +7,8 @@ The picture: one wax seal seen from above on plain white (the prompt in
 art/seal/README.md). The wax is told from the paper by its colour (red, not
 grey), the highlights inside it kept (whatever the paper does not reach
 from the picture's edge is wax), its shadow kept as a soft translucent
-shadow, and the seal centred and made 520 px across. Writes
+shadow, its red quietened to an old madder, and the seal centred and made
+520 px across. Writes
 dotfiles/.config/quickshell/assets/seal/seal.png; the lock screen
 (modules/lock/WaxSeal.qml) presses it, cracks it and lets the halves fall.
 """
@@ -15,18 +16,20 @@ import pathlib
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DST = ROOT / "dotfiles" / ".config" / "quickshell" / "assets" / "seal" / "seal.png"
 SIZE = 520           # the picture, square; the seal itself fills about 86 % of it
+SATURATION = 0.55    # an old madder wax, not a bright red, beside the paper
+BRIGHTNESS = 0.92
 
 
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     im = Image.open(sys.argv[1]).convert("RGB")
-    a = np.asarray(im).astype(np.float32)
+    a = np.asarray(im).astype(np.float32)          # (told apart by its colour as it comes)
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
     red = r - np.maximum(g, b)                       # the wax is red; paper and its shadow are grey
 
@@ -49,7 +52,8 @@ def main():
     shadow = np.clip((ref - lum) / ref * 2.2, 0, 0.55) * (1 - m)
 
     rgba = np.zeros((h, w, 4), np.float32)
-    rgba[..., :3] = a * m[..., None]                 # the wax; black under the shadow
+    toned = ImageEnhance.Brightness(ImageEnhance.Color(im).enhance(SATURATION)).enhance(BRIGHTNESS)
+    rgba[..., :3] = np.asarray(toned).astype(np.float32) * m[..., None]   # the wax; black under the shadow
     rgba[..., 3] = np.clip(m + shadow, 0, 1) * 255
     out = Image.fromarray(rgba.astype(np.uint8), "RGBA")
 

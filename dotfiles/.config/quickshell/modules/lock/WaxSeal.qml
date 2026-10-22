@@ -24,7 +24,7 @@ Item {
 
     readonly property real r: 58                 // the blob's radius
     readonly property real ri: r * 0.74          // the matrix's impression
-    readonly property color wax: "#8a0f0e"     // the picture's red, for the molten drop and the crumbs
+    readonly property color wax: "#5e1c1b"     // the picture's red, for the molten drop and the crumbs
     readonly property url image: Qt.resolvedUrl("../../assets/seal/seal.png")
     readonly property real k: 2                  // drawn at twice the size, for a crisp edge (Sharp)
 
