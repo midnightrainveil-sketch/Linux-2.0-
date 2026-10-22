@@ -36,7 +36,7 @@ HEX = re.compile(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b")
 
 # warm paper: what pure white becomes, and the tint mixed into everything
 PAPER = (236, 229, 214)
-MANILA_HUE = 38 / 360
+MANILA_HUE = 31 / 360       # a light brown card rather than a yellow one
 
 
 def parse(h):
@@ -77,19 +77,22 @@ def manila(rgb):
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     if s < 0.12:                            # the folder's paper and greys
         return muted(rgb)
-    # the blue body: buff card, a little lighter, a little colour
+    # the blue body: buff card, a little lighter, a little colour (the
+    # dark glyphs keep their depth)
     l = min(0.86, 0.10 + l * 0.95)
-    s = 0.30 + 0.10 * s
+    if l > 0.45:
+        l += (1 - l) * 0.22
+    s = (0.30 + 0.10 * s) * 0.78
     out = [c * 255 for c in colorsys.hls_to_rgb(MANILA_HUE, l, s)]
     return tuple(clamp(c) for c in sepia(out, 0.12))
 
 
 # ------------------------------------------------------------------ envelopes
-KRAFT_BACK = "#b59a6d"      # the back, seen above the pocket: torn open
-KRAFT = "#cbb48e"           # the pocket
-FLAP_SIDE = "#c2a882"
-FLAP_FOOT = "#d2bd99"
-CREASE = "#9c8259"
+KRAFT_BACK = "#bfaa93"      # the back, seen above the pocket: torn open
+KRAFT = "#d1bfac"           # the pocket: a light, brownish kraft
+FLAP_SIDE = "#cab7a3"
+FLAP_FOOT = "#d7c6b4"
+CREASE = "#a58d73"
 LETTER = "#ece6da"
 LETTER_LINE = "#bfb196"
 
