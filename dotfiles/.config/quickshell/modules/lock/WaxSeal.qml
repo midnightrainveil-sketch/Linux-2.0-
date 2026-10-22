@@ -12,7 +12,8 @@ import "../../components/Rand.js" as Rand
 // shadow closes over it, it presses (the wax squeezes out, the card takes
 // the knock: stamped()) and lifts, and the fresh gloss dulls as it sets.
 // The right signature cracks it: a hairline runs across, the halves part
-// and fall with a few crumbs, and the ribbon slips away.
+// and fall with a few crumbs, the ribbon cut through with them, each tail
+// going with its half.
 Item {
     id: seal
 
@@ -127,20 +128,35 @@ Item {
     Item {
         id: ribbon
         anchors.fill: parent
-        property real slip: 0                    // 0 lying, 1 gone (unlocked)
-        opacity: (seal.landed ? 1 : 0) * (1 - slip)
-        Behavior on opacity { enabled: ribbon.slip === 0; NumberAnimation { duration: Theme.dur(300) } }
-        transform: Translate { y: 26 * ribbon.slip * ribbon.slip }
+        opacity: seal.landed ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.dur(300) } }
 
         Repeater {
             model: [-1, 1]
             Canvas {
+                id: tail
                 required property int modelData
                 readonly property int side: modelData
+                // when the seal breaks the ribbon is cut through with it:
+                // each tail turns and falls with its half (as the halves below)
+                readonly property real fall: !seal.parted ? 0
+                    : side < 0 ? seal.fall : Math.max(0, seal.fall * 1.08 - 0.08)
+                transform: [
+                    Rotation {
+                        origin.x: seal.width / 2 - tail.x
+                        origin.y: seal.height - tail.y
+                        angle: seal.parted ? tail.side * (4 + 32 * tail.fall) : 0
+                    },
+                    Translate {
+                        x: seal.parted ? tail.side * (6 + 34 * tail.fall) : 0
+                        y: 70 * tail.fall * tail.fall
+                    }
+                ]
+                // (gone a little before its half, so it never shows through the wax)
+                opacity: seal.parted ? Math.max(0, 1 - 1.3 * fall * fall) : 1
                 x: seal.width / 2 - (side < 0 ? width - 8 : 8)
                 y: seal.height / 2 + 6
                 width: 74; height: 96
-                rotation: side * 3 * ribbon.slip
                 readonly property color c: Theme.accent
                 onCChanged: requestPaint()
                 onPaint: {
@@ -303,7 +319,7 @@ Item {
             x: modelData * (6 + 34 * fall)
             y: 70 * fall * fall
             rotation: modelData * (4 + 32 * fall)
-            opacity: seal.cracked && seal.parted ? 1 - fall * fall : 0
+            opacity: seal.cracked && seal.parted ? 1 - fall * fall * fall : 0
         }
     }
     // crumbs of wax thrown off as it breaks
@@ -344,7 +360,6 @@ Item {
         whole.opacity = 0; whole.scale = 1;
         fresh.opacity = 0;
         hairline.run = 0;
-        ribbon.slip = 0;
         parted = false;
         fall = 0;
         scatter = 0;
@@ -380,12 +395,11 @@ Item {
         // a hairline runs across it
         NumberAnimation { target: hairline; property: "run"; from: 0; to: 1; duration: Theme.dur(170); easing.type: Easing.InQuad }
         PauseAnimation { duration: Theme.dur(70) }
-        // it gives: the halves part and fall, crumbs fly, the ribbon slips away
+        // it gives: the halves part and fall, the ribbon cut through with them, crumbs fly
         ScriptAction { script: seal.parted = true }
         ParallelAnimation {
             NumberAnimation { target: seal; property: "fall"; from: 0; to: 1; duration: Theme.dur(740); easing.type: Easing.InQuad }
             NumberAnimation { target: seal; property: "scatter"; from: 0; to: 1; duration: Theme.dur(700) }
-            NumberAnimation { target: ribbon; property: "slip"; from: 0; to: 1; duration: Theme.dur(650); easing.type: Easing.InQuad }
         }
     }
 }
