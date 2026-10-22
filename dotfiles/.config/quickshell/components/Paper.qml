@@ -80,13 +80,13 @@ Item {
                 ctx.strokeStyle = Qt.rgba(rimTop.r + (rimBottom.r - rimTop.r) * t,
                                           rimTop.g + (rimBottom.g - rimTop.g) * t,
                                           rimTop.b + (rimBottom.b - rimTop.b) * t, 1);
-                ctx.globalAlpha = Theme.fv(0.45, 0.75) + r2() * Theme.fv(0.55, 0.31);
-                ctx.lineWidth = Theme.fv(0.9, 1.6) + r2() * 0.9;
+                ctx.globalAlpha = Theme.fvi(0.45, 0.75) + r2() * Theme.fvi(0.55, 0.31);
+                ctx.lineWidth = Theme.fvi(0.9, 1.6) + r2() * 0.9;
                 ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
             }
             ctx.globalAlpha = 1;
             // the bottom edge is the card's thickness: a second, darker pass
-            ctx.lineWidth = Theme.fv(2.0, 3.0);
+            ctx.lineWidth = Theme.fvi(2.0, 3.0);
             ctx.strokeStyle = rimBottom;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();

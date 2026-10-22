@@ -17,12 +17,13 @@ Singleton {
     // bold card titles, catalogue numbers in madder); "original" is the
     // sheet as first made; dark (night) is the cyanotype, as it always was.
     readonly property bool folio: Mode.style === "folio" && !Mode.isNight
-    // how far Folio goes from the original: each of its values sits this
-    // share of the way from the original's (1 = the full Folio as designed;
-    // the Instrument card's Folio slider, 50 % at first)
-    readonly property real folioAmount: folio ? Mode.folioAmount : 0
-    // the wallpaper's vignette in Folio, 0 to 1 (its own slider)
-    readonly property real vignette: folio ? Mode.vignette : 0
+    // Folio is depth, not darkness: its shadows, cut edges, light and vignette
+    // go half way from the original to the full design; its darkening (the
+    // ruled lines, the rims, the drawing's ink, the card fibre) only a sixth
+    // as far, and the titles stay plain, so the sheet stays clean.
+    readonly property real folioAmount: folio ? 0.5 : 0
+    // the wallpaper's vignette in Folio (0 to 1)
+    readonly property real vignette: folio ? 0.82 : 0
     function fv(original: real, full: real): real {
         return original + (full - original) * folioAmount;
     }
@@ -32,6 +33,14 @@ Singleton {
                        original.g + (full.g - original.g) * t,
                        original.b + (full.b - original.b) * t,
                        original.a + (full.a - original.a) * t);
+    }
+    // Folio's darkening goes a sixth as far as its depth (see folioAmount)
+    readonly property real inkAmount: folioAmount / 6
+    function fvi(original: real, full: real): real { return original + (full - original) * inkAmount; }
+    function fci(original: color, full: color): color {
+        const t = inkAmount;
+        return Qt.rgba(original.r + (full.r - original.r) * t, original.g + (full.g - original.g) * t,
+                       original.b + (full.b - original.b) * t, original.a + (full.a - original.a) * t);
     }
     readonly property real cardJag: fv(1.5, 3.1)          // how far a card's cut edge wanders
     // rules that run to a card's edge stop this far inside it
@@ -60,7 +69,7 @@ Singleton {
         readonly property color graphite:    "#1E1D22"
         readonly property color soft:        "#3E3D42"
         readonly property color faded:       "#6E6C6D"
-        readonly property color ruleInk:     root.fc("#4A4950", "#3e3d43")
+        readonly property color ruleInk:     root.fci("#4A4950", "#3e3d43")
         readonly property color ruleFaint:   "#9C9995"
         readonly property color accent:      "#34405E"
         readonly property color wash:        "#7D8698"
@@ -69,8 +78,8 @@ Singleton {
         readonly property color tape:        Qt.rgba(0xE8 / 255, 0xE4 / 255, 0xDC / 255, 0.55)
         readonly property color labelInk:    "#55535a"
         readonly property color sprigInk:    "#4f5a86"
-        readonly property color rimTop:      root.fc("#8c8780", "#78746e")
-        readonly property color rimBottom:   root.fc("#6b6660", "#58544f")
+        readonly property color rimTop:      root.fci("#8c8780", "#78746e")
+        readonly property color rimBottom:   root.fci("#6b6660", "#58544f")
     }
 
     // ---------------------------------------------------------------- night (cyanotype)
@@ -113,7 +122,7 @@ Singleton {
     // (The windows' grain is the title-bar plugin's, per window; the shell's
     // own cards always carry theirs.) Folio turns up the desk cards' fibre
     // only: the drawer, notebook, letters and bar keep their lighter grain.
-    readonly property real grainEase:  fv(1.0, 1.7)
+    readonly property real grainEase:  fvi(1.0, 1.7)
     readonly property real grainDark:  0.08 + 0.02 * night
     readonly property real grainLight: 0.10 * night
     // fibre texture on the cards themselves
@@ -154,7 +163,7 @@ Singleton {
     readonly property int rowHeight:    38
     readonly property int barHeight:    60
     readonly property int recordWidth:  485
-    readonly property real rule:        fv(1.6, 2.1)
+    readonly property real rule:        fvi(1.6, 2.1)
 
     // the cut edge of a card: a thin darker rim, darkest along the bottom
     readonly property color rimTop:     mix(day.rimTop, nite.rimTop)

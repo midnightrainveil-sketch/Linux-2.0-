@@ -18,25 +18,29 @@ local palette = require("archive.palette")
 local mode = state.mode()
 local c = palette[mode]
 -- Folio (by day, the default look): the windows' torn edge turned up a step,
--- to match the shell's cards: a further-wandering cut, a heavier and darker
--- rim, a longer shadow; title bars in bold. Original and dark as before.
--- Each value sits folio_amount of the way from the original's (1 = the full
--- Folio as designed; the shell's Theme.folioAmount is the same).
+-- to match the shell's cards. Like them it is depth, not darkness: the cut
+-- wanders further and the shadow falls longer (half way from the original
+-- to the full design), while the rim's colour and weight move only a sixth
+-- as far and the title bars stay plain (the shell's Theme.folioAmount and
+-- inkAmount). Original and dark as before.
 local folio = state.folio()
-local folio_amount = folio and state.folio_amount() or 0
-local function fv(original, full) return original + (full - original) * folio_amount end
-local function fhex(original, full) -- hex colours (or a lone alpha byte), blended
+local depth = folio and 0.5 or 0
+local ink = depth / 6
+local function fv(original, full) return original + (full - original) * depth end
+local function fvi(original, full) return original + (full - original) * ink end
+local function fhex(original, full, k) -- hex colours (or a lone alpha byte), blended k of the way
     return (original:gsub("()(%x%x)", function(i, byte)
-        local v = fv(tonumber(byte, 16), tonumber(full:sub(i, i + 1), 16))
+        local a = tonumber(byte, 16)
+        local v = a + (tonumber(full:sub(i, i + 1), 16) - a) * k
         return string.format("%02x", math.floor(v + 0.5))
     end))
 end
 if folio then
     local f = {}
     for k, v in pairs(c) do f[k] = v end
-    f.edge_top, f.edge_top_flat = fhex(c.edge_top, "8a8580"), fhex(c.edge_top_flat, "a29d97")
-    f.rim_bottom = fhex(c.rim_bottom, "47433f")
-    f.edge_shadow, f.edge_shadow_flat = fhex(c.edge_shadow, "80"), fhex(c.edge_shadow_flat, "4d")
+    f.edge_top, f.edge_top_flat = fhex(c.edge_top, "8a8580", ink), fhex(c.edge_top_flat, "a29d97", ink)
+    f.rim_bottom = fhex(c.rim_bottom, "47433f", ink)
+    f.edge_shadow, f.edge_shadow_flat = fhex(c.edge_shadow, "80", depth), fhex(c.edge_shadow_flat, "4d", depth)
     c = f
 end
 local reduced = state.setting_bool("reducedMotion", false)
@@ -164,7 +168,7 @@ local function bars(name, extras)
         col = { text = rgb(c.soft) },
         bar_text_font = "Courier Prime",
         bar_text_size = 18,
-        bar_text_weight = folio and "bold" or "normal",
+        bar_text_weight = "normal",
         bar_text_align = "left",
         bar_buttons_alignment = "left",
         bar_padding = 20,
@@ -241,7 +245,7 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         extras.deckle = true
         extras.deckle_margin = 6                  -- the card's edge, 6 px outside the window
         extras.deckle_amplitude = fv(1.2, 1.8)   -- how far the cut wanders
-        extras.deckle_rim_width = fv(1.3, 1.8)
+        extras.deckle_rim_width = fvi(1.3, 1.8)
         extras.deckle_paper = rgb(c.paper_card)   -- same paper as the title bar and terminal
         extras.deckle_rim_top = rgb(c.edge_top)
         extras.deckle_rim_bottom = rgb(c.rim_bottom)

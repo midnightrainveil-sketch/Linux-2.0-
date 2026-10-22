@@ -96,57 +96,6 @@ BarPopup {
             }
         }
 
-        // in Folio: how far it goes from the original, and the wallpaper's
-        // vignette (the shell follows as you drag; the windows' torn edges
-        // when you let go)
-        DataRow {
-            visible: Mode.look === 0
-            label: "Folio"
-            labelWidth: card.labelWidth
-            rowHeight: 50
-            RulerSlider {
-                anchors.left: parent.left
-                anchors.right: folioNo.left
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                value: Mode.folioAmount
-                onMoved: v => Mode.dragFolio(v)
-            }
-            InkText {
-                id: folioNo
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: 52
-                text: "No. " + Math.round(Mode.folioAmount * 100)
-                color: Theme.soft
-                font.pixelSize: Theme.sizeLabel
-            }
-        }
-
-        DataRow {
-            visible: Mode.look === 0
-            label: "Vignette"
-            labelWidth: card.labelWidth
-            rowHeight: 50
-            RulerSlider {
-                anchors.left: parent.left
-                anchors.right: vignetteNo.left
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                value: Mode.vignette
-                onMoved: v => Mode.dragVignette(v)
-            }
-            InkText {
-                id: vignetteNo
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: 52
-                text: "No. " + Math.round(Mode.vignette * 100)
-                color: Theme.soft
-                font.pixelSize: Theme.sizeLabel
-            }
-        }
-
         DataRow {
             label: "Grain"
             labelWidth: card.labelWidth

@@ -24,9 +24,9 @@ Item {
         text: root.title
         caps: true
         tracking: Theme.trackTitle
-        color: Theme.fc(root.titleColor, Theme.graphite)
+        color: Theme.fci(root.titleColor, Theme.graphite)
         font.pixelSize: Theme.sizeTitle
-        font.bold: Theme.folio
+        font.bold: false
         elide: Text.ElideRight
     }
     InkText {

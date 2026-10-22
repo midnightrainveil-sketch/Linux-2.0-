@@ -59,8 +59,8 @@ PanelWindow {
         anchors.fill: parent
         visible: Plates.sheet && Theme.folio
         source: dayImg
-        brightness: -0.115 * Theme.folioAmount
-        contrast: 0.14 * Theme.folioAmount
+        brightness: -0.115 * Theme.inkAmount
+        contrast: 0.14 * Theme.inkAmount
     }
     Image {
         anchors.fill: parent
@@ -100,7 +100,7 @@ PanelWindow {
             gradient: Gradient {
                 // the vignette: the sheet darkening toward its edges
                 GradientStop { position: 0.36; color: "transparent" }
-                // (its strength is the Vignette slider's: 0.7 is about as it was)
+                // (its strength: Theme.vignette)
                 GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.2 * Theme.vignette) }
                 GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.5 * Theme.vignette) }
             }
