@@ -25,7 +25,7 @@ Item {
         property color fill: root.color
         property color rimTop: Theme.rimTop
         property color rimBottom: Theme.rimBottom
-        property bool folio: Theme.folio
+        property real folio: Theme.folioAmount
         onFolioChanged: requestPaint()
         onFillChanged: requestPaint()
         onRimTopChanged: requestPaint()

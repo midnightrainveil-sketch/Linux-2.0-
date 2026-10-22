@@ -34,6 +34,13 @@ function M.folio()
     return M.mode() == "day" and M.style() == "folio"
 end
 
+-- how far Folio goes from the original, 0 to 1 (the Instrument card's slider)
+function M.folio_amount()
+    local v = tonumber((read(M.state_dir .. "/folio") or ""):match("[%d.]+") or "")
+    if not v then return 0.5 end
+    return math.max(0, math.min(1, v))
+end
+
 function M.mode()
     local s = read(M.state_dir .. "/mode")
     if s and s:match("night") then return "night" end

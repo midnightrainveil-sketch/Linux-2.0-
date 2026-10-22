@@ -23,7 +23,7 @@ local c = palette[mode]
 -- Each value sits folio_amount of the way from the original's (1 = the full
 -- Folio as designed; the shell's Theme.folioAmount is the same).
 local folio = state.folio()
-local folio_amount = folio and 0.8 or 0
+local folio_amount = folio and state.folio_amount() or 0
 local function fv(original, full) return original + (full - original) * folio_amount end
 local function fhex(original, full) -- hex colours (or a lone alpha byte), blended
     return (original:gsub("()(%x%x)", function(i, byte)

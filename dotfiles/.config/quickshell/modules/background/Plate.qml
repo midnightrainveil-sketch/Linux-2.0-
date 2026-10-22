@@ -100,8 +100,9 @@ PanelWindow {
             gradient: Gradient {
                 // the vignette: the sheet darkening toward its edges
                 GradientStop { position: 0.36; color: "transparent" }
-                GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.18 * Theme.folioAmount) }
-                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.44 * Theme.folioAmount) }
+                // (its strength is the Vignette slider's: 0.7 is about as it was)
+                GradientStop { position: 0.72; color: Qt.rgba(0.12, 0.11, 0.13, 0.2 * Theme.vignette) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.12, 0.11, 0.13, 0.5 * Theme.vignette) }
             }
         }
     }

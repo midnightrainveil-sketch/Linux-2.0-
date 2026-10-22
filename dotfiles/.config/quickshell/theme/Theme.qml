@@ -18,8 +18,11 @@ Singleton {
     // sheet as first made; dark (night) is the cyanotype, as it always was.
     readonly property bool folio: Mode.style === "folio" && !Mode.isNight
     // how far Folio goes from the original: each of its values sits this
-    // share of the way from the original's (1 = the full Folio as designed)
-    readonly property real folioAmount: folio ? 0.8 : 0
+    // share of the way from the original's (1 = the full Folio as designed;
+    // the Instrument card's Folio slider, 50 % at first)
+    readonly property real folioAmount: folio ? Mode.folioAmount : 0
+    // the wallpaper's vignette in Folio, 0 to 1 (its own slider)
+    readonly property real vignette: folio ? Mode.vignette : 0
     function fv(original: real, full: real): real {
         return original + (full - original) * folioAmount;
     }
