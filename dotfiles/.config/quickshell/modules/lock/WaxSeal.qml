@@ -1,130 +1,104 @@
 import QtQuick
+import QtQuick.Effects
 import qs.theme
 import qs.services
 import "../../components/Rand.js" as Rand
 
-// A wax seal: a blob of madder wax pressed with the archive's matrix (a
-// sprig inside a ring of lettering), two ribbon tails under it. It lands
-// when the reading room locks and cracks in two when the right signature
-// is given.
+// A wax seal: red wax pressed with a flowering sprig in a beaded ring (the
+// picture assets/seal/seal.png, from tools/import_seal.py), a silk ribbon
+// under it, a little darker at night.
+//
+// As the room locks a drop of molten wax lands and spreads, the matrix's
+// shadow closes over it, it presses (the wax squeezes out, the card takes
+// the knock: stamped()) and lifts, and the fresh gloss dulls as it sets.
+// The right signature cracks it: a hairline runs across, the halves part
+// and fall with a few crumbs, and the ribbon slips away.
 Item {
     id: seal
 
     property bool landed: false
     property bool cracked: false
     property int seed: 1907
-    property string legend: Settings.archiveStamp
+    signal stamped()
 
-    readonly property real r: 54
-    readonly property color wax: Theme.night > 0.5 ? "#6b2630" : "#7b2b25"
+    readonly property real r: 58                 // the blob's radius
+    readonly property real ri: r * 0.74          // the matrix's impression
+    readonly property color wax: "#8a0f0e"     // the picture's red, for the molten drop and the crumbs
+    readonly property url image: Qt.resolvedUrl("../../assets/seal/seal.png")
+    readonly property real k: 2                  // drawn at twice the size, for a crisp edge (Sharp)
 
-    width: 150
-    height: 150
+    // a canvas drawn at twice its size and shown at its own: a crisp edge
+    // on any screen (its drawing is in the seal's units, after g.scale(2, 2))
+    component Sharp: Canvas {
+        width: parent ? parent.width * 2 : 0
+        height: parent ? parent.height * 2 : 0
+        scale: 0.5
+        transformOrigin: Item.TopLeft
+    }
+
+    width: 200
+    height: 200
+
+    // by night, under the blue sheet, the wax a little darker and duller
+    layer.enabled: Theme.night > 0.01
+    layer.effect: MultiEffect {
+        brightness: -0.18 * Theme.night
+        saturation: -0.25 * Theme.night
+    }
 
     // ---------------------------------------------------------------- drawing
-    // the blob's edge: a wobbling circle with a few runs of wax
-    function edge(g, R) {
+
+    // the blob's edge: a wobbling circle with a few runs of wax pushed out
+    function edge(g, R, grow) {
         const rnd = Rand.make(seed);
         const a1 = rnd() * 6, a2 = rnd() * 6, a3 = rnd() * 6;
-        const runs = [rnd() * Math.PI * 2, rnd() * Math.PI * 2, rnd() * Math.PI * 2];
+        const runs = [rnd() * Math.PI * 2, rnd() * Math.PI * 2, rnd() * Math.PI * 2, rnd() * Math.PI * 2];
         const c = width / 2;
         g.beginPath();
-        for (let i = 0; i <= 120; i++) {
-            const t = i / 120 * Math.PI * 2;
-            let k = 1 + 0.035 * Math.sin(3 * t + a1) + 0.025 * Math.sin(7 * t + a2) + 0.012 * Math.sin(13 * t + a3);
-            for (const run of runs) {
-                const d = Math.atan2(Math.sin(t - run), Math.cos(t - run));
-                k += 0.10 * Math.exp(-d * d * 60);
+        for (let i = 0; i <= 160; i++) {
+            const t = i / 160 * Math.PI * 2;
+            let q = 1 + 0.04 * Math.sin(3 * t + a1) + 0.03 * Math.sin(5 * t + a2) + 0.015 * Math.sin(11 * t + a3);
+            for (let j = 0; j < runs.length; j++) {
+                const d = Math.atan2(Math.sin(t - runs[j]), Math.cos(t - runs[j]));
+                q += (j % 2 ? 0.07 : 0.11) * grow * Math.exp(-d * d * 40);
             }
-            const x = c + Math.cos(t) * R * k, y = c + Math.sin(t) * R * k;
+            const x = c + Math.cos(t) * R * q, y = c + Math.sin(t) * R * q;
             if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
         }
         g.closePath();
     }
 
-    // the matrix's sprig, drawn about (0, 0), 60 px tall
-    function sprig(g) {
-        g.beginPath();
-        g.moveTo(0, 30); g.bezierCurveTo(-2, 12, 3, -6, 0, -28);
-        for (let i = 0; i < 5; i++) {
-            const y = 20 - i * 10, s = 1 - i * 0.12;
-            // a pair of leaves
-            g.moveTo(0.5, y); g.quadraticCurveTo(10 * s, y - 2, 14 * s, y - 9 * s); g.quadraticCurveTo(6 * s, y - 6 * s, 0.5, y);
-            g.moveTo(-0.5, y - 4); g.quadraticCurveTo(-10 * s, y - 6, -14 * s, y - 13 * s); g.quadraticCurveTo(-6 * s, y - 10 * s, -0.5, y - 4);
-        }
-        // a small flower at the tip
-        for (let p = 0; p < 5; p++) {
-            const a = p / 5 * Math.PI * 2 - Math.PI / 2;
-            g.moveTo(0, -28);
-            g.arc(Math.cos(a) * 4, -28 + Math.sin(a) * 4, 2.6, 0, Math.PI * 2);
-        }
-    }
-
-    function ringText(g, R) {
-        const text = (" " + legend + " · ").toUpperCase();
-        const c = width / 2;
-        g.font = "bold 8px '" + Theme.typewriter + "'";
-        g.textAlign = "center";
-        g.textBaseline = "middle";
-        const n = text.length;
-        for (let i = 0; i < n; i++) {
-            const a = -Math.PI / 2 + i / n * Math.PI * 2;
-            g.save();
-            g.translate(c + Math.cos(a) * R, c + Math.sin(a) * R);
-            g.rotate(a + Math.PI / 2);
-            g.fillText(text[i], 0, 0);
-            g.restore();
-        }
-    }
-
-    // raised work: shadow below-right, light above-left, then the wax
-    function emboss(g, draw, fill) {
-        const parts = [[1.3, 1.3, Qt.rgba(0, 0, 0, 0.45)], [-0.9, -0.9, Qt.rgba(1, 0.85, 0.8, 0.35)], [0, 0, String(Qt.lighter(wax, 1.12))]];
-        for (const [dx, dy, col] of parts) {
-            g.save();
-            g.translate(dx, dy);
-            if (fill) { g.fillStyle = col; draw(); g.fill(); }
-            else { g.strokeStyle = col; g.fillStyle = col; draw(); }
-            g.restore();
-        }
-    }
-
-    function paintSeal(g, clip) {
+    // molten: the blob alone, glossy, before the matrix (grow: how far it has spread)
+    function paintMolten(g) {
         g.reset();
-        const c = width / 2, R = r;
-        if (clip) { g.beginPath(); clip(g); g.clip(); }
-        // the wax, lit from the top left
-        edge(g, R);
-        const body = g.createRadialGradient(c - R * 0.35, c - R * 0.4, R * 0.1, c, c, R * 1.15);
-        body.addColorStop(0, String(Qt.lighter(wax, 1.35)));
-        body.addColorStop(0.55, String(wax));
-        body.addColorStop(1, String(Qt.darker(wax, 1.7)));
+        g.scale(k, k);
+        const c = width / 2, R = r * 1.0;      // as wide as the pressed seal: the press only squeezes it
+        g.save();
+        g.shadowColor = Qt.rgba(0, 0, 0, 0.35); g.shadowBlur = 8; g.shadowOffsetY = 3;
+        edge(g, R, 0.4);
+        const body = g.createRadialGradient(c - R * 0.3, c - R * 0.35, R * 0.05, c, c, R * 1.1);
+        body.addColorStop(0, String(Qt.lighter(wax, 1.55)));
+        body.addColorStop(0.45, String(Qt.lighter(wax, 1.1)));
+        body.addColorStop(1, String(Qt.darker(wax, 1.5)));
         g.fillStyle = body;
         g.fill();
-        g.strokeStyle = Qt.rgba(0, 0, 0, 0.35);
-        g.lineWidth = 1;
-        g.stroke();
-        // the matrix's impression: a sunken disc
-        const Ri = R * 0.76;
-        g.beginPath(); g.arc(c, c, Ri, 0, Math.PI * 2);
-        const sunk = g.createLinearGradient(c - Ri, c - Ri, c + Ri, c + Ri);
-        sunk.addColorStop(0, String(Qt.darker(wax, 1.25)));
-        sunk.addColorStop(1, String(Qt.lighter(wax, 1.08)));
-        g.fillStyle = sunk;
-        g.fill();
-        g.lineWidth = 2;
-        g.strokeStyle = Qt.rgba(0, 0, 0, 0.35);
-        g.beginPath(); g.arc(c, c, Ri, Math.PI * 0.75, Math.PI * 1.75); g.stroke();
-        g.strokeStyle = Qt.rgba(1, 0.85, 0.8, 0.28);
-        g.beginPath(); g.arc(c, c, Ri, -Math.PI * 0.25, Math.PI * 0.75); g.stroke();
-        // the lettering and an inner ring, raised
-        emboss(g, () => ringText(g, Ri - 8), false);
-        emboss(g, () => { g.lineWidth = 1; g.beginPath(); g.arc(c, c, Ri - 15, 0, Math.PI * 2); g.stroke(); }, false);
-        // the sprig, raised
-        emboss(g, () => { g.save(); g.translate(c, c + 1); g.scale(0.82, 0.82); g.beginPath(); sprig(g); g.restore(); }, true);
-        // the gloss
-        g.fillStyle = Qt.rgba(1, 1, 1, 0.16);
-        g.beginPath(); g.ellipse(c - R * 0.72, c - R * 0.86, R * 0.55, R * 0.28); g.fill();
+        g.restore();
+        // a liquid shine
+        const sh = g.createRadialGradient(c - R * 0.35, c - R * 0.42, 0, c - R * 0.35, c - R * 0.42, R * 0.5);
+        sh.addColorStop(0, Qt.rgba(1, 0.95, 0.9, 0.55));
+        sh.addColorStop(1, Qt.rgba(1, 0.95, 0.9, 0));
+        g.fillStyle = sh;
+        g.beginPath(); g.arc(c - R * 0.35, c - R * 0.42, R * 0.5, 0, Math.PI * 2); g.fill();
+    }
+
+    // the seal: the picture (assets/seal/seal.png, tools/import_seal.py),
+    // within `clip` if given (a half, when it breaks)
+    function paintSeal(g, clip) {
+        g.reset();
+        g.scale(k, k);
+        if (clip) { g.beginPath(); clip(g); g.clip(); }
+        const S = r * 2.6;                      // the picture's square: the wax fills 86 % of it
+        g.drawImage(image, (width - S) / 2, (height - S) / 2, S, S);
     }
 
     // the crack, from the top edge to the bottom, wandering
@@ -132,7 +106,7 @@ Item {
         const rnd = Rand.make(seed + 5);
         const pts = [];
         const c = width / 2;
-        for (let i = 0; i <= 10; i++) pts.push([c + (rnd() - 0.5) * 16 + (i === 5 ? 6 : 0), i / 10 * height]);
+        for (let i = 0; i <= 14; i++) pts.push([c + (rnd() - 0.5) * 18 + (i === 7 ? 7 : 0), i / 14 * height]);
         return pts;
     }
     function leftOf(g) {
@@ -148,101 +122,270 @@ Item {
         g.closePath();
     }
 
-    // ---------------------------------------------------------------- the ribbon tails
-    Repeater {
-        model: [-1, 1]
-        Canvas {
-            required property int modelData
-            readonly property int side: modelData
-            x: seal.width / 2 - (side < 0 ? width - 10 : 10)
-            y: seal.height / 2 + 4
-            width: 60; height: 76
-            opacity: seal.landed ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.dur(300) } }
-            readonly property color c: Theme.accent
-            onCChanged: requestPaint()
-            onPaint: {
-                const g = getContext("2d");
-                g.reset();
-                if (side < 0) { g.translate(width, 0); g.scale(-1, 1); }
-                // a tail running down and out, its end cut in a V
-                g.fillStyle = String(c);
-                g.globalAlpha = 0.85;
-                g.beginPath();
-                g.moveTo(0, 0); g.lineTo(18, 0);
-                g.lineTo(46, 66); g.lineTo(37, 60); g.lineTo(30, 72);
-                g.closePath();
-                g.fill();
-                g.globalAlpha = 0.25;
-                g.strokeStyle = "white";
-                g.lineWidth = 1;
-                g.beginPath(); g.moveTo(6, 0); g.lineTo(36, 66); g.stroke();
+    // ---------------------------------------------------------------- the ribbon
+    // two tails of silk from under the seal, down and out, cut in a V
+    Item {
+        id: ribbon
+        anchors.fill: parent
+        property real slip: 0                    // 0 lying, 1 gone (unlocked)
+        opacity: (seal.landed ? 1 : 0) * (1 - slip)
+        Behavior on opacity { enabled: ribbon.slip === 0; NumberAnimation { duration: Theme.dur(300) } }
+        transform: Translate { y: 26 * ribbon.slip * ribbon.slip }
+
+        Repeater {
+            model: [-1, 1]
+            Canvas {
+                required property int modelData
+                readonly property int side: modelData
+                x: seal.width / 2 - (side < 0 ? width - 8 : 8)
+                y: seal.height / 2 + 6
+                width: 74; height: 96
+                rotation: side * 3 * ribbon.slip
+                readonly property color c: Theme.accent
+                onCChanged: requestPaint()
+                onPaint: {
+                    const g = getContext("2d");
+                    g.reset();
+                    if (side < 0) { g.translate(width, 0); g.scale(-1, 1); }
+                    // the tail's two edges, a gentle curve, a fold half way
+                    const band = (t) => [4 + 30 * t + 6 * Math.sin(t * 3), 2 + 84 * t];
+                    const w = 15;
+                    const L = [], Rr = [];
+                    for (let i = 0; i <= 20; i++) {
+                        const t = i / 20, [x, y] = band(t);
+                        const ww = w * (t > 0.48 && t < 0.56 ? 0.72 : 1);     // the fold pinches it
+                        L.push([x, y]); Rr.push([x + ww, y - ww * 0.35]);
+                    }
+                    const end = band(1);
+                    g.beginPath();
+                    g.moveTo(L[0][0], L[0][1]);
+                    for (const p of L) g.lineTo(p[0], p[1]);
+                    g.lineTo(end[0] + w * 0.55, end[1] - 9);              // the V cut
+                    g.lineTo(Rr[20][0], Rr[20][1]);
+                    for (let i = 20; i >= 0; i--) g.lineTo(Rr[i][0], Rr[i][1]);
+                    g.closePath();
+                    // silk: darker at the edges, a sheen down the middle
+                    const gr = g.createLinearGradient(0, 0, 30, -8);
+                    gr.addColorStop(0, String(Qt.darker(c, 1.35)));
+                    gr.addColorStop(0.5, String(Qt.lighter(c, 1.25)));
+                    gr.addColorStop(1, String(Qt.darker(c, 1.25)));
+                    g.save();
+                    g.shadowColor = Qt.rgba(0, 0, 0, 0.3); g.shadowBlur = 4; g.shadowOffsetY = 2;
+                    g.fillStyle = String(c);
+                    g.fill();
+                    g.restore();
+                    g.save();
+                    g.clip();
+                    g.globalAlpha = 0.55;
+                    g.fillStyle = gr;
+                    g.fillRect(0, 0, width, height);
+                    // the fold: the far side turned towards us, in shadow
+                    g.globalAlpha = 0.35;
+                    g.fillStyle = "black";
+                    const f0 = band(0.48), f1 = band(0.56);
+                    g.beginPath(); g.moveTo(f0[0], f0[1]); g.lineTo(f0[0] + w, f0[1] - w * 0.35); g.lineTo(f1[0] + w * 0.72, f1[1] - w * 0.25); g.lineTo(f1[0], f1[1]); g.closePath(); g.fill();
+                    // fine lengthways sheen lines
+                    g.globalAlpha = 0.18;
+                    g.strokeStyle = "white";
+                    g.lineWidth = 0.6;
+                    for (const off of [4, 8, 11]) {
+                        g.beginPath();
+                        for (let i = 0; i <= 20; i++) { const [x, y] = band(i / 20); if (i === 0) g.moveTo(x + off, y - off * 0.35); else g.lineTo(x + off, y - off * 0.35); }
+                        g.stroke();
+                    }
+                    g.restore();
+                }
             }
         }
     }
 
-    // ---------------------------------------------------------------- the seal: whole, then in halves
+    // ---------------------------------------------------------------- the pouring and the pressing
+    // the drop of molten wax
+    Item {
+        id: molten
+        anchors.fill: parent
+        opacity: 0
+        scale: 0.3
+        Sharp {
+            readonly property color w: seal.wax
+            onWChanged: requestPaint()
+            onPaint: seal.paintMolten(getContext("2d"))
+        }
+    }
+    // the matrix's shadow, closing over it as it comes down
+    Canvas {
+        id: matrixShadow
+        anchors.centerIn: parent
+        width: seal.ri * 2.8
+        height: width
+        opacity: 0
+        scale: 1.5
+        onPaint: {
+            const g = getContext("2d");
+            g.reset();
+            const c = width / 2;
+            const sh = g.createRadialGradient(c, c, 0, c, c, c);
+            sh.addColorStop(0, Qt.rgba(0.05, 0, 0, 1));
+            sh.addColorStop(0.55, Qt.rgba(0.05, 0, 0, 0.8));
+            sh.addColorStop(1, Qt.rgba(0.05, 0, 0, 0));
+            g.fillStyle = sh;
+            g.fillRect(0, 0, width, height);
+        }
+    }
+
+    // the seal: whole, then in halves
     Item {
         id: whole
         anchors.fill: parent
-        visible: !seal.cracked
+        visible: !seal.parted         // (the hairline runs across it first)
         opacity: 0
-        scale: 1.5
-        Canvas {
-            anchors.fill: parent
-            readonly property color w: seal.wax
-            onWChanged: requestPaint()
-            onPaint: seal.paintSeal(getContext("2d"), null)
+        Sharp {
+            Component.onCompleted: loadImage(seal.image)
+            onImageLoaded: requestPaint()
+            onPaint: if (isImageLoaded(seal.image)) seal.paintSeal(getContext("2d"), null)
+        }
+        // the fresh wax's gloss, dulling as it sets
+        Rectangle {
+            id: fresh
+            anchors.centerIn: parent
+            width: seal.r * 1.9
+            height: width
+            radius: width / 2
+            opacity: 0
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(1, 0.92, 0.88, 0.55) }
+                GradientStop { position: 0.45; color: Qt.rgba(1, 0.92, 0.88, 0.0) }
+            }
+            rotation: -35
+        }
+        // the hairline crack, running across before it breaks
+        Sharp {
+            id: hairline
+            property real run: 0
+            onRunChanged: requestPaint()
+            onPaint: {
+                const g = getContext("2d");
+                g.reset();
+                g.scale(seal.k, seal.k);
+                if (run <= 0) return;
+                const pts = seal.crackPts, n = pts.length - 1, upto = run * n;
+                g.lineCap = "round"; g.lineJoin = "round";
+                for (const [col, w, dx] of [[Qt.rgba(1, 0.8, 0.75, 0.35), 1.6, 0.8], [Qt.rgba(0.05, 0, 0, 0.85), 1.3, 0]]) {
+                    g.strokeStyle = col; g.lineWidth = w;
+                    g.beginPath();
+                    g.moveTo(pts[0][0] + dx, pts[0][1]);
+                    for (let i = 1; i <= Math.ceil(upto); i++) {
+                        const f = Math.min(1, upto - (i - 1));
+                        g.lineTo(pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f + dx, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f);
+                    }
+                    g.stroke();
+                }
+            }
         }
     }
     Repeater {
+        id: halves
         model: [-1, 1]
-        Canvas {
+        Item {
             id: half
             required property int modelData
-            anchors.fill: parent
-            // (always drawn, only hidden: a canvas painted while hidden may never paint)
-            readonly property color w: seal.wax
-            onWChanged: requestPaint()
-            onPaint: seal.paintSeal(getContext("2d"), modelData < 0 ? seal.leftOf : seal.rightOf)
+            width: seal.width
+            height: seal.height
+            Sharp {
+                // (always drawn, only hidden: a canvas painted while hidden may never paint)
+                Component.onCompleted: loadImage(seal.image)
+                onImageLoaded: requestPaint()
+                onPaint: if (isImageLoaded(seal.image)) seal.paintSeal(getContext("2d"), half.modelData < 0 ? seal.leftOf : seal.rightOf)
+            }
             transformOrigin: Item.Bottom
-            property real fall: 0
-            x: modelData * 26 * fall
-            y: 50 * fall * fall
-            rotation: modelData * 28 * fall
-            opacity: seal.cracked ? 1 - fall * fall : 0
-            Connections {
-                target: seal
-                function onCrackedChanged() {
-                    if (seal.cracked) breaking.restart();
-                    else { breaking.stop(); half.fall = 0; }
-                }
-            }
-            NumberAnimation {
-                id: breaking
-                target: half
-                property: "fall"
-                from: 0; to: 1
-                duration: Theme.dur(650)
-                easing.type: Easing.InCubic
-            }
+            // the right half a moment behind the left
+            readonly property real fall: modelData < 0 ? seal.fall : Math.max(0, seal.fall * 1.08 - 0.08)
+            x: modelData * (6 + 34 * fall)
+            y: 70 * fall * fall
+            rotation: modelData * (4 + 32 * fall)
+            opacity: seal.cracked && seal.parted ? 1 - fall * fall : 0
         }
     }
+    // crumbs of wax thrown off as it breaks
+    Repeater {
+        id: crumbs
+        model: 7
+        Rectangle {
+            required property int index
+            readonly property var rnd: Rand.make(seal.seed * 7 + index)
+            readonly property real vx: (rnd() - 0.5) * 120
+            readonly property real vy: -20 - rnd() * 50
+            readonly property real spin: (rnd() - 0.5) * 540
+            readonly property real size: 2.5 + rnd() * 3.5
+            readonly property real t: seal.scatter * (0.86 + 0.07 * (index % 3))
+            x: seal.width / 2 + vx * t - size / 2
+            y: seal.height / 2 + (index - 3) * 9 + vy * t + 260 * t * t
+            width: size
+            height: size * (0.7 + 0.3 * (index % 2))
+            radius: size * 0.35
+            rotation: spin * t
+            color: Qt.darker(seal.wax, 1 + 0.1 * (index % 3))
+            opacity: seal.parted ? Math.max(0, 1 - t * 1.4) : 0
+        }
+    }
+    property bool parted: false
+    property real fall: 0           // the halves falling, 0 to 1
+    property real scatter: 0        // the crumbs flying, 0 to 1
 
-    // ---------------------------------------------------------------- landing
+    // ---------------------------------------------------------------- the lock: pour, press, set
     Component.onCompleted: if (landed) pressing.restart()
     onLandedChanged: {
-        if (landed) { pressing.restart(); }
-        else { pressing.stop(); whole.opacity = 0; whole.scale = 1.5; }
+        if (landed) pressing.restart();
+        else { pressing.stop(); reset(); }
+    }
+    function reset(): void {
+        molten.opacity = 0; molten.scale = 0.3;
+        matrixShadow.opacity = 0; matrixShadow.scale = 1.5;
+        whole.opacity = 0; whole.scale = 1;
+        fresh.opacity = 0;
+        hairline.run = 0;
+        ribbon.slip = 0;
+        parted = false;
+        fall = 0;
+        scatter = 0;
     }
     SequentialAnimation {
         id: pressing
-        PauseAnimation { duration: Theme.dur(250) }
+        ScriptAction { script: seal.reset() }
+        PauseAnimation { duration: Theme.dur(220) }
+        // the drop lands and spreads
         ParallelAnimation {
-            NumberAnimation { target: whole; property: "opacity"; from: 0; to: 1; duration: Theme.dur(160) }
-            NumberAnimation { target: whole; property: "scale"; from: 1.5; to: 0.95; duration: Theme.dur(200); easing.type: Easing.InCubic }
+            NumberAnimation { target: molten; property: "opacity"; from: 0; to: 1; duration: Theme.dur(90) }
+            NumberAnimation { target: molten; property: "scale"; from: 0.3; to: 1.0; duration: Theme.dur(420); easing.type: Easing.OutCubic }
         }
-        // the wax gives under the matrix, and settles
-        NumberAnimation { target: whole; property: "scale"; to: 1.0; duration: Theme.dur(220); easing.type: Easing.OutBack }
+        // the matrix comes down: its shadow gathers and tightens
+        ParallelAnimation {
+            NumberAnimation { target: matrixShadow; property: "opacity"; to: 0.38; duration: Theme.dur(260); easing.type: Easing.InQuad }
+            NumberAnimation { target: matrixShadow; property: "scale"; to: 0.82; duration: Theme.dur(260); easing.type: Easing.InQuad }
+        }
+        // the press: the wax squeezes out under it, the card takes the knock
+        ScriptAction { script: { matrixShadow.opacity = 0; molten.opacity = 0; whole.opacity = 1; whole.scale = 0.92; fresh.opacity = 1; seal.stamped(); } }
+        NumberAnimation { target: whole; property: "scale"; to: 1.0; duration: Theme.dur(380); easing.type: Easing.OutBack; easing.overshoot: 2.2 }
+        // and as it cools, the gloss dulls
+        NumberAnimation { target: fresh; property: "opacity"; to: 0; duration: Theme.dur(900); easing.type: Easing.OutQuad }
+    }
+
+    // ---------------------------------------------------------------- the unlock: crack, part, fall
+    onCrackedChanged: {
+        if (cracked) { pressing.stop(); fresh.opacity = 0; whole.opacity = 1; whole.scale = 1; molten.opacity = 0; matrixShadow.opacity = 0; breaking.restart(); }
+        else { breaking.stop(); reset(); if (landed) { whole.opacity = 1; } }
+    }
+    SequentialAnimation {
+        id: breaking
+        // a hairline runs across it
+        NumberAnimation { target: hairline; property: "run"; from: 0; to: 1; duration: Theme.dur(170); easing.type: Easing.InQuad }
+        PauseAnimation { duration: Theme.dur(70) }
+        // it gives: the halves part and fall, crumbs fly, the ribbon slips away
+        ScriptAction { script: seal.parted = true }
+        ParallelAnimation {
+            NumberAnimation { target: seal; property: "fall"; from: 0; to: 1; duration: Theme.dur(740); easing.type: Easing.InQuad }
+            NumberAnimation { target: seal; property: "scatter"; from: 0; to: 1; duration: Theme.dur(700) }
+            NumberAnimation { target: ribbon; property: "slip"; from: 0; to: 1; duration: Theme.dur(650); easing.type: Easing.InQuad }
+        }
     }
 }

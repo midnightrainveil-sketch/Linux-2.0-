@@ -121,6 +121,8 @@ Scope {
                 IndexCard {
                     id: card
                     anchors.centerIn: parent
+                    // it takes the knock when the seal is pressed into it
+                    transform: Translate { id: knock; y: 0 }
                     width: 600
                     title: Settings.archiveName
                     subtitle: "Time Record."
@@ -232,11 +234,17 @@ Scope {
                 // the room's seal, pressed over the card's edge beside the
                 // time; the right signature breaks it
                 WaxSeal {
-                    x: card.x - width / 2 + 8
-                    y: card.y + Theme.headerHeight + 62 - height / 2
+                    x: card.x - width / 2 - 4
+                    y: card.y + Theme.headerHeight + 62 - height / 2 + knock.y
                     landed: sessionLock.locked
                     cracked: room.verdict === "admitted"
                     seed: 1907
+                    onStamped: thud.restart()
+                }
+                SequentialAnimation {
+                    id: thud
+                    NumberAnimation { target: knock; property: "y"; to: 2.5; duration: Theme.dur(60); easing.type: Easing.OutQuad }
+                    NumberAnimation { target: knock; property: "y"; to: 0; duration: Theme.dur(220); easing.type: Easing.OutBack }
                 }
 
                 // the verdict stamp, pressed onto the card's corner
