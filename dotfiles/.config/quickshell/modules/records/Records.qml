@@ -25,10 +25,9 @@ Item {
     readonly property real column: width - Theme.margin - Theme.recordWidth
     readonly property real gap: Theme.cardGap + extra * 0.2
 
-    // over the cards the lamp keeps following
-    HoverHandler {
-        onPointChanged: if (hovered && Lamp.isOn && Theme.night > 0.5) Lamp.moveTo(win.modelData?.name ?? "", point.position.x, point.position.y)
-    }
+    // (the lamp follows the pointer from the sheet's own hover, under
+    // everything: a hover handler over the whole sheet here took the hover
+    // from the specimen's fan of slips)
 
     DeskCard {
         id: time

@@ -158,9 +158,19 @@ PanelWindow {
         anchors.fill: parent
         onClicked: Panels.close()
     }
+    // The grab starts a moment after the card is on screen: started in the
+    // same instant (and this card is built only as it opens: Panels.onDemand)
+    // Hyprland does not know the window yet, clears the grab, and the card
+    // would close as soon as it opened.
+    property bool grabArmed: false
+    Timer {
+        interval: 150
+        running: win.shown && !win.grabArmed
+        onTriggered: win.grabArmed = true
+    }
     HyprlandFocusGrab {
         windows: [win]
-        active: win.shown
+        active: win.shown && win.grabArmed
         onCleared: if (Panels.open === win.name) Panels.close()
     }
 
