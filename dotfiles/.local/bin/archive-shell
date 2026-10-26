@@ -16,6 +16,12 @@ mkdir -p "$state"
 exec 9>"${XDG_RUNTIME_DIR:-/tmp}/archive-shell.lock"
 flock -w 5 9 || exit 0        # one keeper is enough (a stopping one has 5 s to go)
 
+# Memory the shell lets go of (a card closed, a picture dropped) goes back
+# to the system: by default glibc keeps freed memory in one arena per thread
+# and at the top of the heap, so the shell only ever grows.
+export MALLOC_ARENA_MAX=2
+export MALLOC_TRIM_THRESHOLD_=131072
+
 crashes=()
 while true; do
     qs "$@"

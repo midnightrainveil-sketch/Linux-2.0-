@@ -112,6 +112,7 @@ Item {
             width: 190
             height: 190
             source: Qt.resolvedUrl("../../assets/sprig-wash.png")
+            sourceSize: Qt.size(380, 380)
             fillMode: Image.PreserveAspectFit
             opacity: sheet.empty ? 0.45 : 0.8
             asynchronous: true

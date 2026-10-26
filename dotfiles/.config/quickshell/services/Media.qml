@@ -45,9 +45,11 @@ Singleton {
     function seekTo(seconds: real): void { if (player?.canSeek) player.position = Math.max(0, Math.min(length, seconds)); }
     function seekBy(seconds: real): void { if (player?.canSeek) player.seek(seconds); }
 
-    // MPRIS does not push position updates; poke it once a second while playing.
+    // MPRIS does not push position updates; poke it once a second while
+    // playing and someone can see it (the desk's Audio card, uncovered, or
+    // the phonograph open): a covered desk needs no ticking clock.
     Timer {
-        running: root.playing
+        running: root.playing && (!Desk.covered || Panels.open === "phonograph")
         interval: 1000
         repeat: true
         onTriggered: root.player?.positionChanged()

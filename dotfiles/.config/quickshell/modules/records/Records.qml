@@ -1,6 +1,4 @@
 import QtQuick
-import Quickshell
-import Quickshell.Wayland
 import qs.theme
 import qs.services
 import qs.components
@@ -11,27 +9,15 @@ import qs.components
 // anywhere on the sheet or filed away with a right click; the bar's desk
 // button (archive-desk, Super+D) lays them all back. On the G14's 16:10
 // panel the extra height goes into breathing room between the cards.
-PanelWindow {
+//
+// They are drawn on the sheet itself (Plate.qml places this over the whole
+// sheet above the bar): one full-screen surface fewer to keep and to
+// composite than a window of their own, and they lie under working windows
+// all the same.
+Item {
     id: win
 
     required property var modelData
-    screen: modelData
-
-    // the whole sheet above the bar, so cards can be dragged anywhere; input
-    // reaches the cards only, everything else passes through
-    anchors { top: true; left: true; right: true; bottom: true }
-    margins.bottom: Theme.barHeight
-    exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.layer: WlrLayer.Bottom
-    WlrLayershell.namespace: "archive-records"
-    color: "transparent"
-    mask: Region {
-        regions: [
-            Region { item: time.visible ? time : null },
-            Region { item: weather.visible ? weather : null },
-            Region { item: audio.visible ? audio : null }
-        ]
-    }
 
     // the reference is 1080 px tall; extra height (the G14 is 16:10) becomes
     // a little more air between the cards, never another card

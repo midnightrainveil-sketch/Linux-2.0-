@@ -6,6 +6,7 @@ import Qt5Compat.GraphicalEffects
 import qs.theme
 import qs.services
 import qs.components
+import qs.modules.records
 import "../../components/Rand.js" as Rand
 
 // The wallpaper: one plate on the sheet (section 13). Two kinds of plate:
@@ -39,11 +40,14 @@ PanelWindow {
     }
 
     // ------------------------------------------------------------ a whole sheet
+    // Each picture is decoded only while it can be seen: the day's by day,
+    // the night's by night, both only while one turns into the other (the
+    // 2 s crossfade). The day's is not drawn under the night's.
     Image {
         id: dayImg
         anchors.fill: parent
-        visible: Plates.sheet && !Theme.folio
-        source: Plates.sheetDay
+        visible: Plates.sheet && Theme.night < 0.999
+        source: !Mode.isNight || Theme.night < 0.999 ? Plates.sheetDay : ""
         fillMode: Image.PreserveAspectCrop
         // the sheet is made at the screen's own size (import_wallpaper):
         // drawn straight, no resampling first and no mipmaps, which soften
@@ -53,24 +57,12 @@ PanelWindow {
         mipmap: false
         cache: false
     }
-    // Folio: the drawing's ink a step deeper (the paper's tone kept: the
-    // brightness takes back what the contrast adds to it)
-    BrightnessContrast {
-        anchors.fill: parent
-        visible: Plates.sheet && Theme.folio
-        source: dayImg
-        brightness: -0.115 * Theme.inkAmount
-        contrast: 0.14 * Theme.inkAmount
-    }
     Image {
         anchors.fill: parent
         visible: Plates.sheet && opacity > 0.003
         opacity: Theme.night
-        source: Plates.sheetNight
+        source: Mode.isNight || Theme.night > 0.001 ? Plates.sheetNight : ""
         fillMode: Image.PreserveAspectCrop
-        // the sheet is made at the screen's own size (import_wallpaper):
-        // drawn straight, no resampling first and no mipmaps, which soften
-        // fine pencil lines even when the picture barely shrinks
         asynchronous: true
         smooth: true
         mipmap: false
@@ -354,4 +346,12 @@ PanelWindow {
     // in the corner, lying loose on the sheet (over its light): it can be
     // lifted, carried and swapped for another month's (Specimen.qml)
     Specimen { anchors.fill: parent; sheetH: win.sheetH }
+
+    // ------------------------------------------------------------ the record cards
+    // lying on the sheet above the bar, over the specimen (Records.qml)
+    Records {
+        width: win.width
+        height: win.sheetH
+        modelData: win.modelData
+    }
 }

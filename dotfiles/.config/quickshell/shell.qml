@@ -35,14 +35,13 @@ ShellRoot {
     readonly property var focusedScreen:
         Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
 
-    // ---- per screen: the sheet, the records and the footer strip
+    // ---- per screen: the sheet (with the record cards on it) and the footer strip
     Variants {
         model: Quickshell.screens
         Scope {
             id: perScreen
             required property var modelData
             Plate { modelData: perScreen.modelData }
-            Records { modelData: perScreen.modelData }
             LetterTray { screen: perScreen.modelData }
             Bar { modelData: perScreen.modelData }
         }
@@ -51,16 +50,33 @@ ShellRoot {
     // ---- one at a time, on the focused screen
     Catalogue   { screen: shell.focusedScreen }
     Ledger      { screen: shell.focusedScreen }
-    LedgerYear  { screen: shell.focusedScreen }
+    // (built only while open: Panels.onDemand)
+    LazyLoader {
+        active: Panels.wanted("ledger-year")
+        onItemChanged: if (item) Panels.ready("ledger-year"); else Panels.gone("ledger-year")
+        LedgerYear { screen: shell.focusedScreen }
+    }
     InstrumentCard { screen: shell.focusedScreen }
     Disposition { screen: shell.focusedScreen }
     Register    { id: registerCard; screen: shell.focusedScreen }
     Instrument  { screen: shell.focusedScreen }
     Correspondence { screen: shell.focusedScreen }
     Photograph  { id: photograph; screen: shell.focusedScreen }
-    Phonograph  { screen: shell.focusedScreen }
-    Notebook    { screen: shell.focusedScreen }
-    Typewriter  { screen: shell.focusedScreen }
+    LazyLoader {
+        active: Panels.wanted("phonograph")
+        onItemChanged: if (item) Panels.ready("phonograph"); else Panels.gone("phonograph")
+        Phonograph { screen: shell.focusedScreen }
+    }
+    LazyLoader {
+        active: Panels.wanted("notebook")
+        onItemChanged: if (item) Panels.ready("notebook"); else Panels.gone("notebook")
+        Notebook { screen: shell.focusedScreen }
+    }
+    LazyLoader {
+        active: Panels.wanted("typewriter")
+        onItemChanged: if (item) Panels.ready("typewriter"); else Panels.gone("typewriter")
+        Typewriter { screen: shell.focusedScreen }
+    }
     PowerHold   { id: powerHold; screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }

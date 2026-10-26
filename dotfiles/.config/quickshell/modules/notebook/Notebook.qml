@@ -185,6 +185,7 @@ PanelWindow {
             anchors.fill: cover
             source: cover
             radius: 24
+            cached: true                  // it never changes: blurred once, not every frame
             samples: 33
             verticalOffset: 10
             color: Qt.rgba(0, 0, 0, 0.42)

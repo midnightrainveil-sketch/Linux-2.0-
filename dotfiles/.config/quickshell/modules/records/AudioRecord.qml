@@ -141,6 +141,8 @@ IndexCard {
                 anchors.fill: parent
                 // our own player's track picture first, else what the player reports
                 source: Gramophone.loaded && Gramophone.cover !== "" ? "file://" + Gramophone.cover : Media.art
+                // a cover file can be 3000 px: decode it at the card's size
+                sourceSize: Qt.size(280, 280)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: false

@@ -194,6 +194,7 @@ PanelWindow {
             anchors.fill: inside
             source: inside
             radius: 22
+            cached: true                  // it never changes: blurred once, not every frame
             samples: 33
             verticalOffset: 8
             color: Qt.rgba(0, 0, 0, 0.42)
@@ -393,7 +394,7 @@ PanelWindow {
                 id: frontImg
                 anchors.fill: parent
                 source: Qt.resolvedUrl("../../assets/drawer/front.png")
-                sourceSize: Qt.size(1520, 360)
+                sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
                 smooth: true
                 visible: status === Image.Ready
             }
@@ -547,6 +548,7 @@ PanelWindow {
                     id: holderImg
                     anchors.fill: parent
                     source: Qt.resolvedUrl("../../assets/drawer/holder.png")
+                    sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
                     smooth: true
                     visible: status === Image.Ready
                 }
@@ -583,6 +585,7 @@ PanelWindow {
                     id: pullImg
                     anchors.fill: parent
                     source: Qt.resolvedUrl("../../assets/drawer/pull.png")
+                    sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
                     smooth: true
                     visible: status === Image.Ready
                 }

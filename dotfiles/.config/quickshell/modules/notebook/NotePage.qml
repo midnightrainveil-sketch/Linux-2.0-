@@ -167,6 +167,7 @@ Item {
             y: 150
             width: 220; height: 220
             source: Qt.resolvedUrl("../../assets/sprig-wash.png")
+            sourceSize: Qt.size(440, 440)
             fillMode: Image.PreserveAspectFit
             opacity: 0.7
         }

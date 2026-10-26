@@ -86,7 +86,7 @@ Item {
         id: plinthImg
         anchors.fill: parent
         source: Qt.resolvedUrl("../../assets/phonograph/turntable.jpg")
-        sourceSize: Qt.size(1140, 1140)
+        sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
         smooth: true
         visible: false
     }
@@ -94,6 +94,7 @@ Item {
         anchors.fill: plinth
         source: deck.art ? plinthImg : plinth
         radius: 24
+        cached: true                  // it never changes: blurred once, not every frame
         samples: 33
         verticalOffset: 10
         color: Qt.rgba(0, 0, 0, 0.42)

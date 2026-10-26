@@ -415,6 +415,7 @@ Item {
                     height: visible ? 44 : 0
                     visible: root.imageUrl !== ""
                     source: root.imageUrl
+                    sourceSize: Qt.size(88, 88)          // (a notification's picture can be a whole screenshot)
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                 }

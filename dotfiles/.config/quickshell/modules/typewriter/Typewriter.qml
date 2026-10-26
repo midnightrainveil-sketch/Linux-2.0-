@@ -391,6 +391,7 @@ PanelWindow {
             anchors.fill: machine
             source: machine
             radius: 26
+            cached: true                  // it never changes: blurred once, not every frame
             samples: 33
             verticalOffset: 12
             color: Qt.rgba(0, 0, 0, 0.42)
@@ -408,7 +409,7 @@ PanelWindow {
                 id: machineImg
                 anchors.fill: parent
                 source: Qt.resolvedUrl("../../assets/typewriter/typewriter.png")
-                sourceSize: Qt.size(1586, 992)
+                sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
                 smooth: true
                 mipmap: true
             }
@@ -573,6 +574,7 @@ PanelWindow {
             anchors.fill: body
             source: body
             radius: 24
+            cached: true                  // it never changes: blurred once, not every frame
             samples: 33
             verticalOffset: 12
             color: Qt.rgba(0, 0, 0, 0.45)

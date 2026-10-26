@@ -132,6 +132,7 @@ IndexCard {
                 id: sprigImage
                 anchors.fill: parent
                 source: Qt.resolvedUrl("../../assets/sprig-wash.png")
+                sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))   // (the file is 426 x 1369)
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 mipmap: true
