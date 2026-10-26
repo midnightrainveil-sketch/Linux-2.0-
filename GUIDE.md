@@ -317,6 +317,11 @@ instead of scrolling text: `archive-boot quiet` sets it up (setup.sh does
 it), `archive-boot loud` brings the text back, `archive-boot status` shows
 what is set.
 
+Memory: the setup turns on compressed swap in RAM (zram), so a full
+memory slows nothing to a crawl; `archive-memory status` shows what it
+holds, `archive-memory off` turns it off. `archive-health` reports where
+power and memory go.
+
 Mouse: click the sprig for the catalogue, the date for the ledger and the
 status marks for the instruments. "120 Hz" flips the panel between 120 and
 60 Hz (60 saves battery; it holds after a reboot). Next to the battery, the

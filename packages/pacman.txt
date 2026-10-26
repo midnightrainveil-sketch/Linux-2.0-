@@ -79,3 +79,5 @@ bind
 nmap
 # ---- the start-up and shut-down page (archive-boot)
 plymouth
+# ---- compressed swap in memory (archive-memory)
+zram-generator

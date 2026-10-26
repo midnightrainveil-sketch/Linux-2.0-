@@ -185,6 +185,12 @@ say "a quiet start: the herbarium's page instead of the start-up text"
 "$HOME/.local/bin/archive-boot" quiet --auto || warn "the quiet start was not set up; run archive-boot quiet"
 "$HOME/.local/bin/archive-boot" power || warn "the power button was not set up; run archive-boot power"
 
+# ------------------------------------------------------------------ memory
+# compressed swap in memory (zram): when memory runs short, pages are
+# squeezed in RAM instead of the laptop slowing to a crawl
+say "memory: compressed swap in RAM (zram)"
+"$HOME/.local/bin/archive-memory" on || warn "zram was not set up; run archive-memory on"
+
 # ------------------------------------------------------------------ 5. the plugin
 say "building the title bars and paper edges for your Hyprland (a minute or two)"
 if "$HOME/.local/bin/archive-bars" update; then

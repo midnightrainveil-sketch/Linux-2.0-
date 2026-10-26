@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# archive-memory: make the laptop's memory go further.
+#
+#   archive-memory on       compressed swap in memory (zram: zstd, half the
+#                           RAM at most 8 GiB), and the kernel tuned for it
+#   archive-memory off      as Arch has it again
+#   archive-memory status   what is set, and how much it holds now
+#
+# When memory runs short, pages are compressed in RAM (to about a third)
+# instead of the laptop slowing to a crawl or closing programs; a swap file
+# or partition you already have stays, used only after it. The tuning is
+# the Arch wiki's for zram: swap to it readily (it is fast), one page at a
+# time, without boosting reclaim. Safe to run again.
+set -euo pipefail
+gen=/etc/systemd/zram-generator.conf
+sysctl_file=/etc/sysctl.d/99-archive-zram.conf
+
+say() { printf ':: %s\n' "$*"; }
+
+on() {
+    pacman -Qq zram-generator >/dev/null 2>&1 || { say "installing zram-generator"; sudo pacman -S --needed --noconfirm zram-generator; }
+    if [[ -f $gen ]] && ! grep -q "archive-memory" "$gen"; then
+        sudo cp -a "$gen" "$gen.archive-bak"     # yours, kept
+    fi
+    sudo tee "$gen" >/dev/null <<'EOF'
+# The Archive (archive-memory): compressed swap in memory
+[zram0]
+zram-size = min(ram / 2, 8192)
+compression-algorithm = zstd
+swap-priority = 100
+EOF
+    sudo tee "$sysctl_file" >/dev/null <<'EOF'
+# The Archive (archive-memory): tuned for swap in compressed memory (zram)
+vm.swappiness = 180
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
+vm.page-cluster = 0
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl restart systemd-zram-setup@zram0.service 2>/dev/null || say "zram starts at the next boot"
+    sudo sysctl -q --system
+    say "compressed memory on"
+}
+
+off() {
+    sudo swapoff /dev/zram0 2>/dev/null || true
+    sudo systemctl stop systemd-zram-setup@zram0.service 2>/dev/null || true
+    if [[ -f $gen.archive-bak ]]; then sudo mv "$gen.archive-bak" "$gen"
+    elif [[ -f $gen ]] && grep -q "archive-memory" "$gen"; then sudo rm -f "$gen"; fi
+    sudo rm -f "$sysctl_file"
+    sudo systemctl daemon-reload
+    sudo sysctl -q --system
+    say "compressed memory off (the kernel's own settings from the next boot)"
+}
+
+status() {
+    if swapon --show=NAME,SIZE,USED,PRIO --noheadings 2>/dev/null | grep -q zram; then
+        echo "compressed memory (zram):"
+        zramctl 2>/dev/null | sed 's/^/   /'
+    else
+        echo "compressed memory: off"
+    fi
+    echo "swappiness: $(cat /proc/sys/vm/swappiness)"
+    swapon --show 2>/dev/null | sed 's/^/   /'
+}
+
+case ${1:-status} in
+    on) on ;;
+    off) off ;;
+    status) status ;;
+    *) sed -n '2,13p' "$0"; exit 2 ;;
+esac
