@@ -26,9 +26,14 @@ Singleton {
 
     // The cards used now and then (shell.qml) are built only while open, so
     // their pictures and drawing are not kept between uses: show() builds
-    // one, which says ready() once it is there, and opens a moment later
-    // (so it opens as it always has); closed, it is kept a moment for its
-    // closing animation, then let go (gone()).
+    // one, which says ready() once it is there. It is then drawn once,
+    // unseen (each card's window is shown, the card all but transparent,
+    // while it is `preparing`), and says drawn() when that frame is on
+    // screen; it opens a moment later. Opened at once, its first frame
+    // (the window mapped, its pictures and shadows made) would take the
+    // opening animation's time, and the card would appear already open.
+    // Closed, it is kept a moment for its closing animation, then let go
+    // (gone()).
     readonly property var onDemand: ["typewriter", "phonograph", "notebook", "ledger-year"]
     property string preparing: ""
     property string lingering: ""
@@ -36,10 +41,21 @@ Singleton {
     function wanted(name: string): bool { return open === name || preparing === name || lingering === name; }
     function ready(name: string): void {
         const b = Object.assign({}, built); b[name] = true; built = b;
-        if (preparing === name) Qt.callLater(() => { if (root.preparing === name) { root.preparing = ""; root.open = name; } });
+        if (preparing === name) warm.restart();
+    }
+    function drawn(name: string): void {
+        if (preparing === name && !settle.running) settle.restart();
     }
     function gone(name: string): void {
         const b = Object.assign({}, built); delete b[name]; built = b;
+    }
+    function openPrepared(): void {
+        warm.stop();
+        settle.stop();
+        const name = preparing;
+        if (name === "") return;
+        open = name;                    // (it stays wanted: open now holds it)
+        preparing = "";
     }
     property string was: ""
     onOpenChanged: {
@@ -50,6 +66,10 @@ Singleton {
         was = open;
     }
     Timer { id: linger; interval: 1500; onTriggered: root.lingering = "" }
+    // after its first frame, a moment for the pictures loading beside it
+    Timer { id: settle; interval: 60; onTriggered: root.openPrepared() }
+    // in case no frame is reported
+    Timer { id: warm; interval: 1200; onTriggered: root.openPrepared() }
 
     // a quick press of the power button (PowerHold): Disposition asks to
     // shut down, and a second press says yes

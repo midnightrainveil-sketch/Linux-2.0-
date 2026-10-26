@@ -35,7 +35,14 @@ PanelWindow {
     implicitWidth: holder.childrenRect.width + 2 * pad
     implicitHeight: holder.childrenRect.height + pad + padBottom
     color: "transparent"
-    visible: shown || holder.opacity > 0.01
+    // drawn once, unseen, before it moves: while it is being prepared
+    // (Panels.ready), and again as it opens, so that its rise is not spent
+    // on the frame that makes it
+    readonly property bool warming: Panels.preparing === name || (shown && !begun)
+    property bool begun: false
+    property bool counting: false       // (frames drawn before it opened do not count)
+    readonly property bool up: shown && begun
+    visible: shown || holder.opacity > 0.01 || warming
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "archive-popup"
@@ -43,6 +50,9 @@ PanelWindow {
                                        : WlrKeyboardFocus.None
 
     onShownChanged: {
+        begun = holder.opacity > 0.01;  // (still on screen, closing: on at once)
+        counting = false;
+        Qt.callLater(() => { win.counting = true; });
         if (shown) opened();
         else grabArmed = false;
     }
@@ -50,10 +60,15 @@ PanelWindow {
     Item {
         id: holder
         x: win.pad
-        y: win.pad + (win.shown ? 0 : Theme.popupRise)
+        y: win.pad + (win.up ? 0 : Theme.popupRise)
         width: childrenRect.width
         height: childrenRect.height
-        opacity: win.shown ? 1 : 0
+        opacity: win.up ? 1 : win.warming ? (win.shown ? 0.004 : 0.003) : 0
+        Connections {
+            target: win.warming ? holder.Window.window : null
+            function onFrameSwapped() { if (!win.shown) Panels.drawn(win.name); else if (win.counting) win.begun = true; }
+        }
+        Timer { interval: 400; running: win.shown && !win.begun; onTriggered: win.begun = true }
 
         Behavior on y { NumberAnimation { duration: win.shown ? Theme.durPopup : Theme.durWindowOut; easing.type: Easing.Bezier; easing.bezierCurve: win.shown ? Theme.place : Theme.lift } }
         Behavior on opacity { NumberAnimation { duration: win.shown ? Theme.durPopup : Theme.durWindowOut; easing.type: Easing.Bezier; easing.bezierCurve: win.shown ? Theme.place : Theme.lift } }

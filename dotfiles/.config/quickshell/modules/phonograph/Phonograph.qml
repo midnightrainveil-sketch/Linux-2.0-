@@ -30,7 +30,13 @@ PanelWindow {
     WlrLayershell.namespace: "archive-phonograph"
     WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     color: "transparent"
-    visible: shown || slide > 0.001
+    // drawn once, unseen, before it moves: while it is being prepared
+    // (Panels.ready), and again as it opens, so that the slide is not
+    // spent on the frame that makes it
+    readonly property bool warming: Panels.preparing === name || (shown && !begun)
+    property bool begun: false
+    property bool counting: false       // (frames drawn before it opened do not count)
+    visible: shown || slide > 0.001 || warming
     mask: Region { item: win.shown ? catcher : null }
 
     // ---------------------------------------------------------------- what is shown
@@ -58,6 +64,9 @@ PanelWindow {
     }
 
     onShownChanged: {
+        begun = slide > 0.001;          // (still on screen, closing: on at once)
+        counting = false;
+        Qt.callLater(() => { win.counting = true; });
         if (shown) {
             leafed = false;
             Gramophone.readLibrary();
@@ -98,7 +107,7 @@ PanelWindow {
     }
 
     // ---------------------------------------------------------------- motion
-    property real slide: shown ? 1 : 0
+    property real slide: shown && begun ? 1 : 0
     Behavior on slide {
         NumberAnimation {
             duration: win.shown ? Theme.dur(520) : Theme.dur(260)
@@ -109,6 +118,11 @@ PanelWindow {
 
     // ---------------------------------------------------------------- the room
     Item { id: catcher; anchors.fill: parent }
+    Connections {
+        target: win.warming ? catcher.Window.window : null
+        function onFrameSwapped() { if (!win.shown) Panels.drawn(win.name); else if (win.counting) win.begun = true; }
+    }
+    Timer { interval: 400; running: win.shown && !win.begun; onTriggered: win.begun = true }
     Rectangle {
         anchors.fill: parent
         color: Theme.night > 0.5 ? "#050b16" : "#1e1d22"
@@ -164,7 +178,7 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         // slid up out of the bar
         y: win.height - Theme.barHeight - height - 16 + (1 - win.slide) * (height + 60)
-        opacity: Math.min(1, win.slide * 3)
+        opacity: win.warming ? (win.shown ? 0.004 : 0.003) : Math.min(1, win.slide * 3)
 
         MouseArea { anchors.fill: parent }        // the desk itself does not close it
 
