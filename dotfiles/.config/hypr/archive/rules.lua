@@ -48,8 +48,19 @@ hl.window_rule({
 -- window. Newly opened terminals are ordinary windows.
 local desk_home = nil   -- the workspace it stepped off (forgotten on reload)
 
+-- (a desk terminal lifted into an ordinary window, archive-desk lift, is
+-- told a new app-id; its address is kept too, in case that is not taken up)
+local released_file = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/archive-desk-released"
+local function released(w)
+    local f = io.open(released_file, "r")
+    if f == nil then return false end
+    local s = f:read("*a")
+    f:close()
+    return s:find(tostring(w.address), 1, true) ~= nil
+end
+
 local function is_desk(w)
-    return w ~= nil and w.class == "archive.desk"
+    return w ~= nil and w.class == "archive.desk" and not released(w)
 end
 
 local function find_desk()

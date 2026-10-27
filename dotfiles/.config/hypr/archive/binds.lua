@@ -11,6 +11,7 @@ local function shell(target, fn) return exec("qs ipc call " .. target .. " " .. 
 ------------------------------------------------------------------ the shell
 hl.bind(mod .. " + Space", shell("shell", "catalogue"), { description = "Card Catalogue (launcher)" })
 hl.bind(mod .. " + D", exec("archive-desk"), { description = "Lay the desk out again (cards and terminal)" })
+hl.bind(mod .. " + SHIFT + D", exec("archive-desk lift"), { description = "Lift the desk terminal into a window" })
 hl.bind(mod .. " + C", shell("shell", "ledger"), { description = "Ledger (calendar)" })
 hl.bind(mod .. " + I", shell("shell", "instruments"), { description = "Instrument card (quick settings)" })
 hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Reading Room (lock)" })

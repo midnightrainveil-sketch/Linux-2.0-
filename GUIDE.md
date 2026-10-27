@@ -280,6 +280,7 @@ number is the current air pressure in hPa.
 | `Super + V` | Clippings: everything you copied lately, pictures too. Type to find one; click (or `Enter`) pastes it into the window you were in, right-click (or `Shift + Enter`) only copies it, `Delete` strikes it out; "Clear all" empties the history |
 | `Super + .` | Glyphs: emoji, and the marks a keyboard lacks (— “ ” → ± ° €…), in drawers by kind, the ones you used lately first. Type a name to find one (`heart`, `arrow`, `dash`); click types it, right-click copies it |
 | `Super + /` | Index of keys: every shortcut on one card (yours from `user.lua` too); type to find one |
+| `Super + Shift + D` | Lift the desk terminal into an ordinary window: the same terminal, everything in it carried over (tmux, a running program, what you typed), tiled and in normal-size type; a fresh terminal is laid on the desk |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |

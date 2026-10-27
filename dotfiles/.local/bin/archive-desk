@@ -3,6 +3,10 @@
 #
 #   archive-desk            put everything back (the bar's desk button, Super+D)
 #   archive-desk terminal   just the terminal
+#   archive-desk lift       the desk terminal becomes an ordinary terminal
+#                           window, all in it carried over (tmux, programs,
+#                           what was typed), and a fresh one is laid on the
+#                           desk (Super+Shift+D)
 #
 # The desk is the three record cards on the right and one live terminal on
 # the left (the reference picture). Drag them around, close them, send the
@@ -19,9 +23,22 @@ X=0.019 Y=0.25 W=0.328 BAR=46
 # whole fastfetch card fits (other terminals keep foot.ini's 14.5 pt)
 FONT="Courier Prime:size=10,IBM Plex Mono:size=10"
 
+# desk terminals lifted into ordinary windows (their addresses), for this
+# log-in; hypr/archive/rules.lua reads it too
+released="${XDG_RUNTIME_DIR:-/tmp}/archive-desk-released"
+opening="${XDG_RUNTIME_DIR:-/tmp}/archive-desk-opening"
+
+# the desk terminal's window: [address, pid] (not one lifted already)
+desk_window() {
+    hyprctl clients -j | jq -r --rawfile gone <(cat "$released" 2>/dev/null || true) '
+        [.[] | . as $w | select($w.class == "archive.desk" and ([$gone | split("\n")[] | select(. == $w.address)] | length == 0))][0]
+        | if . == null then empty else "\(.address) \(.pid)" end'
+}
+
 open_terminal() {
-    # one desk terminal: not again while one is still starting
-    pgrep -f -- '--app-id=archive.desk' >/dev/null && return
+    # one desk terminal: not again while one is still starting (5 s)
+    if [[ -e $opening ]] && (( $(date +%s) - $(stat -c %Y "$opening") < 5 )); then return; fi
+    touch "$opening"
     setsid -f foot --app-id=archive.desk \
         --override="main.font=$FONT" \
         --override="main.font-bold=Courier Prime:weight=Bold:size=10,IBM Plex Mono:weight=SemiBold:size=10" \
@@ -34,8 +51,8 @@ cards() {
 }
 
 terminal() {
-    local addr
-    addr=$(hyprctl clients -j | jq -r '[.[] | select(.class == "archive.desk")][0].address // empty')
+    local addr pid
+    read -r addr pid < <(desk_window) || true
     if [[ -z $addr ]]; then
         # rules.lua floats it and puts it in place
         open_terminal
@@ -65,6 +82,39 @@ terminal() {
     # pointer anyway; click the terminal to type)
 }
 
+# The desk terminal, lifted into an ordinary window: the same window, so
+# all that runs in it stays. foot is told a new app-id (OSC 176, written
+# to its terminal directly, so tmux or a program in front does not stand
+# in the way): from then on Hyprland treats it as any terminal. It is tiled
+# on the workspace you are on, its type brought up to a working
+# terminal's (the desk's is smaller: 10 pt, then 9 steps of 0.5 pt to
+# foot.ini's 14.5), and a fresh terminal is laid on the desk.
+lift() {
+    local addr pid shell tty
+    read -r addr pid < <(desk_window) || true
+    if [[ -z ${addr:-} ]]; then
+        echo "no desk terminal to lift" >&2
+        return 1
+    fi
+    shell=$(pgrep -o -P "$pid" || true)
+    tty=$(readlink "/proc/${shell:-0}/fd/0" 2>/dev/null || true)
+    [[ $tty == /dev/pts/* ]] && printf '\033]176;foot\033\\' >"$tty"
+    echo "$addr" >>"$released"
+
+    local ws win="window = \"address:$addr\""
+    ws=$(hyprctl activeworkspace -j | jq -r '.id')
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.window.float({ action = \"off\", $win })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ $win })" >/dev/null
+    sleep 0.25
+    local keys=() i
+    for i in 1 2 3 4 5 6 7 8 9; do keys+=(-k equal); done
+    wtype -M ctrl "${keys[@]}" -m ctrl 2>/dev/null || true
+
+    sleep 0.4
+    open_terminal
+}
+
 case ${1:-all} in
     all | restore)
         cards
@@ -72,5 +122,6 @@ case ${1:-all} in
         ;;
     terminal) terminal ;;
     cards) cards ;;
-    *) echo "usage: archive-desk [all|terminal|cards]" >&2; exit 2 ;;
+    lift) lift ;;
+    *) echo "usage: archive-desk [all|terminal|cards|lift]" >&2; exit 2 ;;
 esac

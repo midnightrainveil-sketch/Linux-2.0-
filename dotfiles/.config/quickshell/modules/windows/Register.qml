@@ -58,6 +58,7 @@ PanelWindow {
         altMode = alt;
         pendingSelect = step;
         selected = 0;
+        released.reload();
         lister.running = true;
         Panels.show("register");
     }
@@ -112,7 +113,13 @@ PanelWindow {
         return "Desk " + (w.workspace?.id ?? "?");
     }
     function putAway(w): bool { return (w.workspace?.name ?? "") === "special:drawer"; }
-    function isDesk(w): bool { return w.class === "archive.desk"; }
+    // (not one lifted into an ordinary window: archive-desk lift)
+    function isDesk(w): bool { return w.class === "archive.desk" && released.text().indexOf(w.address) < 0; }
+    FileView {
+        id: released
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/archive-desk-released"
+        printErrors: false
+    }
 
     function entryFor(w) {
         const cls = w.class || w.initialClass || "";
