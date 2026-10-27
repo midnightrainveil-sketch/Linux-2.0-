@@ -183,13 +183,14 @@ local function bars(name, extras)
     hl.config({ plugin = { [name] = opts } })
 
     -- three ink dots, in the usual order: file away (close, red), drawer
-    -- (minimise, yellow), full sheet (maximise and back, green)
+    -- (minimise, yellow), full sheet (maximise and back, green; on the desk
+    -- terminal it lifts it into an ordinary window instead: archive-desk dot)
     local api = hl.plugin[name]
     -- each in its own muted pigment (palette.lua); grey on unfocused windows
     for _, b in ipairs({
         { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close },
         { drawer, c.dot_away },
-        { [[hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })']], c.dot_full },
+        { "archive-desk dot", c.dot_full },
     }) do
         api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
     end

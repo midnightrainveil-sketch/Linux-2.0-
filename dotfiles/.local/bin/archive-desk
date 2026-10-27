@@ -7,6 +7,8 @@
 #                           window, all in it carried over (tmux, programs,
 #                           what was typed), and a fresh one is laid on the
 #                           desk (Super+Shift+D)
+#   archive-desk dot        the title bar's green dot: on the desk terminal,
+#                           lift it; on any other window, maximise and back
 #
 # The desk is the three record cards on the right and one live terminal on
 # the left (the reference picture). Drag them around, close them, send the
@@ -115,6 +117,17 @@ lift() {
     open_terminal
 }
 
+# the green dot acts on the window it was clicked on (the focused one)
+dot() {
+    local cls addr
+    read -r cls addr < <(hyprctl activewindow -j | jq -r '"\(.class) \(.address)"') || true
+    if [[ ${cls:-} == archive.desk ]] && ! grep -qxF "${addr:-}" "$released" 2>/dev/null; then
+        lift
+    else
+        hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" })' >/dev/null
+    fi
+}
+
 case ${1:-all} in
     all | restore)
         cards
@@ -123,5 +136,6 @@ case ${1:-all} in
     terminal) terminal ;;
     cards) cards ;;
     lift) lift ;;
-    *) echo "usage: archive-desk [all|terminal|cards|lift]" >&2; exit 2 ;;
+    dot) dot ;;
+    *) echo "usage: archive-desk [all|terminal|cards|lift|dot]" >&2; exit 2 ;;
 esac
