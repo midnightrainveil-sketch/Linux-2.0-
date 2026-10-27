@@ -250,6 +250,9 @@ BarPopup {
             ArchiveButton { text: "Wi-Fi"; onClicked: { Quickshell.execDetached(["foot", "--title=Wi-Fi", "-e", "nmtui-connect"]); Panels.close(); } }
             ArchiveButton { text: "Devices"; onClicked: { Quickshell.execDetached(["blueman-manager"]); Panels.close(); } }
             ArchiveButton { text: "Machine"; onClicked: { Quickshell.execDetached(["rog-control-center"]); Panels.close(); } }
+            ArchiveButton { text: "Keys"; onClicked: Panels.show("keys") }
+            // go back to a restore point (archive-snapshot: Timeshift asks which)
+            ArchiveButton { text: "Restore"; onClicked: { Quickshell.execDetached(["foot", "--title=Restore points", "-e", "archive-snapshot", "restore"]); Panels.close(); } }
         }
     }
 }

@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+# archive-snapshot: restore points for the system (Timeshift), so an update
+# that breaks something can be undone.
+#
+#   archive-snapshot on        set it up: Timeshift, a restore point before
+#                              every system update (pacman, yay, archive-update)
+#                              and one a day; the first is made now, in the
+#                              background (it takes a while: a full copy)
+#   archive-snapshot now       a restore point now
+#   archive-snapshot list      the restore points kept
+#   archive-snapshot restore   go back to one: Timeshift asks which (by its
+#                              number), then restarts the computer
+#   archive-snapshot off       no more restore points (the ones kept stay
+#                              until you delete them in Timeshift)
+#   archive-snapshot status    whether it is on, and the newest
+#
+# What is kept: the system (programs, settings in /etc, the kernel), not
+# your home folder: going back never touches your files. Timeshift copies
+# with rsync (on any filesystem, ext4 or btrfs) into /timeshift on the same
+# disk; after the first full copy each one holds only what changed. Kept:
+# 5 daily, and the 3 newest from before updates.
+#
+# If the desktop will not start after an update: Ctrl + Alt + F2, log in,
+# and run: sudo timeshift --restore
+set -euo pipefail
+
+installed=/usr/local/bin/archive-snapshot      # root's own copy (the pacman hook runs it)
+hook=/etc/pacman.d/hooks/00-archive-snapshot.hook
+unit=/etc/systemd/system/archive-snapshot
+config=/etc/timeshift/timeshift.json
+keep_updates=3
+off_mark="${XDG_STATE_HOME:-$HOME/.local/state}/archive/snapshots-off"
+need_gb=30          # free space wanted before the first copy
+
+say() { printf ':: %s\n' "$*"; }
+
+# ---------------------------------------------------------------- as root
+# the newest restore point's age in minutes (or a large number if none)
+newest_age() {
+    local newest
+    newest=$(ls -1d /timeshift/snapshots/*/ 2>/dev/null | sort | tail -n1 || true)
+    [[ -n $newest ]] || { echo 999999; return; }
+    echo $(( ($(date +%s) - $(stat -c %Y "$newest")) / 60 ))
+}
+
+# before a pacman transaction (the hook): quick, and never in the way: it
+# always lets the update go on, whatever happens here
+before_update() {
+    set +e +o pipefail
+    [[ -f $config ]] || exit 0
+    pgrep -x timeshift >/dev/null && exit 0             # one is being made already
+    [[ -d /timeshift/snapshots ]] && ls /timeshift/snapshots/*/ >/dev/null 2>&1 || exit 0   # the first is still to come
+    (( $(newest_age) >= 60 )) || exit 0                 # one from this past hour will do
+    echo ":: archive: a restore point before this update (archive-snapshot)"
+    timeshift --create --scripted --tags O --comments "before update" >/dev/null 2>&1 \
+        || echo "   (no restore point: see sudo timeshift --list)"
+    # only the newest few from before updates are kept
+    local old
+    timeshift --list --scripted 2>/dev/null | awk '$3 ~ /^[0-9]{4}-/ && $4 ~ /O/ && /before update/ { print $3 }' \
+        | sort | head -n -"$keep_updates" | while read -r old; do
+            timeshift --delete --snapshot "$old" --scripted >/dev/null 2>&1 || true
+        done
+    exit 0
+}
+
+# ---------------------------------------------------------------- set up
+write_config() {
+    local src uuid parent=""
+    src=$(findmnt -no SOURCE / | sed 's/\[.*\]$//')
+    uuid=$(findmnt -no UUID / || true)
+    [[ -n $uuid ]] || uuid=$(sudo blkid -s UUID -o value "$src")
+    # an encrypted disk: Timeshift also wants the partition under it
+    if [[ $(lsblk -no TYPE "$src" 2>/dev/null | head -n1) == crypt ]]; then
+        parent=$(lsblk -sno UUID,TYPE "$src" | awk '$2 == "part" { print $1; exit }')
+    fi
+    sudo mkdir -p /etc/timeshift
+    [[ -f $config && ! -f $config.archive-bak ]] && sudo cp "$config" "$config.archive-bak"
+    sudo tee "$config" >/dev/null <<EOF
+{
+  "backup_device_uuid" : "$uuid",
+  "parent_device_uuid" : "$parent",
+  "do_first_run" : "false",
+  "btrfs_mode" : "false",
+  "include_btrfs_home_for_backup" : "false",
+  "include_btrfs_home_for_restore" : "false",
+  "stop_cron_emails" : "true",
+  "schedule_monthly" : "false",
+  "schedule_weekly" : "false",
+  "schedule_daily" : "true",
+  "schedule_hourly" : "false",
+  "schedule_boot" : "false",
+  "count_monthly" : "2",
+  "count_weekly" : "3",
+  "count_daily" : "5",
+  "count_hourly" : "6",
+  "count_boot" : "5",
+  "date_format" : "%Y-%m-%d %H:%M:%S",
+  "exclude" : [
+    "/home/**",
+    "/root/**",
+    "/var/cache/pacman/pkg/**",
+    "/var/tmp/**",
+    "/var/lib/systemd/coredump/**",
+    "/swapfile",
+    "/timeshift/**"
+  ],
+  "exclude-apps" : []
+}
+EOF
+}
+
+on() {
+    command -v timeshift >/dev/null || { say "installing Timeshift"; sudo pacman -S --needed --noconfirm timeshift rsync; }
+    local free_gb
+    free_gb=$(df -BG --output=avail / | tail -n1 | tr -dc '0-9')
+    if [[ ! -d /timeshift/snapshots ]] && (( free_gb < need_gb )); then
+        say "only ${free_gb} GB free on the system disk; restore points want about ${need_gb} GB"
+        say "free some space and run: archive-snapshot on"
+        exit 1
+    fi
+
+    say "Timeshift: the system (not your home folder), 5 daily and 3 before updates"
+    write_config
+
+    # root runs its own copy, never the one in your home folder
+    sudo install -Dm755 "$(readlink -f "$0")" "$installed"
+
+    sudo mkdir -p /etc/pacman.d/hooks
+    sudo tee "$hook" >/dev/null <<EOF
+# The Archive (archive-snapshot): a restore point before the system changes
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Making a restore point (archive-snapshot)...
+When = PreTransaction
+Exec = $installed before-update
+EOF
+
+    # the daily one: Timeshift's own check, once a day (or at the next start)
+    sudo tee "$unit.service" >/dev/null <<EOF
+[Unit]
+Description=A restore point, if one is due (archive-snapshot)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+ExecStart=/usr/bin/timeshift --check --scripted
+EOF
+    sudo tee "$unit.timer" >/dev/null <<EOF
+[Unit]
+Description=A restore point each day (archive-snapshot)
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now archive-snapshot.timer >/dev/null
+    rm -f "$off_mark"
+    if ! ls /timeshift/snapshots/*/ >/dev/null 2>&1; then
+        say "the first restore point is being made in the background (a full copy: 10-30 minutes)"
+        sudo systemctl start --no-block archive-snapshot.service
+    fi
+    say "restore points on. See them with: archive-snapshot list"
+}
+
+off() {
+    sudo systemctl disable --now archive-snapshot.timer 2>/dev/null || true
+    sudo rm -f "$hook" "$unit.service" "$unit.timer" "$installed"
+    sudo systemctl daemon-reload
+    mkdir -p "$(dirname "$off_mark")" && touch "$off_mark"     # (setup leaves it off)
+    say "no more restore points; the ones kept stay (sudo timeshift --list, --delete)"
+}
+
+status() {
+    if [[ -f $hook ]]; then echo "restore points: on (before updates, and daily)"; else echo "restore points: off (archive-snapshot on)"; fi
+    if pgrep -x timeshift >/dev/null; then echo "now:            one is being made"; fi
+    local newest
+    newest=$(ls -1d /timeshift/snapshots/*/ 2>/dev/null | sort | tail -n1 || true)
+    if [[ -n $newest ]]; then
+        echo "newest:         $(basename "$newest")  ($(ls -1d /timeshift/snapshots/*/ | wc -l) kept)"
+    else
+        echo "newest:         none yet"
+    fi
+    df -h --output=avail / | tail -n1 | sed 's/^ */free on disk:   /'
+}
+
+case ${1:-status} in
+    on) on ;;
+    off) off ;;
+    now) sudo timeshift --create --comments "by hand" --tags O ;;
+    list) sudo timeshift --list ;;
+    restore) exec sudo timeshift --restore ;;
+    before-update)
+        [[ $EUID -eq 0 ]] || { echo "before-update is for the pacman hook" >&2; exit 2; }
+        before_update ;;
+    status) status ;;
+    *) sed -n '2,25p' "$0"; exit 2 ;;
+esac

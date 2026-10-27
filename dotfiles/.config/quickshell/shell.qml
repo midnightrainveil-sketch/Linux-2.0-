@@ -28,6 +28,7 @@ import qs.modules.photo
 import qs.modules.phonograph
 import qs.modules.notebook
 import qs.modules.typewriter
+import qs.modules.tools
 
 ShellRoot {
     id: shell
@@ -77,6 +78,21 @@ ShellRoot {
         onItemChanged: if (item) Panels.ready("typewriter"); else Panels.gone("typewriter")
         Typewriter { screen: shell.focusedScreen }
     }
+    LazyLoader {
+        active: Panels.wanted("clippings")
+        onItemChanged: if (item) Panels.ready("clippings"); else Panels.gone("clippings")
+        Clippings { screen: shell.focusedScreen }
+    }
+    LazyLoader {
+        active: Panels.wanted("keys")
+        onItemChanged: if (item) Panels.ready("keys"); else Panels.gone("keys")
+        KeyIndex { screen: shell.focusedScreen }
+    }
+    LazyLoader {
+        active: Panels.wanted("glyphs")
+        onItemChanged: if (item) Panels.ready("glyphs"); else Panels.gone("glyphs")
+        Glyphs { screen: shell.focusedScreen }
+    }
     PowerHold   { id: powerHold; screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
@@ -92,6 +108,9 @@ ShellRoot {
         function phonograph(): void { Panels.toggle("phonograph"); }
         function notebook(): void { Panels.toggle("notebook"); }
         function typewriter(): void { Panels.toggle("typewriter"); }
+        function clippings(): void { Panels.toggle("clippings"); }
+        function keys(): void { Panels.toggle("keys"); }
+        function glyphs(): void { Panels.toggle("glyphs"); }
         function close(): void { Panels.close(); }
         // the Register (open windows): the bar button, and Alt+Tab
         function register(): void { registerCard.toggle(); }

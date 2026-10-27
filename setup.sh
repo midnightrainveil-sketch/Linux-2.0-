@@ -184,6 +184,17 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, ROG Control)"
 fi
 
+# ------------------------------------------------------------------ restore points
+# Timeshift: one before every system update and one a day, so an update
+# that breaks something can be undone (archive-snapshot); kept current, unless
+# you turned it off (archive-snapshot off)
+if [[ ! -f "${XDG_STATE_HOME:-$HOME/.local/state}/archive/snapshots-off" ]] \
+    && { [[ ! -f /etc/pacman.d/hooks/00-archive-snapshot.hook ]] \
+         || ! cmp -s "$HOME/.local/bin/archive-snapshot" /usr/local/bin/archive-snapshot; }; then
+    say "restore points: one before each update, and one a day"
+    "$HOME/.local/bin/archive-snapshot" on || warn "restore points were not set up; run archive-snapshot on"
+fi
+
 # ------------------------------------------------------------------ a quiet start, and the power button
 # the herbarium's page while it starts and shuts down, not scrolling text;
 # a press of the power button opens the power menu, holding it shuts down

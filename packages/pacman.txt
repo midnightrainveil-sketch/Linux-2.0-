@@ -52,6 +52,7 @@ grim
 slurp
 wl-clipboard
 cliphist
+wtype
 jq
 libnotify
 xdg-utils
@@ -59,6 +60,7 @@ xdg-utils
 ttf-ibm-plex
 noto-fonts
 noto-fonts-cjk
+noto-fonts-emoji
 adw-gtk-theme
 papirus-icon-theme
 qt6ct
@@ -81,3 +83,5 @@ nmap
 plymouth
 # ---- compressed swap in memory (archive-memory)
 zram-generator
+timeshift
+rsync

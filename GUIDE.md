@@ -277,11 +277,14 @@ number is the current air pressure in hPa.
 | `Super + A`, or click the Audio Archive card | The Phonograph: a turntable beside your albums (each folder in `~/Music`, filed as a herbarium sheet). Click a track or `Enter`; `← →` other folders, `↑ ↓` tracks, `Space` or click the record to pause, `N`/`P` next/previous, drag the tone arm to drop the needle. Needs `mpv` (and `mpv-mpris` for media keys); the music plays on when it closes. The brass buttons are previous / pause / next; drag along the line on the title card to move in the song; hold the record and turn it to wind back or on; the track's own picture is printed on the label |
 | `Super + O` | The field notebook: write straight onto the page; every page is a file in `~/Documents/Field Notes`, saved as you write. `PageDown`/`PageUp` or the corners turn pages, `Ctrl + N` a fresh one |
 | `Super + R` | The label typewriter, one quick line: a sum (`12*4.5`, `= sqrt(2)`; `Enter` copies the answer), `> command` runs it in a terminal, an address opens it, anything else is looked up on Google. Each letter is struck onto the slip by its own typebar |
+| `Super + V` | Clippings: everything you copied lately, pictures too. Type to find one; click (or `Enter`) pastes it into the window you were in, right-click (or `Shift + Enter`) only copies it, `Delete` strikes it out; "Clear all" empties the history |
+| `Super + .` | Glyphs: emoji, and the marks a keyboard lacks (— “ ” → ± ° €…), in drawers by kind, the ones you used lately first. Type a name to find one (`heart`, `arrow`, `dash`); click types it, right-click copies it |
+| `Super + /` | Index of keys: every shortcut on one card (yours from `user.lua` too); type to find one |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |
 | `Super + F` / `Super + M` | Fullscreen / maximise |
-| `Super + V` | Float or tile the window |
+| `Super + Shift + V` | Float or tile the window |
 | `Super + ←↑→↓` or `H K L` | Move focus (`J` toggles the split) |
 | `Super + Shift + ←↑→↓` | Swap windows |
 | `Super + 1…9` / `Super + Shift + 1…9` | Go to / send to workspace |

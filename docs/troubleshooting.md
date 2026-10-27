@@ -161,6 +161,20 @@ ASUS's own panel profiles are on the Windows side, under
 Only one notification daemon can run at a time. Remove `mako` and `dunst`,
 or stop them: `pkill mako; pkill dunst`.
 
+## An update broke something (restore points)
+
+`archive-snapshot` keeps restore points of the system (Timeshift): one before
+every system update and one a day. They hold the programs, `/etc` and the
+kernel, never your home folder, so going back does not touch your files.
+
+- **The desktop still starts:** Instruments, then **Restore**; or in a
+  terminal `archive-snapshot restore`. Timeshift lists the restore points
+  by number: pick the one from before the update, confirm, and it restarts.
+- **The desktop does not start:** press `Ctrl + Alt + F2`, log in, and run
+  `sudo timeshift --restore`.
+- `archive-snapshot list` shows them; `archive-snapshot now` makes one by
+  hand (before trying something risky); `archive-snapshot off` stops them.
+
 ## Starting over
 
 Your old files are in `~/.archive-backup/<date>/`. To remove the links, run

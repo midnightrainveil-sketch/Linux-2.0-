@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# archive-clips: the clipboard's history (cliphist, which Hyprland starts
+# to keep everything copied) for the Clippings card (Super + V).
+#
+#   archive-clips list           the newest 60, one per line:
+#                                <id> TAB text|image TAB <text, or a picture's file>
+#   archive-clips paste <id>     onto the clipboard, and pasted into the
+#                                window you were in
+#   archive-clips copy <id>      onto the clipboard only
+#   archive-clips type <text>    typed into the window you were in (emoji)
+#   archive-clips delete <id>    out of the history
+#   archive-clips wipe           the whole history gone
+#
+# Pictures are written out once (to $XDG_RUNTIME_DIR, gone at log-out) so
+# the card can show them.
+set -euo pipefail
+pics="${XDG_RUNTIME_DIR:-/tmp}/archive-clips"
+
+# the window the card was over: a terminal pastes with Ctrl+Shift+V
+paste_keys() {
+    sleep 0.18      # the card closes and the window has the keyboard again
+    local cls
+    cls=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // ""' 2>/dev/null || true)
+    case ${cls,,} in
+        foot | footclient | kitty | alacritty | *wezterm* | *ghostty* | *konsole* | *gnome-terminal* | xterm | *ptyxis* | archive.desk)
+            wtype -M ctrl -M shift -k v -m shift -m ctrl ;;
+        *) wtype -M ctrl -k v -m ctrl ;;
+    esac
+}
+
+case ${1:-list} in
+    list)
+        mkdir -p "$pics"
+        cliphist list 2>/dev/null | head -n 60 | while IFS=$'\t' read -r id preview; do
+            # cliphist shows a picture as [[ binary data 12 KiB png 640x480 ]]
+            if [[ $preview =~ ^\[\[\ binary\ data.*\ (png|jpeg|jpg|webp|bmp|gif)\ ([0-9]+x[0-9]+)\ \]\]$ ]]; then
+                f="$pics/$id.${BASH_REMATCH[1]}"
+                [[ -s $f ]] || printf '%s\t\n' "$id" | cliphist decode >"$f" 2>/dev/null || true
+                printf '%s\timage\t%s\t%s\n' "$id" "$f" "${BASH_REMATCH[2]}"
+            elif [[ $preview == '[[ binary data'* ]]; then
+                continue    # something else not text (a file list, a font): nothing to show
+            else
+                printf '%s\ttext\t%s\n' "$id" "$preview"
+            fi
+        done
+        ;;
+    paste | copy)
+        id=${2:?an id from: archive-clips list}
+        printf '%s\t\n' "$id" | cliphist decode | wl-copy
+        [[ $1 == paste ]] && paste_keys
+        ;;
+    type)
+        sleep 0.18
+        wtype -- "${2:?some text}"
+        ;;
+    delete)
+        printf '%s\t\n' "${2:?an id}" | cliphist delete
+        rm -f "$pics/${2}".*
+        ;;
+    wipe)
+        cliphist wipe
+        rm -rf "$pics"
+        ;;
+    *) sed -n '2,14p' "$0"; exit 2 ;;
+esac
