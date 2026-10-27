@@ -40,10 +40,30 @@ function M.mode()
     return "day"
 end
 
--- the internal panel's refresh rate, 60 or 120 (archive-refresh, the bar's "Hz")
+-- plugged in: any mains supply online (none at all counts as plugged in)
+function M.plugged()
+    local ls = io.popen("ls /sys/class/power_supply 2>/dev/null")
+    if ls == nil then return true end
+    local found, online = false, false
+    for name in ls:lines() do
+        local dir = "/sys/class/power_supply/" .. name
+        local kind = read(dir .. "/type")
+        if kind and kind:match("Mains") then
+            found = true
+            local o = read(dir .. "/online")
+            if o and o:match("1") then online = true end
+        end
+    end
+    ls:close()
+    return online or not found
+end
+
+-- the internal panel's refresh rate, 60 or 120: as chosen, or "auto", 120
+-- plugged in and 60 on battery (archive-refresh, the bar's "Hz")
 function M.refresh()
     local s = read(M.state_dir .. "/refresh")
     if s and s:match("^%s*60") then return 60 end
+    if s and s:match("^%s*auto") then return M.plugged() and 120 or 60 end
     return 120
 end
 

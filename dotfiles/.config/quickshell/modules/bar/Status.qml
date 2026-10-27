@@ -52,21 +52,15 @@ Row {
         }
     }
 
-    // The panel's refresh rate, typed: click for 60 / 120 Hz (archive-refresh)
+    // The panel's refresh rate, typed: click for 60 / 120 Hz; Auto (set in
+    // Instruments) shows the rate it is at now (archive-refresh)
     Item {
         width: hz.implicitWidth
         height: Theme.barHeight
-        FileView {
-            id: refreshFile
-            path: Settings.stateHome + "/archive/refresh"
-            watchChanges: true
-            onFileChanged: reload()
-            printErrors: false
-        }
         Measure {
             id: hz
             anchors.centerIn: parent
-            figure: refreshFile.text().trim() === "60" ? "60" : "120"
+            figure: String(Refresh.rate)
             unit: "Hz"
             ink: hzMouse.containsMouse ? Theme.graphite : Theme.soft
         }
@@ -75,12 +69,8 @@ Row {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                Quickshell.execDetached(["archive-refresh", "toggle"]);
-                rereadHz.restart();
-            }
+            onClicked: Refresh.toggle()
         }
-        Timer { id: rereadHz; interval: 400; onTriggered: refreshFile.reload() }
     }
 
     Mark {

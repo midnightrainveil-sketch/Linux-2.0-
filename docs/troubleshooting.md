@@ -72,7 +72,7 @@ in `~/.config/archive/settings.json` and run `hyprctl reload`.
 - Check the GPU names: `ls -l /dev/dri/amd-igpu /dev/dri/nvidia-dgpu`.
   If they are missing, run `./install.sh --g14` and reboot.
 - If you switched to *AsusMuxDgpu* mode, the iGPU no longer drives the
-  panel. Go back to Hybrid (`supergfxctl -m Hybrid`) or remove `amd-igpu` from
+  panel. Go back to Hybrid (ROG Control's GPU page) or remove `amd-igpu` from
   `machine.lua`.
 
 ## The lock screen crashed (solid colour, cannot unlock)

@@ -76,7 +76,7 @@ docs/                       G14 notes, customising, design map, troubleshooting
 ## Docs
 
 - [GUIDE.md](GUIDE.md): installation, phase by phase
-- [docs/zephyrus-g14.md](docs/zephyrus-g14.md): the laptop side: asusctl, supergfxctl, NVIDIA, battery
+- [docs/zephyrus-g14.md](docs/zephyrus-g14.md): the laptop side: asusctl, GPU modes, NVIDIA, battery
 - [docs/customise.md](docs/customise.md): settings, colours, plates, keybinds
 - [docs/design-map.md](docs/design-map.md): every rule of the design spec, and where it lives
 - [docs/troubleshooting.md](docs/troubleshooting.md)

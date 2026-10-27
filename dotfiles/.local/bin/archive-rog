@@ -8,6 +8,10 @@
 #   archive-rog power     the profile follows the charger: Quiet on battery,
 #                         Balanced plugged in (asusd switches it)
 #   archive-rog calm      the profile stays what you chose: no switching
+#   archive-rog switch    GPU switching in ROG Control (its GPU page): asusd
+#                         does it itself since asusctl 6.3.9, and the old
+#                         supergfxd, still running, fights it; this removes
+#                         supergfxctl and restarts asusd. Log out afterwards.
 #   archive-rog sleep     quick, clean waking: with NVIDIA driver 595 or newer
 #                         (open modules) the driver suspends itself, so its
 #                         systemd services, which switch to a text console
@@ -20,8 +24,11 @@
 #
 # Hybrid is "screen on the iGPU, dGPU wakes for whatever asks for it": the
 # MUX stays on the iGPU and the dGPU sleeps (no power) when nothing uses it,
-# so on battery it is as good as off. supergfxctl -m Integrated removes it
-# entirely, but every switch needs a log-out, so it is not done automatically.
+# so on battery it is as good as off. Integrated (ROG Control's GPU page)
+# removes it entirely, but every switch needs a log-out, so it is not done
+# automatically. ROG Control switches through the kernel's asus-armoury
+# driver, which is in Linux 6.19 and newer: on an older kernel (linux-lts
+# 6.18) its GPU page has nothing to switch.
 #
 # asusd's own config is /etc/asusd/asusd.ron (the original is kept next to
 # it as asusd.ron.archive-bak); ROG Control's is ~/.config/rog/.
@@ -73,6 +80,46 @@ calm() {
     quiet_rcc
 }
 
+# ---------------------------------------------------------------- GPU switching
+# asusd switches the GPU itself since asusctl 6.3.9 (ROG Control's GPU
+# page); supergfxctl, which did it before, is retired upstream and, left
+# running, keeps asusd from doing it
+retire_supergfx() {
+    if pacman -Qq supergfxctl >/dev/null 2>&1 || systemctl cat supergfxd.service >/dev/null 2>&1; then
+        echo ":: supergfxctl is retired (asusd switches the GPU now): removing it"
+        sudo systemctl disable --now supergfxd.service 2>/dev/null || true
+        pacman -Qq supergfxctl >/dev/null 2>&1 && { sudo pacman -Rns --noconfirm supergfxctl || echo "   (could not remove supergfxctl; see above)"; }
+    fi
+}
+
+switch() {
+    retire_supergfx
+    local pkgs=()
+    pacman -Qq asusctl >/dev/null 2>&1 || pkgs+=(asusctl)
+    pacman -Qq rog-control-center >/dev/null 2>&1 || pkgs+=(rog-control-center)
+    if ((${#pkgs[@]})); then sudo pacman -S --needed --noconfirm "${pkgs[@]}" || true; fi
+    echo ":: asusd: restarted, to take the GPU over"
+    sudo systemctl restart asusd.service || true
+    if ! armoury >/dev/null; then
+        echo "   this kernel ($(uname -r)) has no asus-armoury driver (Linux 6.19+):"
+        echo "   ROG Control's GPU page needs it. Start the regular kernel (linux) from"
+        echo "   the boot menu; then check with: archive-rog status"
+    fi
+    echo ":: done: log out and back in, then use ROG Control's GPU page"
+}
+
+# the firmware's GPU switches, where the kernel shows them: asus-armoury
+# (Linux 6.19+), else the older asus-nb-wmi files
+armoury() {
+    local d=/sys/class/firmware-attributes/asus-armoury/attributes
+    [[ -d $d ]] || return 1
+    local a
+    for a in gpu_mux_mode dgpu_disable egpu_enable; do
+        [[ -r $d/$a/current_value ]] && printf '%s=%s ' "$a" "$(cat "$d/$a/current_value")"
+    done
+    echo
+}
+
 # ---------------------------------------------------------------- the dGPU
 gpu() {
     # headers for every installed kernel (linux, linux-lts, linux-g14, ...)
@@ -84,20 +131,7 @@ gpu() {
     sudo pacman -S --needed --noconfirm "${pkgs[@]}" || sudo pacman -S --needed "${pkgs[@]}" || echo "   (see the error above)"
     sudo pacman -S --needed --noconfirm lib32-nvidia-utils 2>/dev/null || echo "   (lib32-nvidia-utils skipped: enable [multilib] for 32-bit games)"
 
-    # supergfxctl (GPU modes) is not in Arch's repositories: the AUR, or the
-    # asus-linux [g14] repository if you added it
-    if ! command -v supergfxctl >/dev/null; then
-        echo ":: supergfxctl (GPU modes)"
-        if ! sudo pacman -S --needed --noconfirm supergfxctl 2>/dev/null; then
-            local helper=""
-            for h in paru yay; do command -v "$h" >/dev/null && { helper=$h; break; }; done
-            if [[ -n $helper ]]; then
-                "$helper" -S --needed --noconfirm supergfxctl || echo "   (supergfxctl did not install; see above)"
-            else
-                echo "   (no AUR helper: install yay, then: yay -S supergfxctl)"
-            fi
-        fi
-    fi
+    retire_supergfx
 
     echo ":: dGPU power: sleeps when unused, survives suspend"
     printf '%s\n' \
@@ -106,7 +140,6 @@ gpu() {
         "options nvidia NVreg_DynamicPowerManagement=0x02 NVreg_PreserveVideoMemoryAllocations=1" |
         sudo tee /etc/modprobe.d/nvidia-power.conf >/dev/null
     sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service 2>/dev/null || true
-    sudo systemctl enable --now supergfxd.service || true
 
     suspend_mode --no-rebuild || true
 
@@ -114,8 +147,6 @@ gpu() {
     sudo dkms autoinstall || true
     sudo mkinitcpio -P || echo "   (mkinitcpio reported a problem; see above)"
 
-    echo ":: Hybrid mode"
-    supergfxctl -m Hybrid 2>/dev/null || echo "   (supergfxctl answers after the reboot; Hybrid is its default)"
     echo ":: done: reboot, then check with: archive-rog status"
 }
 
@@ -165,7 +196,18 @@ status() {
     else
         echo "dGPU:        not on the bus (Integrated mode, or not found)"
     fi
-    echo "gpu mode:    $(supergfxctl -g 2>/dev/null || echo '?')  (supported: $(supergfxctl -s 2>/dev/null | tr -d '[]\n' || echo '?'))"
+    echo "asusctl:     $(pacman -Q asusctl 2>/dev/null | cut -d' ' -f2 || echo 'not installed'), asusd $(systemctl is-active asusd.service 2>/dev/null || true)"
+    if pacman -Qq supergfxctl >/dev/null 2>&1; then
+        echo "supergfxctl: still installed: it fights asusd; run: archive-rog switch"
+    fi
+    local fw
+    if fw=$(armoury); then
+        echo "switches:    asus-armoury: ${fw:-none shown}"
+    else
+        local w=/sys/devices/platform/asus-nb-wmi
+        echo "switches:    no asus-armoury on this kernel (needs Linux 6.19+): ROG Control cannot switch the GPU"
+        [[ -r $w/gpu_mux_mode ]] && echo "             (asus-nb-wmi: gpu_mux_mode=$(cat $w/gpu_mux_mode) dgpu_disable=$(cat $w/dgpu_disable 2>/dev/null))"
+    fi
     echo "profile:     $(powerprofilesctl get 2>/dev/null || echo '?')"
     if grep -q 'NVreg_UseKernelSuspendNotifiers=1' /etc/modprobe.d/nvidia-power.conf 2>/dev/null; then
         echo "sleep:       the driver suspends itself (no console switch)"
@@ -179,7 +221,8 @@ case ${1:-status} in
     gpu) gpu ;;
     power) power ;;
     calm) calm ;;
+    switch) switch ;;
     sleep) suspend_mode ;;
     status) status ;;
-    *) echo "usage: archive-rog gpu|power|calm|sleep|status" >&2; exit 2 ;;
+    *) echo "usage: archive-rog gpu|power|calm|switch|sleep|status" >&2; exit 2 ;;
 esac

@@ -75,11 +75,11 @@ already have. The desktop expects:
 | Needed for | What |
 | --- | --- |
 | Fan and power profiles, the fan key, the Instruments card | `asusctl`, `power-profiles-daemon` |
-| GPU modes, rendering on the AMD iGPU | `supergfxctl`, NVIDIA driver (`nvidia-open-dkms`) |
+| GPU modes, rendering on the AMD iGPU | `asusctl` (ROG Control's GPU page, Linux 6.19+), NVIDIA driver (`nvidia-open-dkms`) |
 | The ROG key | `rog-control-center` |
 | Stable GPU names for Hyprland | the udev rule from Phase 4 |
 
-**Check:** `asusctl --version`, `supergfxctl -g` (prints `Hybrid`) and
+**Check:** `asusctl --version`, `archive-rog status` and
 `powerprofilesctl get` all answer.
 
 ---

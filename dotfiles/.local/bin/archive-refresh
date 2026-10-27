@@ -1,25 +1,48 @@
 #!/usr/bin/env bash
 # archive-refresh: the laptop panel's refresh rate.
 #
-#   archive-refresh toggle | 60 | 120 | status
+#   archive-refresh 60 | 120   that rate, always
+#   archive-refresh auto       120 Hz plugged in, 60 Hz on battery
+#   archive-refresh toggle     the other of 60 / 120 (from auto: the other of
+#                              the rate it is at now)
+#   archive-refresh apply      Auto: set the rate the charger asks for now
+#                              (the shell runs this on plug / unplug)
+#   archive-refresh status     the choice, and the rate it gives now
 #
 # 120 Hz is smoother; 60 Hz saves battery. The choice is kept in
 # ~/.local/state/archive/refresh, which hypr/archive/machine.lua reads, so it
-# holds after a reboot. The "Hz" mark in the bar flips it.
+# holds after a reboot. The "Hz" mark in the bar flips it; the Refresh row
+# in Instruments sets it.
 set -euo pipefail
 state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
 mkdir -p "$state"
-current=$(cat "$state/refresh" 2>/dev/null || echo 120)
-[[ $current == 60 ]] || current=120
+choice=$(tr -d '[:space:]' 2>/dev/null <"$state/refresh" || echo 120)
+[[ $choice == 60 || $choice == auto ]] || choice=120
 
+# plugged in? (any mains supply online; none at all counts as plugged in)
+plugged() {
+    local d found=0
+    for d in /sys/class/power_supply/*; do
+        [[ $(cat "$d/type" 2>/dev/null) == Mains ]] || continue
+        found=1
+        [[ $(cat "$d/online" 2>/dev/null) == 1 ]] && return 0
+    done
+    ((found == 0))
+}
+rate_of() { # the rate a choice gives now
+    if [[ $1 == auto ]]; then plugged && echo 120 || echo 60; else echo "$1"; fi
+}
+
+now=$(rate_of "$choice")
 case ${1:-status} in
-    60 | 120) want=$1 ;;
-    toggle) [[ $current == 120 ]] && want=60 || want=120 ;;
-    status) echo "$current"; exit 0 ;;
-    *) echo "usage: archive-refresh toggle|60|120|status" >&2; exit 2 ;;
+    60 | 120 | auto) want=$1 ;;
+    toggle) [[ $now == 120 ]] && want=60 || want=120 ;;
+    apply) [[ $choice == auto ]] || { echo "$choice ($now Hz)"; exit 0; }; want=auto ;;
+    status) echo "$choice ($now Hz)"; exit 0 ;;
+    *) echo "usage: archive-refresh 60|120|auto|toggle|apply|status" >&2; exit 2 ;;
 esac
 
 echo "$want" >"$state/refresh"
 # Hyprland reads the monitor rules again (the panel blinks once)
 hyprctl reload >/dev/null 2>&1 || true
-echo "$want Hz"
+echo "$want ($(rate_of "$want") Hz)"

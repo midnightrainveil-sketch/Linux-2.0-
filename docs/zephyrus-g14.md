@@ -10,7 +10,7 @@ The hardware: AMD Ryzen 9 8945HS with Radeon 780M (iGPU), an NVIDIA RTX
 
 ## 1. The asus-linux repository
 
-It provides `asusctl`, `supergfxctl`, `rog-control-center` and, if you want
+It provides `asusctl`, `rog-control-center` and, if you want
 it, the `linux-g14` kernel.
 
 ```sh
@@ -29,8 +29,8 @@ Server = https://arch.asus-linux.org
 
 ```sh
 sudo pacman -Syu
-sudo pacman -S --needed asusctl power-profiles-daemon supergfxctl switcheroo-control rog-control-center
-sudo systemctl enable --now power-profiles-daemon supergfxd switcheroo-control
+sudo pacman -S --needed asusctl power-profiles-daemon switcheroo-control rog-control-center
+sudo systemctl enable --now power-profiles-daemon switcheroo-control
 ```
 
 The default `linux` kernel supports the 2024 G14 well. `linux-g14` carries
@@ -73,11 +73,19 @@ show the card asleep.
 
 ## 3. GPU mode
 
-| Mode | When | Command |
-| --- | --- | --- |
-| **Hybrid** (recommended) | everyday use; the iGPU drives the screen, the dGPU wakes for games and CUDA | `supergfxctl -m Hybrid` |
-| Integrated | longest battery; the dGPU is switched off | `supergfxctl -m Integrated` |
-| AsusMuxDgpu | games only; the dGPU drives the panel directly (needs a reboot) | `supergfxctl -m AsusMuxDgpu` |
+Since asusctl 6.3.9, asusd switches the GPU itself: use the **GPU page in
+ROG Control** (the Machine button in Instruments). `supergfxctl` is retired
+upstream, and a `supergfxd` still running keeps asusd from switching;
+`archive-rog switch` removes it. The switching goes through the kernel's
+`asus-armoury` driver, in **Linux 6.19 and newer**: on `linux-lts` 6.18 the
+GPU page has nothing to switch, so start the regular `linux` kernel.
+`archive-rog status` shows what the kernel offers.
+
+| Mode | When |
+| --- | --- |
+| **Hybrid** (recommended) | everyday use; the iGPU drives the screen, the dGPU wakes for games and CUDA and sleeps (no power) otherwise |
+| Integrated | longest battery; the dGPU is switched off |
+| Ultimate (MUX dGPU) | games only; the dGPU drives the panel directly (needs a reboot) |
 
 A mode change asks you to log out. In MUX dGPU mode the internal panel is
 often called `eDP-2`. `machine.lua` covers both names.

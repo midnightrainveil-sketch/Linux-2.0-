@@ -169,13 +169,19 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
         say "Zephyrus G14: the NVIDIA driver (Hybrid mode)"
         "$HOME/.local/bin/archive-rog" gpu || warn "the NVIDIA step failed; see docs/zephyrus-g14.md"
     fi
+    # GPU switching is asusd's own now: the retired supergfxctl, left
+    # running, keeps ROG Control's GPU page from working
+    if pacman -Qq supergfxctl >/dev/null 2>&1; then
+        say "Zephyrus G14: GPU switching through asusd (supergfxctl retired)"
+        "$HOME/.local/bin/archive-rog" switch || warn "could not hand GPU switching to asusd; run archive-rog switch"
+    fi
     # Quiet on battery, Balanced plugged in; no ROG Control notifications
     "$HOME/.local/bin/archive-rog" power || warn "could not set the power profiles; run archive-rog power"
     # waking without the black text screen: the NVIDIA driver suspends itself when it can
     if lsmod | grep -q '^nvidia '; then
         "$HOME/.local/bin/archive-rog" sleep || warn "could not change how the NVIDIA driver sleeps; run archive-rog sleep"
     fi
-    note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, supergfxctl)"
+    note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, ROG Control)"
 fi
 
 # ------------------------------------------------------------------ a quiet start, and the power button

@@ -85,6 +85,18 @@ BarPopup {
             }
         }
 
+        // the panel's refresh rate: Auto is 120 Hz plugged in, 60 on battery
+        DataRow {
+            label: "Refresh"
+            labelWidth: card.labelWidth
+            Toggle {
+                anchors.verticalCenter: parent.verticalCenter
+                options: ["60 Hz", "120 Hz", "Auto"]
+                current: Refresh.choices.indexOf(Refresh.choice)
+                onPicked: i => Refresh.set(Refresh.choices[i])
+            }
+        }
+
         DataRow {
             label: "Sheet"
             labelWidth: card.labelWidth
