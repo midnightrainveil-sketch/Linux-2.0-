@@ -12,6 +12,40 @@
 --   archive/rules.lua     window and layer rules
 --   user.lua              your own additions (optional, not tracked)
 
+------------------------------------------------------------------ which theme
+-- Another desktop theme, if one is chosen (the Themes app, archive-theme):
+-- its own hyprland.lua is loaded instead of the rest of this file. The
+-- choice (~/.config/archive/theme) is read once as the session starts and
+-- kept for it, so reading the config again later (a refresh-rate change)
+-- never swaps the theme under you: a new one comes at the next log-in.
+do
+    local home = os.getenv("HOME") or ""
+    local function first_line(path)
+        local f = io.open(path, "r")
+        if f == nil then return nil end
+        local s = f:read("*l")
+        f:close()
+        return s and s:match("^%s*([%w_%-]+)") or nil
+    end
+    local mark = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/archive-theme-" .. (os.getenv("HYPRLAND_INSTANCE_SIGNATURE") or "")
+    local theme = first_line(mark)
+    if theme == nil then
+        theme = first_line((os.getenv("XDG_CONFIG_HOME") or (home .. "/.config")) .. "/archive/theme") or "archive"
+        local f = io.open(mark, "w")
+        if f ~= nil then f:write(theme, "\n"); f:close() end
+    end
+    if theme ~= "archive" then
+        local entry = (os.getenv("XDG_DATA_HOME") or (home .. "/.local/share")) .. "/archive/themes/" .. theme .. "/hypr/hyprland.lua"
+        local f = io.open(entry, "r")
+        if f ~= nil then
+            f:close()
+            dofile(entry)
+            return
+        end
+        -- (gone, or not a theme that can be logged in to: the Archive, as ever)
+    end
+end
+
 require("archive.machine")
 require("archive.look")
 require("archive.binds")

@@ -19,15 +19,40 @@ mkdir -p "$state"
 choice=$(tr -d '[:space:]' 2>/dev/null <"$state/refresh" || echo 120)
 [[ $choice == 60 || $choice == auto ]] || choice=120
 
-# plugged in? (any mains supply online; none at all counts as plugged in)
+# plugged in? a charger online: the barrel (Mains) or USB-C (USB, not a
+# device's own battery); none at all, a desktop, counts as plugged in
+# (as hypr/archive/state.lua)
 plugged() {
-    local d found=0
+    local d kind found=0
     for d in /sys/class/power_supply/*; do
-        [[ $(cat "$d/type" 2>/dev/null) == Mains ]] || continue
+        kind=$(cat "$d/type" 2>/dev/null || true)
+        [[ $kind == Mains || ($kind == USB && $(cat "$d/scope" 2>/dev/null || true) != Device) ]] || continue
         found=1
         [[ $(cat "$d/online" 2>/dev/null) == 1 ]] && return 0
     done
     ((found == 0))
+}
+
+# the rate the laptop's panel runs at now, rounded (empty: no panel on)
+panel_rate() {
+    hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.name | startswith("eDP"))][0].refreshRate // empty | round' 2>/dev/null || true
+}
+
+# Set the panel to the chosen rate, and see that it took: Hyprland is asked
+# to set the panel again (archive_panel in hypr/archive/machine.lua), which
+# it may answer "ok" to without doing it, so the rate is read back; failing
+# twice, the whole config is read again (the panel blinks once).
+set_panel() {
+    local want=$1 now i
+    for i in 1 2 3; do
+        if ((i < 3)); then hyprctl eval 'archive_panel()' >/dev/null 2>&1 || true
+        else hyprctl reload >/dev/null 2>&1 || true; fi
+        sleep 0.7
+        now=$(panel_rate)
+        [[ -z $now || $now == "$want" ]] && return 0
+    done
+    echo "the panel stayed at $now Hz (asked for $want)" >&2
+    return 1
 }
 rate_of() { # the rate a choice gives now
     if [[ $1 == auto ]]; then plugged && echo 120 || echo 60; else echo "$1"; fi
@@ -38,11 +63,11 @@ case ${1:-status} in
     60 | 120 | auto) want=$1 ;;
     toggle) [[ $now == 120 ]] && want=60 || want=120 ;;
     apply) [[ $choice == auto ]] || { echo "$choice ($now Hz)"; exit 0; }; want=auto ;;
-    status) echo "$choice ($now Hz)"; exit 0 ;;
+    status) echo "$choice ($now Hz; the panel is at $(panel_rate) Hz)"; exit 0 ;;
     *) echo "usage: archive-refresh 60|120|auto|toggle|apply|status" >&2; exit 2 ;;
 esac
 
 echo "$want" >"$state/refresh"
-# Hyprland reads the monitor rules again (the panel blinks once)
-hyprctl reload >/dev/null 2>&1 || true
-echo "$want ($(rate_of "$want") Hz)"
+rate=$(rate_of "$want")
+set_panel "$rate" || true
+echo "$want ($rate Hz)"

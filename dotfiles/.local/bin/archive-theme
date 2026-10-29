@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# archive-theme: which desktop theme to log in to (the Themes app).
+#
+#   archive-theme list        the themes kept, as JSON (for the Themes app)
+#   archive-theme chosen      the one chosen for the next log-in
+#   archive-theme current     the one this session is
+#   archive-theme set <id>    choose one; it takes effect at the next log-in
+#
+# Each theme is a folder in ~/.local/share/archive/themes/<id>/ (the README
+# there says what goes in it): theme.json, its preview pictures, and, for
+# every theme but the Archive itself, hypr/hyprland.lua, which Hyprland loads
+# instead of the Archive's own when the theme is chosen. The choice is kept
+# in ~/.config/archive/theme; Hyprland reads it once as a session starts and
+# keeps to it until you log out.
+set -euo pipefail
+themes="${XDG_DATA_HOME:-$HOME/.local/share}/archive/themes"
+choice_file="${XDG_CONFIG_HOME:-$HOME/.config}/archive/theme"
+
+chosen() {
+    local id
+    id=$(tr -dc 'A-Za-z0-9_-' 2>/dev/null <"$choice_file" || true)
+    [[ -n $id && -f $themes/$id/theme.json ]] && echo "$id" || echo archive
+}
+
+current() {
+    local mark="${XDG_RUNTIME_DIR:-/tmp}/archive-theme-${HYPRLAND_INSTANCE_SIGNATURE:-}"
+    if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -s $mark ]]; then
+        tr -dc 'A-Za-z0-9_-' <"$mark"; echo
+    else
+        chosen
+    fi
+}
+
+list() {
+    local dir
+    for dir in "$themes"/*/; do
+        [[ -f $dir/theme.json ]] || continue
+        # each theme's manifest, with where it is
+        jq -c --arg dir "${dir%/}" '. + { dir: $dir }' "$dir/theme.json" 2>/dev/null || true
+    done | jq -s -c 'sort_by(if .id == "archive" then "" else (.name // .id) end)'
+}
+
+case ${1:-current} in
+    list) list ;;
+    chosen) chosen ;;
+    current) current ;;
+    set)
+        id=${2:?usage: archive-theme set <id> (see: archive-theme list)}
+        [[ -f $themes/$id/theme.json ]] || { echo "no theme \"$id\" in $themes" >&2; exit 1; }
+        if [[ $id != archive && ! -f $themes/$id/hypr/hyprland.lua ]]; then
+            echo "theme \"$id\" has no hypr/hyprland.lua; it cannot be logged in to" >&2
+            exit 1
+        fi
+        mkdir -p "$(dirname "$choice_file")"
+        echo "$id" >"$choice_file"
+        if [[ $id == "$(current)" ]]; then echo "$id: in use"; else echo "$id: from your next log-in"; fi
+        ;;
+    *) sed -n '2,15p' "$0"; exit 2 ;;
+esac

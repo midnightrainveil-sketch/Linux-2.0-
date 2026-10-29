@@ -1,0 +1,8 @@
+{
+  "id": "archive",
+  "name": "Archive",
+  "by": "Built in",
+  "summary": "A botanical herbarium on paper: windows as typed index cards, the month's pressed specimen, a turntable, a field notebook, and a cyanotype sheet by night.",
+  "previews": ["preview-day.jpg", "preview-phonograph.jpg", "preview-night.jpg"],
+  "captions": ["By day.", "The phonograph.", "By night."]
+}

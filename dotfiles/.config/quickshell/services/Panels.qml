@@ -34,7 +34,7 @@ Singleton {
     // opening animation's time, and the card would appear already open.
     // Closed, it is kept a moment for its closing animation, then let go
     // (gone()).
-    readonly property var onDemand: ["typewriter", "phonograph", "notebook", "ledger-year", "clippings", "keys", "glyphs"]
+    readonly property var onDemand: ["typewriter", "phonograph", "notebook", "ledger-year", "clippings", "keys", "glyphs", "themes"]
     property string preparing: ""
     property string lingering: ""
     property var built: ({})

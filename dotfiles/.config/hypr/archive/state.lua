@@ -40,7 +40,8 @@ function M.mode()
     return "day"
 end
 
--- plugged in: any mains supply online (none at all counts as plugged in)
+-- plugged in: a charger online, the barrel (Mains) or USB-C (USB, not a
+-- device's own battery); none at all, a desktop, counts as plugged in
 function M.plugged()
     local ls = io.popen("ls /sys/class/power_supply 2>/dev/null")
     if ls == nil then return true end
@@ -48,7 +49,8 @@ function M.plugged()
     for name in ls:lines() do
         local dir = "/sys/class/power_supply/" .. name
         local kind = read(dir .. "/type")
-        if kind and kind:match("Mains") then
+        local scope = read(dir .. "/scope") or ""
+        if kind and (kind:match("Mains") or (kind:match("USB") and not scope:match("Device"))) then
             found = true
             local o = read(dir .. "/online")
             if o and o:match("1") then online = true end

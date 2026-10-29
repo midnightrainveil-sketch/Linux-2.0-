@@ -53,14 +53,14 @@ Row {
     }
 
     // The panel's refresh rate, typed: click for 60 / 120 Hz; Auto (set in
-    // Instruments) shows the rate it is at now (archive-refresh)
+    // Instruments) shows the rate the panel is really at (archive-refresh)
     Item {
         width: hz.implicitWidth
         height: Theme.barHeight
         Measure {
             id: hz
             anchors.centerIn: parent
-            figure: String(Refresh.rate)
+            figure: String(Refresh.shown)
             unit: "Hz"
             ink: hzMouse.containsMouse ? Theme.graphite : Theme.soft
         }
