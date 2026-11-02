@@ -572,10 +572,9 @@ void deckleInit(HANDLE handle) {
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config ask whether this build has the edges
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY) {
-        HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle", ::luaHasDeckle);
-        HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
-    }
+    // (Hyprland's config is Lua only now)
+    HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle", ::luaHasDeckle);
+    HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
 
     // the rim and shadow change with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });
@@ -608,7 +607,7 @@ void deckleOnNewWindow(PHLWINDOW window) {
         return;
 
     for (bool over : {false, true}) {
-        auto deco    = makeUnique<CArchiveDeckle>(window, over);
+        auto deco    = makeShared<CArchiveDeckle>(window, over);
         deco->m_self = deco;
         g_deckles.emplace_back(deco);
         auto* added = deco.get();

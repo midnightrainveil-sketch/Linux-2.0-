@@ -34,6 +34,8 @@ def api(text):
     if not NEWAPI:
         return text
     return (text.replace("renderBarButtons(&textBox", "renderBarButtons(ctx, &textBox")
+                .replace('g_pKeybindManager->m_dispatchers[\"exec\"](RCMD);', "Config::Supplementary::executor()->spawn(RCMD);")
+                .replace('g_pKeybindManager->m_dispatchers["exec"](RCMD);', "Config::Supplementary::executor()->spawn(RCMD);")
                 .replace("g_pHyprOpenGL->renderRect(ruleBox", "g_pHyprOpenGL->renderRect(ctx, ruleBox")
                 .replace("g_pHyprOpenGL->renderTexture(m_pRightTex", "g_pHyprOpenGL->renderTexture(ctx, m_pRightTex")
                 .replace("g_pHyprOpenGL->renderTexture(m_pGrainTex", "g_pHyprOpenGL->renderTexture(ctx, m_pGrainTex"))
