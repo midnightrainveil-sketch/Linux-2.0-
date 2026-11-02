@@ -26,10 +26,35 @@ import sys
 src = pathlib.Path(sys.argv[1])
 
 
+# newer hyprbars passes a render context (ctx) to every drawing call
+NEWAPI = "renderBarButtons(ctx, &textBox" in (src / "barDeco.cpp").read_text()
+
+
+def api(text):
+    if not NEWAPI:
+        return text
+    return (text.replace("renderBarButtons(&textBox", "renderBarButtons(ctx, &textBox")
+                .replace("g_pHyprOpenGL->renderRect(ruleBox", "g_pHyprOpenGL->renderRect(ctx, ruleBox")
+                .replace("g_pHyprOpenGL->renderTexture(m_pRightTex", "g_pHyprOpenGL->renderTexture(ctx, m_pRightTex")
+                .replace("g_pHyprOpenGL->renderTexture(m_pGrainTex", "g_pHyprOpenGL->renderTexture(ctx, m_pGrainTex"))
+
+
+def edit_any(name, alternatives):
+    p = src / name
+    s = p.read_text()
+    for old, new in alternatives:
+        if old in s:
+            p.write_text(s.replace(old, new, 1))
+            return
+    sys.exit(f"archivebars patch: anchor not found in {name}:\n{alternatives[0][0][:200]}")
+
+
 def edit(name, pairs, count_check=True):
     p = src / name
     s = p.read_text()
     for old, new in pairs:
+        if name == "barDeco.cpp":
+            old, new = api(old), api(new)
         if old not in s:
             sys.exit(f"archivebars patch: anchor not found in {name}:\n{old[:200]}")
         s = s.replace(old, new)
@@ -209,10 +234,19 @@ edit("main.cpp", [
     ('#include "barDeco.hpp"\n', '#include "barDeco.hpp"\n#include "DeckleDeco.hpp"\n'),
     ("static void onNewWindow(PHLWINDOW window) {\n", "static void onNewWindow(PHLWINDOW window) {\n    deckleOnNewWindow(window);\n\n"),
     ("static void onUpdateWindowRules(PHLWINDOW window) {\n", "static void onUpdateWindowRules(PHLWINDOW window) {\n    deckleOnUpdateRules(window);\n\n"),
+])
+# (anchors that moved between hyprbars versions: the first one found)
+edit_any("main.cpp", [
     ("    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword(",
      "    deckleInit(PHANDLE);\n\n    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword("),
+    ('    HyprlandAPI::addLuaFunction(PHANDLE, "archivebars", "add_button"',
+     '    deckleInit(PHANDLE);\n\n    HyprlandAPI::addLuaFunction(PHANDLE, "archivebars", "add_button"'),
+])
+edit_any("main.cpp", [
     ('    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n',
      '    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n    deckleExit();\n'),
+    ('    g_pHyprRenderer->context().m_pass.removeAllOfType("CBarPassElement");\n',
+     '    g_pHyprRenderer->context().m_pass.removeAllOfType("CBarPassElement");\n    deckleExit();\n'),
 ])
 
 print("archivebars: patched", src)

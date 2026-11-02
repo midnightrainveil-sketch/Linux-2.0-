@@ -21,6 +21,7 @@
 
 #include <hyprland/src/render/decorations/IHyprWindowDecoration.hpp>
 #include <hyprland/src/render/pass/PassElement.hpp>
+#include <hyprland/src/render/Context.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
 
 #include "deckle.hpp"
@@ -33,7 +34,7 @@ class CArchiveDeckle : public IHyprWindowDecoration {
 
     virtual SDecorationPositioningInfo getPositioningInfo();
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
     virtual eDecorationType            getDecorationType();
     virtual void                       updateWindow(PHLWINDOW);
     virtual void                       damageEntire();
@@ -75,9 +76,9 @@ class CArchiveDeckle : public IHyprWindowDecoration {
     CBox   cardBox();
     double reach(); // how far this layer draws outside the card edge
     void   updateExtents();
-    void   renderPass(PHLMONITOR, float const& a);
-    void   renderUnder(PHLMONITOR, float const& a, const CBox& card);
-    void   renderOver(PHLMONITOR, float const& a, const CBox& card);
+    void   renderPass(Render::CRenderContext& ctx, PHLMONITOR, float const& a);
+    void   renderUnder(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const CBox& card);
+    void   renderOver(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const CBox& card);
 
     friend class CDecklePassElement;
 };
@@ -92,10 +93,10 @@ class CDecklePassElement : public IPassElement {
     CDecklePassElement(const SData& data);
     virtual ~CDecklePassElement() = default;
 
-    virtual std::vector<UP<IPassElement>> draw() override;
-    virtual bool                          needsLiveBlur() override;
-    virtual bool                          needsPrecomputeBlur() override;
-    virtual std::optional<CBox>           boundingBox() override;
+    virtual std::vector<UP<IPassElement>> draw(Render::CRenderContext& ctx) override;
+    virtual bool                          needsLiveBlur(Render::CRenderContext&) override;
+    virtual bool                          needsPrecomputeBlur(Render::CRenderContext&) override;
+    virtual std::optional<CBox>           boundingBox(Render::CRenderContext& ctx) override;
 
     virtual const char*                   passName() override {
         return "CDecklePassElement";

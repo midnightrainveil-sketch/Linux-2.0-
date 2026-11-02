@@ -3,7 +3,9 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
+#include <hyprland/src/desktop/view/window/WindowPresentation.hpp>
+#include <hyprland/src/desktop/view/window/WindowBackend.hpp>
 #include <hyprland/src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <hyprland/src/helpers/MiscFunctions.hpp>
 #include <hyprland/src/managers/fullscreen/FullscreenController.hpp>
@@ -267,8 +269,8 @@ CBox CArchiveDeckle::cardBox() {
     CBox       box     = g_pDecorationPositioner->getBoxWithIncludedDecos(PWINDOW);
 
     const auto PWORKSPACE      = PWINDOW->m_workspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
-    box.translate(WORKSPACEOFFSET).translate(PWINDOW->m_floatingOffset);
+    const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    box.translate(WORKSPACEOFFSET).translate(PWINDOW->presentation().floatingOffset());
 
     return box.expand(std::clamp((int)g_config.margin->value(), 1, 32));
 }
@@ -329,7 +331,7 @@ void CArchiveDeckle::updateRules() {
     }
 }
 
-void CArchiveDeckle::draw(PHLMONITOR pMonitor, float const& a) {
+void CArchiveDeckle::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     updateExtents();
     if (m_extents != m_reportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
@@ -337,19 +339,19 @@ void CArchiveDeckle::draw(PHLMONITOR pMonitor, float const& a) {
     if (!visible())
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CDecklePassElement>(CDecklePassElement::SData{this, a}));
+    Render::IHyprRenderer::addPassElement(ctx, makeUnique<CDecklePassElement>(CDecklePassElement::SData{this, a}));
 }
 
-void CArchiveDeckle::renderPass(PHLMONITOR pMonitor, float const& a) {
+void CArchiveDeckle::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a) {
     if (!visible())
         return;
 
     CBox card = cardBox();
     card.translate(-pMonitor->m_position);
     if (m_over)
-        renderOver(pMonitor, a, card);
+        renderOver(ctx, pMonitor, a, card);
     else
-        renderUnder(pMonitor, a, card);
+        renderUnder(ctx, pMonitor, a, card);
 }
 
 // a tile from one of the tile arrays, or none if `v` is out of range
@@ -359,12 +361,12 @@ static const SP<Render::ITexture>& tile(const SP<Render::ITexture> (&row)[Deckle
 }
 
 // logical edges -> a box in device pixels; neighbouring tiles share edges
-static void put(const SP<Render::ITexture>& tex, double s, float a, double x0, double y0, double x1, double y1) {
+static void put(Render::CRenderContext& ctx, const SP<Render::ITexture>& tex, double s, float a, double x0, double y0, double x1, double y1) {
     auto px  = [&](double v) { return std::round(v * s); };
     CBox box = {px(x0), px(y0), px(x1) - px(x0), px(y1) - px(y0)};
     if (!tex || box.w <= 0 || box.h <= 0)
         return;
-    g_pHyprOpenGL->renderTexture(tex, box, {.a = a});
+    g_pHyprOpenGL->renderTexture(ctx, tex, box, {.a = a});
 }
 
 // run `fn(side, variant, a0, a1)` for every strip around a card, as deckle.cpp lays them
@@ -382,7 +384,7 @@ static void forEachStrip(const Deckle::SStyle& st, uint32_t seed, double x, doub
     }
 }
 
-void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox& card) {
+void CArchiveDeckle::renderUnder(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const CBox& card) {
     const auto   PWINDOW = m_window.lock();
     const bool   focused = PWINDOW == Desktop::focusState()->window();
     const auto   st      = styleFor(pMonitor->m_scale, focused);
@@ -399,7 +401,7 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
         if (inner.w > 0 && inner.h > 0) {
             CHyprColor paper{static_cast<uint64_t>(st.paper | 0xff000000U)};
             paper.a *= a;
-            g_pHyprOpenGL->renderRect(inner, paper, {.round = 0});
+            g_pHyprOpenGL->renderRect(ctx, inner, paper, {.round = 0});
         }
     }
 
@@ -407,10 +409,10 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
     forEachStrip(st, m_seed, x, y, w, h, [&](int side, int v, double a0, double a1) {
         const auto& tex = tile(tiles->strips[side], v);
         switch (side) {
-            case Deckle::SIDE_TOP: put(tex, s, a, a0, y - O, a1, y + I); break;
-            case Deckle::SIDE_BOTTOM: put(tex, s, a, a0, y + h - I, a1, y + h + O); break;
-            case Deckle::SIDE_LEFT: put(tex, s, a, x - O, a0, x + I, a1); break;
-            default: put(tex, s, a, x + w - I, a0, x + w + O, a1); break;
+            case Deckle::SIDE_TOP: put(ctx, tex, s, a, a0, y - O, a1, y + I); break;
+            case Deckle::SIDE_BOTTOM: put(ctx, tex, s, a, a0, y + h - I, a1, y + h + O); break;
+            case Deckle::SIDE_LEFT: put(ctx, tex, s, a, x - O, a0, x + I, a1); break;
+            default: put(ctx, tex, s, a, x + w - I, a0, x + w + O, a1); break;
         }
     });
 
@@ -418,10 +420,10 @@ void CArchiveDeckle::renderUnder(PHLMONITOR pMonitor, float const& a, const CBox
     const double cx[4] = {x - O, x + w - R, x - O, x + w - R};
     const double cy[4] = {y - O, y - O, y + h - R, y + h - R};
     for (int c = 0; c < 4; ++c)
-        put(tile(tiles->corners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + K, cy[c] + K);
+        put(ctx, tile(tiles->corners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + K, cy[c] + K);
 }
 
-void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox& card) {
+void CArchiveDeckle::renderOver(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const CBox& card) {
     const auto   PWINDOW = m_window.lock();
     const bool   focused = PWINDOW == Desktop::focusState()->window();
     const auto   st      = styleFor(pMonitor->m_scale, focused);
@@ -440,7 +442,7 @@ void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox&
         auto         px  = [&](double v) { return std::round(v * s); };
         CBox         box = {px(x + in), px(y + in), px(x + w - in) - px(x + in), px(y + h - in) - px(y + in)};
         if (tex && tex->m_size.x > 0 && box.w > 0 && box.h > 0) {
-            g_pHyprOpenGL->renderTexture(tex, box,
+            g_pHyprOpenGL->renderTexture(ctx, tex, box,
                                          {.a                           = a,
                                           .allowCustomUV               = true,
                                           .wrapX                       = WRAP_REPEAT,
@@ -456,24 +458,24 @@ void CArchiveDeckle::renderOver(PHLMONITOR pMonitor, float const& a, const CBox&
     forEachStrip(st, m_seed, x, y, w, h, [&](int side, int v, double a0, double a1) {
         const auto& tex = tile(tiles->overStrips[side], v);
         switch (side) {
-            case Deckle::SIDE_TOP: put(tex, s, a, a0, y - E, a1, y + D); break;
-            case Deckle::SIDE_BOTTOM: put(tex, s, a, a0, y + h - D, a1, y + h + E); break;
-            case Deckle::SIDE_LEFT: put(tex, s, a, x - E, a0, x + D, a1); break;
-            default: put(tex, s, a, x + w - D, a0, x + w + E, a1); break;
+            case Deckle::SIDE_TOP: put(ctx, tex, s, a, a0, y - E, a1, y + D); break;
+            case Deckle::SIDE_BOTTOM: put(ctx, tex, s, a, a0, y + h - D, a1, y + h + E); break;
+            case Deckle::SIDE_LEFT: put(ctx, tex, s, a, x - E, a0, x + D, a1); break;
+            default: put(ctx, tex, s, a, x + w - D, a0, x + w + E, a1); break;
         }
     });
 
     const double cx[4] = {x - E, x + w - R, x - E, x + w - R};
     const double cy[4] = {y - E, y - E, y + h - R, y + h - R};
     for (int c = 0; c < 4; ++c) {
-        put(tile(tiles->overCorners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + E + R, cy[c] + E + R);
+        put(ctx, tile(tiles->overCorners[c], Deckle::variantFor(m_seed, Deckle::SIDE_TOP, 1000 + c)), s, a, cx[c], cy[c], cx[c] + E + R, cy[c] + E + R);
 
         const int v = Deckle::creaseFor(st, m_seed, (Deckle::eCorner)c, w, h);
         if (v < 0)
             continue;
         const double kx = (c == Deckle::CORNER_TR || c == Deckle::CORNER_BR) ? x + w - C : x;
         const double ky = (c == Deckle::CORNER_BL || c == Deckle::CORNER_BR) ? y + h - C : y;
-        put(tile(tiles->creases[c], v), s, a, kx, ky, kx + C, ky + C);
+        put(ctx, tile(tiles->creases[c], v), s, a, kx, ky, kx + C, ky + C);
     }
 }
 
@@ -483,21 +485,21 @@ CDecklePassElement::CDecklePassElement(const SData& data) : m_data(data) {
     ;
 }
 
-std::vector<UP<IPassElement>> CDecklePassElement::draw() {
-    m_data.deco->renderPass(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+std::vector<UP<IPassElement>> CDecklePassElement::draw(Render::CRenderContext& ctx) {
+    m_data.deco->renderPass(ctx, ctx.m_data.pMonitor.lock(), m_data.a);
     return {};
 }
 
-bool CDecklePassElement::needsLiveBlur() {
+bool CDecklePassElement::needsLiveBlur(Render::CRenderContext&) {
     return false;
 }
 
-bool CDecklePassElement::needsPrecomputeBlur() {
+bool CDecklePassElement::needsPrecomputeBlur(Render::CRenderContext&) {
     return false;
 }
 
-std::optional<CBox> CDecklePassElement::boundingBox() {
-    return m_data.deco->cardBox().translate(-g_pHyprRenderer->m_renderData.pMonitor->m_position).expand(m_data.deco->reach());
+std::optional<CBox> CDecklePassElement::boundingBox(Render::CRenderContext& ctx) {
+    return m_data.deco->cardBox().translate(-ctx.m_data.pMonitor->m_position).expand(m_data.deco->reach());
 }
 
 // ---------------------------------------------------------------- wiring
@@ -600,9 +602,9 @@ void deckleInit(HANDLE handle) {
 void deckleOnNewWindow(PHLWINDOW window) {
     // X11 programs (through XWayland) keep a plain frame: the torn edge
     // crashed Hyprland when RViz opened
-    if (window->m_X11DoesntWantBorders || window->m_isX11)
+    if (window->backend().isX11())
         return;
-    if (std::ranges::any_of(window->m_windowDecorations, [](const auto& d) { return d->getDisplayName() == "Archivedeckle"; }))
+    if (std::ranges::any_of(window->presentation().decorations(), [](const auto& d) { return d->getDisplayName() == "Archivedeckle"; }))
         return;
 
     for (bool over : {false, true}) {
@@ -623,7 +625,7 @@ void deckleOnUpdateRules(PHLWINDOW window) {
 }
 
 void deckleExit() {
-    g_pHyprRenderer->m_renderPass.removeAllOfType("CDecklePassElement");
+    g_pHyprRenderer->context().m_pass.removeAllOfType("CDecklePassElement");
     Desktop::Rule::windowEffects()->unregisterEffect(g_noDeckleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_grainIdx);
     g_tiles.clear();
