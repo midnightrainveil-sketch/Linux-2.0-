@@ -8,12 +8,10 @@ Every Papirus icon is kept and recoloured, so nothing goes missing:
   * apps, files, devices ...  muted (about 40 % of their colour), tinted
                               towards sepia, whites turned cream: still
                               recognisable, but printed rather than lit
-  * folders                   envelopes: each Papirus folder is redrawn as a
-                              kraft envelope torn open along the top, a
-                              letter showing (pulled further out when the
-                              folder is open), its glyph inked on the front
-                              like a stamp (anything not laid out like a
-                              Papirus folder is just turned manila)
+  * folders and files         drawn by hand in ink on paper (inked_icons.py):
+                              a manila folder with its sign inked on the
+                              front; a cream sheet with a folded corner, its
+                              type typed on it in its colour (PDF, MP3, PY)
   * symbolic icons            their greys, warmed a touch
 
 Papirus's links are kept as links, its index.theme renamed, and the theme
@@ -27,6 +25,9 @@ import re
 import shutil
 import sys
 from concurrent.futures import ProcessPoolExecutor
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import inked_icons  # noqa: E402
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/icons/Papirus"
 DST = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
@@ -217,10 +218,33 @@ def kind(rel):
     return muted
 
 
+def drawn(rel):
+    """Folders and files, drawn by hand in ink (inked_icons.py), or None."""
+    parts = rel.split(os.sep)
+    if parts[0] == "symbolic" or len(parts) < 3:
+        return None
+    m = re.match(r"(\d+)x\d+", parts[0])
+    if not m:
+        return None
+    size, name = int(m.group(1)), parts[-1][:-4]
+    if parts[-2] == "places" and (name.startswith("folder") or (name.startswith("user-") and inked_icons.folder_sign(name) in ("home", "desk"))):
+        return inked_icons.folder(name, size)
+    if parts[-2] == "mimetypes" and not name.endswith("-symbolic"):
+        return inked_icons.sheet(name, size)
+    return None
+
+
 def work(rel):
     src = os.path.join(SRC, rel)
     dst = os.path.join(DST, rel)
     try:
+        ink = drawn(rel)
+        if ink is not None:
+            if os.path.lexists(dst):
+                os.remove(dst)
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(ink)
+            return
         with open(src, encoding="utf-8") as f:
             text = f.read()
         fn = kind(rel)
@@ -254,7 +278,12 @@ def main():
             p = os.path.join(root, name)
             rel = os.path.normpath(os.path.join(rel_root, name))
             if os.path.islink(p):
-                os.symlink(os.readlink(p), os.path.join(DST, rel))
+                # a folder or a file type gets its own drawing (its own sign,
+                # its own typed tag), not the generic one Papirus links it to
+                if name.endswith(".svg") and drawn(rel) is not None:
+                    svgs.append(rel)
+                else:
+                    os.symlink(os.readlink(p), os.path.join(DST, rel))
             elif name.endswith(".svg"):
                 svgs.append(rel)
             elif name not in ("icon-theme.cache", "index.theme"):

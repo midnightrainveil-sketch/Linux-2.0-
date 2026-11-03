@@ -156,7 +156,7 @@ for id in org.gnome.gThumb gthumb; do
         break
     fi
 done
-# the icons: Papirus in aged inks, folders manila (archive-icons)
+# the icons: Papirus in aged inks, folders and files drawn in ink (archive-icons)
 say "the icons"
 "$HOME/.local/bin/archive-icons" build || warn "could not make the icons; run archive-icons"
 

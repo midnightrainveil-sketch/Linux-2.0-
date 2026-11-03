@@ -6,9 +6,9 @@
 #   archive-icons off      plain Papirus colours again (the theme stays
 #                          selected but becomes an empty layer over Papirus)
 #
-# App icons are muted and tinted sepia, folders drawn as torn-open kraft
-# envelopes (their glyph inked on the front), symbolic icons
-# warmed (tools/make_icons.py). GTK, Qt and the shell use it by name; apps
+# App icons are muted and tinted sepia; folders and files drawn by hand in
+# ink on paper (manila folders, cream sheets with their type typed on);
+# symbolic icons warmed (tools/make_icons.py, tools/inked_icons.py). GTK, Qt and the shell use it by name; apps
 # already open show it when they start again.
 set -euo pipefail
 src=/usr/share/icons/Papirus
@@ -16,7 +16,7 @@ dst="${XDG_DATA_HOME:-$HOME/.local/share}/icons/Archive"
 maker="$HOME/archive/tools/make_icons.py"
 stamp="$dst/.made-from"
 
-want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(sha1sum "$maker" | cut -c1-12)"; }
+want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(cat "$maker" "$(dirname "$maker")/inked_icons.py" 2>/dev/null | sha1sum | cut -c1-12)"; }
 
 build() {
     [[ -d $src ]] || { echo "archive-icons: Papirus is not installed (sudo pacman -S papirus-icon-theme)" >&2; exit 1; }
