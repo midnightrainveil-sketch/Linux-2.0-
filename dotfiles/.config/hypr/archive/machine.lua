@@ -85,3 +85,7 @@ hl.config({
 })
 
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+-- the swipe steps through the desks by number, empty ones too (by default
+-- it skips to the next one that has windows, so an empty desk 1 could only
+-- be clicked to)
+hl.config({ gestures = { workspace_swipe_use_r = true } })
