@@ -139,15 +139,15 @@ if reduced then
 else
     hl.animation({ leaf = "global", enabled = true, speed = 2, bezier = "place" })
     -- a window is a card laid on the desk, and lifted off it to go
-    hl.animation({ leaf = "windowsIn", enabled = true, speed = 3, bezier = "land", style = "popin 93%" })
-    hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.6, bezier = "lift", style = "popin 95%" })
+    hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.2, bezier = "land", style = "popin 94%" })
+    hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.3, bezier = "lift", style = "popin 95%" })
     hl.animation({ leaf = "windowsMove", enabled = true, speed = 2.2, bezier = "place" })
     hl.animation({ leaf = "fadeIn", enabled = true, speed = 2.2, bezier = "place" })
     hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.4, bezier = "lift" })
     hl.animation({ leaf = "fade", enabled = true, speed = 1.6, bezier = "place" })
     hl.animation({ leaf = "border", enabled = true, speed = 1.6, bezier = "place" })
     -- another workspace: the sheets on the desk slide aside for the next
-    hl.animation({ leaf = "workspaces", enabled = true, speed = 3.8, bezier = "place", style = "slide" })
+    hl.animation({ leaf = "workspaces", enabled = true, speed = 2.6, bezier = "place", style = "slide" })
     hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.2, bezier = "place", style = "slidefadevert 8%" })
 end
 -- the shell animates its own cards; Hyprland just shows them
