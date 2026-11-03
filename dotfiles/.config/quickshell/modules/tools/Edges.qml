@@ -33,7 +33,7 @@ BarPopup {
     }
 
     function pick(i: int): void {
-        chosen = sizes[i];
+        chosen = popup.sizes[i];
         Quickshell.execDetached(["archive-edges", chosen]);
     }
 
@@ -65,7 +65,7 @@ BarPopup {
             label: "Size"
             labelWidth: card.labelWidth
             Toggle {
-                id: sizes
+                id: sizeRow
                 anchors.verticalCenter: parent.verticalCenter
                 options: ["1×", "1.5×", "2×", "2.5×"]
                 current: popup.sizes.indexOf(popup.chosen)
@@ -73,13 +73,13 @@ BarPopup {
             }
             // which size the pointer is over, to look at it before choosing
             HoverHandler {
-                target: sizes
+                target: sizeRow
                 onPointChanged: {
                     if (!hovered) { popup.looking = -1; return; }
                     let x = point.position.x, i = 0;
-                    for (; i < sizes.children.length - 1; ++i) {
-                        const c = sizes.children[i];
-                        if (x < c.x + c.width + sizes.spacing / 2) break;
+                    for (; i < sizeRow.children.length - 1; ++i) {
+                        const c = sizeRow.children[i];
+                        if (x < c.x + c.width + sizeRow.spacing / 2) break;
                     }
                     popup.looking = Math.min(i, popup.sizes.length - 1);
                 }
