@@ -35,7 +35,7 @@ namespace {
     struct SConfig {
         SP<Config::Values::CBoolValue>  enabled, grainDefault;
         SP<Config::Values::CIntValue>   margin, period, toneDepth;
-        SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases, grain;
+        SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases, grain, size;
         SP<Config::Values::CColorValue> paper, rimTop, rimBottom, rimTopInactive, rimBottomInactive, bevel, shadow, shadowInactive, tone;
     };
 
@@ -71,6 +71,7 @@ namespace {
     Deckle::SStyle styleFor(double scale, bool focused) {
         Deckle::SStyle st;
         st.scale      = scale;
+        st.zoom       = std::clamp((double)g_config.size->value(), 0.5, 4.0);
         st.period     = std::clamp((int)g_config.period->value(), 32, 1024);
         st.margin     = std::clamp((int)g_config.margin->value(), 1, 32);
         st.toneDepth  = std::clamp((int)g_config.toneDepth->value(), 0, 64);
@@ -272,11 +273,11 @@ CBox CArchiveDeckle::cardBox() {
     const auto WORKSPACEOFFSET = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
     box.translate(WORKSPACEOFFSET).translate(PWINDOW->presentation().floatingOffset());
 
-    return box.expand(std::clamp((int)g_config.margin->value(), 1, 32));
+    return box.expand(styleFor(1.0, true).edge());
 }
 
 double CArchiveDeckle::reach() {
-    return m_over ? Deckle::SStyle::OVER_OUT + 1 : styleFor(1.0, true).outset() + 1;
+    return m_over ? styleFor(1.0, true).overOut() + 1 : styleFor(1.0, true).outset() + 1;
 }
 
 void CArchiveDeckle::updateExtents() {
@@ -286,7 +287,7 @@ void CArchiveDeckle::updateExtents() {
     }
 
     const auto PWINDOW = m_window.lock();
-    const auto margin  = std::clamp((int)g_config.margin->value(), 1, 32);
+    const auto margin  = styleFor(1.0, true).edge();
     CBox       outer   = g_pDecorationPositioner->getBoxWithIncludedDecos(PWINDOW).expand(margin + reach());
     m_extents          = outer.extentsFrom(PWINDOW->getWindowMainSurfaceBox());
 }
@@ -430,7 +431,7 @@ void CArchiveDeckle::renderOver(Render::CRenderContext& ctx, PHLMONITOR pMonitor
     STileSet*    tiles   = tilesFor(st, true);
 
     const double s = pMonitor->m_scale;
-    const double E = Deckle::SStyle::OVER_OUT, D = st.toneDepth, R = st.cornerReach(), C = Deckle::SStyle::CREASE;
+    const double E = st.overOut(), D = st.depth(), R = st.cornerReach(), C = st.creaseSize();
     const double x = card.x, y = card.y, w = card.w, h = card.h;
     const bool   edges = edgesOn();
 
@@ -438,7 +439,7 @@ void CArchiveDeckle::renderOver(Render::CRenderContext& ctx, PHLMONITOR pMonitor
     // edge), fixed to the card so it moves with the window
     if (grainOn()) {
         const auto   tex = grainTexture();
-        const double in  = edges ? st.inset() : std::clamp((int)g_config.margin->value(), 1, 32);
+        const double in  = edges ? st.inset() : st.edge();
         auto         px  = [&](double v) { return std::round(v * s); };
         CBox         box = {px(x + in), px(y + in), px(x + w - in) - px(x + in), px(y + h - in) - px(y + in)};
         if (tex && tex->m_size.x > 0 && box.w > 0 && box.h > 0) {
@@ -564,8 +565,9 @@ void deckleInit(HANDLE handle) {
     g_config.grain             = makeShared<CFloatValue>("plugin:archivebars:grain", "Strength of the paper grain over windows that have it (0 = none)", 1.F);
     g_config.grainDefault      = makeShared<CBoolValue>("plugin:archivebars:grain_default", "Grain on windows no rule mentions", false);
     g_config.tone              = makeShared<CColorValue>("plugin:archivebars:deckle_tone", "The aged edge at its darkest (alpha = strength)", 0x30604c38);
+    g_config.size              = makeShared<CFloatValue>("plugin:archivebars:deckle_size", "Size of the whole edge: chips, tears, the cut, outline, shadow (1 = as drawn)", 1.F);
 
-    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.margin, g_config.period, g_config.toneDepth, g_config.amplitude, g_config.rimWidth,
+    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.size, g_config.enabled, g_config.margin, g_config.period, g_config.toneDepth, g_config.amplitude, g_config.rimWidth,
                                                            g_config.shadowBlur, g_config.shadowX, g_config.shadowY, g_config.chips, g_config.creases, g_config.paper,
                                                            g_config.rimTop, g_config.rimBottom, g_config.rimTopInactive, g_config.rimBottomInactive, g_config.bevel,
                                                            g_config.shadow, g_config.shadowInactive, g_config.tone, g_config.grain, g_config.grainDefault})

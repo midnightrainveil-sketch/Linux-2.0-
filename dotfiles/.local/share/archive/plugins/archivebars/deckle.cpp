@@ -244,7 +244,7 @@ namespace Deckle {
         cairo_surface_mark_dirty(surf);
     }
 
-    int SStyle::outset() const {
+    int SStyle::outsetRaw() const {
         return (int)std::ceil(3 * shadowBlur + std::max({std::abs(shadowX), std::abs(shadowY), std::abs(contactX), std::abs(contactY)}) + amplitude + rimWidth + 1);
     }
 
@@ -419,7 +419,8 @@ namespace Deckle {
 
     // ---------------------------------------------------------------- strips
 
-    cairo_surface_t* strip(const SStyle& st, eSide side, int variant) {
+    cairo_surface_t* strip(const SStyle& style, eSide side, int variant) {
+        const SStyle st = style.drawn();
         const double             P = st.period, O = st.outset(), I = st.inset();
         const double             B = O + 2; // blur room past the tile's ends
         const bool               horizontal = side == SIDE_TOP || side == SIDE_BOTTOM;
@@ -476,7 +477,8 @@ namespace Deckle {
         return 0.6 + std::min(st.margin - 1.5, 4.2 * r * r * r * std::max(st.chips, 0.0));
     }
 
-    cairo_surface_t* corner(const SStyle& st, eCorner which, int variant) {
+    cairo_surface_t* corner(const SStyle& style, eCorner which, int variant) {
+        const SStyle st = style.drawn();
         const double O = st.outset(), R = st.cornerReach(), K = st.cornerSize();
         const double B = O + 2;
         const bool   right  = which == CORNER_TR || which == CORNER_BR;
@@ -603,7 +605,8 @@ namespace Deckle {
         layer(1.3, 2.2, st.bevel, 0.9 * strength, false);              // the ridge in the light
     }
 
-    cairo_surface_t* overlayStrip(const SStyle& st, eSide side, int variant) {
+    cairo_surface_t* overlayStrip(const SStyle& style, eSide side, int variant) {
+        const SStyle st = style.drawn();
         const double             P = st.period, D = st.toneDepth, E = SStyle::OVER_OUT;
         const bool               horizontal = side == SIDE_TOP || side == SIDE_BOTTOM;
         const uint32_t           seed       = stripSeed(side, variant);
@@ -635,13 +638,18 @@ namespace Deckle {
         if (((st.tone >> 24) & 0xff) > 0) {
             auto         blotch = [&](double u) { return 0.55 * periodicNoise(u, P, 26, seed, 40) + 0.3 * periodicNoise(u, P, 7, seed, 41); };
             const double b0     = blotch(0);
-            const double slice  = 2.0;
+            const double slice  = 1.0 / st.scale; // one device pixel: smooth at any size (drawn once, kept)
             for (double u = 0; u < P; u += slice) {
                 const double m = std::clamp(1 + 0.9 * (blotch(u + slice / 2) - b0), 0.25, 2.0);
                 cairo_save(cr);
-                const SPoint p0 = map(u, -E), p1 = map(u + slice + 0.05, D);
+                // whole pixels, no overlap: neighbouring slices meet exactly
+                // (an antialiased overlap left fine stripes, plain to see once
+                // the edge is drawn larger)
+                const SPoint p0 = map(u, -E), p1 = map(u + slice, D);
+                cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
                 cairo_rectangle(cr, std::min(p0.x, p1.x), std::min(p0.y, p1.y), std::abs(p1.x - p0.x), std::abs(p1.y - p0.y));
                 cairo_clip(cr);
+                cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT);
                 toneBand(cr, st, toneStrength(side) * m, map(u, 0), map(u, D));
                 cairo_paint(cr);
                 cairo_restore(cr);
@@ -682,7 +690,8 @@ namespace Deckle {
         return cv.crop();
     }
 
-    cairo_surface_t* overlayCorner(const SStyle& st, eCorner which, int variant) {
+    cairo_surface_t* overlayCorner(const SStyle& style, eCorner which, int variant) {
+        const SStyle st = style.drawn();
         const double   E = SStyle::OVER_OUT, R = st.cornerReach(), D = st.toneDepth;
         const double   K      = E + R;
         const bool     right  = which == CORNER_TR || which == CORNER_BR;
@@ -716,7 +725,8 @@ namespace Deckle {
         return cv.crop();
     }
 
-    cairo_surface_t* crease(const SStyle& st, eCorner which, int variant) {
+    cairo_surface_t* crease(const SStyle& style, eCorner which, int variant) {
+        const SStyle st = style.drawn();
         const double C      = SStyle::CREASE;
         const bool   right  = which == CORNER_TR || which == CORNER_BR;
         const bool   bottom = which == CORNER_BL || which == CORNER_BR;
@@ -839,11 +849,11 @@ namespace Deckle {
     }
 
     int stripCount(const SStyle& st, double length) {
-        return std::max(1, (int)std::lround(length / st.period));
+        return std::max(1, (int)std::lround(length / st.stripLength()));
     }
 
     int creaseFor(const SStyle& st, uint32_t seed, eCorner corner, double w, double h) {
-        if (st.creases <= 0 || w < 2.2 * SStyle::CREASE || h < 2.2 * SStyle::CREASE)
+        if (st.creases <= 0 || w < 2.2 * st.creaseSize() || h < 2.2 * st.creaseSize())
             return -1;
         // the lower corners, handled most, crease most
         static constexpr double CHANCE[4] = {0.12, 0.3, 0.45, 0.5};
@@ -922,7 +932,7 @@ namespace Deckle {
     }
 
     void composeOverlay(cairo_t* cr, const SStyle& st, double x, double y, double w, double h, uint32_t seed) {
-        const double E = SStyle::OVER_OUT, D = st.toneDepth, R = st.cornerReach(), C = SStyle::CREASE;
+        const double E = st.overOut(), D = st.depth(), R = st.cornerReach(), C = st.creaseSize();
         const double s  = st.scale;
         auto         px = [&](double v) { return std::round(v * s); };
 

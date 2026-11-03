@@ -29,6 +29,9 @@ namespace Deckle {
     // all lengths in logical pixels
     struct SStyle {
         double   scale      = 1.0;  // monitor scale; tiles are drawn at this resolution
+        double   zoom       = 1.0;  // the size of everything below, chips, tears, the cut's
+                                    // wander, outline, shadow and aged edge alike (2 = twice
+                                    // as big); the lengths below are at zoom 1
         int      period     = 160;  // length of one edge strip
         int      margin     = 6;    // card edge sits this far outside the window
         double   amplitude  = 1.2;  // how far the torn edge wanders
@@ -49,23 +52,53 @@ namespace Deckle {
         uint32_t shadow     = 0x661e1d22; // shadow, tears, crease valleys
         uint32_t tone       = 0x30604c38; // the aged edge, at its darkest
 
+        // The measures where tiles are placed, at the zoom (logical pixels).
+        // A tile is drawn at zoom 1 with the resolution raised by the zoom
+        // (drawn()), so it is exactly the size these place it at.
         // band reaches this far outside the card edge (room for the shadow)
-        int outset() const;
+        double outset() const {
+            return zoom * outsetRaw();
+        }
         // band reaches this far inside the card edge (one pixel under the window)
-        int inset() const {
-            return margin + 1;
+        double inset() const {
+            return zoom * (margin + 1);
         }
         // corner tiles cover this much of each edge, measured from the card corner
-        int cornerReach() const {
-            return std::max({inset() + 6, outset() + 4, toneDepth + 4});
+        double cornerReach() const {
+            return zoom * std::max({margin + 1 + 6, outsetRaw() + 4, toneDepth + 4});
         }
         // side of a corner tile
-        int cornerSize() const {
+        double cornerSize() const {
             return outset() + cornerReach();
         }
-        // the overlay band reaches from just outside the edge to toneDepth inside
+        // the card edge sits this far outside the window
+        double edge() const {
+            return zoom * margin;
+        }
+        // one edge strip, the aged edge, and the overlay's reach outside the card
+        double stripLength() const {
+            return zoom * period;
+        }
+        double depth() const {
+            return zoom * toneDepth;
+        }
+        double overOut() const {
+            return zoom * OVER_OUT;
+        }
+        double creaseSize() const {
+            return zoom * CREASE;
+        }
+        // the same look at zoom 1, drawn at the resolution the zoom asks for
+        SStyle drawn() const {
+            SStyle b = *this;
+            b.scale *= zoom;
+            b.zoom = 1;
+            return b;
+        }
+        int outsetRaw() const;
+        // (at zoom 1) the overlay band reaches from just outside the edge to toneDepth inside
         static constexpr int OVER_OUT = 2;
-        // side of a crease tile
+        // (at zoom 1) side of a crease tile
         static constexpr int CREASE = 100;
         bool operator==(const SStyle&) const = default;
     };

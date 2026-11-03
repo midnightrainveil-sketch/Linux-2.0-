@@ -3,7 +3,7 @@
 //   g++ -std=c++20 -O2 -I dotfiles/.local/share/archive/plugins/archivebars
 //       tools/deckle-preview.cpp dotfiles/.local/share/archive/plugins/archivebars/deckle.cpp
 //       $(pkg-config --cflags --libs cairo) -o /tmp/deckle-preview
-//   /tmp/deckle-preview out.png [width height scale day|night [bare] [seed]]
+//   /tmp/deckle-preview out.png [width height scale day|night [bare] [seed] [size]]
 //
 // Draws one card the size of a window on the desk colour, using exactly the
 // tiles the plugin uses: the tiles under the window, a plain window with the
@@ -24,10 +24,12 @@ int main(int argc, char** argv) {
     const bool        night = argc > 5 && std::string(argv[5]) == "night";
     const bool        bare  = argc > 6 && std::string(argv[6]) == "bare";
     const uint32_t    seed  = argc > 7 ? (uint32_t)strtoul(argv[7], nullptr, 0) : 0x5eed;
+    const double      zoom  = argc > 8 ? atof(argv[8]) : 1.0; // deckle_size
     const double      M     = 48; // desk around the card
 
     Deckle::SStyle    st;
     st.scale = scale;
+    st.zoom  = zoom;
     if (night) {
         st.paper     = 0xff22385a;
         st.rimTop    = 0xff4e6283;
@@ -39,7 +41,7 @@ int main(int argc, char** argv) {
     const uint32_t desk = night ? 0x1c2f4d : 0xc9c7c3;
     const uint32_t card = st.paper;
     const int      W = (int)((w + 2 * M) * scale), H = (int)((h + 2 * M) * scale);
-    const double   m = st.margin; // the card edge is `margin` outside the window
+    const double   m = st.edge(); // the card edge is `margin` outside the window
 
     auto           surface = [&] { return cairo_image_surface_create(CAIRO_FORMAT_ARGB32, W, H); };
     auto           rgb     = [](cairo_t* cr, uint32_t c, double a = 1) { cairo_set_source_rgba(cr, ((c >> 16) & 255) / 255.0, ((c >> 8) & 255) / 255.0, (c & 255) / 255.0, a); };
@@ -91,6 +93,6 @@ int main(int argc, char** argv) {
     cairo_destroy(cr);
     cairo_surface_write_to_png(s, out.c_str());
     cairo_surface_destroy(s);
-    printf("%s: %dx%d (outset %d, corner %d)\n", out.c_str(), W, H, st.outset(), st.cornerSize());
+    printf("%s: %dx%d (outset %g, corner %g)\n", out.c_str(), W, H, st.outset(), st.cornerSize());
     return 0;
 }
