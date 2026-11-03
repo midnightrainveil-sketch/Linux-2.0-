@@ -161,6 +161,17 @@ ASUS's own panel profiles are on the Windows side, under
 Only one notification daemon can run at a time. Remove `mako` and `dunst`,
 or stop them: `pkill mako; pkill dunst`.
 
+## The robots or FMS stop answering on the office Wi-Fi
+
+On the office mesh Wi-Fi the laptop sometimes reaches the router and the
+internet but not the FMS server or a robot: "Destination Host Unreachable".
+The router can still reach them, so `archive-lan on` (once) keeps them
+reachable: every few seconds it asks each one directly, sends one that does
+not answer through the router instead, and goes direct again when it
+answers. `archive-lan status` shows which way each goes; the machines are in
+`/etc/archive/lan-hosts` (FMS 192.168.68.202, the robots .153 and .241: add
+others there). `archive-lan off` stops it.
+
 ## An update broke something (restore points)
 
 `archive-snapshot` keeps restore points of the system (Timeshift): one before
