@@ -55,6 +55,55 @@ COVER = (2880, 1800)
 DAY_PAPER = np.array([203, 201, 197], np.float32)
 NIGHT_PAPER = np.array([0x1c, 0x2f, 0x4d], np.float32)
 NIGHT_INK = np.array([0xe6, 0xe1, 0xd6], np.float32)
+# the paper's own texture, quietened to the desk's calm grey sheet: how much
+# of the colour of its flecks and fibres stays (the blue stamp keeps all of
+# its own), and how much of its grain (the drawing and type are untouched)
+FLECK_COLOUR = 0.35
+PAPER_GRAIN = 0.5
+# the drawing in soft pencil grey, never black: the darkest ink (all but
+# the darkest half percent) lifted to this if a picture draws darker; and
+# the stamp's blue, a little quieter than printed
+INK_FLOOR = 92.0
+STAMP_COLOUR = 0.8
+STAMP_LIFT = 0.22      # the stamp's ink a little toward the paper, faded as an old stamp is
+
+
+def quieten(big):
+    """The paper's flecks greyed and its grain softened; ink, type and the
+    blue stamp as drawn."""
+    rgb = np.asarray(big, np.float32)
+    lum = rgb.mean(axis=2, keepdims=True)
+    # colour: pulled toward grey, except blues (the stamp, any blue ink)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    blue = np.clip((b - np.maximum(r, g)) / 40.0, 0, 1)[..., None]
+    keep = FLECK_COLOUR + (1 - FLECK_COLOUR) * blue
+    rgb = lum + (rgb - lum) * keep
+    # grain: the paper's small ups and downs eased toward its smooth level;
+    # ink (well below the paper) is left alone
+    gray = Image.fromarray(np.clip(rgb.mean(axis=2), 0, 255).astype(np.uint8))
+    level = np.asarray(gray.filter(ImageFilter.MedianFilter(9)).filter(ImageFilter.GaussianBlur(3)), np.float32)[..., None]
+    smooth = np.asarray(Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2.2)), np.float32)
+    depth = np.clip((level - rgb.mean(axis=2, keepdims=True)) / 28.0, 0, 1)   # 0 paper .. 1 ink
+    paper = (1 - depth) * (1 - PAPER_GRAIN)
+    rgb = rgb * (1 - paper) + smooth * paper
+    # ink: grey pencil lines lifted toward the paper so the darkest is
+    # INK_FLOOR (a picture drawn that light already is left as it is)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    blue = np.clip((b - np.maximum(r, g)) / 40.0, 0, 1)[..., None]
+    paper_rgb = np.median(rgb.reshape(-1, 3), axis=0)
+    lum = rgb.mean(axis=2)
+    darkest = np.percentile(lum[blue[..., 0] < 0.5], 0.5)
+    paper_l = float(paper_rgb.mean())
+    if darkest < INK_FLOOR < paper_l:
+        k = (paper_l - INK_FLOOR) / (paper_l - darkest)
+        lifted = paper_rgb + (rgb - paper_rgb) * k
+        rgb = rgb * blue + lifted * (1 - blue)          # the stamp keeps its depth
+    # the stamp: its blue a little quieter, and faded a little
+    lum = rgb.mean(axis=2, keepdims=True)
+    stamp = lum + (rgb - lum) * STAMP_COLOUR
+    stamp = stamp + (paper_rgb - stamp) * STAMP_LIFT
+    rgb = rgb * (1 - blue) + stamp * blue
+    return Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8))
 
 
 def main():
@@ -66,6 +115,7 @@ def main():
     big = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
     if scale > 1.05:   # enlarged: bring the pencil lines back a little
         big = big.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
+    big = quieten(big)
     rgb = np.asarray(big, np.float32)
 
     # the paper's own colour, everywhere (the ink lifted out of it)
