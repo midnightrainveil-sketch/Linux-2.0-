@@ -98,6 +98,16 @@ hl.config({
         allow_session_lock_restore = true,      -- if the shell restarts while locked
         key_press_enables_dpms = true,
         mouse_move_enables_dpms = true,
+        -- variable refresh only for a fullscreen game or video (smoother,
+        -- and the panel slows down when nothing moves); never on the desk,
+        -- where an OLED can flicker with it
+        vrr = 3,
+    },
+
+    -- a fullscreen video or game goes straight to the panel, not through a
+    -- redraw of the whole screen: less GPU work and power, less latency
+    render = {
+        direct_scanout = 2,
     },
 
     cursor = {
