@@ -69,6 +69,13 @@ function M.refresh()
     return 120
 end
 
+-- the size of the paper edges, 1 as drawn (archive-edges, Instruments -> Edges)
+function M.edge_size()
+    local s = read(M.state_dir .. "/edges")
+    local n = s and tonumber(s:match("[%d%.]+")) or 1
+    return math.max(0.5, math.min(4, n))
+end
+
 function M.grain()
     local s = read(M.state_dir .. "/grain")
     return s ~= nil and s:match("on") ~= nil

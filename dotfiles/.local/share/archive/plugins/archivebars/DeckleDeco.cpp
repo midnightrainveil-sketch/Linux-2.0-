@@ -576,6 +576,7 @@ void deckleInit(HANDLE handle) {
     // lets the config ask whether this build has the edges
     // (Hyprland's config is Lua only now)
     HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle", ::luaHasDeckle);
+    HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle_size", ::luaHasDeckle);
     HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
 
     // the rim and shadow change with focus, outside the window's own damage

@@ -282,6 +282,7 @@ number is the current air pressure in hPa.
 | `Super + /` | Index of keys: every shortcut on one card (yours from `user.lua` too); type to find one |
 | `Super + Shift + D`, or the desk terminal's green dot | Lift the desk terminal into an ordinary window: the same terminal, everything in it carried over (tmux, a running program, what you typed), tiled and in normal-size type; a fresh terminal is laid on the desk. On every other window the green dot maximises, as before |
 | Launcher: "Themes", or Instruments → Themes | Themes: the full desktop themes kept, each with pictures to look through; choose the one to log in to (it takes effect at your next log-in). Only the Archive for now; new themes are added to `~/.local/share/archive/themes` |
+| Instruments → Edges | Paper edges: the size of the windows' torn edges (1×, 1.5×, 2×, 2.5×), with a corner of each to look at; it applies at once. From a terminal: `archive-edges 2` |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
 | `Super + Q` | Close the window |

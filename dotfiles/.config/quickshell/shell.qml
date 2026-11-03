@@ -98,6 +98,11 @@ ShellRoot {
         onItemChanged: if (item) Panels.ready("themes"); else Panels.gone("themes")
         Themes { screen: shell.focusedScreen }
     }
+    LazyLoader {
+        active: Panels.wanted("edges")
+        onItemChanged: if (item) Panels.ready("edges"); else Panels.gone("edges")
+        Edges { screen: shell.focusedScreen }
+    }
     PowerHold   { id: powerHold; screen: shell.focusedScreen }
 
     ReadingRoom { id: readingRoom }
@@ -117,6 +122,7 @@ ShellRoot {
         function keys(): void { Panels.toggle("keys"); }
         function glyphs(): void { Panels.toggle("glyphs"); }
         function themes(): void { Panels.toggle("themes"); }
+        function edges(): void { Panels.toggle("edges"); }
         function close(): void { Panels.close(); }
         // the Register (open windows): the bar button, and Alt+Tab
         function register(): void { registerCard.toggle(); }

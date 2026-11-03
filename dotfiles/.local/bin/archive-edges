@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# archive-edges: the size of the windows' torn paper edges.
+#
+#   archive-edges 1 | 1.5 | 2 | 2.5   chips, tears, the cut, outline and shadow
+#                                     at that size (1 is as drawn; anything from
+#                                     0.5 to 4 works)
+#   archive-edges status              the size now
+#
+# The choice is kept in ~/.local/state/archive/edges, which
+# hypr/archive/state.lua reads; it applies at once (Hyprland reads its config
+# again) and holds after a reboot. Instruments -> Edges sets it too.
+set -euo pipefail
+state="${XDG_STATE_HOME:-$HOME/.local/state}/archive"
+mkdir -p "$state"
+now=$(tr -dc '0-9.' 2>/dev/null <"$state/edges" || true)
+
+case ${1:-status} in
+    status) echo "${now:-1}"; exit 0 ;;
+    *[!0-9.]* | "" | .) echo "usage: archive-edges 1|1.5|2|2.5|status" >&2; exit 2 ;;
+esac
+want=$1
+if ! awk -v v="$want" 'BEGIN { exit !(v >= 0.5 && v <= 4) }'; then
+    echo "archive-edges: a size from 0.5 to 4" >&2
+    exit 2
+fi
+echo "$want" >"$state/edges"
+hyprctl reload >/dev/null 2>&1 || true
+echo "paper edges: size $want"
