@@ -22,6 +22,7 @@
 
 #include <cairo/cairo.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 namespace Deckle {
@@ -29,9 +30,10 @@ namespace Deckle {
     // all lengths in logical pixels
     struct SStyle {
         double   scale      = 1.0;  // monitor scale; tiles are drawn at this resolution
-        double   zoom       = 1.0;  // the size of everything below, chips, tears, the cut's
-                                    // wander, outline, shadow and aged edge alike (2 = twice
-                                    // as big); the lengths below are at zoom 1
+        double   zoom       = 1.0;  // the size of the edge's damage (2 = twice as big):
+                                    // chips, tears, wrinkles and the cut's wander grow by
+                                    // it; the fine detail (outline, fibres, the paper's
+                                    // tooth) stays as crisp as at 1. sized() makes room.
         int      period     = 160;  // length of one edge strip
         int      margin     = 6;    // card edge sits this far outside the window
         double   amplitude  = 1.2;  // how far the torn edge wanders
@@ -52,20 +54,18 @@ namespace Deckle {
         uint32_t shadow     = 0x661e1d22; // shadow, tears, crease valleys
         uint32_t tone       = 0x30604c38; // the aged edge, at its darkest
 
-        // The measures where tiles are placed, at the zoom (logical pixels).
-        // A tile is drawn at zoom 1 with the resolution raised by the zoom
-        // (drawn()), so it is exactly the size these place it at.
+        // The measures where tiles are placed (logical pixels).
         // band reaches this far outside the card edge (room for the shadow)
         double outset() const {
-            return zoom * outsetRaw();
+            return outsetRaw();
         }
         // band reaches this far inside the card edge (one pixel under the window)
         double inset() const {
-            return zoom * (margin + 1);
+            return margin + 1;
         }
         // corner tiles cover this much of each edge, measured from the card corner
         double cornerReach() const {
-            return zoom * std::max({margin + 1 + 6, outsetRaw() + 4, toneDepth + 4});
+            return std::max({margin + 1 + 6, outsetRaw() + 4, toneDepth + 4});
         }
         // side of a corner tile
         double cornerSize() const {
@@ -73,27 +73,37 @@ namespace Deckle {
         }
         // the card edge sits this far outside the window
         double edge() const {
-            return zoom * margin;
+            return margin;
         }
         // one edge strip, the aged edge, and the overlay's reach outside the card
         double stripLength() const {
-            return zoom * period;
+            return period;
         }
         double depth() const {
-            return zoom * toneDepth;
+            return toneDepth;
         }
         double overOut() const {
-            return zoom * OVER_OUT;
+            return OVER_OUT;
         }
         double creaseSize() const {
-            return zoom * CREASE;
+            return CREASE;
         }
-        // the same look at zoom 1, drawn at the resolution the zoom asks for
-        SStyle drawn() const {
-            SStyle b = *this;
-            b.scale *= zoom;
-            b.zoom = 1;
+        // the style with room made for its damage: the card edge a little
+        // further out (bigger chips must not bite into the window), the cut
+        // wandering further, the aged edge reaching a little deeper and the
+        // outline a touch heavier; called once, where a style is made
+        SStyle sized() const {
+            SStyle b      = *this;
+            const double g = zoom - 1;
+            b.margin      = std::max(1, (int)std::lround(margin * (1 + 0.5 * g)));
+            b.toneDepth   = std::max(0, (int)std::lround(toneDepth * (1 + 0.5 * g)));
+            b.amplitude   = amplitude * zoom;
+            b.rimWidth    = rimWidth * (1 + 0.2 * g);
             return b;
+        }
+        // (tiles are drawn at the monitor's own resolution)
+        SStyle drawn() const {
+            return *this;
         }
         int outsetRaw() const;
         // (at zoom 1) the overlay band reaches from just outside the edge to toneDepth inside

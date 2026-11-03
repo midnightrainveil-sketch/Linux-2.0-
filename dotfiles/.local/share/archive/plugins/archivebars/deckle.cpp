@@ -71,12 +71,13 @@ namespace Deckle {
         int            salt     = 0;
         auto           rnd      = [&] { return random01(seed, 77, (uint32_t)salt++); };
 
+        const double   Z = std::max(0.5, st.zoom);   // the damage's size
         auto           place = [&](SMark m) {
             // keep clear of the strip's ends and of each other
-            if (m.u - m.width < 10 || m.u + m.width > P - 10)
+            if (m.u - m.width < 10 * Z || m.u + m.width > P - 10 * Z)
                 return;
             for (const auto& o : marks)
-                if (std::abs(o.u - m.u) < o.width + m.width + 6)
+                if (std::abs(o.u - m.u) < o.width + m.width + 6 * Z)
                     return;
             marks.push_back(m);
         };
@@ -85,13 +86,13 @@ namespace Deckle {
         const int    chips = r < 0.18 / wear ? 0 : r < 0.6 ? 1 : r < 0.9 ? 2 : 3;
         for (int i = 0; i < chips; ++i) {
             const double size = rnd();
-            place({SMark::CHIP, 12 + rnd() * (P - 24), 4 + 10 * size, std::min(maxDepth, 1.3 + 3.2 * size + 0.5 * rnd()), 0, 0});
+            place({SMark::CHIP, 12 * Z + rnd() * (P - 24 * Z), (4 + 10 * size) * Z, std::min(maxDepth, (1.3 + 3.2 * size + 0.5 * rnd()) * Z), 0, 0});
         }
         if (rnd() < 0.5 * wear)
-            place({SMark::TEAR, 12 + rnd() * (P - 24), 2.2 + rnd(), std::min(maxDepth, 1.4 + rnd()), (rnd() - 0.5) * 0.9, 5 + 7 * rnd()});
+            place({SMark::TEAR, 12 * Z + rnd() * (P - 24 * Z), (2.2 + rnd()) * Z, std::min(maxDepth, (1.4 + rnd()) * Z), (rnd() - 0.5) * 0.9, (5 + 7 * rnd()) * Z});
         const int wrinkles = (int)(rnd() * 2.6 * st.chips);
         for (int i = 0; i < wrinkles; ++i)
-            place({SMark::WRINKLE, 12 + rnd() * (P - 24), 1.0, 0, (rnd() - 0.5) * 0.8, 6 + 9 * rnd()});
+            place({SMark::WRINKLE, 12 * Z + rnd() * (P - 24 * Z), 1.0 * Z, 0, (rnd() - 0.5) * 0.8, (6 + 9 * rnd()) * Z});
         return marks;
     }
 
@@ -138,10 +139,11 @@ namespace Deckle {
         p.step      = length / n;
 
         auto wander = [&](double u) {
-            return 0.55 * periodicNoise(u, length, 46, seed, 1)   // slow wave of the cut
-                + 0.30 * periodicNoise(u, length, 11, seed, 2)    // unevenness
-                + 0.38 * periodicNoise(u, length, 2.2, seed, 3)   // the paper's tooth
-                + 0.18 * periodicNoise(u, length, 0.9, seed, 4);  // loose fibres
+            const double Z = std::max(0.5, st.zoom);           // (the damage's size)
+            return 0.55 * periodicNoise(u, length, 46 * Z, seed, 1)   // slow wave of the cut
+                + 0.30 * periodicNoise(u, length, 11 * Z, seed, 2)    // unevenness
+                + 0.38 / Z * periodicNoise(u, length, 2.2, seed, 3)   // the paper's tooth (as fine,
+                + 0.18 / Z * periodicNoise(u, length, 0.9, seed, 4);  // not deeper, at any size)
         };
         auto heft = [&](double u) { return periodicNoise(u, length, 7, seed, 5); };
         auto ink  = [&](double u) { return 0.5 * periodicNoise(u, length, 5, seed, 6) + 0.5 * periodicNoise(u, length, 1.1, seed, 7); };
@@ -474,7 +476,7 @@ namespace Deckle {
     // how much a corner has been worn or torn off
     static double cornerWear(const SStyle& st, eCorner which, int variant) {
         const double r = random01(91U * (which + 1), 17U * (variant + 1), 5);
-        return 0.6 + std::min(st.margin - 1.5, 4.2 * r * r * r * std::max(st.chips, 0.0));
+        return 0.6 + std::min(st.margin - 1.5, 4.2 * std::max(0.5, st.zoom) * r * r * r * std::max(st.chips, 0.0));
     }
 
     cairo_surface_t* corner(const SStyle& style, eCorner which, int variant) {

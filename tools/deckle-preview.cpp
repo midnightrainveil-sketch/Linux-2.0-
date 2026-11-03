@@ -41,6 +41,7 @@ int main(int argc, char** argv) {
     const uint32_t desk = night ? 0x1c2f4d : 0xc9c7c3;
     const uint32_t card = st.paper;
     const int      W = (int)((w + 2 * M) * scale), H = (int)((h + 2 * M) * scale);
+    st = st.sized();
     const double   m = st.edge(); // the card edge is `margin` outside the window
 
     auto           surface = [&] { return cairo_image_surface_create(CAIRO_FORMAT_ARGB32, W, H); };

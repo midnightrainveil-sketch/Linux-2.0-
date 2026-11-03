@@ -97,7 +97,7 @@ namespace {
             if (argb(g_config.shadowInactive) != 0)
                 st.shadow = argb(g_config.shadowInactive);
         }
-        return st;
+        return st.sized();
     }
 
     // is there anything to draw over the window at all
