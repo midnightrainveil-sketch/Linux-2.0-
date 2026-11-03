@@ -119,3 +119,9 @@ void deckleExit();
 // for the title bar's grain glyph
 bool deckleGrainOn(PHLWINDOW window);
 void deckleToggleGrain(PHLWINDOW window);
+
+// the title-bar buttons as ticket stubs (plugin:archivebars:ticket_edge set)
+bool                 deckleTickets();
+// one ticket, its card `width` logical px wide, its texture with `pad` device
+// px of room round it (for the shadow and the lift); cached
+SP<Render::ITexture> deckleTicket(const std::string& icon, const CHyprColor& ink, double width, double scale, bool lifted, double* pad);

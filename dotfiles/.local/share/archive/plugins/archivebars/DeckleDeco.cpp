@@ -22,6 +22,8 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 
 #include <algorithm>
+#include <cmath>
+#include <unordered_map>
 
 extern "C" {
 #include <lua.h>
@@ -36,7 +38,7 @@ namespace {
         SP<Config::Values::CBoolValue>  enabled, grainDefault;
         SP<Config::Values::CIntValue>   margin, period, toneDepth;
         SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases, grain, size;
-        SP<Config::Values::CColorValue> paper, rimTop, rimBottom, rimTopInactive, rimBottomInactive, bevel, shadow, shadowInactive, tone;
+        SP<Config::Values::CColorValue> paper, rimTop, rimBottom, rimTopInactive, rimBottomInactive, bevel, shadow, shadowInactive, tone, ticketEdge;
     };
 
     struct STileSet {
@@ -59,6 +61,9 @@ namespace {
     uint64_t                        g_tick        = 0;
     uint32_t                        g_noDeckleIdx = 0;
     uint32_t                        g_grainIdx    = 0;
+
+    // the title-bar buttons as tickets, drawn once per look
+    std::unordered_map<std::string, SP<Render::ITexture>> g_tickets;
 
     // the grain tile, in device pixels, redrawn when its strength changes
     SP<Render::ITexture>            g_grainTex;
@@ -565,12 +570,14 @@ void deckleInit(HANDLE handle) {
     g_config.grain             = makeShared<CFloatValue>("plugin:archivebars:grain", "Strength of the paper grain over windows that have it (0 = none)", 1.F);
     g_config.grainDefault      = makeShared<CBoolValue>("plugin:archivebars:grain_default", "Grain on windows no rule mentions", false);
     g_config.tone              = makeShared<CColorValue>("plugin:archivebars:deckle_tone", "The aged edge at its darkest (alpha = strength)", 0x30604c38);
+    g_config.ticketEdge        = makeShared<CColorValue>("plugin:archivebars:ticket_edge", "Title-bar buttons as ticket stubs, edged in this colour (0 = round dots)", 0);
     g_config.size              = makeShared<CFloatValue>("plugin:archivebars:deckle_size", "Size of the whole edge: chips, tears, the cut, outline, shadow (1 = as drawn)", 1.F);
 
     for (const auto& v : std::initializer_list<SP<IValue>>{g_config.size, g_config.enabled, g_config.margin, g_config.period, g_config.toneDepth, g_config.amplitude, g_config.rimWidth,
                                                            g_config.shadowBlur, g_config.shadowX, g_config.shadowY, g_config.chips, g_config.creases, g_config.paper,
                                                            g_config.rimTop, g_config.rimBottom, g_config.rimTopInactive, g_config.rimBottomInactive, g_config.bevel,
-                                                           g_config.shadow, g_config.shadowInactive, g_config.tone, g_config.grain, g_config.grainDefault})
+                                                           g_config.shadow, g_config.shadowInactive, g_config.tone, g_config.grain, g_config.grainDefault,
+                                                           g_config.ticketEdge})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config ask whether this build has the edges
@@ -578,6 +585,7 @@ void deckleInit(HANDLE handle) {
     HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle", ::luaHasDeckle);
     HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle_size", ::luaHasDeckle);
     HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
+    HyprlandAPI::addLuaFunction(handle, "archivebars", "has_tickets", ::luaHasDeckle);
 
     // the rim and shadow change with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });
@@ -632,4 +640,118 @@ void deckleExit() {
     Desktop::Rule::windowEffects()->unregisterEffect(g_grainIdx);
     g_tiles.clear();
     g_grainTex = nullptr;
+    g_tickets.clear();
+}
+
+// ---------------------------------------------------------------- tickets
+
+bool deckleTickets() {
+    return g_config.ticketEdge && g_config.ticketEdge->value() != 0;
+}
+
+// The outline of a ticket stub grown by g: a rounded card with a round notch
+// cut from the middle of each short side.
+static void ticketShape(cairo_t* cr, double x0, double y0, double w, double h, double r, double nr, double g) {
+    const double X0 = x0 - g, Y0 = y0 - g, W = w + 2 * g, H = h + 2 * g, R = r + g;
+    cairo_new_path(cr);
+    cairo_move_to(cr, X0 + R, Y0);
+    cairo_line_to(cr, X0 + W - R, Y0);
+    cairo_arc(cr, X0 + W - R, Y0 + R, R, -M_PI / 2, 0);
+    cairo_line_to(cr, X0 + W, y0 + h / 2 - (nr - g));
+    cairo_arc_negative(cr, X0 + W, y0 + h / 2, nr - g, -M_PI / 2, M_PI / 2);
+    cairo_line_to(cr, X0 + W, Y0 + H - R);
+    cairo_arc(cr, X0 + W - R, Y0 + H - R, R, 0, M_PI / 2);
+    cairo_line_to(cr, X0 + R, Y0 + H);
+    cairo_arc(cr, X0 + R, Y0 + H - R, R, M_PI / 2, M_PI);
+    cairo_line_to(cr, X0, y0 + h / 2 + (nr - g));
+    cairo_arc_negative(cr, X0, y0 + h / 2, nr - g, M_PI / 2, 3 * M_PI / 2);
+    cairo_line_to(cr, X0, Y0 + R);
+    cairo_arc(cr, X0 + R, Y0 + R, R, M_PI, 3 * M_PI / 2);
+    cairo_close_path(cr);
+}
+
+static void setRGBA(cairo_t* cr, const CHyprColor& c, double a = 1.0) {
+    cairo_set_source_rgba(cr, c.r, c.g, c.b, c.a * a);
+}
+
+SP<Render::ITexture> deckleTicket(const std::string& icon, const CHyprColor& ink, double width, double scale, bool lifted, double* pad) {
+    const CHyprColor edge{static_cast<uint64_t>(g_config.ticketEdge->value())};
+    const double     s = scale, P = std::ceil(5 * s);
+    *pad               = P;
+
+    // which mark: a cross (close), a dash (put away), a square (full sheet)
+    int glyph = 2;
+    if (icon == "x" || icon == "X" || icon == "×" || icon == "✕")
+        glyph = 0;
+    else if (icon == "-" || icon == "–" || icon == "—" || icon == "_")
+        glyph = 1;
+
+    char key[160];
+    snprintf(key, sizeof key, "%d|%.4f,%.4f,%.4f,%.4f|%.4f,%.4f,%.4f|%.2f|%.3f|%d", glyph, ink.r, ink.g, ink.b, ink.a, edge.r, edge.g, edge.b, width, s, lifted ? 1 : 0);
+    if (auto it = g_tickets.find(key); it != g_tickets.end() && it->second && it->second->m_texID != 0)
+        return it->second;
+    if (g_tickets.size() > 96)
+        g_tickets.clear();
+
+    const double w = std::round(width * s), h = std::round(width * 2.0 / 3.0 * s);
+    const int    TW = static_cast<int>(w + 2 * P), TH = static_cast<int>(h + 2 * P);
+    auto*        surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, TW, TH);
+    auto*        cr   = cairo_create(surf);
+
+    const double x0 = P, y0 = P - (lifted ? std::round(1 * s) : 0);
+    const double ow = 1.2 * s, r = 1.6 * s, nr = h * 0.16;
+
+    // its shadow on the paper (softer and further when lifted)
+    const double sx = (lifted ? 0.9 : 0.6) * s, sy = (lifted ? 2.0 : 1.0) * s;
+    for (int i = 0; i < 3; ++i) {
+        cairo_save(cr);
+        cairo_translate(cr, sx, sy);
+        ticketShape(cr, x0, y0, w, h, r, nr, ow + (i - 1) * 0.5 * s);
+        cairo_set_source_rgba(cr, 0, 0, 0, (lifted ? 0.10 : 0.08));
+        cairo_fill(cr);
+        cairo_restore(cr);
+    }
+    // the white edge, then the coloured card
+    ticketShape(cr, x0, y0, w, h, r, nr, ow);
+    setRGBA(cr, edge);
+    cairo_fill(cr);
+    ticketShape(cr, x0, y0, w, h, r, nr, 0);
+    setRGBA(cr, ink);
+    cairo_fill(cr);
+
+    // the dashed tear line
+    cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+    cairo_set_line_width(cr, std::max(1.0, 0.7 * s));
+    const double tx = std::round(x0 + w * 0.30) + 0.5;
+    for (int j = 0; j < 5; ++j) {
+        const double yy = y0 + 1.6 * s + j * (h - 3.2 * s) / 4.4;
+        cairo_move_to(cr, tx, yy);
+        cairo_line_to(cr, tx, yy + 1.6 * s);
+    }
+    setRGBA(cr, edge, 0.78);
+    cairo_stroke(cr);
+
+    // the mark
+    const double cx = x0 + w * 0.64, cy = y0 + h / 2, k = h * 0.2;
+    cairo_set_line_width(cr, 1.6 * s);
+    cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+    if (glyph == 0) {
+        cairo_move_to(cr, cx - k, cy - k);
+        cairo_line_to(cr, cx + k, cy + k);
+        cairo_move_to(cr, cx - k, cy + k);
+        cairo_line_to(cr, cx + k, cy - k);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+    } else if (glyph == 1) {
+        cairo_move_to(cr, cx - k, cy);
+        cairo_line_to(cr, cx + k, cy);
+    } else
+        cairo_rectangle(cr, cx - k * 0.85, cy - k * 0.85, k * 1.7, k * 1.7);
+    setRGBA(cr, edge);
+    cairo_stroke(cr);
+
+    cairo_destroy(cr);
+    cairo_surface_flush(surf);
+    auto tex       = upload(surf);
+    g_tickets[key] = tex;
+    return tex;
 }

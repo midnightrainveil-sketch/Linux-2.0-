@@ -13,6 +13,8 @@ Changes, kept deliberately small so they survive upstream updates:
     typed glyph on the right of the bar (the reference's "-"), clickable;
   * grain_icon / grain_icon_color / grain_icon_color_off: a second glyph left
     of it that shows and flips the window's paper grain (DeckleDeco.cpp);
+  * ticket_edge: the buttons drawn as ticket stubs (a coloured card with a
+    white edge and its mark, lifting under the cursor) instead of dots;
   * deckle / deckle_*: a torn paper edge, bevel and shadow around every
     window, laid out of repeating tiles (deckle.cpp, DeckleDeco.cpp, copied in
     from next to this script), so it fits any window size.
@@ -221,6 +223,63 @@ edit("barDeco.cpp", [
         "    m_pGrainTex          = nullptr;\n",
     ),
 ])
+
+# ---- the buttons as ticket stubs (plugin:archivebars:ticket_edge, DeckleDeco.cpp)
+CTX = "ctx, " if NEWAPI else ""
+edit("barDeco.hpp", [(
+    "    unsigned int m_iButtonHoverState = 0;\n",
+    "    unsigned int m_iButtonHoverState = 0;\n"
+    "    // which ticket the cursor is over (lifted), a bit per button\n"
+    "    unsigned int m_iTicketHover = 0;\n",
+)])
+edit_any("barDeco.cpp", [
+    (f"        g_pHyprOpenGL->renderRect({CTX}buttonBox, color, {{.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F}});\n",
+     "        if (deckleTickets()) {\n"
+     "            CHyprColor ink = color;\n"
+     "            ink.a          = 1.F;\n"
+     "            double     pad = 0;\n"
+     "            const auto tex = deckleTicket(button.icon, ink, button.size, scale, (m_iTicketHover & (1u << i)) != 0, &pad);\n"
+     "            if (tex && tex->m_texID != 0) {\n"
+     "                CBox tbox = {std::round(buttonBox.x + buttonBox.w / 2.0 - tex->m_size.x / 2.0), std::round(buttonBox.y + buttonBox.h / 2.0 - tex->m_size.y / 2.0),\n"
+     "                             tex->m_size.x, tex->m_size.y};\n"
+     f"                g_pHyprOpenGL->renderTexture({CTX}tex, tbox, {{.a = a}});\n"
+     "            }\n"
+     "        } else\n"
+     f"            g_pHyprOpenGL->renderRect({CTX}buttonBox, color, {{.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F}});\n"),
+])
+edit_any("barDeco.cpp", [
+    (sig + "\n", sig + "\n    if (deckleTickets())\n        return; // (the tickets carry their own marks)\n")
+    for sig in ("void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a) {",
+                "void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float a) {")
+])
+edit_any("barDeco.cpp", [(
+    "void CHyprBar::onMouseMove(Vector2D coords) {\n",
+    "void CHyprBar::onMouseMove(Vector2D coords) {\n"
+    "    // the ticket under the cursor lifts a little\n"
+    "    if (deckleTickets()) {\n"
+    "        const auto   PAD    = g_pGlobalState->config.barPadding->value();\n"
+    "        const auto   BPAD   = g_pGlobalState->config.barButtonPadding->value();\n"
+    "        const auto   HEIGHT = g_pGlobalState->config.barHeight->value();\n"
+    "        const bool   RIGHT  = g_pGlobalState->config.barButtonsAlignment->value() != \"left\";\n"
+    "        const auto   COORDS = cursorRelativeToBar();\n"
+    "        const double BARW   = assignedBoxGlobal().w;\n"
+    "        unsigned int hover  = 0;\n"
+    "        float        offset = PAD;\n"
+    "        unsigned int bit    = 0;\n"
+    "        for (auto& b : g_pGlobalState->buttons) {\n"
+    "            const double x = std::floor(RIGHT ? BARW - BPAD - b.size - offset : offset), y = std::floor((HEIGHT - b.size) / 2.0);\n"
+    "            if (bit < 32 && VECINRECT(COORDS, x, y, x + b.size + BPAD, y + b.size))\n"
+    "                hover |= 1u << bit;\n"
+    "            offset += BPAD + b.size;\n"
+    "            ++bit;\n"
+    "        }\n"
+    "        if (hover != m_iTicketHover) {\n"
+    "            m_iTicketHover = hover;\n"
+    "            damageEntire();\n"
+    "        }\n"
+    "    }\n"
+    "\n",
+)])
 
 # ---- the paper edge: its own decoration, in its own files
 here = pathlib.Path(__file__).resolve().parent

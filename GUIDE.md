@@ -228,7 +228,7 @@ resizing costs nothing. Each window gets its own pattern. The terminal's
 background is the same paper, so the window's straight edge disappears into
 the card.
 
-**Check:** new windows have a 46 px paper title bar: three dark ink dots, the
+**Check:** new windows have a 46 px paper title bar: three ticket stubs (red, ochre, green), the
 title, a "–" at the far right and a thin ruled line underneath. The window's
 outline is torn paper, not a straight line, and a short soft shadow falls
 below it. Terminals and the system's tools are grained like paper; browsers,
@@ -280,7 +280,7 @@ number is the current air pressure in hPa.
 | `Super + V` | Clippings: everything you copied lately, pictures too. Type to find one; click (or `Enter`) pastes it into the window you were in, right-click (or `Shift + Enter`) only copies it, `Delete` strikes it out; "Clear all" empties the history |
 | `Super + .` | Glyphs: emoji, and the marks a keyboard lacks (— “ ” → ± ° €…), in drawers by kind, the ones you used lately first. Type a name to find one (`heart`, `arrow`, `dash`); click types it, right-click copies it |
 | `Super + /` | Index of keys: every shortcut on one card (yours from `user.lua` too); type to find one |
-| `Super + Shift + D`, or the desk terminal's green dot | Lift the desk terminal into an ordinary window: the same terminal, everything in it carried over (tmux, a running program, what you typed), tiled and in normal-size type; a fresh terminal is laid on the desk. On every other window the green dot maximises, as before |
+| `Super + Shift + D`, or the desk terminal's green ticket | Lift the desk terminal into an ordinary window: the same terminal, everything in it carried over (tmux, a running program, what you typed), tiled and in normal-size type; a fresh terminal is laid on the desk. On every other window the green ticket maximises, as before |
 | Launcher: "Themes", or Instruments → Themes | Themes: the full desktop themes kept, each with pictures to look through; choose the one to log in to (it takes effect at your next log-in). Only the Archive for now; new themes are added to `~/.local/share/archive/themes` |
 | Launcher: "Text Editor"; in Files, right-click → New Document | Plain notes: GNOME Text Editor (`.txt` and `.md` open in it, code files in VS Code). New Document offers a blank text document or note (`~/Templates`; put any file there to add your own) |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
@@ -422,7 +422,7 @@ with a 10 ms fade-out.
 - [ ] Plate in the centre, record cards on the right, footer bar at the bottom.
 - [ ] `Super + Space` opens the Catalogue; typing filters it; `Enter` launches.
 - [ ] Windows have torn paper edges; the focused one has a darker edge and deeper shadow.
-- [ ] Title bars: paper strip, three ink dots, title, "–" on the right, ruled line under it.
+- [ ] Title bars: paper strip, three ticket stubs (close, put away, full sheet), title, "–" on the right, ruled line under it.
 - [ ] Volume keys show the *Volume* reading above the bar.
 - [ ] `notify-send "Test" "A letter."` drops a card top-right with a RECEIVED stamp.
 - [ ] `Super + N` crossfades the whole sheet to cyanotype blue and back.

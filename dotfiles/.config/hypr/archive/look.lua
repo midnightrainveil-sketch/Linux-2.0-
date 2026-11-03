@@ -192,17 +192,27 @@ local function bars(name, extras)
     for k, v in pairs(extras or {}) do opts[k] = v end
     hl.config({ plugin = { [name] = opts } })
 
-    -- three ink dots, in the usual order: file away (close, red), drawer
+    -- three buttons, in the usual order: file away (close, red), drawer
     -- (minimise, yellow), full sheet (maximise and back, green; on the desk
-    -- terminal it lifts it into an ordinary window instead: archive-desk dot)
+    -- terminal it lifts it into an ordinary window instead: archive-desk dot).
+    -- With archivebars they are ticket stubs: a card in its pigment, edged in
+    -- white, with its mark (x, -, a square), lifting under the cursor. With an
+    -- older build, or stock hyprbars, ink dots. Grey on unfocused windows.
     local api = hl.plugin[name]
-    -- each in its own muted pigment (palette.lua); grey on unfocused windows
+    local tickets = name == "archivebars" and api.has_tickets ~= nil
+    if tickets then
+        hl.config({ plugin = { [name] = { ticket_edge = rgb(c.ticket_edge), bar_button_padding = 8 } } })
+    end
     for _, b in ipairs({
-        { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close },
-        { drawer, c.dot_away },
-        { "archive-desk dot", c.dot_full },
+        { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close, c.ticket_close, "x" },
+        { drawer, c.dot_away, c.ticket_away, "-" },
+        { "archive-desk dot", c.dot_full, c.ticket_full, "o" },
     }) do
-        api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
+        if tickets then
+            api.add_button({ bg_color = rgb(b[3]), fg_color = rgb(c.ticket_edge), size = 30, icon = b[4], action = b[1] })
+        else
+            api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
+        end
     end
 
     hl.window_rule({ name = "archive-bar-unfocused", match = { focus = false }, [name .. ":title_color"] = rgb(c.faded) })
