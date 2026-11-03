@@ -16,6 +16,8 @@ import qs.components
 //   click the letter     runs the default action and files it
 //   right click          files it away unread
 //   middle click         pins it with a tape strip
+//   grab and fling       it flies off the screen, ignored (dismissed); let go
+//                        gently and it settles back in its place
 // An envelope left unopened goes down to the letter tray on the desk corner
 // (LetterTray.qml); a letter that has been read is simply filed.
 Item {
@@ -34,6 +36,7 @@ Item {
     property bool unfolded: opened
     property bool pinned: false
     property bool leaving: false
+    property bool held: false
 
     readonly property int envHeight: 156
     readonly property color envPaper: Theme.night > 0.5 ? Qt.lighter(Theme.paperRaised, 1.08) : "#d9d0c1"
@@ -119,10 +122,47 @@ Item {
         }
     }
 
+    // ------------------------------------------------------------ flung
+    // thrown the way the hand was going (or, let go far from its place,
+    // away from it), turning as it goes, off the edge of the screen
+    function fling(dx: real, dy: real): void {
+        if (leaving) return;
+        leaving = true;
+        const len = Math.max(1, Math.hypot(dx, dy));
+        const far = 2600;
+        flight.toX = sheet.x + dx / len * far;
+        flight.toY = sheet.y + dy / len * far;
+        flight.toR = sheet.rotation + (dx >= 0 ? 1 : -1) * (120 + (nid % 5) * 25);
+        flight.start();
+    }
+    SequentialAnimation {
+        id: flight
+        property real toX: 0
+        property real toY: 0
+        property real toR: 0
+        ParallelAnimation {
+            NumberAnimation { target: sheet; property: "x"; to: flight.toX; duration: Theme.dur(520); easing.type: Easing.InQuad }
+            NumberAnimation { target: sheet; property: "y"; to: flight.toY; duration: Theme.dur(520); easing.type: Easing.InQuad }
+            NumberAnimation { target: sheet; property: "rotation"; to: flight.toR; duration: Theme.dur(520); easing.type: Easing.OutQuad }
+        }
+        ScriptAction {
+            script: {
+                Notifs.dismiss(root.notification);
+            }
+        }
+    }
+    // let go gently: back in its place
+    ParallelAnimation {
+        id: settleBack
+        NumberAnimation { target: sheet; property: "x"; to: 0; duration: Theme.dur(360); easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+        NumberAnimation { target: sheet; property: "y"; to: 0; duration: Theme.dur(360); easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+        NumberAnimation { target: sheet; property: "rotation"; to: root.restAngle; duration: Theme.dur(420); easing.type: Easing.OutBack; easing.overshoot: 2 }
+    }
+
     // unread envelopes go to the tray after a while, read letters are filed;
     // urgent ones wait for you
     Timer {
-        running: !root.critical && !root.pinned && !hover.containsMouse && !root.leaving && !opening.running
+        running: !root.critical && !root.pinned && !hover.containsMouse && !root.leaving && !opening.running && !root.held
         interval: {
             const t = root.notification?.expireTimeout ?? -1;
             return t > 0 ? Math.max(3000, t) : (root.unfolded ? 8000 : 6500);
@@ -137,6 +177,33 @@ Item {
         height: root.height
         opacity: 0
         transformOrigin: Item.Center
+
+        // grabbed: it follows the hand, leaning into the way it goes
+        DragHandler {
+            id: grab
+            target: sheet
+            enabled: !root.leaving
+            dragThreshold: 8
+            onActiveChanged: {
+                if (active) {
+                    settleBack.stop();
+                    if (arrive.running) { arrive.stop(); sheet.opacity = 1; }
+                    root.held = true;
+                    return;
+                }
+                root.held = false;
+                const v = centroid.velocity;
+                const speed = Math.hypot(v.x, v.y);
+                const off = Math.hypot(sheet.x, sheet.y);
+                if (speed > 800) root.fling(v.x, v.y);
+                else if (off > 240) root.fling(sheet.x, sheet.y);
+                else settleBack.start();
+            }
+            onCentroidChanged: {
+                if (active)
+                    sheet.rotation = root.restAngle + Math.max(-16, Math.min(16, centroid.velocity.x / 90));
+            }
+        }
 
         MouseArea {
             id: hover

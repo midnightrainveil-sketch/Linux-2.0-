@@ -6,15 +6,13 @@ import qs.services
 
 // Correspondence: notifications arrive top-right, above the record column,
 // 360 px wide. The only thing that ever drops from the top of the screen.
+// The window spans the screen while letters are showing (only they take the
+// pointer), so one can be carried and flung anywhere (Letter.qml): a window
+// that grew under a held letter would throw it across the screen.
 PanelWindow {
     id: win
 
-    readonly property int pad: 24
-    anchors { top: true; right: true }
-    margins.top: Theme.margin - pad
-    margins.right: Theme.margin - pad
-    implicitWidth: 360 + 2 * pad
-    implicitHeight: Math.max(1, stack.height + 2 * pad)
+    anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     visible: Notifs.popups.count > 0
@@ -24,8 +22,8 @@ PanelWindow {
 
     Column {
         id: stack
-        x: win.pad
-        y: win.pad
+        x: win.width - Theme.margin - width
+        y: Theme.margin
         width: 360
         spacing: 16
 
