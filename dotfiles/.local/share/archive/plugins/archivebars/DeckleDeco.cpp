@@ -38,6 +38,7 @@ namespace {
         SP<Config::Values::CBoolValue>  enabled, grainDefault;
         SP<Config::Values::CIntValue>   margin, period, toneDepth;
         SP<Config::Values::CFloatValue> amplitude, rimWidth, shadowBlur, shadowX, shadowY, chips, creases, grain, size;
+        SP<Config::Values::CFloatValue> liftBlur, liftX, liftY; // the focused window's shadow (0 = as the others)
         SP<Config::Values::CColorValue> paper, rimTop, rimBottom, rimTopInactive, rimBottomInactive, bevel, shadow, shadowInactive, tone, ticketEdge;
     };
 
@@ -93,7 +94,16 @@ namespace {
         st.rimBottom  = argb(g_config.rimBottom);
         st.shadow     = argb(g_config.shadow);
         st.tone       = argb(g_config.tone);
-        if (!focused) {
+        if (focused) {
+            // the window in use is lifted off the desk: a wider, softer shadow
+            // falling further from the light (0 = like the others)
+            if (g_config.liftBlur->value() > 0)
+                st.shadowBlur = std::clamp((double)g_config.liftBlur->value(), 0.0, 24.0);
+            if (g_config.liftX->value() != 0)
+                st.shadowX = std::clamp((double)g_config.liftX->value(), -24.0, 24.0);
+            if (g_config.liftY->value() != 0)
+                st.shadowY = std::clamp((double)g_config.liftY->value(), -24.0, 24.0);
+        } else {
             // 0 means "same as focused"
             if (argb(g_config.rimTopInactive) != 0)
                 st.rimTop = argb(g_config.rimTopInactive);
@@ -282,7 +292,8 @@ CBox CArchiveDeckle::cardBox() {
 }
 
 double CArchiveDeckle::reach() {
-    return m_over ? styleFor(1.0, true).overOut() + 1 : styleFor(1.0, true).outset() + 1;
+    // (the lifted shadow of the focused window reaches furthest; either, to be safe)
+    return m_over ? styleFor(1.0, true).overOut() + 1 : std::max(styleFor(1.0, true).outset(), styleFor(1.0, false).outset()) + 1;
 }
 
 void CArchiveDeckle::updateExtents() {
@@ -555,6 +566,9 @@ void deckleInit(HANDLE handle) {
     g_config.amplitude         = makeShared<CFloatValue>("plugin:archivebars:deckle_amplitude", "How far the torn edge wanders", 1.2F);
     g_config.rimWidth          = makeShared<CFloatValue>("plugin:archivebars:deckle_rim_width", "Weight of the edge's outline", 1.3F);
     g_config.shadowBlur        = makeShared<CFloatValue>("plugin:archivebars:deckle_shadow_blur", "Softness of the card's shadow", 4.5F);
+    g_config.liftBlur          = makeShared<CFloatValue>("plugin:archivebars:deckle_lift_blur", "Softness of the focused window's shadow, lifted off the desk (0 = as the others)", 0.F);
+    g_config.liftX             = makeShared<CFloatValue>("plugin:archivebars:deckle_lift_x", "The focused window's shadow offset, x (0 = as the others)", 0.F);
+    g_config.liftY             = makeShared<CFloatValue>("plugin:archivebars:deckle_lift_y", "The focused window's shadow offset, y (0 = as the others)", 0.F);
     g_config.shadowX           = makeShared<CFloatValue>("plugin:archivebars:deckle_shadow_x", "Shadow offset, x", 1.5F);
     g_config.shadowY           = makeShared<CFloatValue>("plugin:archivebars:deckle_shadow_y", "Shadow offset, y", 3.F);
     g_config.chips             = makeShared<CFloatValue>("plugin:archivebars:deckle_chips", "How often edges are chipped, torn and wrinkled (0 = never)", 1.F);
@@ -577,7 +591,7 @@ void deckleInit(HANDLE handle) {
                                                            g_config.shadowBlur, g_config.shadowX, g_config.shadowY, g_config.chips, g_config.creases, g_config.paper,
                                                            g_config.rimTop, g_config.rimBottom, g_config.rimTopInactive, g_config.rimBottomInactive, g_config.bevel,
                                                            g_config.shadow, g_config.shadowInactive, g_config.tone, g_config.grain, g_config.grainDefault,
-                                                           g_config.ticketEdge})
+                                                           g_config.ticketEdge, g_config.liftBlur, g_config.liftX, g_config.liftY})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config ask whether this build has the edges
@@ -586,6 +600,7 @@ void deckleInit(HANDLE handle) {
     HyprlandAPI::addLuaFunction(handle, "archivebars", "has_deckle_size", ::luaHasDeckle);
     HyprlandAPI::addLuaFunction(handle, "archivebars", "toggle_grain", ::luaToggleGrain);
     HyprlandAPI::addLuaFunction(handle, "archivebars", "has_tickets", ::luaHasDeckle);
+    HyprlandAPI::addLuaFunction(handle, "archivebars", "has_lift", ::luaHasDeckle);
 
     // the rim and shadow change with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });

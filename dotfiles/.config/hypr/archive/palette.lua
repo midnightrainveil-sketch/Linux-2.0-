@@ -23,6 +23,7 @@ return {
         ticket_close = "8c463c", ticket_away     = "9e7c36", ticket_full = "506856", ticket_edge = "faf7f0",
         edge_top     = "a09b94", edge_top_flat   = "b3aea7",   -- torn edge (archivebars): fainter on top
         edge_shadow  = "66",     edge_shadow_flat = "3d",      -- its shadow: 40 % / 24 %
+        edge_lift    = "99",                                   -- the window in use, lifted: 60 %
         edge_tone    = "604c38", edge_tone_alpha  = "30",      -- the aged edge: a faint umber, 19 %
         bevel        = "ffffff", bevel_alpha     = "59",       -- light line inside the torn edge
     },
@@ -45,6 +46,7 @@ return {
         ticket_close = "964840", ticket_away     = "8a723e", ticket_full = "486056", ticket_edge = "e2e8f2",
         edge_top     = "4e6283", edge_top_flat   = "3c5274",
         edge_shadow  = "8c",     edge_shadow_flat = "4d",
+        edge_lift    = "cc",
         edge_tone    = "050b16", edge_tone_alpha  = "40",
         bevel        = "9fb4d6", bevel_alpha     = "26",
     },

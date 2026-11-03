@@ -6,7 +6,7 @@ import "Rand.js" as Rand
 // A sheet of card stock, as on the reference: paper.card fill with fibre
 // texture, an irregular cut edge drawn as a thin darker rim (darkest along
 // the bottom, where the card's thickness catches the shadow), a faint light
-// line just inside it, and a short soft shadow falling down onto the sheet.
+// line just inside it, and a short soft shadow falling down and to the right.
 Item {
     id: root
 
@@ -113,9 +113,10 @@ Item {
             shadowEnabled: true
             shadowColor: Theme.shadow
             blurMax: 32
-            shadowBlur: Theme.fv(0.24, 0.38) + 0.08 * root.lift
-            shadowVerticalOffset: Theme.fv(1.5, 3.3) + 2 * root.lift
-            shadowHorizontalOffset: Theme.fv(-0.5, 0.5)
+            shadowBlur: Theme.fv(0.28, 0.42) + 0.08 * root.lift
+            // (falling away from the light, which comes from the top left)
+            shadowVerticalOffset: Theme.fv(2, 3.8) + 2.5 * root.lift
+            shadowHorizontalOffset: Theme.fv(1, 2) + 1.2 * root.lift
             shadowOpacity: Math.min(1, 0.9 + 0.3 * (root.lift - 1))
         }
     }
