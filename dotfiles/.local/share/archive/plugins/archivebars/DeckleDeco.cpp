@@ -22,6 +22,7 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <unordered_map>
 
@@ -402,10 +403,37 @@ static void forEachStrip(const Deckle::SStyle& st, uint32_t seed, double x, doub
 }
 
 void CArchiveDeckle::renderUnder(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const CBox& card) {
-    const auto   PWINDOW = m_window.lock();
-    const bool   focused = PWINDOW == Desktop::focusState()->window();
-    const auto   st      = styleFor(pMonitor->m_scale, focused);
-    STileSet*    tiles   = tilesFor(st, false);
+    const auto PWINDOW = m_window.lock();
+    const bool focused = PWINDOW == Desktop::focusState()->window();
+
+    // the window in use rises off the desk and the one left settles: its
+    // shadow eases between the two over a moment, drawn as the flat look
+    // with the lifted one fading in over it
+    const auto now = std::chrono::steady_clock::now();
+    if (!m_liftStarted) {
+        m_lift        = focused ? 1.0 : 0.0;
+        m_liftStarted = true;
+    } else {
+        // (no frames are drawn while nothing changes: a long gap is one frame)
+        const double dt     = std::min(0.04, std::chrono::duration<double>(now - m_liftTick).count());
+        const double target = focused ? 1.0 : 0.0;
+        const double step   = std::min(1.0, dt / 0.26);
+        m_lift              = m_lift < target ? std::min(target, m_lift + step) : std::max(target, m_lift - step);
+    }
+    m_liftTick = now;
+    const double eased = m_lift * m_lift * (3 - 2 * m_lift);
+    if (eased <= 0.001 || eased >= 0.999)
+        renderUnderStyle(ctx, pMonitor, a, card, styleFor(pMonitor->m_scale, eased >= 0.999));
+    else {
+        renderUnderStyle(ctx, pMonitor, a, card, styleFor(pMonitor->m_scale, false));
+        renderUnderStyle(ctx, pMonitor, a * eased, card, styleFor(pMonitor->m_scale, true));
+    }
+    if (m_lift != (focused ? 1.0 : 0.0))
+        damageEntire(); // (the next frame carries it on)
+}
+
+void CArchiveDeckle::renderUnderStyle(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float a, const CBox& card, const Deckle::SStyle& st) {
+    STileSet* tiles = tilesFor(st, false);
 
     const double s = pMonitor->m_scale;
     const double O = st.outset(), I = st.inset(), R = st.cornerReach(), K = st.cornerSize();

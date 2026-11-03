@@ -41,6 +41,7 @@ Item {
     DeskCard {
         id: weather
         name: "weather"
+        order: 1
         wanted: Settings.showWeather
         width: Theme.recordWidth
         homeX: win.column
@@ -50,6 +51,7 @@ Item {
     DeskCard {
         id: audio
         name: "audio"
+        order: 2
         wanted: Settings.showAudio
         width: Theme.recordWidth
         homeX: win.column

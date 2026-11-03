@@ -123,9 +123,12 @@ hl.config({
 ------------------------------------------------------------------ motion (section 11)
 -- place = cubic-bezier(0.22, 1, 0.36, 1): a smooth ease-out (the card lands)
 -- lift  = cubic-bezier(0.4, 0, 1, 1):     a quick ease-in (the card is lifted off)
+-- land  = cubic-bezier(0.2, 1.18, 0.35, 1): laid down, with the slightest give
+--         as it meets the desk (a hair past its size, then settled)
 -- speed is in deciseconds: 2.2 = 220 ms.
 hl.curve("place", { type = "bezier", points = { { 0.22, 1 }, { 0.36, 1 } } })
 hl.curve("lift", { type = "bezier", points = { { 0.4, 0 }, { 1, 1 } } })
+hl.curve("land", { type = "bezier", points = { { 0.2, 1.18 }, { 0.35, 1 } } })
 hl.curve("linear", { type = "bezier", points = { { 0, 0 }, { 1, 1 } } })
 
 if reduced then
@@ -135,14 +138,16 @@ if reduced then
     hl.animation({ leaf = "workspaces", enabled = true, speed = 1, bezier = "linear", style = "fade" })
 else
     hl.animation({ leaf = "global", enabled = true, speed = 2, bezier = "place" })
-    hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.2, bezier = "place", style = "popin 97%" })
-    hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.4, bezier = "lift", style = "popin 97%" })
+    -- a window is a card laid on the desk, and lifted off it to go
+    hl.animation({ leaf = "windowsIn", enabled = true, speed = 3, bezier = "land", style = "popin 93%" })
+    hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.6, bezier = "lift", style = "popin 95%" })
     hl.animation({ leaf = "windowsMove", enabled = true, speed = 2.2, bezier = "place" })
     hl.animation({ leaf = "fadeIn", enabled = true, speed = 2.2, bezier = "place" })
     hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.4, bezier = "lift" })
     hl.animation({ leaf = "fade", enabled = true, speed = 1.6, bezier = "place" })
     hl.animation({ leaf = "border", enabled = true, speed = 1.6, bezier = "place" })
-    hl.animation({ leaf = "workspaces", enabled = true, speed = 3.2, bezier = "place", style = "slidefade 15%" })
+    -- another workspace: the sheets on the desk slide aside for the next
+    hl.animation({ leaf = "workspaces", enabled = true, speed = 3.8, bezier = "place", style = "slide" })
     hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2.2, bezier = "place", style = "slidefadevert 8%" })
 end
 -- the shell animates its own cards; Hyprland just shows them
