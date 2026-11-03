@@ -4,7 +4,9 @@
 #   archive-ros            a ROS shell (sets everything up the first time)
 #   archive-ros rviz       RViz (starts roscore first if none is running)
 #   archive-ros ROBOT      a ROS shell talking to a robot's ROS master
-#   archive-ros rviz ROBOT RViz on a robot (ROBOT: its IP, e.g. 192.168.68.153)
+#   archive-ros rviz ROBOT RViz on a robot (ROBOT: its IP, e.g. 192.168.68.153),
+#                          with that robot's saved setup (cb_007 for .153,
+#                          mag1500 for .241; ~/.config/archive/rviz-setups for more)
 #   archive-ros rviz [ROBOT] -d FILE.rviz   ... with a saved RViz setup
 #   archive-ros rviz-indirect ROBOT [-d FILE.rviz]
 #                          the same, slower, for when the office Wi-Fi loses
@@ -279,6 +281,22 @@ x_broker() { # x_broker <fifo>
     done
 }
 
+# saved_setup <robot address>: the robot's own RViz setup, opened without a
+# -d (a line "ADDRESS FILE" in ~/.config/archive/rviz-setups adds or changes
+# one; these two are the office robots')
+saved_setup() {
+    local own="${XDG_CONFIG_HOME:-$HOME/.config}/archive/rviz-setups" ip file
+    if [[ -f $own ]]; then
+        while read -r ip file; do
+            [[ $ip == "$1" && -n $file ]] && { echo "${file/#\~/$HOME}"; return; }
+        done < <(grep -vE '^\s*(#|$)' "$own")
+    fi
+    case $1 in
+        192.168.68.153) echo "$HOME/Documents/Botsync/cb_007.rviz" ;;          # cb_007
+        192.168.68.241) echo "$HOME/Documents/Botsync/mag1500_config.rviz" ;;  # mag1500_044
+    esac
+}
+
 looks_like_host() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || ( $1 == *.* && $1 != */* ) ]]; }
 
 # ------------------------------------------------------------------ use
@@ -310,6 +328,16 @@ case $cmd in
         if [[ -n ${1:-} ]] && looks_like_host "$1"; then robot_host=$1; shift; fi
         rviz_args=""                         # the rest goes to RViz (-d setup.rviz)
         (($#)) && rviz_args=$(printf ' %q' "$@")
+        # the robot's own setup, when none is given
+        if [[ -n $robot_host && " $* " != *" -d "* ]]; then
+            setup_file=$(saved_setup "$(getent ahostsv4 "$robot_host" | awk '{print $1; exit}')")
+            if [[ -n $setup_file && -f $setup_file ]]; then
+                echo ":: its saved setup: $setup_file"
+                rviz_args+=$(printf ' -d %q' "$setup_file")
+            elif [[ -n $setup_file ]]; then
+                echo "!! its saved setup is not there ($setup_file): RViz opens blank" >&2
+            fi
+        fi
         if [[ -n $robot_host ]]; then
             robot "$robot_host"
             # RViz shows nothing until it reaches the master: say so, rather
