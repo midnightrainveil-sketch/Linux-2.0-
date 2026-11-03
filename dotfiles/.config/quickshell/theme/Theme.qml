@@ -80,6 +80,15 @@ Singleton {
         readonly property color sprigInk:    "#4f5a86"
         readonly property color rimTop:      root.fci("#8c8780", "#78746e")
         readonly property color rimBottom:   root.fci("#6b6660", "#58544f")
+        // ticket stubs (the bar's workspaces): madder, ochre, sage, ink blue,
+        // a little less saturated than the title bar's; an empty one is plain
+        readonly property color ticket1:     "#864a41"
+        readonly property color ticket2:     "#9a7d45"
+        readonly property color ticket3:     "#536758"
+        readonly property color ticket4:     "#36405a"
+        readonly property color ticketPlain: "#e2ded6"
+        readonly property color ticketPlainInk: "#78756f"
+        readonly property color ticketEdge:  "#faf7f0"
     }
 
     // ---------------------------------------------------------------- night (cyanotype)
@@ -101,6 +110,13 @@ Singleton {
         readonly property color sprigInk:    "#a9c4e4"
         readonly property color rimTop:      "#0f1c30"
         readonly property color rimBottom:   "#08101e"
+        readonly property color ticket1:     "#a5675d"
+        readonly property color ticket2:     "#b99c63"
+        readonly property color ticket3:     "#6f8474"
+        readonly property color ticket4:     "#505c77"
+        readonly property color ticketPlain: "#2f4a72"
+        readonly property color ticketPlainInk: "#8e9cb3"
+        readonly property color ticketEdge:  "#e2e8f2"
     }
 
     // ---------------------------------------------------------------- live tokens
@@ -172,6 +188,12 @@ Singleton {
     readonly property color labelInk:   mix(day.labelInk, nite.labelInk)
     // the sprig on the Time Record: a blue-grey watercolour
     readonly property color sprigInk:   mix(day.sprigInk, nite.sprigInk)
+    // ticket stubs: one pigment per workspace (1-4, then round again)
+    readonly property var ticketInks: [mix(day.ticket1, nite.ticket1), mix(day.ticket2, nite.ticket2),
+                                       mix(day.ticket3, nite.ticket3), mix(day.ticket4, nite.ticket4)]
+    readonly property color ticketPlain:    mix(day.ticketPlain, nite.ticketPlain)
+    readonly property color ticketPlainInk: mix(day.ticketPlainInk, nite.ticketPlainInk)
+    readonly property color ticketEdge:     mix(day.ticketEdge, nite.ticketEdge)
 
     // ---------------------------------------------------------------- motion (section 11)
     // place = cubic-bezier(0.22, 1, 0.36, 1); lift = cubic-bezier(0.4, 0, 1, 1)

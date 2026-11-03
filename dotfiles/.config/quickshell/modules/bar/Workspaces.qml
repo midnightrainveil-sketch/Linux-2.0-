@@ -4,8 +4,9 @@ import qs.theme
 import qs.services
 import qs.components
 
-// Workspaces as typed numbers. Occupied: ink.soft. Empty: ink.faded.
-// Active: underlined with a short 2 px rule, as on the reference. Urgent: a small stamp mark.
+// Workspaces as ticket stubs, numbered: one with windows on it in its own
+// pigment (madder, ochre, sage, ink blue), an empty one plain; the one in
+// use picked up (raised and turned a little). Urgent: a small stamp mark.
 Row {
     id: root
     spacing: 0
@@ -45,23 +46,15 @@ Row {
             width: 50
             height: Theme.barHeight
 
-            InkText {
+            Ticket {
                 id: num
                 anchors.centerIn: parent
-                text: String(cell.modelData)
-                font.pixelSize: 17
-                color: cell.active ? Theme.graphite : cell.occupied ? Theme.soft : Theme.labelInk
-                Behavior on color { ColorAnimation { duration: Theme.durFocus } }
-            }
-
-            Rectangle {
-                anchors.horizontalCenter: num.horizontalCenter
-                anchors.top: num.bottom
-                anchors.topMargin: 1
-                height: 2
-                width: cell.active ? 20 : 0
-                color: Theme.soft
-                Behavior on width { NumberAnimation { duration: Theme.durFocus; easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
+                fill: cell.occupied ? Theme.ticketInks[(cell.modelData - 1) % 4] : Theme.ticketPlain
+                labelColor: cell.occupied ? Theme.ticketEdge : Theme.ticketPlainInk
+                label: String(cell.modelData)
+                lifted: cell.active ? 1 : 0
+                Behavior on lifted { NumberAnimation { duration: Theme.dur(220); easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
+                Behavior on fill { ColorAnimation { duration: Theme.durFocus } }
             }
 
             // urgent: a tiny ring stamp pressed beside the number

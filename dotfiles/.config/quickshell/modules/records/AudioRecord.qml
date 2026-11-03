@@ -1,12 +1,14 @@
 import QtQuick
 import QtQuick.Effects
+import Quickshell.Io
 import qs.theme
 import qs.services
 import qs.components
 
 // Audio Archive, laid out to the reference card (485 x 226):
 //   header band, rule at 42
-//   the cover as a grey print (a black record when there is none) | artist, title, album
+//   the cover, printed in the archive's inks and framed (a cassette when
+//   there is none) | artist, title, album
 //   progress: 4 px accent fill on a 2 px track, times under it
 // No. = release year of the current track.
 // Under the progress line, between the times: previous, pause / play, next,
@@ -62,7 +64,9 @@ IndexCard {
         width: card.width
         height: 181
 
-        // the print
+        // the print: the cover, printed in the archive's inks (archive-print)
+        // and framed; with no cover, a cassette, its reels turning while
+        // music plays
         Item {
             id: photo
             x: 27
@@ -70,92 +74,102 @@ IndexCard {
             width: 134
             height: 140
 
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.paperRaised
-                visible: art.status === Image.Ready
+            // the cover as the player gives it, and its print
+            readonly property string cover: Gramophone.loaded && Gramophone.cover !== "" ? "file://" + Gramophone.cover : Media.art
+            property string printed: ""
+            property string printedFor: ""
+            onCoverChanged: {
+                if (cover === "") { printed = ""; printedFor = ""; return; }
+                if (cover === printedFor) return;
+                printer.running = false;
+                printer.command = ["archive-print", cover];
+                printer.running = true;
             }
-            // nothing to show: a black record, turning while music plays
+            Component.onCompleted: coverChanged()
+            Process {
+                id: printer
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        const path = text.trim();
+                        if (path !== "") { photo.printed = "file://" + path; photo.printedFor = photo.cover; }
+                    }
+                }
+            }
+            readonly property bool framed: card.going && cover !== "" && art.status === Image.Ready
+
+            Cassette {
+                id: tape
+                x: -8
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenterOffset: 4
+                width: 150
+                visible: !photo.framed
+                title: card.going ? card.song : ""
+                playing: card.playing && !Desk.covered
+                progress: card.span > 0 ? Math.max(0, Math.min(1, card.at / card.span)) : 0.2
+            }
+
+            // the frame: a thin dark moulding, a paper mount, the print
             Item {
-                id: blank
+                id: frame
                 anchors.centerIn: parent
-                width: Math.min(parent.width, parent.height) - 6
-                height: width
-                visible: art.status !== Image.Ready
-                Canvas {
-                    id: disc
+                width: 132
+                height: 132
+                visible: photo.framed
+                Rectangle {
                     anchors.fill: parent
-                    onPaint: {
-                        const g = getContext("2d");
-                        g.reset();
-                        const c = width / 2;
-                        g.fillStyle = "#141316";
-                        g.beginPath(); g.arc(c, c, c - 1, 0, Math.PI * 2); g.fill();
-                        // the grooves
-                        g.lineWidth = 0.6;
-                        for (let r = c - 4; r > c * 0.38; r -= 2.2) {
-                            g.strokeStyle = Qt.rgba(1, 1, 1, 0.035 + 0.03 * Math.abs(Math.sin(r * 0.7)));
-                            g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.stroke();
-                        }
-                        // the label, plain paper, and the spindle hole
-                        g.fillStyle = "#cfc9bf";
-                        g.beginPath(); g.arc(c, c, c * 0.33, 0, Math.PI * 2); g.fill();
-                        g.strokeStyle = "rgba(0,0,0,0.25)"; g.lineWidth = 1;
-                        g.beginPath(); g.arc(c, c, c * 0.24, 0, Math.PI * 2); g.stroke();
-                        g.fillStyle = "#141316";
-                        g.beginPath(); g.arc(c, c, 3, 0, Math.PI * 2); g.fill();
-                        // a mark on the label, so the turning shows
-                        g.fillStyle = "rgba(122, 74, 70, 0.7)";
-                        g.fillRect(c - 1, c - c * 0.3, 2, c * 0.12);
-                    }
-                    RotationAnimation on rotation {
-                        // (each frame redraws the whole desk: not while it is covered)
-                        running: card.playing && blank.visible && !Desk.covered
-                        loops: Animation.Infinite
-                        from: 0; to: 360
-                        duration: 1800
+                    color: Theme.night > 0.5 ? "#141c2c" : "#4a3f36"
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.35)
+                    // the moulding's lit inner edge
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.12)
                     }
                 }
-                // the light on it, which does not turn
-                Canvas {
+                Rectangle {
+                    id: mount
                     anchors.fill: parent
-                    onPaint: {
-                        const g = getContext("2d");
-                        g.reset();
-                        const c = width / 2;
-                        const sheen = g.createConicalGradient(c, c, -Math.PI / 4);
-                        sheen.addColorStop(0.0, "rgba(255,255,255,0)");
-                        sheen.addColorStop(0.07, "rgba(255,255,255,0.14)");
-                        sheen.addColorStop(0.15, "rgba(255,255,255,0)");
-                        sheen.addColorStop(0.5, "rgba(255,255,255,0)");
-                        sheen.addColorStop(0.57, "rgba(255,255,255,0.09)");
-                        sheen.addColorStop(0.65, "rgba(255,255,255,0)");
-                        sheen.addColorStop(1.0, "rgba(255,255,255,0)");
-                        g.fillStyle = sheen;
-                        g.beginPath(); g.arc(c, c, c - 2, 0, Math.PI * 2); g.arc(c, c, c * 0.34, 0, Math.PI * 2, true); g.fill();
-                    }
+                    anchors.margins: 4
+                    color: Theme.night > 0.5 ? "#c9c4b8" : "#e8e2d6"
+                }
+                Image {
+                    id: art
+                    anchors.fill: mount
+                    anchors.margins: 9
+                    source: photo.printed
+                    sourceSize: Qt.size(280, 280)
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: false
+                }
+                // the print's own edge, pressed into the mount
+                Rectangle {
+                    anchors.fill: art
+                    anchors.margins: -1
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.rgba(0, 0, 0, 0.18)
+                }
+                Rectangle {
+                    anchors.fill: art
+                    visible: Theme.night > 0.5
+                    color: Qt.rgba(0.05, 0.08, 0.16, 0.18)
+                }
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: Theme.shadow
+                    blurMax: 24
+                    shadowBlur: 0.4
+                    shadowVerticalOffset: 3.5
+                    shadowHorizontalOffset: 2
+                    shadowOpacity: 0.95
                 }
             }
-            Image {
-                id: art
-                anchors.fill: parent
-                // our own player's track picture first, else what the player reports
-                source: Gramophone.loaded && Gramophone.cover !== "" ? "file://" + Gramophone.cover : Media.art
-                // a cover file can be 3000 px: decode it at the card's size
-                sourceSize: Qt.size(280, 280)
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                visible: false
-            }
-            MultiEffect {
-                anchors.fill: art
-                source: art
-                visible: art.status === Image.Ready
-                saturation: -1.0
-                contrast: 0.12
-                brightness: Theme.night > 0.5 ? -0.08 : 0.0
-            }
-            Grain { anchors.fill: parent; strength: 1.6; visible: art.status === Image.Ready }
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
