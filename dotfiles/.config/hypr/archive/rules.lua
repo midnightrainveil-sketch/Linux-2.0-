@@ -130,7 +130,20 @@ local function report_cover(gone)
     end
 end
 
-on("window.open", function(w) if not is_desk(w) then tuck() end report_cover() end)
+-- a desk terminal opening where a tiled window already covers the desk (a
+-- fresh one after the old was lifted into a window, archive-desk lift) goes
+-- straight behind the desk, not on top of that window
+local function tuck_new_desk(w)
+    if alive(w) and w.workspace ~= nil and not w.workspace.special and covered(w.workspace) then
+        desk_home = w.workspace.id
+        hl.dispatch(hl.dsp.window.move({ workspace = "special:desk", follow = false, window = w }))
+    end
+end
+
+on("window.open", function(w)
+    if is_desk(w) then tuck_new_desk(w) else tuck() end
+    report_cover()
+end)
 on("window.close", function(w) if not is_desk(w) then tuck(w) end report_cover(w) end)
 on("window.move_to_workspace", function(w) if not is_desk(w) then tuck() end report_cover() end)
 on("window.update_rules", function(w) if not is_desk(w) then tuck() end report_cover() end)   -- floated / tiled
