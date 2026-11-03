@@ -71,6 +71,8 @@ python-numpy
 ffmpeg
 # ---- everyday apps (swap for your own)
 nautilus
+gnome-text-editor
+xdg-user-dirs
 gthumb
 firefox
 # ---- network tools (for robots and other machines on the Wi-Fi)

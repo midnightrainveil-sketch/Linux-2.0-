@@ -243,6 +243,7 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         "^(org\\.pulseaudio\\.pavucontrol|pavucontrol|blueman-manager|\\.blueman-manager-wrapped|nm-connection-editor)$",
         "^(org\\.gnome\\.Calculator|qalculate-gtk|hyprpolkitagent|org\\.hyprland\\.polkitagent|rog-control-center)$",
         "^(nwg-look|qt6ct|qt5ct|thunar|Thunar|org\\.gnome\\.Nautilus|pcmanfm|pcmanfm-qt|btop|htop)$",
+        "^(org\\.gnome\\.TextEditor)$",
         "^(xdg-desktop-portal-gtk|org\\.freedesktop\\.impl\\.portal\\.desktop\\.gtk)$",
     }
     for i, class in ipairs(has_grain and paper_apps or {}) do

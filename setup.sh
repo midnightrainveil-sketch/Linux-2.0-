@@ -140,6 +140,14 @@ for id in code visual-studio-code code-oss codium; do
         break
     fi
 done
+# plain notes (txt, md) open in Text Editor, light and quick; code stays in VS Code
+if [[ -f /usr/share/applications/org.gnome.TextEditor.desktop ]]; then
+    xdg-mime default org.gnome.TextEditor.desktop text/plain text/markdown text/x-markdown \
+        || warn "could not make Text Editor the editor for notes"
+fi
+# the standard folders (Documents, Templates, ...): Files' "New Document"
+# offers what is in ~/Templates
+command -v xdg-user-dirs-update >/dev/null && xdg-user-dirs-update || true
 # pictures (screenshots included) open in gThumb: viewer and simple editor
 for id in org.gnome.gThumb gthumb; do
     if [[ -f /usr/share/applications/$id.desktop ]]; then
