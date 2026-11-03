@@ -10,7 +10,9 @@ soft shadow on the paper. The seal is laid over them, and the whole is one
 picture (assets/seal/sealed.png), so when the seal is broken (WaxSeal.qml)
 every fragment carries its own piece of wax and ribbon together.
 
-Drawn on a 240 x 240 unit square (the seal's centre at 120, 120; its wax
+A ribbon photographed on plain grey, art/seal/ribbon.webp, is used when it
+is there (lifted off its background, its shadow kept); the drawn one is the
+fallback. Drawn on a 240 x 240 unit square (the seal's centre at 120, 120; its wax
 58 units across the radius), at 4 px a unit. Requires: numpy, pillow.
 """
 import math
@@ -118,10 +120,58 @@ def draw_ribbon():
     return canvas
 
 
+ART = os.path.join(HERE, "..", "art", "seal", "ribbon.webp")
+
+
+def cut_ribbon(path):
+    """The ribbon from a photograph on plain grey (art/seal/ribbon.webp):
+    lifted off its background, its soft shadow kept, laid with its top
+    under the seal and its tails down to the foot of the picture."""
+    src = np.asarray(Image.open(path).convert("RGB")).astype(np.float32)
+    h, w, _ = src.shape
+    edge = np.concatenate([src[:40, :40].reshape(-1, 3), src[:40, -40:].reshape(-1, 3), src[-30:, w // 2 - 50:w // 2 + 50].reshape(-1, 3)])
+    bg = np.median(edge, axis=0)
+    lum = src @ np.array([0.299, 0.587, 0.114], np.float32)
+    bgl = float(bg @ np.array([0.299, 0.587, 0.114], np.float32))
+    # the silk: much darker than the paper, or blue where its sheen is light
+    # (the paper and the shadow on it are grey, never blue)
+    blue = (src[..., 2] - src[..., 0]) - (bg[2] - bg[0])
+    a = np.maximum(np.clip((bgl - lum - 48) / 40, 0, 1), np.clip((blue - 10) / 22, 0, 1))
+    a = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.6)), np.float32) / 255
+    sh = np.clip((bgl - lum) / bgl * 2.4 - 0.03, 0, 0.55) * (1 - a)   # its shadow on the paper
+    col = (src - (1 - a[..., None]) * bg) / np.maximum(a[..., None], 0.05)
+    col = np.clip(col, 0, 255)
+    out_a = a + (1 - a) * sh
+    rgb = (a[..., None] * col) / np.maximum(out_a[..., None], 1e-3)   # (the shadow is black)
+    rgba = np.dstack([np.clip(rgb, 0, 255), np.clip(out_a * 255, 0, 255)]).astype(np.uint8)
+    img = Image.fromarray(rgba, "RGBA")
+    ys, xs = np.where(a > 0.5)
+    top, bottom = 0, int(ys.max())
+    left, right = int(xs.min()), int(xs.max())
+    # its top hidden under the wax (y 95), the cut ends near the foot (y 236)
+    k = (236 - 95) / max(1, bottom - top) * PX
+    img = img.resize((max(1, int(w * k)), max(1, int(h * k))), Image.LANCZOS)
+    W = SIZE * PX
+    canvas = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+    cx = (left + right) / 2 * k
+    canvas.alpha_composite(img, (int(120 * PX - cx), int(95 * PX - top * k)))
+    return canvas
+
+
 def main():
     seal = Image.open(os.path.join(ASSETS, "seal.png")).convert("RGBA")
-    ribbon = draw_ribbon()
     W = SIZE * PX
+    if os.path.exists(ART):
+        out = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+        out.alpha_composite(cut_ribbon(ART))
+        S = int(58 * 2.6 * PX)
+        out.alpha_composite(seal.resize((S, S), Image.LANCZOS), ((W - S) // 2, (W - S) // 2))
+        out = out.resize((SIZE * U, SIZE * U), Image.LANCZOS)
+        path = os.path.join(ASSETS, "sealed.png")
+        out.save(path, optimize=True)
+        print("sealed (ribbon from art/seal/ribbon.webp):", os.path.normpath(path), out.size)
+        return
+    ribbon = draw_ribbon()
     # the ribbon's shadow on the paper
     shadow = Image.new("RGBA", (W, W), (0, 0, 0, 0))
     a = ribbon.split()[3].filter(ImageFilter.GaussianBlur(2.2 * PX)).point(lambda v: int(v * 0.32))

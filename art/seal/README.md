@@ -22,3 +22,7 @@ so leave it out of the picture.
 > from the top left, a soft shadow on the lower right. Realistic, high
 > detail. No text, no letters, no ribbon, no string, no paper, no other
 > objects.
+
+ribbon.webp: the silk ribbon under the lock-screen seal, photographed on plain
+grey; tools/make_sealed.py lifts it off and lays it under the seal
+(dotfiles/.config/quickshell/assets/seal/sealed.png).
