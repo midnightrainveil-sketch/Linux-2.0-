@@ -354,4 +354,18 @@ PanelWindow {
         height: win.sheetH
         modelData: win.modelData
     }
+
+    // ------------------------------------------------------------ the desk dims under work
+    // while a window lies on the active workspace (Desk.covered), the desk
+    // round it falls a little into shade, cooler: the paper edges of the
+    // windows stand clear of it. It lifts again when the desk is bare.
+    Rectangle {
+        width: win.width
+        height: win.sheetH
+        z: 1000
+        color: Theme.night > 0.5 ? "#02060f" : "#141826"
+        opacity: Desk.covered ? (Theme.night > 0.5 ? 0.18 : 0.2) : 0
+        visible: opacity > 0.001
+        Behavior on opacity { NumberAnimation { duration: Theme.dur(420); easing.type: Easing.InOutQuad } }
+    }
 }
