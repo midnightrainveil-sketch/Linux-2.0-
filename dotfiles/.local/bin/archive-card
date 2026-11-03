@@ -84,6 +84,23 @@ def term_size():
     return None
 
 
+def settled_size():
+    """The terminal's size once it has stopped changing: a new window is
+    often tiled smaller a moment after it opens, and a card drawn for the
+    first size is broken by the terminal's rewrap at the second (waits at
+    most 0.6 s)."""
+    import time
+    last, same = term_size(), 0
+    for _ in range(15):
+        time.sleep(0.04)
+        now = term_size()
+        same = same + 1 if now == last else 0
+        last = now
+        if same >= 3:
+            break
+    return last
+
+
 def label_lines():
     """The label as fastfetch prints it beside no picture, as plain lines
     (its values set at a column, ESC [ n G, are spaced out; colour dropped)."""
@@ -447,7 +464,7 @@ def main():
         shutil.rmtree(CACHE, ignore_errors=True)
         return
     args = ["fastfetch"]
-    size = term_size()
+    size = settled_size()
     m = mode()
     try:
         if size is None or not (CONF / "portrait.png").exists():
@@ -460,13 +477,29 @@ def main():
             sys.stdout.flush()
             return
         info_cols, info_lines = measure(lines)
-        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch, info_cols, info_lines))
+        # too narrow for even the details: no card (one that wraps is worse)
+        if tcols < info_cols + 2:
+            return
         sf, _ = drawn("swatches", m, cw, ch, swatches)
-        # the swatches' module reads the current one from here
+        # (the swatches' module reads the current one from here)
         cur = CACHE / "swatches.six"
         if cur.is_symlink() or cur.exists():
             cur.unlink()
         cur.symlink_to(sf.name)
+        # no room for the portrait beside them: the details alone, neatly
+        from PIL import Image
+        with Image.open(CONF / "portrait.png") as im:
+            aspect = im.width / im.height
+        smallest = math.ceil(8 * ch * aspect / cw)          # the portrait at its least
+        if tcols < info_cols + PAD_LEFT + PAD_RIGHT + smallest + 1 or trows < 10:
+            try:
+                args += ["--config", str(centred_config(1))]
+            except (OSError, ValueError):
+                pass
+            args += ["--logo-type", "none"]
+            sys.stdout.flush()
+            os.execvp("fastfetch", args)
+        pf, (cols, rows) = drawn("portrait", m, cw, ch, portrait, portrait_rows(trows, tcols, cw, ch, info_cols, info_lines))
         # (one line higher than the true middle reads as level)
         drop = max(0, round(PAD_TOP + (int(rows) - info_lines) / 2) - 1)
         try:

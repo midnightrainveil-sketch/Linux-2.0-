@@ -57,4 +57,19 @@ if [[ -n ${ARCHIVE_DESK:-} ]] || [[ $TERM == foot* && -z ${ARCHIVE_CARDED:-} \
     unset ARCHIVE_DESK
     export ARCHIVE_CARDED=1
     archive-card
+    # While the card is all there is (no command yet), a resize (a split, the
+    # window tiled smaller, the desk terminal lifted) draws it again for the
+    # new size, instead of leaving the terminal to rewrap the old one.
+    _archive_card_fresh=1
+    _archive_card_used() { unset _archive_card_fresh; }
+    autoload -Uz add-zsh-hook
+    add-zsh-hook preexec _archive_card_used
+    TRAPWINCH() {
+        [[ -n ${_archive_card_fresh:-} ]] || return 0
+        zle && zle -I
+        print -n '\e[H\e[2J\e[3J'
+        archive-card
+        zle && zle reset-prompt
+        return 0
+    }
 fi

@@ -255,11 +255,6 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
     local deckle = hl.plugin.archivebars.has_deckle ~= nil and state.setting_bool("paperEdges", true)
     if deckle then
         extras.deckle = true
-        -- the size of the whole edge: chips, tears, the cut, outline, shadow
-        -- (archive-edges, Instruments -> Edges; a build that knows it)
-        if hl.plugin.archivebars.has_deckle_size ~= nil then
-            extras.deckle_size = state.edge_size()
-        end
         extras.deckle_margin = 6                  -- the card's edge, 6 px outside the window
         extras.deckle_amplitude = fv(1.2, 1.8)   -- how far the cut wanders
         extras.deckle_rim_width = fvi(1.3, 1.8)
