@@ -284,14 +284,9 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         extras.deckle_shadow_blur = fv(4.5, 5.5)   -- falls down and to the right
         extras.deckle_shadow_x = fv(1.5, 2.3)
         extras.deckle_shadow_y = fv(3, 4.6)
-        -- the window in use is lifted off the desk: a wider, softer shadow
-        -- falling further from the light (the top left); the others lie flat
-        if hl.plugin.archivebars.has_lift ~= nil then
-            extras.deckle_shadow = rgba(c.shadow, c.edge_lift)
-            extras.deckle_lift_blur = fv(11, 14)
-            extras.deckle_lift_x = fv(7, 9)
-            extras.deckle_lift_y = fv(14, 18)
-        end
+        -- (the window in use can be lifted off the desk with a wider, softer
+        -- shadow: deckle_lift_blur / _x / _y and a stronger deckle_shadow;
+        -- left off, every window lies flat with the same short shadow)
         extras.deckle_tone = rgba(c.edge_tone, c.edge_tone_alpha)   -- the aged edge
         extras.deckle_tone_depth = 18
         extras.deckle_chips = 1                   -- chips, tears and wrinkles (0 = a clean cut)
