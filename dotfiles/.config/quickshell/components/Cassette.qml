@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import qs.theme
 
 // A compact cassette, seen from above (100 x 64 mm, drawn to `width`):
@@ -23,13 +22,15 @@ Item {
     Canvas {
         id: shell
         anchors.fill: parent
+        anchors.margins: -10          // (room for its shadow)
         property string title: root.title
         onTitleChanged: requestPaint()
         onWidthChanged: requestPaint()
         onPaint: {
             const g = getContext("2d");
             g.reset();
-            const u = root.u, W = width, H = height;
+            g.translate(10, 10);
+            const u = root.u, W = root.width, H = root.height;
             const rr = (x, y, w, h, r) => {
                 g.beginPath();
                 g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r);
@@ -44,7 +45,12 @@ Item {
             body.addColorStop(0.5, "#3a383d");
             body.addColorStop(1, "#2a292d");
             g.fillStyle = body;
+            // it lies on the card: a short soft shadow (drawn with it)
+            g.save();
+            g.shadowColor = Qt.rgba(0.1, 0.08, 0.08, 0.38);
+            g.shadowBlur = 6; g.shadowOffsetX = 1.5; g.shadowOffsetY = 3;
             rr(0.5, 0.5, W - 1, H - 1, 3 * u); g.fill();
+            g.restore();
             g.strokeStyle = "#1e1d21"; g.lineWidth = 0.5 * u; g.stroke();
             g.strokeStyle = "rgba(255,255,255,0.10)"; g.lineWidth = 0.35 * u;
             rr(0.9 * u, 0.9 * u, W - 1.8 * u, H - 1.8 * u, 2.4 * u); g.stroke();
@@ -203,15 +209,4 @@ Item {
         }
     }
 
-    // it lies on the card: a short soft shadow
-    layer.enabled: true
-    layer.effect: MultiEffect {
-        shadowEnabled: true
-        shadowColor: Theme.shadow
-        blurMax: 24
-        shadowBlur: 0.35
-        shadowVerticalOffset: 3
-        shadowHorizontalOffset: 1.5
-        shadowOpacity: 0.9
-    }
 }

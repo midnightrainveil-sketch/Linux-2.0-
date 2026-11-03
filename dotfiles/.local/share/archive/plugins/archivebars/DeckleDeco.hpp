@@ -69,10 +69,6 @@ class CArchiveDeckle : public IHyprWindowDecoration {
     // from the rules (nullopt: no rule says), and a click's override
     std::optional<bool> m_grainRule;
     std::optional<bool> m_grainOverride;
-    // how far the window is lifted off the desk, 0 (flat) to 1 (in use), easing
-    double                                m_lift        = 0;
-    bool                                  m_liftStarted = false;
-    std::chrono::steady_clock::time_point m_liftTick;
 
     bool         grainWanted(); // ignoring the global strength
 

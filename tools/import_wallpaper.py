@@ -34,8 +34,9 @@ USER_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser(
 
 
 def source():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if args:
+        return args[0]
     for ext in ("png", "jpg", "jpeg", "webp"):
         mine = os.path.join(USER_DIR, "wallpaper." + ext)
         if os.path.exists(mine):
@@ -106,7 +107,29 @@ def quieten(big):
     return Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8))
 
 
+def is_theme_copy():
+    """Is your wallpaper (~/.config/archive/wallpaper.*) just a copy of the
+    theme's own sheet, this one or an earlier version of it? Compared small
+    and grey: the same drawing reads alike, a picture of your own does not."""
+    mine = source()
+    if mine == THEME_SRC or not os.path.exists(THEME_SRC):
+        return False
+    def small(path):
+        im = Image.open(path).convert("L")
+        w, h = im.size
+        s = min(w / 16, h / 9)
+        im = im.crop(((w - 16 * s) / 2, (h - 9 * s) / 2, (w + 16 * s) / 2, (h + 9 * s) / 2)).resize((96, 54), Image.LANCZOS)
+        a = np.asarray(im, np.float32)
+        return (a - a.mean()) / (a.std() + 1e-3)
+    try:
+        return float(np.abs(small(mine) - small(THEME_SRC)).mean()) < 0.35
+    except OSError:
+        return False
+
+
 def main():
+    if "--is-theme-copy" in sys.argv:
+        sys.exit(0 if is_theme_copy() else 1)
     path = source()
     out = THEME_OUT if path == THEME_SRC else DATA_OUT
     src = Image.open(path).convert("RGB")

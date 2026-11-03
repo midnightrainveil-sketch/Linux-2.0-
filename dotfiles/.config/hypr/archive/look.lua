@@ -198,7 +198,7 @@ local function bars(name, extras)
     hl.config({ plugin = { [name] = opts } })
 
     -- three buttons, in the usual order: file away (close, red), drawer
-    -- (minimise, yellow), full sheet (maximise and back, green; on the desk
+    -- (minimise, yellow), fullscreen (green, Super+F to come back; on the desk
     -- terminal it lifts it into an ordinary window instead: archive-desk dot).
     -- With archivebars they are ticket stubs: a card in its pigment, edged in
     -- white, with its mark (x, -, a square), lifting under the cursor. With an
@@ -231,10 +231,8 @@ if hl.plugin ~= nil and hl.plugin.archivebars ~= nil then
         rule_color = rgba(c.rule_ink, "aa"),
         rule_width = 1,
         rule_inset = 11,
-        right_icon = "–",
-        right_icon_action = drawer,
-        right_icon_color = rgb(c.soft),
-        right_icon_size = 20,
+        right_icon = "",                -- (no "–" on the right: the ochre ticket puts away)
+        right_icon_size = 20,           -- (the grain glyph's size)
     }
 
     -- paper grain over terminals and system tools (rules below); the "░"

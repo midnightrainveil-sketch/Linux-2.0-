@@ -208,13 +208,13 @@ cd ~/archive
 ```
 
 This builds **archivebars**, which is hyprbars plus what the reference
-windows need and Hyprland lacks: the ruled line under the bar, the "–" on its
-right, and the **torn paper edge** around every window. It fetches the
+windows need and Hyprland lacks: the ruled line under the bar, the ticket
+buttons, and the **torn paper edge** around every window. It fetches the
 hyprbars source that matches your Hyprland, patches it and compiles it, which
 takes a minute. After a Hyprland update, or a `git pull` that changes the
 plugin, it rebuilds itself at the next login (`archive-bars ensure`). If a
 build ever fails, the installer falls back to stock hyprbars: the same bar,
-without the rule and the dash, and windows get a plain straight rim.
+without the rule and the tickets, and windows get a plain straight rim.
 
 How the edge works: each window sits on a paper card 6 px larger than
 itself. Under the window the plugin draws the card: a torn outline lit from
@@ -229,10 +229,10 @@ background is the same paper, so the window's straight edge disappears into
 the card.
 
 **Check:** new windows have a 46 px paper title bar: three ticket stubs (red, ochre, green), the
-title, a "–" at the far right and a thin ruled line underneath. The window's
+title, a "░" at the far right and a thin ruled line underneath. The window's
 outline is torn paper, not a straight line, and a short soft shadow falls
 below it. Terminals and the system's tools are grained like paper; browsers,
-players and other apps keep their true colours. The "░" left of the "–"
+players and other apps keep their true colours. The "░"
 shows a window's grain (dark: on, faded: off) and a click flips it, as does
 `Super + Shift + G`. `archive-bars status` shows what the plugin was built
 for.
@@ -422,7 +422,7 @@ with a 10 ms fade-out.
 - [ ] Plate in the centre, record cards on the right, footer bar at the bottom.
 - [ ] `Super + Space` opens the Catalogue; typing filters it; `Enter` launches.
 - [ ] Windows have torn paper edges; the focused one has a darker edge and deeper shadow.
-- [ ] Title bars: paper strip, three ticket stubs (close, put away, full sheet), title, "–" on the right, ruled line under it.
+- [ ] Title bars: paper strip, three ticket stubs (close, put away, fullscreen), title, the grain glyph on the right, ruled line under it.
 - [ ] Volume keys show the *Volume* reading above the bar.
 - [ ] `notify-send "Test" "A letter."` drops a card top-right with a RECEIVED stamp.
 - [ ] `Super + N` crossfades the whole sheet to cyanotype blue and back.

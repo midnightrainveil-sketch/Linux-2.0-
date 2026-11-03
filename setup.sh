@@ -161,7 +161,14 @@ say "the icons"
 "$HOME/.local/bin/archive-icons" build || warn "could not make the icons; run archive-icons"
 
 # your own wallpaper (archive-wallpaper), kept outside the theme: the update
-# just replaced the sheet, so make it again from yours
+# just replaced the sheet, so make it again from yours. (One that is only an
+# older copy of the theme's own sheet is dropped, so the theme's new sheet
+# shows instead of the old one coming back after every update.)
+if compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null \
+    && python3 "$here/tools/import_wallpaper.py" --is-theme-copy 2>/dev/null; then
+    say "your wallpaper is an older copy of the theme's sheet: using the theme's own"
+    "$HOME/.local/bin/archive-wallpaper" reset || warn "could not reset the wallpaper; run archive-wallpaper reset"
+fi
 if compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null; then
     say "your wallpaper"
     python3 "$here/tools/import_wallpaper.py" || warn "could not rebuild your wallpaper; run archive-wallpaper"

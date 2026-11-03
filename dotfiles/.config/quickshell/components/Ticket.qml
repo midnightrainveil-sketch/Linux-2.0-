@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import qs.theme
 
 // A ticket stub, as on the title bars: a card in its colour, edged in white,
@@ -29,18 +28,20 @@ Item {
         Canvas {
             id: card
             anchors.fill: parent
-            anchors.margins: -2
+            anchors.margins: -6
             property color fill: root.fill
             property color edge: root.edge
+            property real lifted: root.lifted
             onFillChanged: requestPaint()
             onEdgeChanged: requestPaint()
+            onLiftedChanged: requestPaint()
             onWidthChanged: requestPaint()
 
             // the outline grown by g: a rounded card with a round notch cut
             // from the middle of each short side
             function shape(ctx, g) {
-                const x0 = 2 - g, y0 = 2 - g, w = root.width + 2 * g, h = root.height + 2 * g;
-                const r = 1.6 + g, nr = root.height * 0.16 - g, cy = 2 + root.height / 2;
+                const x0 = 6 - g, y0 = 6 - g, w = root.width + 2 * g, h = root.height + 2 * g;
+                const r = 1.6 + g, nr = root.height * 0.16 - g, cy = 6 + root.height / 2;
                 ctx.beginPath();
                 ctx.moveTo(x0 + r, y0);
                 ctx.lineTo(x0 + w - r, y0);
@@ -60,9 +61,16 @@ Item {
             onPaint: {
                 const ctx = getContext("2d");
                 ctx.reset();
+                // its shadow on the bar, drawn with it (no extra layer)
+                ctx.save();
+                ctx.shadowColor = Qt.rgba(0.1, 0.09, 0.11, 0.30 + 0.12 * lifted);
+                ctx.shadowBlur = 2 + 3 * lifted;
+                ctx.shadowOffsetX = 1 + 1.2 * lifted;
+                ctx.shadowOffsetY = 1.6 + 2.4 * lifted;
                 ctx.fillStyle = edge;
                 shape(ctx, 1.2);
                 ctx.fill();
+                ctx.restore();
                 ctx.fillStyle = fill;
                 shape(ctx, 0);
                 ctx.fill();
@@ -70,23 +78,13 @@ Item {
                 const plain = Qt.colorEqual(fill, Theme.ticketPlain);
                 ctx.strokeStyle = plain ? Qt.rgba(0, 0, 0, 0.25) : Qt.rgba(edge.r, edge.g, edge.b, 0.75);
                 ctx.lineWidth = 0.8;
-                const tx = Math.round(2 + root.width * 0.26) + 0.5;
+                const tx = Math.round(6 + root.width * 0.26) + 0.5;
                 for (let j = 0; j < 4; j++) {
-                    const y = 2 + 2 + j * (root.height - 4) / 3.6;
+                    const y = 6 + 2 + j * (root.height - 4) / 3.6;
                     ctx.beginPath(); ctx.moveTo(tx, y); ctx.lineTo(tx, y + 2); ctx.stroke();
                 }
             }
 
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Theme.shadow
-                blurMax: 16
-                shadowBlur: 0.25 + 0.3 * root.lifted
-                shadowVerticalOffset: 1.6 + 2.4 * root.lifted
-                shadowHorizontalOffset: 1 + 1.2 * root.lifted
-                shadowOpacity: 0.7 + 0.3 * root.lifted
-            }
         }
 
         Text {
