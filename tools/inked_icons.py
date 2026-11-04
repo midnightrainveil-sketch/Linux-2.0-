@@ -141,7 +141,7 @@ def folder(name, size):
     small = size <= 24
     seed = _seed(name)
     amp = 0.7 if small else 1.1
-    w = 3.4 if small else 2.3
+    w = 3.0 if small else 1.6
     opened = "-open" in name or "drag-accept" in name
     back = [(7, 53.5), (7, 14.5), (25, 14.5), (29.5, 19.5), (57, 19.5), (57, 53.5)]
     front_top = 30 if opened else 26
@@ -162,7 +162,7 @@ def folder(name, size):
         body.append(_stroke(f, w))
     kind = folder_sign(name) if not small else None
     if kind:
-        body.append(_sign(kind, 32, 40.5, 7.2, 2.3))
+        body.append(_sign(kind, 32, 40.5, 7.2, 1.7))
     return _svg(size, body)
 
 
@@ -243,7 +243,7 @@ def sheet(name, size):
     small = size <= 24
     seed = _seed(name)
     amp = 0.6 if small else 1.1
-    w = 3.4 if small else 2.3
+    w = 3.0 if small else 1.6
     tag, col = tag_for(name)
     page = [(15, 6), (40, 6), (50, 16), (50, 58), (15, 58)]
     outline = _pen(page, amp, seed, closed=True)
