@@ -30,6 +30,7 @@ ITEMS = {
     "key": ("key.webp", "clock-art.png", 320, 1.0, True),
     "label": ("label.webp", "label.png", 720, 0.8, False),
     "postcard": ("postcard.webp", "postcard.png", 900, 0.8, False),
+    "musicbox": ("musicbox.webp", "musicbox.png", 420, 0.82, False),
 }
 
 

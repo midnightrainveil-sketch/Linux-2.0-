@@ -103,10 +103,19 @@ IndexCard {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.verticalCenterOffset: 4
                 width: 150
-                visible: !photo.framed
+                visible: !photo.framed && Flavour.player !== "musicbox"
                 title: card.going ? card.song : ""
                 playing: card.playing && !Desk.covered
                 progress: card.span > 0 ? Math.max(0, Math.min(1, card.at / card.span)) : 0.2
+            }
+
+            // a theme's own player (Compartment 19: the music box)
+            MusicBox {
+                anchors.centerIn: parent
+                width: 146; height: 148
+                visible: !photo.framed && Flavour.player === "musicbox"
+                source: Flavour.player === "musicbox" ? Qt.resolvedUrl("../../assets/flavours/" + Flavour.theme + "/musicbox.png") : ""
+                playing: card.playing && !Desk.covered
             }
 
             // the frame: a thin dark moulding, a paper mount, the print

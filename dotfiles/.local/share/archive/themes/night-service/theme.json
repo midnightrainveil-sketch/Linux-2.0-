@@ -16,7 +16,8 @@
     "clockArt": "clock-art.png",
     "specimen": false,
     "icons": "suitcase",
-    "keepsakes": true
+    "keepsakes": true,
+    "player": "musicbox"
   },
   "previews": [
     "preview-day.jpg",

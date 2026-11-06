@@ -21,6 +21,7 @@ import Quickshell.Io
 //     "clockArt":     "clock-art.png"        (assets/flavours/<id>/, kept in colour)
 //     "specimen":     false                  the month's pressed specimen on the desk
 //     "icons":        "suitcase"             folders as suitcases (archive-icons, at log-in)
+//     "player":       "musicbox"             the audio card's player (else the cassette)
 //     "keepsakes":    true                   the postcard and label on the desk (Keepsakes.qml)
 //   }
 Singleton {
@@ -47,6 +48,7 @@ Singleton {
     readonly property url clockArt: f.clockArt ? Qt.resolvedUrl("../assets/flavours/" + theme + "/" + f.clockArt) : ""
     readonly property bool specimen: f.specimen !== false
     readonly property bool keepsakes: f.keepsakes === true
+    readonly property string player: word("player", "cassette")
 
     // this session's theme: Hyprland's mark for it, else the one chosen
     FileView {
