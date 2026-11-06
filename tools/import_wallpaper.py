@@ -26,7 +26,7 @@ import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 THEME_SRC = os.path.join(HERE, "..", "art", "wallpaper.webp")
@@ -47,6 +47,23 @@ THEME_OUT = os.path.join(HERE, "..", "dotfiles", ".local", "share", "archive", "
 # there (real files, not links into the theme), so nothing can stand between
 DATA_OUT = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "archive", "plates")
 PLATE = "0001-geranium-pratense"
+# other themes' sheets (python3 tools/import_wallpaper.py --plate night-service):
+# made from their own art, kept out of the herbarium's daily round (they are
+# not added to index.json); the theme names its plate (theme.json "flavour")
+OTHER_PLATES = {
+    "night-service": {
+        "src": os.path.join(HERE, "..", "art", "night-service", "wallpaper.webp"),
+        "plate": "0101-night-service",
+        # its colour and contrast as drawn: only the paper is matched to the desk
+        "quieten": False,
+        # laid smaller, in the open paper between the desk terminal (left)
+        # and the record cards (right); its own blank paper fills round it
+        "fit": {"scale": 0.64, "cx": 0.53, "cy": 0.5, "paper": [0, 0, 470, 1125]},
+        "meta": {"number": "0019", "region": "NIGHT SERVICE", "latin": "Vienna – Venice",
+                 "authority": "Night train, 14–15 June 1931.", "family": "Carriage 4",
+                 "common": "Compartment 19, lower berth."},
+    },
+}
 # the sheet is sized to cover the G14's 2880 x 1800 panel (a 16:9 sheet:
 # 3200 x 1800), up or down from whatever the source is
 COVER = (2880, 1800)
@@ -127,18 +144,51 @@ def is_theme_copy():
         return False
 
 
+def refit(src, fit):
+    """The art laid smaller at (cx, cy) of a sheet of its own paper: a blank
+    strip of it (fit["paper"]) mirrored across, the art feathered into it."""
+    W, H = src.size
+    px0, py0, px1, py1 = fit["paper"]
+    strip = src.crop((px0, py0, px1, py1))
+    paper = Image.new("RGB", (W, H))
+    x, flip = 0, False
+    while x < W:
+        piece = strip.transpose(Image.FLIP_LEFT_RIGHT) if flip else strip
+        paper.paste(piece.resize((piece.width, H)), (x, 0))
+        x += piece.width
+        flip = not flip
+    k = fit["scale"]
+    art = src.resize((round(W * k), round(H * k)), Image.LANCZOS)
+    mask = Image.new("L", art.size, 0)
+    m = 24
+    ImageDraw.Draw(mask).rectangle([m, m, art.width - m, art.height - m], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(m / 2))
+    paper.paste(art, (round(W * fit["cx"] - art.width / 2), round(H * fit["cy"] - art.height / 2)), mask)
+    return paper
+
+
 def main():
+    global PLATE
     if "--is-theme-copy" in sys.argv:
         sys.exit(0 if is_theme_copy() else 1)
-    path = source()
-    out = THEME_OUT if path == THEME_SRC else DATA_OUT
+    other = None
+    if "--plate" in sys.argv:
+        other = OTHER_PLATES[sys.argv[sys.argv.index("--plate") + 1]]
+        PLATE = other["plate"]
+        path, out = other["src"], THEME_OUT
+    else:
+        path = source()
+        out = THEME_OUT if path == THEME_SRC else DATA_OUT
     src = Image.open(path).convert("RGB")
+    if other and other.get("fit"):
+        src = refit(src, other["fit"])
     print("wallpaper:", path, "(%d x %d)" % src.size)
     scale = max(COVER[0] / src.width, COVER[1] / src.height)
     big = src.resize((round(src.width * scale), round(src.height * scale)), Image.LANCZOS)
     if scale > 1.05:   # enlarged: bring the pencil lines back a little
         big = big.filter(ImageFilter.UnsharpMask(radius=1.4, percent=55, threshold=2))
-    big = quieten(big)
+    if not other or other.get("quieten", True):
+        big = quieten(big)
     rgb = np.asarray(big, np.float32)
 
     # the paper's own colour, everywhere (the ink lifted out of it)
@@ -181,6 +231,8 @@ def main():
         "day": "sheet-day.jpg",
         "night": "sheet-night.jpg",
     }
+    if other:
+        meta.update(other["meta"])
     meta_path = os.path.join(folder, "meta.json")
     if os.path.islink(meta_path):
         os.remove(meta_path)   # a real file of its own, not the theme's through a link
@@ -188,6 +240,9 @@ def main():
         json.dump(meta, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
+    if other:
+        print("sheet written:", folder, "(%d x %d)" % (day.shape[1], day.shape[0]))
+        return
     index_path = os.path.join(out, "index.json")
     index = json.load(open(index_path)) if os.path.exists(index_path) else []
     if os.path.islink(index_path):

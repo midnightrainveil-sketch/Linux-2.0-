@@ -55,7 +55,7 @@ IndexCard {
         onClicked: Panels.toggle("phonograph")
     }
 
-    title: "Audio Archive"
+    title: Flavour.word("audioTitle", "Audio Archive")
     number: card.year !== "" ? card.year : (card.going ? "----" : "")
     seed: 303
     implicitHeight: 226

@@ -23,6 +23,8 @@ Singleton {
     property bool metaLoaded: false         // until then, nothing is known about the plate's files
 
     readonly property string current: {
+        // a theme with a sheet of its own (Flavour) always shows it
+        if (Flavour.plate !== "") return Flavour.plate;
         if (Settings.fixedPlate !== "" && index.indexOf(Settings.fixedPlate) >= 0) return Settings.fixedPlate;
         if (index.length === 0) return "";
         return index[Clock.dayOfYear % index.length];

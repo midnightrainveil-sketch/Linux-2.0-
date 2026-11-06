@@ -53,7 +53,7 @@ PanelWindow {
         begun = holder.opacity > 0.01;  // (still on screen, closing: on at once)
         counting = false;
         Qt.callLater(() => { win.counting = true; });
-        if (shown) opened();
+        if (shown) { shownAt = Date.now(); opened(); }
         else grabArmed = false;
     }
 
@@ -79,6 +79,7 @@ PanelWindow {
     // same instant, before the surface is mapped, it can fail silently and
     // the card then never closes on an outside click.
     property bool grabArmed: false
+    property double shownAt: 0
     Timer {
         interval: 80
         running: win.shown && !win.grabArmed
@@ -87,6 +88,12 @@ PanelWindow {
     HyprlandFocusGrab {
         windows: [win]
         active: win.shown && win.grabArmed
-        onCleared: if (Panels.open === win.name) Panels.close()
+        // (cleared in its first moment, it is the card it was opened from
+        // going away, not a click elsewhere: arm it again instead of closing)
+        onCleared: {
+            if (Panels.open !== win.name) return;
+            if (Date.now() - win.shownAt < 600) { win.grabArmed = false; return; }
+            Panels.close();
+        }
     }
 }

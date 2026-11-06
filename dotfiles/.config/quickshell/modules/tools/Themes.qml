@@ -22,8 +22,8 @@ BarPopup {
 
     property var themes: []
     property string chosen: "archive"
-    // (this Themes is the Archive's own: the Archive is the one in use)
-    readonly property string current: "archive"
+    // the theme this session is in (the Archive, or a variant of it)
+    readonly property string current: Flavour.theme
     property bool read_: false
     property int selected: 0
     property int picture: 0

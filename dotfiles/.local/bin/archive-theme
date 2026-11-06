@@ -47,7 +47,9 @@ case ${1:-current} in
     set)
         id=${2:?usage: archive-theme set <id> (see: archive-theme list)}
         [[ -f $themes/$id/theme.json ]] || { echo "no theme \"$id\" in $themes" >&2; exit 1; }
-        if [[ $id != archive && ! -f $themes/$id/hypr/hyprland.lua ]]; then
+        # (a variant of the Archive, "base": "archive", needs no config of its own)
+        if [[ $id != archive && ! -f $themes/$id/hypr/hyprland.lua ]] \
+            && [[ $(jq -r '.base // ""' "$themes/$id/theme.json" 2>/dev/null) != archive ]]; then
             echo "theme \"$id\" has no hypr/hyprland.lua; it cannot be logged in to" >&2
             exit 1
         fi

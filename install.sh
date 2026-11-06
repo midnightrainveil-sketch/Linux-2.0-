@@ -81,7 +81,8 @@ if (( want_link )); then
     while IFS= read -r -d '' f; do
         rel=${f#"$src"/}
         # your own wallpaper (archive-wallpaper) is made right there: leave it
-        if ((own_wallpaper)) && [[ $rel == .local/share/archive/plates/* ]]; then continue; fi
+        # (only the herbarium's sheet: other themes' sheets are linked as ever)
+        if ((own_wallpaper)) && [[ $rel == .local/share/archive/plates/0001-* || $rel == .local/share/archive/plates/index.json ]]; then continue; fi
         link_file "$f" "$HOME/$rel"
     done < <(find "$src" \( -type f -o -type l \) -print0)
     # links left by files a newer version no longer has

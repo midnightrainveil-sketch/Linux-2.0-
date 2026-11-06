@@ -12,7 +12,7 @@ import qs.components
 IndexCard {
     id: card
 
-    title: "Meteorological Observation"
+    title: Flavour.word("weatherTitle", "Meteorological Observation")
     number: Weather.ready ? String(Weather.pressure) : "----"
     footerLabel: "Location"
     footerValue: Settings.placeName + (Settings.placeCountry && Settings.placeCountry !== Settings.placeName ? ", " + Settings.placeCountry : "")

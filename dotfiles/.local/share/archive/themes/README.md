@@ -24,3 +24,9 @@ and the archive-* commands behind the scenes: restore points
 (`archive-snapshot`), refresh rate (`archive-refresh`), GPU and power
 (`archive-rog`, `archive-profile`), brightness, clipboard history
 (`archive-clips`), screenshots.
+
+A theme can also be a **variant of the Archive**: the same desk and
+programs, with its own sheet, wording and small pictures. Its `theme.json`
+says `"base": "archive"` and carries a `"flavour"` (see
+`~/.config/quickshell/services/Flavour.qml` for what it can change), and it
+has no `hypr/`. Night Service is one.

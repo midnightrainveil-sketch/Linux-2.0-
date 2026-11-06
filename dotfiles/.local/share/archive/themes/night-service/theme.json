@@ -1,0 +1,21 @@
+{
+  "id": "night-service",
+  "name": "Night Service",
+  "by": "Built in",
+  "summary": "The night train from Vienna to Venice: keepsakes from compartment 19 on the sheet, a timetable for a clock, a railway lantern, the brass key. The same desk, typewriter and tickets as the Archive.",
+  "base": "archive",
+  "flavour": {
+    "plate": "0101-night-service",
+    "archiveName": "NIGHT SERVICE",
+    "timeSubtitle": "Timetable.",
+    "weatherTitle": "Conditions en Route",
+    "audioTitle": "Carriage Recordings",
+    "lockTitle": "Sleeping Car",
+    "lockSubtitle": "Boarding by signature.",
+    "barIcon": "lantern",
+    "clockArt": "clock-art.png",
+    "specimen": false
+  },
+  "previews": ["preview-day.jpg", "preview-night.jpg"],
+  "captions": ["By day.", "By night."]
+}

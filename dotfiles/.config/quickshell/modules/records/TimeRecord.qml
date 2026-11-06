@@ -11,8 +11,8 @@ import qs.components
 IndexCard {
     id: card
 
-    title: Settings.archiveName
-    subtitle: "Time Record."
+    title: Flavour.word("archiveName", Settings.archiveName)
+    subtitle: Flavour.word("timeSubtitle", "Time Record.")
     number: Clock.timeRecordNo
     labelWidth: 112
     seed: 101
@@ -142,6 +142,19 @@ IndexCard {
                 anchors.fill: parent
                 source: sprigImage
                 color: Theme.sprigInk
+                visible: Flavour.clockArt.toString() === ""
+            }
+            // a theme's own small picture, in its own colours (Flavour)
+            Image {
+                anchors.fill: parent
+                visible: Flavour.clockArt.toString() !== ""
+                source: Flavour.clockArt
+                sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                asynchronous: true
+                opacity: Theme.night > 0.5 ? 0.85 : 1
             }
         }
     }

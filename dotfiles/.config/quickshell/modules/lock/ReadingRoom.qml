@@ -105,7 +105,7 @@ Scope {
                     spacing: 3
                     InkText {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Reading Room"
+                        text: Flavour.word("lockTitle", "Reading Room")
                         caps: true
                         tracking: 0.16
                         font.pixelSize: 14
@@ -113,7 +113,7 @@ Scope {
                     }
                     InkText {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Admission by signature."
+                        text: Flavour.word("lockSubtitle", "Admission by signature.")
                         color: Theme.soft
                     }
                 }
@@ -124,8 +124,8 @@ Scope {
                     // it takes the knock when the seal is pressed into it
                     transform: Translate { id: knock; y: 0 }
                     width: 600
-                    title: Settings.archiveName
-                    subtitle: "Time Record."
+                    title: Flavour.word("archiveName", Settings.archiveName)
+                    subtitle: Flavour.word("timeSubtitle", "Time Record.")
                     number: Clock.timeRecordNo
                     labelWidth: 134
                     seed: 1001

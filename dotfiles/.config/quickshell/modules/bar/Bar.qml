@@ -46,7 +46,7 @@ PanelWindow {
         InkIcon {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: 1
-            name: "seedling"
+            name: Flavour.barIcon
             size: 28
             color: sprigMouse.containsMouse || Panels.open === "catalogue" ? Theme.accent : Theme.soft
         }

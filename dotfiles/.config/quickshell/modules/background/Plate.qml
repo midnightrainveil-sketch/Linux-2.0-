@@ -345,7 +345,12 @@ PanelWindow {
     // ------------------------------------------------------------ the month's pressed specimen
     // in the corner, lying loose on the sheet (over its light): it can be
     // lifted, carried and swapped for another month's (Specimen.qml)
-    Specimen { anchors.fill: parent; sheetH: win.sheetH }
+    // (only built where the theme shows one: its pictures are not loaded otherwise)
+    Loader {
+        anchors.fill: parent
+        active: Flavour.specimen
+        sourceComponent: Component { Specimen { sheetH: win.sheetH } }
+    }
 
     // ------------------------------------------------------------ the record cards
     // lying on the sheet above the bar, over the specimen (Records.qml)

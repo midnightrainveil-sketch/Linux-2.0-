@@ -176,7 +176,7 @@ Item {
             y: 56
             spacing: 6
             InkText { anchors.horizontalCenter: parent.horizontalCenter; text: "Field Notes"; caps: true; tracking: 0.22; font.pixelSize: 22; color: Theme.graphite }
-            InkText { anchors.horizontalCenter: parent.horizontalCenter; text: Settings.archiveName; caps: true; tracking: 0.12; font.pixelSize: 11; color: Theme.faded }
+            InkText { anchors.horizontalCenter: parent.horizontalCenter; text: Flavour.word("archiveName", Settings.archiveName); caps: true; tracking: 0.12; font.pixelSize: 11; color: Theme.faded }
         }
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
