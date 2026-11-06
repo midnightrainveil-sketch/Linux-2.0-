@@ -58,7 +58,7 @@ OTHER_PLATES = {
         "quieten": False,
         # laid smaller, in the open paper between the desk terminal (left)
         # and the record cards (right); its own blank paper fills round it
-        "fit": {"scale": 0.64, "cx": 0.53, "cy": 0.5, "paper": [0, 0, 470, 1125]},
+        "fit": {"scale": 0.64, "cx": 0.53, "cy": 0.5, "paper": [0, 0, 0.235, 1]},
         "meta": {"number": "0019", "region": "NIGHT SERVICE", "latin": "Vienna – Venice",
                  "authority": "Night train, 14–15 June 1931.", "family": "Carriage 4",
                  "common": "Compartment 19, lower berth."},
@@ -148,7 +148,7 @@ def refit(src, fit):
     """The art laid smaller at (cx, cy) of a sheet of its own paper: a blank
     strip of it (fit["paper"]) mirrored across, the art feathered into it."""
     W, H = src.size
-    px0, py0, px1, py1 = fit["paper"]
+    px0, py0, px1, py1 = (round(v * (W if i % 2 == 0 else H)) for i, v in enumerate(fit["paper"]))
     strip = src.crop((px0, py0, px1, py1))
     paper = Image.new("RGB", (W, H))
     x, flip = 0, False
@@ -160,7 +160,7 @@ def refit(src, fit):
     k = fit["scale"]
     art = src.resize((round(W * k), round(H * k)), Image.LANCZOS)
     mask = Image.new("L", art.size, 0)
-    m = 24
+    m = round(24 * W / 2000)
     ImageDraw.Draw(mask).rectangle([m, m, art.width - m, art.height - m], fill=255)
     mask = mask.filter(ImageFilter.GaussianBlur(m / 2))
     paper.paste(art, (round(W * fit["cx"] - art.width / 2), round(H * fit["cy"] - art.height / 2)), mask)
