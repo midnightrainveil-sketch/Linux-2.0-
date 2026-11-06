@@ -63,7 +63,7 @@ Item {
     Loader {
         anchors.fill: parent
         active: Flavour.keepsakes
-        sourceComponent: Component { Keepsakes {} }
+        sourceComponent: Component { Keepsakes { cardsX: win.column; cardsW: Theme.recordWidth; belowCards: audio.homeY + audio.height } }
     }
 
     // the desk lamp's light, over the sheet and the cards alike (night only)

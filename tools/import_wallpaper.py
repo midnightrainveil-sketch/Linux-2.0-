@@ -52,17 +52,12 @@ PLATE = "0001-geranium-pratense"
 # not added to index.json); the theme names its plate (theme.json "flavour")
 OTHER_PLATES = {
     "night-service": {
-        "src": os.path.join(HERE, "..", "art", "night-service", "wallpaper.webp"),
+        # (the keepsakes spread over the desk, laid out by
+        # tools/compose_night_service.py from the 4K plate wallpaper.webp)
+        "src": os.path.join(HERE, "..", "art", "night-service", "composed.webp"),
         "plate": "0101-night-service",
         # its colour and contrast as drawn: only the paper is matched to the desk
         "quieten": False,
-        # laid smaller, in the open paper between the desk terminal (left)
-        # and the record cards (right); its own blank paper fills round it
-        "fit": {"scale": 0.64, "cx": 0.53, "cy": 0.5, "paper": [0, 0, 0.235, 1]},
-        # its heading typed again: the theme's own name (in the 3840 px art:
-        # the box to cover, blank paper to cover it with, where the type sits)
-        "retitle": {"text": "COMPARTMENT 19", "box": [1450, 34, 2040, 96], "paper": [560, 34],
-                    "at": [1466, 41], "size": 59, "tracking": 0.22},
         "meta": {"number": "0019", "region": "COMPARTMENT 19", "latin": "Vienna – Venice",
                  "authority": "Night train, 14–15 June 1931.", "family": "Carriage 4",
                  "common": "Compartment 19, lower berth."},
