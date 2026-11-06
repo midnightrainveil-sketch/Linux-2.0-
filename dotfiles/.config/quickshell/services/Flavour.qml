@@ -20,6 +20,7 @@ import Quickshell.Io
 //     "barIcon":      "lantern"              (assets/icons/<name>.svg)
 //     "clockArt":     "clock-art.png"        (assets/flavours/<id>/, kept in colour)
 //     "specimen":     false                  the month's pressed specimen on the desk
+//     "icons":        "suitcase"             folders as suitcases (archive-icons, at log-in)
 //   }
 Singleton {
     id: root

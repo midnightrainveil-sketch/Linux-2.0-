@@ -10,6 +10,7 @@ simpler (no typed tag, a band of the type's colour instead; no sign on a
 folder) with a heavier line, so it still reads.
 """
 import math
+import os
 import random
 import re
 
@@ -136,8 +137,57 @@ def folder_sign(name):
     return None
 
 
+LEATHER_BACK, LEATHER, STRAP, BRASS, LABEL = "#a8774e", "#c08a5c", "#7d5233", "#c9a45a", "#efe6d2"
+# which folder: "folder" (manila, the Archive) or "suitcase" (Night Service);
+# archive-icons sets it from the theme of the session (theme.json "flavour")
+FOLDERS = os.environ.get("ARCHIVE_FOLDERS", "folder")
+
+
+def suitcase(name, size):
+    """A small leather suitcase, drawn in ink: handle, straps, brass
+    corners; the folder's sign on a cream label on its front."""
+    small = size <= 24
+    seed = _seed(name)
+    amp = 0.6 if small else 1.0
+    w = 3.0 if small else 1.6
+    opened = "-open" in name or "drag-accept" in name
+    body = [(6, 20), (58, 20), (58, 54), (6, 54)]
+    out = []
+    handle = _pen([(24, 20), (24, 13.5), (40, 13.5), (40, 20)], amp * 0.6, seed + 7)
+    outline = _pen(body, amp, seed, closed=True)
+    out.append(_shadow(outline))
+    out.append(_stroke(handle, w * 1.5, STRAP))
+    out.append(_stroke(handle, w))
+    if opened:    # the lid lifted a little: the lining shows along the top
+        lid = _pen([(5, 20), (59, 20), (57, 14.5), (7, 14.5)], amp * 0.6, seed + 9, closed=True)
+        out.append(_fill(lid, LABEL))
+        out.append(_stroke(lid, w * 0.8))
+    out.append(_fill(outline, LEATHER))
+    # the lid's seam, a little below the top, and the case's lower half darker
+    out.append(_fill(_pen([(6, 31), (58, 31), (58, 54), (6, 54)], amp * 0.5, seed + 1, closed=True), LEATHER_BACK))
+    out.append(_stroke(_pen([(6, 31), (58, 31)], amp, seed + 2), w * 0.9))
+    if not small:
+        # two straps over it, brass buckles, brass corners
+        for x in (17, 47):
+            st = _pen([(x - 2.2, 20), (x + 2.2, 20), (x + 2.2, 54), (x - 2.2, 54)], amp * 0.3, seed + x, closed=True)
+            out.append(_fill(st, STRAP))
+            out.append('<rect x="%.1f" y="26.5" width="6.2" height="4.6" rx="0.6" style="fill:none;stroke:%s;stroke-width:1.1"/>' % (x - 3.1, BRASS))
+        for (cx, cy) in ((6, 20), (58, 20), (6, 54), (58, 54)):
+            out.append('<circle cx="%d" cy="%d" r="2.6" style="fill:%s"/>' % (cx, cy, BRASS))
+    out.append(_stroke(outline, w))
+    kind = folder_sign(name) if not small else None
+    if kind:
+        lab = _pen([(23.5, 35), (40.5, 35), (40.5, 50), (23.5, 50)], 0.4, seed + 3, closed=True)
+        out.append(_fill(lab, LABEL))
+        out.append(_stroke(lab, 1.1))
+        out.append(_sign(kind, 32, 42.5, 5.0, 1.5))
+    return _svg(size, out)
+
+
 def folder(name, size):
     """A manila folder, drawn in ink; its sign inked on the front."""
+    if FOLDERS == "suitcase":
+        return suitcase(name, size)
     small = size <= 24
     seed = _seed(name)
     amp = 0.7 if small else 1.1

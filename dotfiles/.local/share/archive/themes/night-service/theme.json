@@ -14,8 +14,15 @@
     "lockSubtitle": "Boarding by signature.",
     "barIcon": "lantern",
     "clockArt": "clock-art.png",
-    "specimen": false
+    "specimen": false,
+    "icons": "suitcase"
   },
-  "previews": ["preview-day.jpg", "preview-night.jpg"],
-  "captions": ["By day.", "By night."]
+  "previews": [
+    "preview-day.jpg",
+    "preview-night.jpg"
+  ],
+  "captions": [
+    "By day.",
+    "By night."
+  ]
 }

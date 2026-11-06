@@ -16,7 +16,18 @@ dst="${XDG_DATA_HOME:-$HOME/.local/share}/icons/Archive"
 maker="$HOME/archive/tools/make_icons.py"
 stamp="$dst/.made-from"
 
-want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(cat "$maker" "$(dirname "$maker")/inked_icons.py" 2>/dev/null | sha1sum | cut -c1-12)"; }
+# the folders the session's theme wants: manila folders, or (theme.json
+# "flavour": {"icons": "suitcase"}) Night Service's suitcases
+folders() {
+    local id file
+    id=$(archive-theme current 2>/dev/null || echo archive)
+    file="${XDG_DATA_HOME:-$HOME/.local/share}/archive/themes/$id/theme.json"
+    jq -r '.flavour.icons // "folder"' "$file" 2>/dev/null || echo folder
+}
+export ARCHIVE_FOLDERS
+ARCHIVE_FOLDERS=$(folders)
+
+want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(cat "$maker" "$(dirname "$maker")/inked_icons.py" 2>/dev/null | sha1sum | cut -c1-12) $ARCHIVE_FOLDERS"; }
 
 build() {
     [[ -d $src ]] || { echo "archive-icons: Papirus is not installed (sudo pacman -S papirus-icon-theme)" >&2; exit 1; }
