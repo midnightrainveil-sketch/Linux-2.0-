@@ -29,8 +29,8 @@ K = 3                      # stored at three times the size shown
 
 # the train, front to back, and each vehicle's height on screen (logical
 # px, wheels to roof; the engine and the van stand a little taller)
-TRAIN = [("locomotive", 36), ("tender", 27), ("fourgon", 31), ("coach", 28),
-         ("coach", 28), ("dining", 28), ("sleeping", 28)]
+TRAIN = [("locomotive", 56), ("tender", 42), ("fourgon", 48), ("coach", 44),
+         ("coach", 44), ("dining", 44), ("sleeping", 44)]
 
 
 def drop_ground(a):

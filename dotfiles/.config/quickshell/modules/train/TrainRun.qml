@@ -20,11 +20,11 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     // (wheels on the bar's top rule)
     margins.bottom: Theme.barHeight - 3
-    implicitHeight: 120
+    implicitHeight: 170
     color: "transparent"
     mask: Region {}
 
-    readonly property real speed: 110          // px a second
+    readonly property real speed: 150          // px a second
     readonly property real gap: 1.6            // s between one train and the next
     property var spec: ({ vehicles: [], steam: [] })
     readonly property var cars: (spec.vehicles || []).slice().reverse()   // rear first, left to right
@@ -94,12 +94,12 @@ PanelWindow {
             readonly property real k: age / win.life
             visible: file !== "" && Trainset.running && bornX > -40 && win.t - age > win.start
             source: file !== "" ? Qt.resolvedUrl("../../assets/train/" + file) : ""
-            width: 18 + 34 * k
+            width: 28 + 52 * k
             height: width
             fillMode: Image.PreserveAspectFit
             smooth: true
-            x: bornX - width / 2 - 14 * age
-            y: win.height - 36 - height / 2 - 30 * age - 6 * k * k
+            x: bornX - width / 2 - 20 * age
+            y: win.height - 56 - height / 2 - 42 * age - 8 * k * k
             opacity: 0.8 * (1 - k) * Math.min(1, age * 8)
         }
     }
