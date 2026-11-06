@@ -1,0 +1,46 @@
+{
+  "vehicles": [
+    {
+      "name": "locomotive",
+      "w": 111.3,
+      "h": 36
+    },
+    {
+      "name": "tender",
+      "w": 58.3,
+      "h": 27
+    },
+    {
+      "name": "fourgon",
+      "w": 65.7,
+      "h": 31
+    },
+    {
+      "name": "coach",
+      "w": 106.3,
+      "h": 28
+    },
+    {
+      "name": "coach",
+      "w": 106.3,
+      "h": 28
+    },
+    {
+      "name": "dining",
+      "w": 94.7,
+      "h": 28
+    },
+    {
+      "name": "sleeping",
+      "w": 102.7,
+      "h": 28
+    }
+  ],
+  "steam": [
+    "steam-0.png",
+    "steam-1.png",
+    "steam-2.png",
+    "steam-3.png"
+  ],
+  "scale": 3
+}

@@ -16,6 +16,7 @@ import qs.services
 import qs.modules.background
 import qs.modules.records
 import qs.modules.bar
+import qs.modules.train
 import qs.modules.launcher
 import qs.modules.calendar
 import qs.modules.windows
@@ -46,6 +47,12 @@ ShellRoot {
             LetterTray { screen: perScreen.modelData }
             Bar { modelData: perScreen.modelData }
         }
+    }
+
+    // ---- the night train along the bar (only there while one is running)
+    LazyLoader {
+        active: Trainset.running
+        TrainRun { screen: shell.focusedScreen }
     }
 
     // ---- one at a time, on the focused screen
@@ -117,6 +124,7 @@ ShellRoot {
         function keys(): void { Panels.toggle("keys"); }
         function glyphs(): void { Panels.toggle("glyphs"); }
         function themes(): void { Panels.toggle("themes"); }
+        function train(): void { Trainset.toggle(); }
         function close(): void { Panels.close(); }
         // the Register (open windows): the bar button, and Alt+Tab
         function register(): void { registerCard.toggle(); }

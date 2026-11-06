@@ -144,6 +144,28 @@ PanelWindow {
         }
     }
 
+    // the night train: sends a little train along the bar, again and again
+    // until pressed again (the one under way then finishes its run)
+    Item {
+        id: trainButton
+        x: registerButton.x + registerButton.width + 18
+        width: 28
+        height: Theme.barHeight
+        InkIcon {
+            anchors.centerIn: parent
+            name: "train"
+            size: 24
+            color: trainMouse.containsMouse ? Theme.accent : Trainset.on ? Theme.madder : Theme.soft
+        }
+        MouseArea {
+            id: trainMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Trainset.toggle()
+        }
+    }
+
     // ---- centre: "/ home / atlas /"
     Row {
         anchors.centerIn: parent
