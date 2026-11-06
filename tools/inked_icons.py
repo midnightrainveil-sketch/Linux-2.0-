@@ -202,34 +202,37 @@ def suitcase(name, size):
 
 
 def folder(name, size):
-    """A manila folder, drawn in ink; its sign inked on the front."""
+    """A manila file folder, as in a stationer's catalogue: its tab, the
+    darker back, a sheet of paper standing in it, fine straight edges, the
+    folder's sign on a small label pasted on its front."""
     if FOLDERS == "suitcase":
         return suitcase(name, size)
     small = size <= 24
-    seed = _seed(name)
-    amp = 0.7 if small else 1.1
-    w = 3.0 if small else 1.6
+    uid = "f%d" % (_seed(name) % 100000)
+    edge = "#8a7352"
+    hw = 1.6 if small else 0.9
     opened = "-open" in name or "drag-accept" in name
-    back = [(7, 53.5), (7, 14.5), (25, 14.5), (29.5, 19.5), (57, 19.5), (57, 53.5)]
-    front_top = 30 if opened else 26
-    front = [(7 if not opened else 4, front_top), (57 if not opened else 60, front_top), (57, 53.5), (7, 53.5)]
-    body = []
-    outline = _pen(back, amp, seed, closed=True)
-    body.append(_shadow(outline))
-    body.append(_fill(outline, MANILA_BACK))
-    if opened:   # a sheet stands up out of the open folder
-        sheet = _pen([(14, 10), (48, 10), (48, 40), (14, 40)], amp * 0.7, seed + 5, closed=True)
-        body.append(_fill(sheet, SHEET))
-        body.append(_stroke(sheet, w * 0.8))
-    f = _pen(front, amp, seed + 1, closed=True)
-    body.append(_fill(f, MANILA_FRONT))
-    body.append(_stroke(outline, w))
-    body.append(_stroke(_pen([front[0], front[1]], amp, seed + 2), w))
-    if opened:
-        body.append(_stroke(f, w))
+    back = "M 6,54 L 6,15.5 Q 6,13.5 8,13.5 L 23.5,13.5 Q 25,13.5 26,14.8 L 28.2,18 L 56,18 Q 58,18 58,20 L 58,54 Z"
+    front_top = 29.5 if opened else 25
+    fx0, fx1 = (3.5, 60.5) if opened else (6, 58)
+    front = "M %.1f,%.1f L %.1f,%.1f L 58,54 L 6,54 Z" % (fx0, front_top, fx1, front_top)
+    body = ['<defs><linearGradient id="%sb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4b989"/><stop offset="1" stop-color="#c2a674"/></linearGradient>'
+            '<linearGradient id="%sf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ead7ae"/><stop offset="1" stop-color="#d9c08f"/></linearGradient></defs>' % (uid, uid),
+            _shadow(back),
+            '<path d="%s" style="fill:url(#%sb);stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (back, uid, edge, hw)]
+    # a sheet of paper standing in it
+    sy = 11 if opened else 21
+    body.append('<rect x="11" y="%.1f" width="40" height="30" style="fill:#f7f2e7;stroke:#a89c86;stroke-width:%.2f"/>' % (sy, hw * 0.7))
+    if not small:
+        for i in range(2):
+            body.append('<path d="M 15,%.1f L %.1f,%.1f" style="stroke:#c3b8a3;stroke-width:0.9"/>' % (sy + 3.5 + i * 3.2, 38 - i * 8, sy + 3.5 + i * 3.2))
+    body.append('<path d="%s" style="fill:url(#%sf);stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (front, uid, edge, hw))
+    if not small:
+        body.append('<path d="M %.1f,%.1f L %.1f,%.1f" style="stroke:#f6ead0;stroke-opacity:0.8;stroke-width:0.8"/>' % (fx0 + 1, front_top + 1.2, fx1 - 1, front_top + 1.2))
     kind = folder_sign(name) if not small else None
     if kind:
-        body.append(_sign(kind, 32, 40.5, 7.2, 1.7))
+        body.append('<rect x="23" y="34" width="18" height="14" rx="1" style="fill:#f4eddc;stroke:#a8936c;stroke-width:0.7"/>')
+        body.append(_sign(kind, 32, 41, 4.4, 1.25))
     return _svg(size, body)
 
 
@@ -306,29 +309,38 @@ def tag_for(name):
 
 
 def sheet(name, size):
-    """A cream sheet, drawn in ink, its corner folded; its type typed on it."""
+    """A sheet of good paper, as in a stationer's catalogue: fine straight
+    edges, softly shaded, a folded corner casting its little shadow, a few
+    typed lines, and its type printed on a small label in its colour."""
     small = size <= 24
-    seed = _seed(name)
-    amp = 0.6 if small else 1.1
-    w = 3.0 if small else 1.6
     tag, col = tag_for(name)
-    page = [(15, 6), (40, 6), (50, 16), (50, 58), (15, 58)]
-    outline = _pen(page, amp, seed, closed=True)
-    body = [_shadow(outline), _fill(outline, SHEET)]
-    fold = _pen([(40, 6), (40, 16), (50, 16)], amp * 0.6, seed + 1, closed=True)
-    body.append(_fill(fold, SHEET_FOLD))
+    uid = "p%d" % (_seed(name) % 100000)
+    edge = "#8c8273"
+    hw = 1.6 if small else 0.9
+    x0, y0, x1, y1, f = 14.0, 5.0, 50.0, 59.0, 11.0
+    page = "M %.1f,%.1f L %.1f,%.1f L %.1f,%.1f L %.1f,%.1f L %.1f,%.1f Z" % (x0, y0, x1 - f, y0, x1, y0 + f, x1, y1, x0, y1)
+    body = ['<defs><linearGradient id="%s" x1="0" y1="0" x2="1" y2="1">'
+            '<stop offset="0" stop-color="#f8f4ea"/><stop offset="1" stop-color="#e8e0cf"/></linearGradient></defs>' % uid,
+            _shadow(page),
+            '<path d="%s" style="fill:url(#%s)"/>' % (page, uid)]
+    # the fold: its shadow on the page, then the turned-down corner
+    body.append('<path d="M %.1f,%.1f L %.1f,%.1f L %.1f,%.1f Z" style="fill:#000;fill-opacity:0.10"/>' % (x1 - f, y0, x1 - f, y0 + f + 1.4, x1, y0 + f))
+    body.append('<path d="M %.1f,%.1f L %.1f,%.1f L %.1f,%.1f Z" style="fill:#ddd3bf;stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (x1 - f, y0, x1 - f, y0 + f, x1, y0 + f, edge, hw * 0.8))
     if small:
-        # a band of the type's colour instead of its letters
-        body.append('<rect x="15" y="38" width="35" height="11" style="fill:%s;opacity:0.9"/>' % col)
+        body.append('<rect x="%.1f" y="37" width="%.1f" height="11" style="fill:%s"/>' % (x0 + 4, x1 - x0 - 8, col))
     else:
-        for i in range(3):
-            y = 46 + i * 3.6
-            body.append('<path d="M 21,%.1f L %.1f,%.1f" style="stroke:%s;stroke-width:1.1;stroke-linecap:round"/>'
-                        % (y, 44 - i * 5.5, y, SHEET_RULE))
-        fs = {1: 13.5, 2: 13.5, 3: 12.5, 4: 10}.get(len(tag), 8.5)
-        body.append('<text x="32.5" y="32" text-anchor="middle" dominant-baseline="middle" '
-                    'style="font-family:%s;font-weight:bold;font-size:%.1fpx;fill:%s;letter-spacing:0.2px">%s</text>'
-                    % (FONT, fs, col, tag.replace("&", "&amp;").replace("+", "&#43;")))
-    body.append(_stroke(outline, w))
-    body.append(_stroke(_pen([(40, 6), (40, 16), (50, 16)], amp * 0.6, seed + 2), w * 0.85))
+        # typed lines
+        for i, wdt in enumerate((24, 28, 20, 26, 14)):
+            y = 21 + i * 4.2
+            if y > 36:
+                break
+            body.append('<path d="M %.1f,%.1f L %.1f,%.1f" style="stroke:#b9ae9a;stroke-width:1.1"/>' % (x0 + 5, y, x0 + 5 + wdt * 0.92, y))
+        # the type, on a small printed label
+        lw = {1: 13, 2: 15, 3: 19, 4: 23}.get(len(tag), 26)
+        lx = (x0 + x1) / 2 - lw / 2
+        body.append('<rect x="%.1f" y="41" width="%.1f" height="10.5" rx="1" style="fill:%s"/>' % (lx, lw, col))
+        body.append('<text x="%.1f" y="46.6" text-anchor="middle" dominant-baseline="middle" '
+                    'style="font-family:%s;font-weight:bold;font-size:7.4px;fill:#f6f0e2;letter-spacing:0.6px">%s</text>'
+                    % ((x0 + x1) / 2, FONT, tag.replace("&", "&amp;").replace("+", "&#43;")))
+    body.append('<path d="%s" style="fill:none;stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (page, edge, hw))
     return _svg(size, body)
