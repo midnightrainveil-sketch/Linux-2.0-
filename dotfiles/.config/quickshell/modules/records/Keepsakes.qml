@@ -132,6 +132,30 @@ Item {
         }
     }
 
+    // ---------------------------------------------------------------- the departures board
+    DeskCard {
+        id: departures
+        name: "departures"
+        order: 5
+        width: 560
+        height: 162
+        homeX: Math.round(root.width * 0.235)
+        homeY: 30
+        Departures { width: departures.width; height: departures.height }
+    }
+
+    // ---------------------------------------------------------------- the night's journey
+    DeskCard {
+        id: journey
+        name: "journey"
+        order: 6
+        width: 680
+        height: 124
+        homeX: Math.round(root.width * 0.37)
+        homeY: root.height - height - 30
+        JourneyLine { width: journey.width; height: journey.height }
+    }
+
     // ---------------------------------------------------------------- the luggage label
     DeskCard {
         id: label
