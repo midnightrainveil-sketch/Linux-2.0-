@@ -41,6 +41,28 @@ CONF = pathlib.Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "fast
 STATE = pathlib.Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "archive"
 CACHE = pathlib.Path(os.environ.get("XDG_CACHE_HOME", HOME / ".cache")) / "archive" / "card"
 
+
+def session_theme():
+    """The theme this session was logged in to (archive-theme), else the
+    one chosen; "archive" when neither says."""
+    import re
+    rt = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+    sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    for f in ([pathlib.Path(rt) / ("archive-theme-" + sig)] if sig else []) + \
+             [pathlib.Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config")) / "archive" / "theme"]:
+        try:
+            t = re.sub(r"[^A-Za-z0-9_-]", "", f.read_text().strip())
+            if t:
+                return t
+        except OSError:
+            pass
+    return "archive"
+
+
+THEME = session_theme()
+# the portrait: the theme's own (portrait-<theme>.png) where it has one
+PORTRAIT = CONF / ("portrait-%s.png" % THEME) if (CONF / ("portrait-%s.png" % THEME)).exists() else CONF / "portrait.png"
+
 # foot.ini: the card's paper, its ink, and the six swatch inks, by mode
 PAPER = {"day": "d5d0ca", "night": "22385a"}
 NIGHT_CARD = "c3cedd"   # the pale blue card the portrait is mounted on by night
@@ -131,7 +153,7 @@ def measure(lines):
 
 def portrait_rows(trows, tcols, cw, ch, info_cols, info_lines):
     from PIL import Image
-    with Image.open(CONF / "portrait.png") as im:
+    with Image.open(PORTRAIT) as im:
         aspect = im.width / im.height
     by_height = trows - PAD_TOP - 2             # the padding, the prompt, a spare line
     by_width = math.floor((tcols - info_cols - PAD_LEFT - PAD_RIGHT - 1) * cw / (aspect * ch))
@@ -205,7 +227,7 @@ def to_sixel(rgba):
 def portrait(m, cw, ch, rows):
     import numpy as np
     from PIL import Image
-    src = Image.open(CONF / "portrait.png").convert("RGBA")
+    src = Image.open(PORTRAIT).convert("RGBA")
     h = int(rows * ch)
     w = round(src.width * h / src.height)
     cols = math.ceil(w / cw)
@@ -366,7 +388,7 @@ def wide_card(tcols, trows, cw, ch, m, lines):
         if PAD_TOP + box_h <= trows - 3:
             break
     from PIL import Image
-    with Image.open(CONF / "portrait.png") as im:
+    with Image.open(PORTRAIT) as im:
         aspect = im.width / im.height
     rows = max(8, min(MAX_ROWS, trows - PAD_TOP - 2, box_h + 3))
     pcols = math.ceil(rows * ch * aspect / cw)
@@ -443,7 +465,7 @@ def wide_card(tcols, trows, cw, ch, m, lines):
 # ------------------------------------------------------------------ the card
 def drawn(name, m, cw, ch, make, rows=0):
     """A picture from the cache, or drawn now and kept."""
-    key = "%s-%s-%dx%d-r%d-v%d" % (name, m, round(cw * 10), round(ch * 10), rows, VERSION)
+    key = "%s-%s-%s-%dx%d-r%d-v%d" % (name, THEME, m, round(cw * 10), round(ch * 10), rows, VERSION)
     f = CACHE / (key + ".six")
     meta = CACHE / (key + ".size")
     if f.exists() and (name != "portrait" or meta.exists()):
@@ -467,7 +489,7 @@ def main():
     size = settled_size()
     m = mode()
     try:
-        if size is None or not (CONF / "portrait.png").exists():
+        if size is None or not (PORTRAIT).exists():
             raise RuntimeError("no cell size or no portrait")
         trows, tcols, cw, ch = size
         lines = label_lines()
@@ -488,7 +510,7 @@ def main():
         cur.symlink_to(sf.name)
         # no room for the portrait beside them: the details alone, neatly
         from PIL import Image
-        with Image.open(CONF / "portrait.png") as im:
+        with Image.open(PORTRAIT) as im:
             aspect = im.width / im.height
         smallest = math.ceil(8 * ch * aspect / cw)          # the portrait at its least
         if tcols < info_cols + PAD_LEFT + PAD_RIGHT + smallest + 1 or trows < 10:

@@ -44,6 +44,8 @@ PanelWindow {
         running: Trainset.running && win.length > 0
         onTriggered: {
             win.t += Math.min(frameTime, 0.05);
+            // turned off while the next was still waiting to come on: it does not
+            if (!Trainset.on && win.trainX + win.length < 0 && win.t < win.start) { Trainset.running = false; return; }
             // gone off the right edge: another, or the last
             if (win.trainX > win.width) {
                 if (Trainset.on) win.start = win.t + win.gap;

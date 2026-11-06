@@ -42,8 +42,25 @@ def colour_to_alpha(rgb):
     return np.dstack([col * 255, a * 255]).astype(np.uint8)
 
 
+# other themes' portraits (python3 tools/import_portrait.py --theme night-service):
+# written beside the Archive's as portrait-<theme>.png; archive-card shows the
+# one for the theme of the session
+OTHER = {
+    "night-service": {"src": ROOT / "art" / "night-service" / "portrait.webp",
+                      # its edge already fades out: no trim, a softer, squarer cut
+                      "trim": (0.0, 0.0, 0.0, 0.0), "feather": 0.07, "round": 5.0},
+}
+
+
 def main():
-    src = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
+    global TRIM, FEATHER, ROUND, DST
+    if "--theme" in sys.argv:
+        theme = sys.argv[sys.argv.index("--theme") + 1]
+        o = OTHER[theme]
+        src, TRIM, FEATHER, ROUND = o["src"], o["trim"], o["feather"], o["round"]
+        DST = DST.with_name("portrait-%s.png" % theme)
+    else:
+        src = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
     im = Image.open(src).convert("RGB")
     rgba = Image.fromarray(colour_to_alpha(np.asarray(im)), "RGBA")
     # trimmed to the drawing, with a hair of room

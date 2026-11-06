@@ -30,6 +30,12 @@ Singleton {
     property string theme: "archive"
     property var f: ({})
     property bool fromMark: false
+    // known: which theme, and (for a variant) what it changes. Until then the
+    // sheet waits, so a variant's session never loads the Archive's first.
+    property bool resolved: false
+    property bool manifestDone: false
+    readonly property bool ready: resolved && (theme === "archive" || manifestDone)
+    Timer { interval: 1500; running: !root.ready; onTriggered: { root.resolved = true; root.manifestDone = true; } }
 
     function word(key: string, fallback: string): string {
         const v = f[key];
@@ -52,10 +58,12 @@ Singleton {
         path: Settings.configHome + "/archive/theme"
         printErrors: false
         onLoaded: if (!root.fromMark) root.useTheme(text())
+        onLoadFailed: if (!root.fromMark) root.useTheme("archive")
     }
     function useTheme(t: string): void {
         const id = (t || "").trim().replace(/[^A-Za-z0-9_-]/g, "") || "archive";
         theme = id;
+        resolved = true;
     }
     FileView {
         id: manifest
@@ -66,6 +74,8 @@ Singleton {
                 const j = JSON.parse(text());
                 root.f = j.base === "archive" && j.flavour ? j.flavour : {};
             } catch (e) { root.f = {}; }
+            root.manifestDone = true;
         }
+        onLoadFailed: root.manifestDone = true
     }
 }
