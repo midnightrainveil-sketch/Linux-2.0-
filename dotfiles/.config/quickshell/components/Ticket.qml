@@ -12,6 +12,8 @@ Item {
     property color edge: Theme.ticketEdge
     property color labelColor: Theme.ticketEdge
     property string label: ""
+    // a small drawing in place of the label (assets/icons/<name>)
+    property string icon: ""
     property real lifted: 0
 
     implicitWidth: 38
@@ -87,7 +89,16 @@ Item {
 
         }
 
+        InkIcon {
+            visible: root.icon !== ""
+            x: root.width * 0.62 - width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            name: root.icon
+            size: 16
+            color: root.labelColor
+        }
         Text {
+            visible: root.icon === ""
             x: root.width * 0.62 - width / 2
             anchors.verticalCenter: parent.verticalCenter
             text: root.label

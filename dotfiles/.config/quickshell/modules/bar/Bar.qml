@@ -141,28 +141,21 @@ PanelWindow {
         }
     }
 
-    // the night train: a brass switch. Thrown up, a little train runs along
-    // the bar, again and again; thrown down, none sets off, and the one
+    // the night train: a ticket like the workspaces' own. Plain, no train;
+    // pressed, it is inked madder and a little train runs along the bar,
+    // again and again; pressed again it is plain, none sets off, and the one
     // under way finishes its run
     Item {
         id: trainButton
-        x: registerButton.x + registerButton.width + 14
-        width: 60
+        x: registerButton.x + registerButton.width + 12
+        width: 50
         height: Theme.barHeight
-        Row {
+        Ticket {
             anchors.centerIn: parent
-            spacing: 3
-            InkIcon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: "train"
-                size: 18
-                color: Trainset.on ? Theme.madder : Theme.soft
-            }
-            ToggleSwitch {
-                anchors.verticalCenter: parent.verticalCenter
-                on: Trainset.on
-                hovered: trainMouse.containsMouse
-            }
+            icon: "train"
+            fill: Trainset.on ? Theme.ticketInks[0] : Theme.ticketPlain
+            labelColor: Trainset.on ? Theme.ticketEdge : (trainMouse.containsMouse ? Theme.accent : Theme.soft)
+            Behavior on fill { ColorAnimation { duration: Theme.durFocus } }
         }
         MouseArea {
             id: trainMouse
