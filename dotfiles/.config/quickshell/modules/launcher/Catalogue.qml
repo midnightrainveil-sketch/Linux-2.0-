@@ -112,7 +112,9 @@ PanelWindow {
             app.execute();
         closeAfterLift.restart();
     }
-    Timer { id: closeAfterLift; interval: Theme.dur(260); onTriggered: Panels.close() }
+    // (only itself: what it launched may be another card, already open by
+    // now, as the Themes or the Glyphs are)
+    Timer { id: closeAfterLift; interval: Theme.dur(260); onTriggered: if (Panels.open === win.name || Panels.open === "") Panels.close() }
 
     onShownChanged: {
         if (shown) {
