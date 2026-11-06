@@ -48,20 +48,27 @@ def colour_to_alpha(rgb):
 OTHER = {
     "night-service": {"src": ROOT / "art" / "night-service" / "portrait.webp",
                       # its edge already fades out: no trim, a softer, squarer cut
-                      "trim": (0.0, 0.0, 0.0, 0.0), "feather": 0.07, "round": 5.0},
+                      "trim": (0.0, 0.0, 0.0, 0.0), "feather": 0.07, "round": 5.0,
+                      # its colour quietened, to sit on the paper like the rest of the desk
+                      "saturation": 0.58},
 }
 
 
 def main():
     global TRIM, FEATHER, ROUND, DST
+    saturation = 1.0
     if "--theme" in sys.argv:
         theme = sys.argv[sys.argv.index("--theme") + 1]
         o = OTHER[theme]
         src, TRIM, FEATHER, ROUND = o["src"], o["trim"], o["feather"], o["round"]
+        saturation = o.get("saturation", 1.0)
         DST = DST.with_name("portrait-%s.png" % theme)
     else:
         src = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
     im = Image.open(src).convert("RGB")
+    if saturation != 1.0:
+        from PIL import ImageEnhance
+        im = ImageEnhance.Color(im).enhance(saturation)
     rgba = Image.fromarray(colour_to_alpha(np.asarray(im)), "RGBA")
     # trimmed to the drawing, with a hair of room
     box = rgba.getchannel("A").point(lambda v: 255 if v > 8 else 0).getbbox()
