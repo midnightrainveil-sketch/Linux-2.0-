@@ -59,6 +59,13 @@ Item {
         AudioRecord { width: parent.width }
     }
 
+    // a theme's keepsakes, loose on the desk (Night Service: a postcard, a label)
+    Loader {
+        anchors.fill: parent
+        active: Flavour.keepsakes
+        sourceComponent: Component { Keepsakes {} }
+    }
+
     // the desk lamp's light, over the sheet and the cards alike (night only)
     LampLight {
         anchors.fill: parent

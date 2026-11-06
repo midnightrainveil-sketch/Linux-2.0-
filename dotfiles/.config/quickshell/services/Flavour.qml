@@ -21,6 +21,7 @@ import Quickshell.Io
 //     "clockArt":     "clock-art.png"        (assets/flavours/<id>/, kept in colour)
 //     "specimen":     false                  the month's pressed specimen on the desk
 //     "icons":        "suitcase"             folders as suitcases (archive-icons, at log-in)
+//     "keepsakes":    true                   the postcard and label on the desk (Keepsakes.qml)
 //   }
 Singleton {
     id: root
@@ -45,6 +46,7 @@ Singleton {
     readonly property string barIcon: word("barIcon", "seedling")
     readonly property url clockArt: f.clockArt ? Qt.resolvedUrl("../assets/flavours/" + theme + "/" + f.clockArt) : ""
     readonly property bool specimen: f.specimen !== false
+    readonly property bool keepsakes: f.keepsakes === true
 
     // this session's theme: Hyprland's mark for it, else the one chosen
     FileView {

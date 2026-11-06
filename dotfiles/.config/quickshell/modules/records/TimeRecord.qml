@@ -146,6 +146,7 @@ IndexCard {
             }
             // a theme's own small picture, in its own colours (Flavour)
             Image {
+                id: keyArt
                 anchors.fill: parent
                 visible: Flavour.clockArt.toString() !== ""
                 source: Flavour.clockArt
@@ -155,6 +156,24 @@ IndexCard {
                 mipmap: true
                 asynchronous: true
                 opacity: Theme.night > 0.5 ? 0.85 : 1
+                // a click sets it swinging on its ring, slowing to rest
+                property real swing: 0
+                rotation: swing
+                transformOrigin: Item.Top
+                SequentialAnimation {
+                    id: swinging
+                    NumberAnimation { target: keyArt; property: "swing"; to: 16; duration: 180; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: -12; duration: 360; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 8; duration: 340; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: -4.5; duration: 320; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 2; duration: 300; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 0; duration: 280; easing.type: Easing.OutQuad }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: swinging.restart()
+                }
             }
         }
     }

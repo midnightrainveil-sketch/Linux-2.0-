@@ -15,7 +15,8 @@
     "barIcon": "lantern",
     "clockArt": "clock-art.png",
     "specimen": false,
-    "icons": "suitcase"
+    "icons": "suitcase",
+    "keepsakes": true
   },
   "previews": [
     "preview-day.jpg",
