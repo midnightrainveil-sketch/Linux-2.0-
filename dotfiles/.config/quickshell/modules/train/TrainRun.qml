@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import qs.theme
 import qs.services
 
@@ -18,8 +19,36 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "archive-train"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    // (wheels on the bar's top rule)
-    margins.bottom: Theme.barHeight - 3
+    // wheels on the bar's top rule; with a window truly fullscreen (the bar
+    // hidden under it) along the very foot of the screen
+    margins.bottom: full ? 0 : Theme.barHeight - 3
+
+    property bool full: false
+    function checkFull(): void {
+        const ws = Hyprland.focusedMonitor?.activeWorkspace;
+        if (!ws || !ws.hasFullscreen) { full = false; return; }
+        Hyprland.refreshToplevels();
+        settleFull.restart();
+    }
+    Timer {
+        id: settleFull
+        interval: 150
+        onTriggered: {
+            const ws = Hyprland.focusedMonitor?.activeWorkspace;
+            const tops = ws?.toplevels?.values ?? [];
+            // fullscreen 2 is true fullscreen; 1 (maximised) keeps the bar
+            const known = tops.filter(t => t.lastIpcObject && t.lastIpcObject.fullscreen !== undefined);
+            win.full = known.length ? known.some(t => t.lastIpcObject.fullscreen === 2) : (ws?.hasFullscreen ?? false);
+        }
+    }
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            const n = event.name;
+            if (n === "fullscreen" || n.startsWith("workspace") || n === "activewindowv2" || n === "closewindow" || n === "focusedmon") win.checkFull();
+        }
+    }
+    Component.onCompleted: checkFull()
     implicitHeight: 170
     color: "transparent"
     mask: Region {}

@@ -34,15 +34,21 @@ TRAIN = [("locomotive", 56), ("tender", 42), ("fourgon", 48), ("coach", 44),
 
 
 def drop_ground(a):
-    """Rows that are mostly dark from edge to edge are the ruled ground line."""
+    """The ruled ground line under the wheels: the dark rows at the very foot
+    of the picture (from the bottom up, past any blank paper, until the
+    first row that is not mostly dark). Nothing above it is touched: an
+    engine's frame is dark from end to end too."""
     dark = (a.mean(axis=2) < 150).mean(axis=1)
     a = a.copy()
-    h = a.shape[0]
-    # (only near the foot, under the wheels: a carriage's dark side is
-    # dark from end to end too)
-    for y in np.where(dark > 0.7)[0]:
-        if y > h * 0.85:
-            a[max(0, y - 2):y + 3] = 255
+    y = a.shape[0] - 1
+    while y > 0 and dark[y] < 0.02:
+        y -= 1
+    while y > 0 and dark[y] > 0.45:
+        a[y] = 255
+        y -= 1
+    # (and its soft grey edge)
+    if y > 0 and dark[y] > 0.2:
+        a[y] = 255
     return a
 
 
