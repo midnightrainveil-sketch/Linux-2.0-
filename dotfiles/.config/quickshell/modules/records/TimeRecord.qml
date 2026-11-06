@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Qt5Compat.GraphicalEffects
 import qs.theme
 import qs.services
@@ -156,7 +157,7 @@ IndexCard {
                 mipmap: true
                 asynchronous: true
                 opacity: Theme.night > 0.5 ? 0.85 : 1
-                // a click sets it swinging on its ring, slowing to rest
+                // a click sets it swinging on its ring, and locks the screen
                 property real swing: 0
                 rotation: swing
                 transformOrigin: Item.Top
@@ -172,7 +173,13 @@ IndexCard {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: swinging.restart()
+                    // the compartment's key: a turn of it locks the compartment
+                    onClicked: { swinging.restart(); lockSoon.restart(); }
+                }
+                Timer {
+                    id: lockSoon
+                    interval: 650
+                    onTriggered: Quickshell.execDetached(["qs", "ipc", "call", "lock", "lock"])
                 }
             }
         }

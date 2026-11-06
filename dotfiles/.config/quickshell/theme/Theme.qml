@@ -89,6 +89,9 @@ Singleton {
         readonly property color ticketPlain: "#e2ded6"
         readonly property color ticketPlainInk: "#78756f"
         readonly property color ticketEdge:  "#faf7f0"
+        // the train's ticket: kraft card, dark brown while trains run
+        readonly property color ticketSignal:   "#d6c3a0"
+        readonly property color ticketSignalOn: "#5a3d2b"
     }
 
     // ---------------------------------------------------------------- night (cyanotype)
@@ -117,6 +120,8 @@ Singleton {
         readonly property color ticketPlain: "#2f4a72"
         readonly property color ticketPlainInk: "#8e9cb3"
         readonly property color ticketEdge:  "#e2e8f2"
+        readonly property color ticketSignal:   "#8b7a5e"
+        readonly property color ticketSignalOn: "#3e2b1f"
     }
 
     // ---------------------------------------------------------------- live tokens
@@ -194,6 +199,8 @@ Singleton {
     readonly property color ticketPlain:    mix(day.ticketPlain, nite.ticketPlain)
     readonly property color ticketPlainInk: mix(day.ticketPlainInk, nite.ticketPlainInk)
     readonly property color ticketEdge:     mix(day.ticketEdge, nite.ticketEdge)
+    readonly property color ticketSignal:   mix(day.ticketSignal, nite.ticketSignal)
+    readonly property color ticketSignalOn: mix(day.ticketSignalOn, nite.ticketSignalOn)
 
     // ---------------------------------------------------------------- motion (section 11)
     // place = cubic-bezier(0.22, 1, 0.36, 1); lift = cubic-bezier(0.4, 0, 1, 1)

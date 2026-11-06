@@ -95,7 +95,7 @@ Item {
             x: root.width * 0.64 - width / 2
             anchors.verticalCenter: parent.verticalCenter
             name: root.icon
-            size: 12
+            size: 14
             color: root.labelColor
         }
         Text {
