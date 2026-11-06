@@ -206,7 +206,7 @@ local function bars(name, extras)
     local api = hl.plugin[name]
     local tickets = name == "archivebars" and api.has_tickets ~= nil
     if tickets then
-        hl.config({ plugin = { [name] = { ticket_edge = rgb(c.ticket_edge), bar_button_padding = 8 } } })
+        hl.config({ plugin = { [name] = { ticket_edge = rgb(c.ticket_edge), bar_button_padding = 12 } } })
     end
     for _, b in ipairs({
         { [[hyprctl dispatch 'hl.dsp.window.close()']], c.dot_close, c.ticket_close, "x" },
@@ -214,7 +214,7 @@ local function bars(name, extras)
         { "archive-desk dot", c.dot_full, c.ticket_full, "o" },
     }) do
         if tickets then
-            api.add_button({ bg_color = rgb(b[3]), fg_color = rgb(c.ticket_edge), size = 30, icon = b[4], action = b[1] })
+            api.add_button({ bg_color = rgb(b[3]), fg_color = rgb(c.ticket_edge), size = 38, icon = b[4], action = b[1] })   -- (as the bar's 38 x 25 tickets)
         else
             api.add_button({ bg_color = rgb(b[2]), fg_color = rgb(b[2]), size = 11, icon = "", action = b[1] })
         end

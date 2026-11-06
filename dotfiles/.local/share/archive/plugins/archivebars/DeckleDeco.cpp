@@ -713,7 +713,8 @@ SP<Render::ITexture> deckleTicket(const std::string& icon, const CHyprColor& ink
     if (g_tickets.size() > 96)
         g_tickets.clear();
 
-    const double w = std::round(width * s), h = std::round(width * 2.0 / 3.0 * s);
+    // (the proportions of the bar's workspace tickets, components/Ticket.qml: 38 x 25)
+    const double w = std::round(width * s), h = std::round(width * 25.0 / 38.0 * s);
     const int    TW = static_cast<int>(w + 2 * P), TH = static_cast<int>(h + 2 * P);
     auto*        surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, TW, TH);
     auto*        cr   = cairo_create(surf);
@@ -722,7 +723,7 @@ SP<Render::ITexture> deckleTicket(const std::string& icon, const CHyprColor& ink
     const double ow = 1.2 * s, r = 1.6 * s, nr = h * 0.16;
 
     // its shadow on the paper (softer and further when lifted)
-    const double sx = (lifted ? 0.9 : 0.6) * s, sy = (lifted ? 2.0 : 1.0) * s;
+    const double sx = (lifted ? 1.6 : 1.0) * s, sy = (lifted ? 2.6 : 1.6) * s;
     for (int i = 0; i < 3; ++i) {
         cairo_save(cr);
         cairo_translate(cr, sx, sy);
@@ -742,17 +743,17 @@ SP<Render::ITexture> deckleTicket(const std::string& icon, const CHyprColor& ink
     // the dashed tear line
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
     cairo_set_line_width(cr, std::max(1.0, 0.7 * s));
-    const double tx = std::round(x0 + w * 0.30) + 0.5;
-    for (int j = 0; j < 5; ++j) {
-        const double yy = y0 + 1.6 * s + j * (h - 3.2 * s) / 4.4;
+    const double tx = std::round(x0 + w * 0.26) + 0.5;
+    for (int j = 0; j < 4; ++j) {
+        const double yy = y0 + 2.0 * s + j * (h - 4.0 * s) / 3.6;
         cairo_move_to(cr, tx, yy);
-        cairo_line_to(cr, tx, yy + 1.6 * s);
+        cairo_line_to(cr, tx, yy + 2.0 * s);
     }
     setRGBA(cr, edge, 0.78);
     cairo_stroke(cr);
 
     // the mark
-    const double cx = x0 + w * 0.64, cy = y0 + h / 2, k = h * 0.2;
+    const double cx = x0 + w * 0.62, cy = y0 + h / 2, k = h * 0.18;
     cairo_set_line_width(cr, 1.6 * s);
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
     if (glyph == 0) {

@@ -19,8 +19,8 @@ return {
         -- the three dots, colour-coded in old pigments: madder (close),
         -- yellow ochre (put away), sage green (full sheet); unfocused: dot_flat
         dot_close    = "8e5148", dot_away        = "a2834a", dot_full = "6e7b5a",
-        -- the same as ticket stubs (archivebars): a little deeper, edged in white
-        ticket_close = "8c463c", ticket_away     = "9e7c36", ticket_full = "506856", ticket_edge = "faf7f0",
+        -- the same as ticket stubs (archivebars): the workspace tickets' own inks (Theme.qml)
+        ticket_close = "864a41", ticket_away     = "9a7d45", ticket_full = "536758", ticket_edge = "faf7f0",
         edge_top     = "a09b94", edge_top_flat   = "b3aea7",   -- torn edge (archivebars): fainter on top
         edge_shadow  = "66",     edge_shadow_flat = "3d",      -- its shadow: 40 % / 24 %
         edge_lift    = "99",                                   -- the window in use, lifted: 60 %
@@ -43,7 +43,7 @@ return {
         rim_top_flat = "3c5274", rim_bottom_flat = "13213a",
         dot          = "8e9cb3", dot_flat        = "5f7193",
         dot_close    = "b9817a", dot_away        = "bba373", dot_full = "8d9d82",
-        ticket_close = "964840", ticket_away     = "8a723e", ticket_full = "486056", ticket_edge = "e2e8f2",
+        ticket_close = "a5675d", ticket_away     = "b99c63", ticket_full = "6f8474", ticket_edge = "e2e8f2",
         edge_top     = "4e6283", edge_top_flat   = "3c5274",
         edge_shadow  = "8c",     edge_shadow_flat = "4d",
         edge_lift    = "cc",
