@@ -144,43 +144,60 @@ FOLDERS = os.environ.get("ARCHIVE_FOLDERS", "folder")
 
 
 def suitcase(name, size):
-    """A small leather suitcase, drawn in ink: handle, straps, brass
-    corners; the folder's sign on a cream label on its front."""
+    """A 1930s leather suitcase, as drawn in a catalogue: shaded leather,
+    a stitched edge, darker leather corner guards, a sewn handle on brass
+    loops, two brass catches on the lid's seam; the folder's sign on a
+    travel label pasted on its front. Fine lines, little wobble."""
     small = size <= 24
     seed = _seed(name)
-    amp = 0.6 if small else 1.0
-    w = 3.0 if small else 1.6
+    uid = "s%d" % (seed % 100000)
+    w = 2.4 if small else 1.15
+    line = "#3b2a20"
     opened = "-open" in name or "drag-accept" in name
-    body = [(6, 20), (58, 20), (58, 54), (6, 54)]
-    out = []
-    handle = _pen([(24, 20), (24, 13.5), (40, 13.5), (40, 20)], amp * 0.6, seed + 7)
-    outline = _pen(body, amp, seed, closed=True)
-    out.append(_shadow(outline))
-    out.append(_stroke(handle, w * 1.5, STRAP))
-    out.append(_stroke(handle, w))
-    if opened:    # the lid lifted a little: the lining shows along the top
-        lid = _pen([(5, 20), (59, 20), (57, 14.5), (7, 14.5)], amp * 0.6, seed + 9, closed=True)
-        out.append(_fill(lid, LABEL))
-        out.append(_stroke(lid, w * 0.8))
-    out.append(_fill(outline, LEATHER))
-    # the lid's seam, a little below the top, and the case's lower half darker
-    out.append(_fill(_pen([(6, 31), (58, 31), (58, 54), (6, 54)], amp * 0.5, seed + 1, closed=True), LEATHER_BACK))
-    out.append(_stroke(_pen([(6, 31), (58, 31)], amp, seed + 2), w * 0.9))
+    out = ['<defs><linearGradient id="%s" x1="0" y1="0" x2="0" y2="1">'
+           '<stop offset="0" stop-color="#9c7150"/><stop offset="0.55" stop-color="#8a6043"/>'
+           '<stop offset="1" stop-color="#6e4a33"/></linearGradient>'
+           '<linearGradient id="%sh" x1="0" y1="0" x2="0" y2="1">'
+           '<stop offset="0" stop-color="#5e4030"/><stop offset="1" stop-color="#3f2a1f"/></linearGradient></defs>' % (uid, uid)]
+    x0, y0, x1, y1, r = 5.0, 21.0, 59.0, 54.0, 3.2
+    body = "M %.1f,%.1f L %.1f,%.1f Q %.1f,%.1f %.1f,%.1f L %.1f,%.1f Q %.1f,%.1f %.1f,%.1f L %.1f,%.1f Q %.1f,%.1f %.1f,%.1f L %.1f,%.1f Q %.1f,%.1f %.1f,%.1f Z" % (
+        x0 + r, y0, x1 - r, y0, x1, y0, x1, y0 + r, x1, y1 - r, x1, y1, x1 - r, y1,
+        x0 + r, y1, x0, y1, x0, y1 - r, x0, y0 + r, x0, y0, x0 + r, y0)
+    out.append(_shadow(body))
+    # the handle: sewn leather on two brass loops
     if not small:
-        # two straps over it, brass buckles, brass corners
-        for x in (17, 47):
-            st = _pen([(x - 2.2, 20), (x + 2.2, 20), (x + 2.2, 54), (x - 2.2, 54)], amp * 0.3, seed + x, closed=True)
-            out.append(_fill(st, STRAP))
-            out.append('<rect x="%.1f" y="26.5" width="6.2" height="4.6" rx="0.6" style="fill:none;stroke:%s;stroke-width:1.1"/>' % (x - 3.1, BRASS))
-        for (cx, cy) in ((6, 20), (58, 20), (6, 54), (58, 54)):
-            out.append('<circle cx="%d" cy="%d" r="2.6" style="fill:%s"/>' % (cx, cy, BRASS))
-    out.append(_stroke(outline, w))
+        out.append('<path d="M 25,21 L 25,17.6 M 39,21 L 39,17.6" style="stroke:%s;stroke-width:2.2;stroke-linecap:round"/>' % BRASS)
+    out.append('<path d="M 23.4,18.6 C 23.4,12.6 40.6,12.6 40.6,18.6 L 37.8,18.6 C 37.8,15.6 26.2,15.6 26.2,18.6 Z" style="fill:url(#%sh);stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (uid, line, w * 0.8))
+    if opened:   # the lid lifted a little: the lining shows
+        out.append('<path d="M 6,21 L 58,21 L 56,16.4 L 8,16.4 Z" style="fill:#d9c8a6;stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (line, w * 0.8))
+    out.append('<path d="%s" style="fill:url(#%s)"/>' % (body, uid))
+    if not small:
+        # the stitched edge, just inside
+        out.append('<rect x="7.2" y="23.2" width="49.6" height="28.6" rx="2" style="fill:none;stroke:#e2cfae;stroke-opacity:0.55;stroke-width:0.6;stroke-dasharray:1.3 1.1"/>')
+        # corner guards: darker leather, rivets
+        for cx, cy, sx, sy in ((x0, y0, 1, 1), (x1, y0, -1, 1), (x0, y1, 1, -1), (x1, y1, -1, -1)):
+            g = 6.4
+            out.append('<path d="M %.1f,%.1f L %.1f,%.1f Q %.1f,%.1f %.1f,%.1f L %.1f,%.1f Z" style="fill:#52372a;fill-opacity:0.9"/>' % (
+                cx, cy + sy * g, cx, cy + sy * 2.6, cx, cy, cx + sx * 2.6, cy, cx + sx * g, cy))
+            out.append('<circle cx="%.1f" cy="%.1f" r="0.55" style="fill:%s"/>' % (cx + sx * 2.4, cy + sy * 2.4, BRASS))
+    # the lid's seam, with a lit edge under it
+    out.append('<path d="M 5,28.4 L 59,28.4" style="stroke:%s;stroke-width:%.2f"/>' % (line, w * 0.8))
+    if not small:
+        out.append('<path d="M 6,29.4 L 58,29.4" style="stroke:#c9a47e;stroke-opacity:0.45;stroke-width:0.6"/>')
+    # two brass catches on the seam
+    for cx in (17, 47):
+        if small:
+            out.append('<rect x="%.1f" y="26.6" width="4" height="4" style="fill:%s"/>' % (cx - 2, BRASS))
+        else:
+            out.append('<rect x="%.1f" y="25.6" width="5.6" height="6.2" rx="0.8" style="fill:%s;stroke:#6e5426;stroke-width:0.6"/>' % (cx - 2.8, BRASS))
+            out.append('<circle cx="%.1f" cy="29.6" r="0.75" style="fill:#4a3818"/>' % cx)
+    out.append('<path d="%s" style="fill:none;stroke:%s;stroke-width:%.2f;stroke-linejoin:round"/>' % (body, line, w))
     kind = folder_sign(name) if not small else None
     if kind:
-        lab = _pen([(23.5, 35), (40.5, 35), (40.5, 50), (23.5, 50)], 0.4, seed + 3, closed=True)
-        out.append(_fill(lab, LABEL))
-        out.append(_stroke(lab, 1.1))
-        out.append(_sign(kind, 32, 42.5, 5.0, 1.5))
+        # a travel label pasted a little askew
+        out.append('<g transform="rotate(-5 32 42)"><rect x="23" y="34.6" width="18" height="14.6" rx="1.4" style="fill:%s;stroke:#8c6b4a;stroke-width:0.7"/>'
+                   '<rect x="24.2" y="35.8" width="15.6" height="12.2" rx="0.8" style="fill:none;stroke:%s;stroke-opacity:0.6;stroke-width:0.5"/>' % (LABEL, MADDER))
+        out.append(_sign(kind, 32, 42, 4.6, 1.3) + '</g>')
     return _svg(size, out)
 
 
