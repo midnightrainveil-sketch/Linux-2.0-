@@ -61,7 +61,11 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 6
                 visible: card.turn >= 0.5
-                transform: Rotation { origin.x: (card.width - 12) / 2; axis { x: 0; y: 1; z: 0 }; angle: 180 }
+                transform: Rotation {
+                    origin.x: (card.width - 12) / 2
+                    axis { x: 0; y: 1; z: 0 }
+                    angle: 180
+                }
                 Rectangle {
                     anchors.fill: parent
                     radius: 3
