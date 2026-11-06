@@ -29,4 +29,4 @@ A theme can also be a **variant of the Archive**: the same desk and
 programs, with its own sheet, wording and small pictures. Its `theme.json`
 says `"base": "archive"` and carries a `"flavour"` (see
 `~/.config/quickshell/services/Flavour.qml` for what it can change), and it
-has no `hypr/`. Night Service is one.
+has no `hypr/`. Compartment 19 (folder `night-service`) is one.

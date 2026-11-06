@@ -59,7 +59,11 @@ OTHER_PLATES = {
         # laid smaller, in the open paper between the desk terminal (left)
         # and the record cards (right); its own blank paper fills round it
         "fit": {"scale": 0.64, "cx": 0.53, "cy": 0.5, "paper": [0, 0, 0.235, 1]},
-        "meta": {"number": "0019", "region": "NIGHT SERVICE", "latin": "Vienna – Venice",
+        # its heading typed again: the theme's own name (in the 3840 px art:
+        # the box to cover, blank paper to cover it with, where the type sits)
+        "retitle": {"text": "COMPARTMENT 19", "box": [1450, 34, 2040, 96], "paper": [560, 34],
+                    "at": [1466, 41], "size": 59, "tracking": 0.22},
+        "meta": {"number": "0019", "region": "COMPARTMENT 19", "latin": "Vienna – Venice",
                  "authority": "Night train, 14–15 June 1931.", "family": "Carriage 4",
                  "common": "Compartment 19, lower berth."},
     },
@@ -144,6 +148,25 @@ def is_theme_copy():
         return False
 
 
+def retitle(src, t):
+    """The sheet's heading typed again: its box covered with the sheet's own
+    blank paper, the new words typed in a typewriter face, dark as the rest."""
+    from PIL import ImageFont
+    k = src.width / 3840
+    x0, y0, x1, y1 = (round(v * k) for v in t["box"])
+    px, py = (round(v * k) for v in t["paper"])
+    src = src.copy()
+    src.paste(src.crop((px, py, px + x1 - x0, py + y1 - y0)), (x0, y0))
+    font = ImageFont.truetype(os.path.join(HERE, "..", "dotfiles", ".local", "share", "fonts", "archive", "CourierPrime-Regular.ttf"), round(t["size"] * k))
+    d = ImageDraw.Draw(src)
+    x, y = (round(v * k) for v in t["at"])
+    step = font.getlength("M") * (1 + t["tracking"])
+    for ch in t["text"]:
+        d.text((x, y), ch, font=font, fill=(34, 33, 36), stroke_width=max(1, round(0.6 * k)), stroke_fill=(52, 50, 54))
+        x += step
+    return src
+
+
 def refit(src, fit):
     """The art laid smaller at (cx, cy) of a sheet of its own paper: a blank
     strip of it (fit["paper"]) mirrored across, the art feathered into it."""
@@ -160,9 +183,11 @@ def refit(src, fit):
     k = fit["scale"]
     art = src.resize((round(W * k), round(H * k)), Image.LANCZOS)
     mask = Image.new("L", art.size, 0)
-    m = round(24 * W / 2000)
-    ImageDraw.Draw(mask).rectangle([m, m, art.width - m, art.height - m], fill=255)
-    mask = mask.filter(ImageFilter.GaussianBlur(m / 2))
+    # (a narrow feather: the art's own edge is blank paper, and its heading
+    # sits close to the top)
+    m = round(6 * W / 2000)
+    ImageDraw.Draw(mask).rectangle([0, 0, art.width, art.height], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(m))
     paper.paste(art, (round(W * fit["cx"] - art.width / 2), round(H * fit["cy"] - art.height / 2)), mask)
     return paper
 
@@ -180,6 +205,8 @@ def main():
         path = source()
         out = THEME_OUT if path == THEME_SRC else DATA_OUT
     src = Image.open(path).convert("RGB")
+    if other and other.get("retitle"):
+        src = retitle(src, other["retitle"])
     if other and other.get("fit"):
         src = refit(src, other["fit"])
     print("wallpaper:", path, "(%d x %d)" % src.size)

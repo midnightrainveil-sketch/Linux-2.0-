@@ -24,15 +24,16 @@ from import_train import lift  # noqa: E402  (the same flood from the edge)
 
 SRC = os.path.join(HERE, "..", "art", "night-service")
 DST = os.path.join(HERE, "..", "dotfiles", ".config", "quickshell", "assets", "flavours", "night-service")
-# name: (source, output, its longest side in px, its colour: 1 as drawn)
+# name: (source, output, its longest side in px, its colour: 1 as drawn,
+#        holes: white shut inside it clear too, as through the key's ring)
 ITEMS = {
-    "key": ("key.webp", "clock-art.png", 320, 1.0),
-    "label": ("label.webp", "label.png", 720, 0.8),
-    "postcard": ("postcard.webp", "postcard.png", 900, 0.8),
+    "key": ("key.webp", "clock-art.png", 320, 1.0, True),
+    "label": ("label.webp", "label.png", 720, 0.8, False),
+    "postcard": ("postcard.webp", "postcard.png", 900, 0.8, False),
 }
 
 
-def cut(src, longest, colour=1.0):
+def cut(src, longest, colour=1.0, holes=False):
     import numpy as np
     im = Image.open(src).convert("RGB")
     if colour != 1.0:
@@ -42,6 +43,11 @@ def cut(src, longest, colour=1.0):
     small = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     alpha = lift(np.asarray(small))
     alpha = alpha.resize(im.size, Image.LANCZOS)
+    if holes:
+        # all white is paper here (brass is never white): the ring's middle too
+        a = np.asarray(im).astype(np.float32)
+        white = np.clip((a.min(axis=2) - 226) / 18, 0, 1)
+        alpha = Image.fromarray((np.asarray(alpha).astype(np.float32) * (1 - white)).astype(np.uint8))
     out = im.convert("RGBA")
     out.putalpha(alpha)
     out = out.crop(alpha.point(lambda v: 255 if v > 24 else 0).getbbox())
@@ -51,8 +57,8 @@ def cut(src, longest, colour=1.0):
 
 def main():
     os.makedirs(DST, exist_ok=True)
-    for name, (src, dst, longest, colour) in ITEMS.items():
-        img = cut(os.path.join(SRC, src), longest, colour)
+    for name, (src, dst, longest, colour, holes) in ITEMS.items():
+        img = cut(os.path.join(SRC, src), longest, colour, holes)
         img.save(os.path.join(DST, dst), optimize=True)
         print("keepsake:", name, "->", dst, img.size)
 

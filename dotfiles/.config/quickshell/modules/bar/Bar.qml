@@ -69,7 +69,7 @@ PanelWindow {
     // desk terminal back out as at login (archive-desk, also Super+D).
     Item {
         id: deskButton
-        x: workspaces.x + workspaces.width + 22
+        x: workspaces.x + workspaces.width + 16
         width: 30
         height: Theme.barHeight
         readonly property color ink: deskMouse.containsMouse ? Theme.accent : Theme.soft
@@ -99,11 +99,8 @@ PanelWindow {
     // open; opens the Register (also Super+W, Alt+Tab)
     Item {
         id: registerButton
-        // on the same beat as the workspace numbers and the desk button: its
-        // card stack (centred 12 px in) as far past the desk button's centre
-        // as that is past the last number's (cells are 50 wide)
-        readonly property real beat: (deskButton.x + deskButton.width / 2) - (workspaces.x + workspaces.width - 25)
-        x: deskButton.x + deskButton.width / 2 + beat - 12
+        // close beside the desk button: the two go together
+        x: deskButton.x + deskButton.width + 8
         width: 26 + countText.implicitWidth
         height: Theme.barHeight
         readonly property color ink: registerMouse.containsMouse || Panels.open === "register" ? Theme.accent : Theme.soft
@@ -144,18 +141,28 @@ PanelWindow {
         }
     }
 
-    // the night train: sends a little train along the bar, again and again
-    // until pressed again (the one under way then finishes its run)
+    // the night train: a brass switch. Thrown up, a little train runs along
+    // the bar, again and again; thrown down, none sets off, and the one
+    // under way finishes its run
     Item {
         id: trainButton
-        x: registerButton.x + registerButton.width + 18
-        width: 28
+        x: registerButton.x + registerButton.width + 14
+        width: 60
         height: Theme.barHeight
-        InkIcon {
+        Row {
             anchors.centerIn: parent
-            name: "train"
-            size: 24
-            color: trainMouse.containsMouse ? Theme.accent : Trainset.on ? Theme.madder : Theme.soft
+            spacing: 3
+            InkIcon {
+                anchors.verticalCenter: parent.verticalCenter
+                name: "train"
+                size: 18
+                color: Trainset.on ? Theme.madder : Theme.soft
+            }
+            ToggleSwitch {
+                anchors.verticalCenter: parent.verticalCenter
+                on: Trainset.on
+                hovered: trainMouse.containsMouse
+            }
         }
         MouseArea {
             id: trainMouse

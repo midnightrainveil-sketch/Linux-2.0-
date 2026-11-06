@@ -1,13 +1,13 @@
 {
   "id": "night-service",
-  "name": "Night Service",
+  "name": "Compartment 19",
   "by": "Built in",
-  "summary": "The night train from Vienna to Venice: keepsakes from compartment 19 on the sheet, a timetable for a clock, a railway lantern, the brass key. The same desk, typewriter and tickets as the Archive.",
+  "summary": "A night in compartment 19 of the Vienna – Venice sleeper: keepsakes from the journey on the sheet, a postcard and a luggage label to play with, the brass key on a timetable, a little train along the bar. The same desk, typewriter and tickets as the Archive.",
   "base": "archive",
   "flavour": {
     "plate": "0101-night-service",
-    "archiveName": "NIGHT SERVICE",
-    "timeSubtitle": "Timetable.",
+    "archiveName": "COMPARTMENT 19",
+    "timeSubtitle": "Timetable, Vienna – Venice.",
     "weatherTitle": "Conditions en Route",
     "audioTitle": "Carriage Recordings",
     "lockTitle": "Sleeping Car",
