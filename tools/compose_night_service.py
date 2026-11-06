@@ -38,10 +38,10 @@ VIS_X0, VIS_W = (W - H * 16 / 10) / 2, H * 16 / 10
 # screen's width), slant (degrees, counter-clockwise)
 ITEMS = [
     ("key", (1380, 140, 2480, 600), "solid", (0.489, 0.172), 0.25, 4),
-    ("ticket", (1470, 500, 2450, 1060), "solid", (0.585, 0.338), 0.215, 7, [(1470, 500, 1640, 600), (2370, 640, 2450, 760), (1700, 990, 2450, 1060), (1470, 980, 1700, 1060)]),
-    ("flower", (1150, 530, 1510, 1400), "solid", (0.445, 0.548), 0.115, 27, [(1150, 840, 1330, 1060), (1470, 530, 1510, 600)]),
-    ("map", (1690, 1000, 2510, 1700), "solid", (0.612, 0.676), 0.188, -3, [(1690, 1000, 2060, 1030), (2460, 1200, 2510, 1360), (1690, 1000, 1720, 1700)]),
-    ("sugar", (1320, 1360, 1710, 1700), "solid", (0.366, 0.733), 0.10, 4),
+    ("ticket", (1470, 500, 2450, 1060), "solid", (0.585, 0.338), 0.215, 7, [(1470, 500, 1640, 600), (2370, 640, 2450, 760)]),
+    ("flower", (1150, 530, 1510, 1400), "thin", (0.445, 0.548), 0.115, 27, [(1150, 840, 1330, 1060), (1470, 530, 1510, 600)]),
+    ("map", (1690, 1000, 2510, 1700), "solid", (0.612, 0.676), 0.188, -3, []),
+    ("sugar", (1320, 1360, 1710, 1700), "plain", (0.366, 0.733), 0.10, 4),
     ("stamp", (1790, 1880, 2300, 2100), "blue", (0.655, 0.868), 0.118, 0),
 ]
 
@@ -87,52 +87,63 @@ def components(mask):
 
 
 def lift(src, box, how, paper_rgb, erase=()):
-    """The keepsake in `box`, its paper made clear (ink on a clear sheet: each
-    pixel keeps what, over the paper, gives what was drawn), its shadow kept
-    as a soft dark."""
+    """The keepsake in `box`, cut out along its own outline (the plate's
+    labels, leader lines and anything in `erase` left behind), with a fresh
+    soft shadow of its own: never the plate's shadow, so no hard edges."""
     crop = src.crop(box)
     a = np.asarray(crop).astype(np.float32)
     p = paper_rgb[None, None, :]
-    # how far from the paper, at most, each pixel had to be darkened or coloured
     diff = np.abs(a - p).max(axis=2)
-    alpha = np.clip((diff - 7) / 70, 0, 1)
+    for ex0, ey0, ex1, ey1 in erase:
+        diff[max(0, ey0 - box[1]):max(0, ey1 - box[1]), max(0, ex0 - box[0]):max(0, ex1 - box[0])] = 0
     if how == "blue":
         blue = (a[..., 2] - a[..., 0]) - (p[0, 0, 2] - p[0, 0, 0])
-        keep = blue > 8
-        keep = np.asarray(Image.fromarray((keep * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
-    else:
-        # the object: the biggest solid part (thin lines and type broken off
-        # first, then the part grown back over its own edge and shadow)
-        k = 4
-        small = Image.fromarray(((diff > 18) * 255).astype(np.uint8)).resize((crop.width // k, crop.height // k), Image.BILINEAR)
-        solid = np.asarray(small.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))) > 120
-        # (its outline closed, so a pale object's middle counts as inside it)
-        solid = np.asarray(Image.fromarray((solid * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.MinFilter(7))) > 0
-        lab, sizes = components(solid)
-        biggest = int(np.argmax(sizes))
-        part = lab == biggest
-        outside, _ = components(~part)
-        edge = set(outside[0].tolist()) | set(outside[-1].tolist()) | set(outside[:, 0].tolist()) | set(outside[:, -1].tolist())
-        part = ~np.isin(outside, list(edge - {0}))
-        body = Image.fromarray((part * 255).astype(np.uint8))
-        # inside the object: as drawn, solid; round it: its shadow, as a soft dark
-        solid_in = np.asarray(body.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1)).resize(crop.size, Image.BILINEAR)).astype(np.float32) / 255
-        keep_small = body.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(2))
-        keep = np.asarray(keep_small.resize(crop.size, Image.BILINEAR)).astype(np.float32) / 255
-        alpha = np.maximum(alpha, solid_in)
-    alpha = alpha * keep
-    # never a hard cut at the box's edge
-    hh, ww = alpha.shape
-    ramp = 24.0
-    yy, xx = np.mgrid[0:hh, 0:ww].astype(np.float32)
-    alpha *= np.clip(np.minimum.reduce([xx, yy, ww - 1 - xx, hh - 1 - yy]) / ramp, 0, 1)
-    for ex0, ey0, ex1, ey1 in erase:
-        alpha[max(0, ey0 - box[1]):max(0, ey1 - box[1]), max(0, ex0 - box[0]):max(0, ex1 - box[0])] = 0
-    safe = np.maximum(alpha, 1e-3)[..., None]
-    col = np.clip(p + (a - p) / safe, 0, 255)
-    rgba = np.dstack([col, alpha * 255]).astype(np.uint8)
-    out = Image.fromarray(rgba, "RGBA")
-    return out.crop(out.getchannel("A").point(lambda v: 255 if v > 6 else 0).getbbox())
+        alpha = np.clip((blue - 6) / 30, 0, 1) * np.clip((diff - 10) / 40, 0, 1)
+        col = np.clip(p + (a - p) / np.maximum(alpha, 0.2)[..., None], 0, 255)
+        out = Image.fromarray(np.dstack([col, alpha * 255]).astype(np.uint8), "RGBA")
+        return out.crop(out.getchannel("A").point(lambda v: 255 if v > 6 else 0).getbbox())
+    # the object: the biggest solid part, its holes filled
+    k = 3
+    # (a shadow on the paper is the paper, darker and no warmer: not the object)
+    lum = a.mean(axis=2)
+    plum = float(p.mean())
+    warm = (a[..., 0] - a[..., 2]) - (p[0, 0, 0] - p[0, 0, 2])
+    shadowy = (lum < plum - 4) & (np.abs(warm) < 9) & (diff < 60)
+    obj = (diff > 16) & ~shadowy if how == "solid" else diff > 16
+    small = Image.fromarray((obj * 255).astype(np.uint8)).resize((crop.width // k, crop.height // k), Image.BILINEAR)
+    solid = np.asarray(small.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))) > 110
+    lab, sizes = components(solid)
+    part = lab == int(np.argmax(sizes))
+    close = 5 if how == "thin" else 13     # (heals nicks the shadow test bit out of an edge)
+    part = np.asarray(Image.fromarray((part * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(close)).filter(ImageFilter.MinFilter(close))) > 0
+    outside, _ = components(~part)
+    edge = set(outside[0].tolist()) | set(outside[-1].tolist()) | set(outside[:, 0].tolist()) | set(outside[:, -1].tolist())
+    part = ~np.isin(outside, list(edge - {0}))
+    if how == "plain":
+        # (a wrapped lump, open where its tape crosses it: filled to its outline)
+        rows = np.where(part.any(axis=1))[0]
+        filled = part.copy()
+        for y in rows:
+            xs = np.where(part[y])[0]
+            filled[y, xs.min():xs.max() + 1] = True
+        part = filled
+    # back to full size: a clean, slightly softened edge just inside the drawn one
+    mask = Image.fromarray((part * 255).astype(np.uint8)).resize(crop.size, Image.BICUBIC).filter(ImageFilter.GaussianBlur(1.6))
+    m = np.clip((np.asarray(mask).astype(np.float32) - (60 if how == "thin" else 150)) / 90, 0, 1)
+    if how == "thin":
+        # a stem and leaves: the paper between them shows through
+        m = m * np.clip((diff - 6) / 40, 0, 1)
+    out = Image.fromarray(np.dstack([a, m * 255]).astype(np.uint8), "RGBA")
+    out = out.crop(out.getchannel("A").point(lambda v: 255 if v > 6 else 0).getbbox())
+    # its shadow: soft, a little down and to the right
+    pad = 40
+    sh = Image.new("L", (out.width + 2 * pad, out.height + 2 * pad))
+    sh.paste(out.getchannel("A"), (pad + 6, pad + 10))
+    sh = sh.filter(ImageFilter.GaussianBlur(11)).point(lambda v: int(v * 0.32))
+    canvas = Image.new("RGBA", sh.size, (30, 26, 22, 0))
+    canvas.putalpha(sh)
+    canvas.alpha_composite(out, (pad, pad))
+    return canvas
 
 
 def at(fx, fy):

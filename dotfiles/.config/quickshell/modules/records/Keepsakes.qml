@@ -39,69 +39,6 @@ Item {
         layer.effect: MultiEffect { colorization: 1.0; colorizationColor: Theme.night > 0.5 ? "#d8c8a4" : "#a88a62"; brightness: 0.18 }
     }
 
-    // ---------------------------------------------------------------- the music box, on its doily
-    // under the record cards (Compartment 19 plays its music here rather
-    // than in the card): the light runs along its cylinder while music plays
-    DeskCard {
-        id: musicbox
-        name: "musicbox"
-        order: 7
-        width: 230
-        height: 214
-        homeX: root.cardsX + root.cardsW - width + 6
-        homeY: Math.min(root.height - height - 10, root.belowCards + 14)
-        Item {
-            width: musicbox.width; height: musicbox.height
-            // a crocheted lace doily: scalloped rim, rings of little holes
-            Canvas {
-                x: 0; y: musicbox.height * 0.36
-                width: musicbox.width * 0.9; height: musicbox.height * 0.62
-                property color lace: Theme.night > 0.5 ? "#c9cfd8" : "#f3eee2"
-                onLaceChanged: requestPaint()
-                onPaint: {
-                    const g = getContext("2d");
-                    g.reset();
-                    const cx = width / 2, cy = height / 2, rx = width / 2 - 2, ry = height / 2 - 2;
-                    g.save();
-                    g.shadowColor = Qt.rgba(0, 0, 0, 0.18); g.shadowBlur = 6; g.shadowOffsetY = 2;
-                    g.fillStyle = lace;
-                    g.beginPath();
-                    const n = 34;
-                    for (let i = 0; i <= n * 8; i++) {
-                        const a = i / (n * 8) * Math.PI * 2;
-                        const r = 1 - 0.06 * Math.pow(Math.abs(Math.sin(a * n / 2)), 0.6);
-                        const x = cx + Math.cos(a) * rx * r, y = cy + Math.sin(a) * ry * r;
-                        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
-                    }
-                    g.closePath(); g.fill();
-                    g.restore();
-                    // the open-work: rings of holes, and a few threads
-                    g.globalCompositeOperation = "destination-out";
-                    for (const [k, m, hr] of [[0.82, 30, 2.4], [0.64, 24, 2.0], [0.46, 18, 1.8], [0.28, 12, 1.5]]) {
-                        for (let i = 0; i < m; i++) {
-                            const a = i / m * Math.PI * 2 + k;
-                            g.beginPath();
-                            g.ellipse(cx + Math.cos(a) * rx * k - hr, cy + Math.sin(a) * ry * k - hr * 0.7, hr * 2, hr * 1.4);
-                            g.fill();
-                        }
-                    }
-                    g.globalCompositeOperation = "source-over";
-                    g.strokeStyle = Qt.rgba(0.55, 0.5, 0.42, 0.35);
-                    g.lineWidth = 0.6;
-                    for (const k of [0.92, 0.73, 0.55, 0.37]) {
-                        g.beginPath(); g.ellipse(cx - rx * k, cy - ry * k, rx * k * 2, ry * k * 2); g.stroke();
-                    }
-                }
-            }
-            MusicBox {
-                x: musicbox.width * 0.12; y: 0
-                width: musicbox.width * 0.82; height: musicbox.height * 0.84
-                source: root.dir + "musicbox.png"
-                playing: (Gramophone.loaded ? Gramophone.playing : Media.playing) && !Desk.covered
-            }
-        }
-    }
-
     // ---------------------------------------------------------------- the postcard
     DeskCard {
         id: postcard

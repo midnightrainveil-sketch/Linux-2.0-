@@ -95,7 +95,7 @@ IndexCard {
                     }
                 }
             }
-            readonly property bool framed: (card.going && cover !== "" && art.status === Image.Ready) || Flavour.keepsakes
+            readonly property bool framed: card.going && cover !== "" && art.status === Image.Ready
 
             Cassette {
                 id: tape
@@ -113,7 +113,7 @@ IndexCard {
             MusicBox {
                 anchors.centerIn: parent
                 width: 146; height: 148
-                visible: !photo.framed && Flavour.player === "musicbox" && !Flavour.keepsakes
+                visible: !photo.framed && Flavour.player === "musicbox"
                 source: Flavour.player === "musicbox" ? Qt.resolvedUrl("../../assets/flavours/" + Flavour.theme + "/musicbox.png") : ""
                 playing: card.playing && !Desk.covered
             }
