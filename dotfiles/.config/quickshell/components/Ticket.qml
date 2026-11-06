@@ -91,10 +91,11 @@ Item {
 
         InkIcon {
             visible: root.icon !== ""
-            x: root.width * 0.62 - width / 2
+            // centred in the ticket's body, between the tear line and its end
+            x: root.width * 0.64 - width / 2
             anchors.verticalCenter: parent.verticalCenter
             name: root.icon
-            size: 16
+            size: 12
             color: root.labelColor
         }
         Text {

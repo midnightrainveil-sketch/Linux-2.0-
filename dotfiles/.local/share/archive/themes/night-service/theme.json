@@ -12,7 +12,7 @@
     "audioTitle": "Carriage Recordings",
     "lockTitle": "Sleeping Car",
     "lockSubtitle": "Boarding by signature.",
-    "barIcon": "ticket-punch",
+    "barIcon": "station",
     "clockArt": "clock-art.png",
     "specimen": false,
     "icons": "suitcase",
