@@ -208,6 +208,13 @@ status() {
         echo "switches:    no asus-armoury on this kernel (needs Linux 6.19+): ROG Control cannot switch the GPU"
         [[ -r $w/gpu_mux_mode ]] && echo "             (asus-nb-wmi: gpu_mux_mode=$(cat $w/gpu_mux_mode) dgpu_disable=$(cat $w/dgpu_disable 2>/dev/null))"
     fi
+    # who holds the dGPU open: anything here keeps ROG Control from switching
+    # to Integrated (dGPU off)
+    local users=""
+    if [[ -e /dev/dri/nvidia-dgpu ]]; then
+        users=$(fuser -v "$(readlink -f /dev/dri/nvidia-dgpu)" /dev/nvidia* 2>&1 | awk 'NR>1 && $NF!="" {print $NF}' | sort -u | tr '\n' ' ' || true)
+    fi
+    echo "dGPU open by: ${users:-nothing (Integrated can be chosen)}"
     echo "profile:     $(powerprofilesctl get 2>/dev/null || echo '?')"
     if grep -q 'NVreg_UseKernelSuspendNotifiers=1' /etc/modprobe.d/nvidia-power.conf 2>/dev/null; then
         echo "sleep:       the driver suspends itself (no console switch)"

@@ -55,12 +55,30 @@ if ls ~= nil then
 end
 
 ------------------------------------------------------------------ GPUs
--- Render on the iGPU (battery, heat); keep the dGPU listed so outputs wired
--- to it (the G14's HDMI port) still work. The stable /dev/dri names come
--- from the udev rule installed by the guide (docs/zephyrus-g14.md).
+-- Render on the iGPU (battery, heat). The dGPU is only opened when a screen
+-- is plugged into a port wired to it (the G14's HDMI) as the session starts,
+-- or settings.json "dgpuOutputs": true asks for it always: a card the desktop
+-- holds open counts as in use, so ROG Control could never switch to
+-- Integrated (dGPU off). The stable /dev/dri names come from the udev rule
+-- installed by the guide (docs/zephyrus-g14.md).
+local function dgpu_screen()
+    local link = io.popen("readlink -f /dev/dri/nvidia-dgpu 2>/dev/null")
+    if link == nil then return false end
+    local card = (link:read("*l") or ""):match("(card%d+)$")
+    link:close()
+    if card == nil then return false end
+    local ls = io.popen("cat /sys/class/drm/" .. card .. "-*/status 2>/dev/null")
+    if ls == nil then return false end
+    local text = ls:read("*a") or ""
+    local any = text:match("^connected") ~= nil or text:match("\nconnected") ~= nil
+    ls:close()
+    return any
+end
 local devices = {}
 if state.exists("/dev/dri/amd-igpu") then table.insert(devices, "/dev/dri/amd-igpu") end
-if state.exists("/dev/dri/nvidia-dgpu") then table.insert(devices, "/dev/dri/nvidia-dgpu") end
+if state.exists("/dev/dri/nvidia-dgpu") and (state.setting_bool("dgpuOutputs", false) or dgpu_screen()) then
+    table.insert(devices, "/dev/dri/nvidia-dgpu")
+end
 if #devices > 0 then
     hl.env("AQ_DRM_DEVICES", table.concat(devices, ":"))
 end
