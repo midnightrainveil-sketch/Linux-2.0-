@@ -111,7 +111,9 @@ Nice=10
 WantedBy=multi-user.target
 EOF
     sudo systemctl daemon-reload
-    sudo systemctl enable --now archive-lan.service >/dev/null
+    sudo systemctl enable archive-lan.service >/dev/null 2>&1
+    # (restarted, not just started: a watcher already running keeps the old version)
+    sudo systemctl restart archive-lan.service
     say "watching: $(hosts | tr '\n' ' ')(edit: sudo nano $hosts_file)"
 }
 
