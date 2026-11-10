@@ -174,6 +174,23 @@ if compgen -G "${XDG_CONFIG_HOME:-$HOME/.config}/archive/wallpaper.*" >/dev/null
     python3 "$here/tools/import_wallpaper.py" || warn "could not rebuild your wallpaper; run archive-wallpaper"
 fi
 
+# ssh that survives a short Wi-Fi blip: keepalives every 15 s, giving up
+# only after about two minutes of silence (added once, at the top of
+# ~/.ssh/config, so they apply to every host)
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+touch "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+if ! grep -qiE '^\s*ServerAliveInterval' "$HOME/.ssh/config"; then
+    say "ssh keepalive"
+    printf 'ServerAliveInterval 15\nServerAliveCountMax 8\n\n%s' "$(cat "$HOME/.ssh/config")" >"$HOME/.ssh/config"
+fi
+
+# archive-lan (the mesh Wi-Fi detour), where it is switched on: the new
+# version installed and its watcher restarted, so an update takes effect
+if systemctl is-enabled --quiet archive-lan.service 2>/dev/null; then
+    say "archive-lan: updated"
+    "$HOME/.local/bin/archive-lan" on >/dev/null || warn "could not update archive-lan; run archive-lan on"
+fi
+
 # ------------------------------------------------------------------ 4. Zephyrus G14
 model=$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)
 if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
