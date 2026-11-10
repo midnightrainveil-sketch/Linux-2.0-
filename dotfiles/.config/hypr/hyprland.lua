@@ -54,6 +54,15 @@ require("archive.rules")
 ------------------------------------------------------------------ environment
 -- the archive-* commands live in ~/.local/bin; every login path must see them
 hl.env("PATH", os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or "/usr/local/bin:/usr/bin"))
+-- Flatpak apps (GeForce NOW ...) keep their launcher entries in their own
+-- folders: the launcher and the desktop look there too
+do
+    local dirs = os.getenv("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    for _, d in ipairs({ "/var/lib/flatpak/exports/share", os.getenv("HOME") .. "/.local/share/flatpak/exports/share" }) do
+        if not dirs:find(d, 1, true) then dirs = d .. ":" .. dirs end
+    end
+    hl.env("XDG_DATA_DIRS", dirs)
+end
 -- the archive's cursors: the pencil, the gloves, the instruments
 -- (~/.local/share/icons/Archive-Cursors, tools/import_cursors.py)
 hl.env("XCURSOR_THEME", "Archive-Cursors")
