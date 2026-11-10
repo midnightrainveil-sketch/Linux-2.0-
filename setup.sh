@@ -184,6 +184,15 @@ if ! grep -qiE '^\s*ServerAliveInterval' "$HOME/.ssh/config"; then
     printf 'ServerAliveInterval 15\nServerAliveCountMax 8\n\n%s' "$(cat "$HOME/.ssh/config")" >"$HOME/.ssh/config"
 fi
 
+# Wi-Fi power saving off, for good (a dozing card drops ssh and loses its
+# way on the mesh): NetworkManager's own setting, the same for every kernel
+nm_ps=/etc/NetworkManager/conf.d/archive-wifi-powersave.conf
+if [[ -d /etc/NetworkManager ]] && ! grep -qs 'wifi.powersave = 2' "$nm_ps"; then
+    say "Wi-Fi power saving: off"
+    printf '# archive (setup.sh): Wi-Fi power saving off (2 = disable)\n[connection]\nwifi.powersave = 2\n' | sudo tee "$nm_ps" >/dev/null \
+        && sudo systemctl reload NetworkManager 2>/dev/null || warn "could not switch Wi-Fi power saving off"
+fi
+
 # archive-lan (the mesh Wi-Fi detour), where it is switched on: the new
 # version installed and its watcher restarted, so an update takes effect
 if systemctl is-enabled --quiet archive-lan.service 2>/dev/null; then
