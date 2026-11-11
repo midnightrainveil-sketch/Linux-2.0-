@@ -61,6 +61,7 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
 - **Start-up / shut-down page** (Plymouth): each box's `system/plymouth/`;
   `ultra-boot quiet` installs root's `ultra-page` and a path unit that
   swaps the page (and rebuilds the initramfs) when the theme changes.
+
 ## Testing here (the harness)
 
 A cloud container has no Hyprland, but the real Quickshell can be built and
