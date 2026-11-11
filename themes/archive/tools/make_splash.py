@@ -3,11 +3,12 @@
 
     python3 tools/make_splash.py
 
-Writes the pictures of core/system/plymouth/archive/: the paper (a small sheet,
+Writes the pictures of system/plymouth/ (this theme's page; ultra-boot
+installs the page of the theme in place): the paper (a small sheet,
 stretched to the screen: only soft light on it, no grain to blur), the
 archive's watercolour sprig, the typed heading and the line under it for
 each occasion (opening, closing, turning the page), and the passphrase
-prompt with its typed x. The script (archive.script) lays them out.
+prompt with its typed x. The script (page.script) lays them out.
 """
 import pathlib
 
@@ -15,7 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DST = ROOT.parent.parent / "core" / "system" / "plymouth" / "archive"
+DST = ROOT / "system" / "plymouth"
 FONTS = ROOT / "home" / ".local" / "share" / "fonts" / "archive"
 SPRIG = ROOT / "home" / ".config" / "quickshell" / "assets" / "sprig-wash.png"
 

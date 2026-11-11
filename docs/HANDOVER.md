@@ -53,6 +53,9 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
   tickets (archivebars plugin, `home/.local/share/ultra/<id>/plugins/`),
   the train along the bar, inked file icons (`tools/inked_icons.py`), the
   lock screen seal.
+- **Start-up / shut-down page** (Plymouth): each box's `system/plymouth/`;
+  `ultra-boot quiet` installs root's `ultra-page` and a path unit that
+  swaps the page (and rebuilds the initramfs) when the theme changes.
 - **Testing**: QML in the real Quickshell harness per box, after
   `ultra-theme apply <id>` into a scratch home; check no link of the other
   box is left (`find ~ -lname '*themes/<other>/*'`).

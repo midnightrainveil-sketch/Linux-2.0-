@@ -355,9 +355,9 @@ if [[ ! -f $state/ultra/snapshots-off ]] \
 fi
 
 # ------------------------------------------------------------------ a quiet start, and the power button
-# the herbarium's page while it starts and shuts down, not scrolling text;
+# your theme's own page while it starts and shuts down, not scrolling text;
 # a press of the power button opens the power menu, holding it shuts down
-say "a quiet start: the herbarium's page instead of the start-up text"
+say "a quiet start: your theme's page instead of the start-up text"
 "$bin/ultra-boot" quiet --auto || warn "the quiet start was not set up; run ultra-boot quiet"
 "$bin/ultra-boot" power || warn "the power button was not set up; run ultra-boot power"
 

@@ -322,7 +322,7 @@ when the last one closes. The small card button after the workspace numbers
 (or `Super + D`) puts everything back, the terminal in front until you click
 elsewhere.
 
-Starting and shutting down show the herbarium's page (a Plymouth splash)
+Starting and shutting down show your theme's own page (a Plymouth splash)
 instead of scrolling text: `ultra-boot quiet` sets it up (setup.sh does
 it), `ultra-boot loud` brings the text back, `ultra-boot status` shows
 what is set.

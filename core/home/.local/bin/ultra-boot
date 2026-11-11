@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # ultra-boot: a quiet start and stop, and a power button you hold.
 #
-#   ultra-boot quiet    the herbarium's page (a Plymouth splash) while the
+#   ultra-boot quiet    your theme's page (a Plymouth splash) while the
 #                         machine starts and shuts down, in place of the
-#                         scrolling text: the splash in the start-up image,
+#                         scrolling text. The page is the theme's own
+#                         (themes/<id>/system/plymouth) and follows it: after
+#                         a log-in to another theme, the page is changed in
+#                         the background, for the next shutdown and start.
+#                         The splash goes in the start-up image,
 #                         and "quiet splash" for the kernel in your boot menu
 #                         (GRUB, systemd-boot, rEFInd, Limine or a unified
 #                         kernel image). Reboot afterwards.
@@ -17,9 +21,11 @@
 # Every file changed is first kept as <file>.archive-bak. Safe to run again:
 # it only rebuilds what changed.
 set -euo pipefail
-repo="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.." && pwd)"
-theme_src="$repo/system/plymouth/archive"
-theme_dst=/usr/share/plymouth/themes/archive
+theme_dst=/usr/share/plymouth/themes/ultra
+old_dst=/usr/share/plymouth/themes/archive    # (before the page was the theme's own)
+pager=/usr/local/bin/ultra-page               # root's helper: installs the page of the theme in place
+pager_unit=/etc/systemd/system/ultra-page
+applied="${XDG_STATE_HOME:-$HOME/.local/state}/ultra/applied.json"
 sum_file=/etc/plymouth/archive.sum
 added_file=/etc/plymouth/archive-added   # which options were ours, per file (for loud)
 loud_file=/etc/plymouth/archive-loud     # you chose the text: updates leave it
@@ -154,6 +160,66 @@ add_plymouth_hook() { # prints "changed" if it added it
     grep -qE '^\s*HOOKS=.*\bplymouth\b' "$f" && echo changed
 }
 
+# Root's helper and its watcher. The page belongs to the theme, so it is
+# changed whenever another theme is put in place: a path unit watches
+# ultra-theme's record of that and runs the helper, which copies the page's
+# pictures and script from the theme's folder and, only if they changed,
+# builds the start-up image again. It cannot be cut short: a shutdown asked
+# for meanwhile waits for it, so the image is never left half written.
+install_pager() {
+    sudo tee "$pager" >/dev/null <<EOF
+#!/bin/bash
+# ultra-page (installed by ultra-boot quiet): the start-up and shut-down
+# page of the theme in place, for $HOME
+trap '' TERM HUP INT      # (kept by mkinitcpio too: never stopped halfway)
+applied='$applied'
+dst=$theme_dst
+sum_file=$sum_file
+[[ -f $loud_file ]] && exit 0                       # you chose the text
+box=\$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["home"])' "\$applied" 2>/dev/null) || exit 0
+src="\${box%/home}/system/plymouth"
+[[ -f \$src/page.script ]] || exit 0                 # a theme without a page keeps the last one
+mkdir -p "\$dst"
+new=\$(cat "\$src"/page.script "\$src"/*.png /etc/plymouth/plymouthd.conf 2>/dev/null | sha256sum | cut -d' ' -f1)
+[[ -f \$dst/ultra.script && \$(cat "\$sum_file" 2>/dev/null) == "\$new" ]] && exit 0
+rm -f "\$dst"/*.png
+install -m 644 "\$src"/*.png "\$dst/"
+install -m 644 "\$src/page.script" "\$dst/ultra.script"
+printf '[Plymouth Theme]\nName=Ultra\nDescription=The page of the desktop theme in place\nModuleName=script\n\n[script]\nImageDir=%s\nScriptFile=%s/ultra.script\n' "\$dst" "\$dst" >"\$dst/ultra.plymouth"
+# the start-up image carries a copy of the page: built again (the shut-down
+# page is read from the disk, so it is already the new one)
+if grep -qE '^\s*HOOKS=.*\bplymouth\b' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d/*.conf 2>/dev/null; then
+    mkinitcpio -P >/var/log/ultra-page.log 2>&1 || exit 1
+fi
+echo "\$new" >"\$sum_file"
+EOF
+    sudo chmod 755 "$pager"
+    sudo tee "$pager_unit.service" >/dev/null <<EOF
+[Unit]
+Description=Ultra: the start-up and shut-down page of the desktop theme in place
+
+[Service]
+Type=oneshot
+ExecStart=$pager
+Nice=10
+IOSchedulingClass=idle
+# a shutdown waits for it rather than cutting the start-up image short
+TimeoutStopSec=600
+EOF
+    sudo tee "$pager_unit.path" >/dev/null <<EOF
+[Unit]
+Description=Ultra: watch for another desktop theme being put in place
+
+[Path]
+PathChanged=$applied
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now ultra-page.path >/dev/null 2>&1 || warn "could not start the page's watcher (ultra-page.path)"
+}
+
 quiet() {
     # setup.sh runs "quiet --auto" at every update: not after you chose loud
     if [[ ${1:-} == --auto ]] && [[ -f $loud_file ]]; then
@@ -164,37 +230,33 @@ quiet() {
     pacman -Qq plymouth >/dev/null 2>&1 || { say "installing Plymouth"; sudo pacman -S --needed --noconfirm plymouth; }
     [[ -f /usr/lib/initcpio/install/plymouth ]] || { warn "the plymouth mkinitcpio hook is missing"; exit 1; }
 
-    say "the splash: the herbarium's page"
-    sudo mkdir -p "$theme_dst" /etc/plymouth
-    sudo cp "$theme_src"/* "$theme_dst/"
+    say "the splash: your theme's page"
+    sudo mkdir -p /etc/plymouth
     keep /etc/plymouth/plymouthd.conf
     # drawn at the screen's own pixels (not doubled on the G14), shown at once
-    printf '[Daemon]\nTheme=archive\nShowDelay=0\nDeviceScale=1\n' | sudo tee /etc/plymouth/plymouthd.conf >/dev/null
-
-    local rebuild=0 sum
-    sum=$(cat "$theme_src"/* /etc/plymouth/plymouthd.conf | sha256sum | cut -d' ' -f1)
-    [[ $(cat "$sum_file" 2>/dev/null) == "$sum" ]] || rebuild=1
-    [[ -n $(add_plymouth_hook) ]] && rebuild=1
-    if ((rebuild)); then
-        say "rebuilding the start-up image (a minute)"
-        if ! sudo mkinitcpio -P; then
-            warn "the start-up image did not build; putting the previous hooks back"
-            local f
-            f=$(hooks_file)
-            [[ -f $f.archive-bak ]] && sudo cp -a "$f.archive-bak" "$f"
-            sudo mkinitcpio -P || warn "mkinitcpio still fails: do not reboot; ask for help with its output"
-            exit 1
-        fi
-        echo "$sum" | sudo tee "$sum_file" >/dev/null
+    printf '[Daemon]\nTheme=ultra\nShowDelay=0\nDeviceScale=1\n' | sudo tee /etc/plymouth/plymouthd.conf >/dev/null
+    sudo rm -f "$loud_file"
+    install_pager
+    # a new hook: the start-up image is built again whatever the page
+    [[ -n $(add_plymouth_hook) ]] && sudo rm -f "$sum_file"
+    say "the page, and the start-up image if it changed (a minute)"
+    if ! sudo "$pager"; then
+        warn "the start-up image did not build; putting the previous hooks back"
+        local f
+        f=$(hooks_file)
+        [[ -f $f.archive-bak ]] && sudo cp -a "$f.archive-bak" "$f"
+        sudo mkinitcpio -P || warn "mkinitcpio still fails: do not reboot; ask for help with its output"
+        exit 1
     fi
+    sudo rm -rf "$old_dst"
 
     set_cmdline add
-    sudo rm -f "$loud_file"
     say "done: the page shows from the next start (reboot)"
 }
 
 loud() {
     set_cmdline remove
+    sudo systemctl disable --now ultra-page.path >/dev/null 2>&1 || true
     sudo mkdir -p /etc/plymouth && sudo touch "$loud_file"
     say "the start-up text is back from the next start (the splash is installed but not shown)"
 }

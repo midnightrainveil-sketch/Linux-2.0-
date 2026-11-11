@@ -3,11 +3,12 @@
 
     python3 tools/make_splash.py
 
-Writes the pictures of core/system/plymouth/archive/: the paper (a small sheet,
+Writes the pictures of system/plymouth/ (this theme's page; ultra-boot
+installs the page of the theme in place): the paper (a small sheet,
 stretched to the screen: only soft light on it, no grain to blur), the
-archive's watercolour sprig, the typed heading and the line under it for
+compartment's brass key, the typed heading and the line under it for
 each occasion (opening, closing, turning the page), and the passphrase
-prompt with its typed x. The script (archive.script) lays them out.
+prompt with its typed x. The script (page.script) lays them out.
 """
 import pathlib
 
@@ -15,9 +16,9 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DST = ROOT.parent.parent / "core" / "system" / "plymouth" / "archive"
+DST = ROOT / "system" / "plymouth"
 FONTS = ROOT / "home" / ".local" / "share" / "fonts" / "archive"
-SPRIG = ROOT / "home" / ".config" / "quickshell" / "assets" / "sprig-wash.png"
+KEY = ROOT / "home" / ".config" / "quickshell" / "assets" / "flavours" / "night-service" / "clock-art.png"
 
 PAPER = (0xC9, 0xC7, 0xC3)
 GRAPHITE = (0x1E, 0x1D, 0x22)
@@ -85,23 +86,23 @@ def main():
     DST.mkdir(parents=True, exist_ok=True)
     paper().save(DST / "paper.png", optimize=True)
 
-    sprig = Image.open(SPRIG).convert("RGBA")
-    sprig = Image.merge("RGBA", [Image.new("L", sprig.size, v) for v in SPRIG_INK] + [sprig.getchannel("A")])
-    th = round(250 * SCALE)
+    # the emblem: the compartment's brass key, in its own colours
+    sprig = Image.open(KEY).convert("RGBA")
+    th = round(230 * SCALE)
     sprig.resize((round(sprig.width * th / sprig.height), th), Image.LANCZOS).save(DST / "sprig.png", optimize=True)
 
     head = font("CourierPrime-Bold.ttf", 22)
     line = font("CourierPrime-Italic.ttf", 17)
-    typed("ROYAL BOTANIC ARCHIVE", head, GRAPHITE, 0.16).save(DST / "heading.png", optimize=True)
-    for name, text in (("boot", "Opening the herbarium."),
-                       ("shutdown", "Closing the archive."),
-                       ("reboot", "Turning the page."),
-                       ("updates", "Filing new records.")):
+    typed("COMPARTMENT 19", head, GRAPHITE, 0.16).save(DST / "heading.png", optimize=True)
+    for name, text in (("boot", "Now boarding, Vienna – Venice."),
+                       ("shutdown", "Lights out in the sleeping car."),
+                       ("reboot", "Changing engines."),
+                       ("updates", "Taking on coal and water.")):
         typed(text, line, SOFT).save(DST / ("line-%s.png" % name), optimize=True)
     ruled(round(300 * SCALE), 11).save(DST / "rule.png", optimize=True)
 
     # the passphrase (an encrypted disk): the greeter's words and its typed x
-    typed("Signature required.", line, SOFT).save(DST / "prompt.png", optimize=True)
+    typed("Your ticket, please.", line, SOFT).save(DST / "prompt.png", optimize=True)
     typed("x", font("CourierPrime-Regular.ttf", 18), GRAPHITE).save(DST / "bullet.png", optimize=True)
     for p in sorted(DST.glob("*.png")):
         print("splash:", p.relative_to(ROOT), Image.open(p).size)

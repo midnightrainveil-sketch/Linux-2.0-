@@ -69,7 +69,6 @@ core/                       the machine, shared by every theme
   home/.local/bin/          ultra-theme, ultra-update, ultra-rog, ultra-lan, ultra-ros,
                             ultra-refresh, ultra-snapshot, ultra-brightness, ultra-mic, ...
   packages/                 pacman package lists
-  system/plymouth/          the start-up page
 themes/                     one folder per theme (see themes/README.md)
   archive/                  the herbarium
   night-service/            Compartment 19
@@ -78,6 +77,7 @@ themes/                     one folder per theme (see themes/README.md)
       .config/hypr/theme.lua + theme/*.lua, quickshell/, foot, gtk, qt6ct ...
       .local/bin/           ultra-mode, ultra-desk, ultra-bars, ultra-icons, ...
       .local/share/         fonts, cursors, sounds, plates, the title-bar plugin
+    system/plymouth/        its start-up and shut-down page (ultra-boot installs it)
     tools/, art/            importers and source artwork
 docs/                       G14 notes, customising, design map, troubleshooting
 ```

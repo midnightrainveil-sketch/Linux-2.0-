@@ -24,7 +24,8 @@ Shared by all (in `core/`, not in any box): the machine. Screens, GPUs and
 input (`hypr/ultra/machine.lua`), and the commands that are not about looks:
 `ultra-update`, `ultra-rog`, `ultra-lan`, `ultra-ros`, `ultra-refresh`,
 `ultra-snapshot`, `ultra-brightness`, `ultra-mic`, `ultra-icc`, `ultra-boot`,
-`ultra-memory`, `ultra-theme`.
+`ultra-memory`, `ultra-theme`. (`ultra-boot` only installs the start-up page;
+the page itself is the theme's.)
 
 ## What a box holds
 
@@ -39,6 +40,10 @@ themes/<id>/
     .config/foot, gtk-3.0 ...   its terminal, GTK and Qt look
     .local/bin/...              its own commands
     .local/share/...            its fonts, cursors, sounds, wallpapers
+  system/plymouth/      its start-up and shut-down page (optional): page.script and
+                        its pictures. A root helper (ultra-page, set up by
+                        ultra-boot quiet) installs the page of the theme in
+                        place whenever the theme changes.
   tools/, art/          what its pictures are made from (optional)
 ```
 
