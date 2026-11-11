@@ -13,9 +13,9 @@ You start with:
 
 Total time: about an hour, most of it waiting for downloads.
 
-> **In a hurry?** If Arch and Hyprland already run, `~/archive/setup.sh` does
+> **In a hurry?** If Arch and Hyprland already run, `~/ultra/setup.sh` does
 > Phases 2 to 7 in one go (packages, linking, G14 GPU names, the plugin, the
-> login screen). Clone the repository to `~/archive` first (Phase 2), run it,
+> login screen). Clone the repository to `~/ultra` first (Phase 2), run it,
 > then reboot and continue at Phase 8.
 
 > **What you get.** Hyprland 0.55+ (Lua config) handles windows: paper cards
@@ -79,7 +79,7 @@ already have. The desktop expects:
 | The ROG key | `rog-control-center` |
 | Stable GPU names for Hyprland | the udev rule from Phase 4 |
 
-**Check:** `asusctl --version`, `archive-rog status` and
+**Check:** `asusctl --version`, `ultra-rog status` and
 `powerprofilesctl get` all answer.
 
 ---
@@ -90,23 +90,26 @@ Keep it somewhere permanent. The installer *links* your config to this folder,
 so `git pull` here updates your desktop later.
 
 ```sh
-git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive
-cd ~/archive
+git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/ultra
+cd ~/ultra
 git checkout claude/hyprland-ui-setup-l5njnw   # until it is merged into main
 ```
 
-**Check:** `ls ~/archive` shows `install.sh`, `GUIDE.md`, `dotfiles/`.
+**Check:** `ls ~/ultra` shows `setup.sh`, `GUIDE.md`, `core/`, `themes/`.
+
+`./setup.sh` does Phases 3 to 7 in one go; the phases below say what it
+does, and how to check each part.
 
 ---
 
 ## Phase 3: Install the packages
 
 ```sh
-cd ~/archive
-./install.sh --packages
+cd ~/ultra
+./setup.sh
 ```
 
-This installs everything in [packages/pacman.txt](packages/pacman.txt):
+This installs everything in [core/packages/pacman.txt](core/packages/pacman.txt):
 Hyprland and its portal, hypridle, the polkit agent, Quickshell with the Qt
 modules it needs (`qt6-5compat`, `qt6-svg`), foot, zsh, fastfetch, PipeWire,
 NetworkManager tools, BlueZ, brightnessctl, grim and slurp, the IBM Plex fonts,
@@ -134,11 +137,11 @@ quirks. The `/dev/dri/cardN` numbers can change between boots, so a udev rule
 gives the GPUs fixed names:
 
 ```sh
-./install.sh --g14
+./setup.sh
 ```
 
 This writes `/etc/udev/rules.d/90-archive-gpu-names.rules`. Hyprland reads
-these names in `~/.config/hypr/archive/machine.lua`.
+these names in `~/.config/hypr/ultra/machine.lua`.
 
 **Check:** `ls -l /dev/dri/amd-igpu /dev/dri/nvidia-dgpu` shows two symlinks
 (reboot once if they're not there yet).
@@ -148,23 +151,24 @@ these names in `~/.config/hypr/archive/machine.lua`.
 ## Phase 5: Link the configuration
 
 ```sh
-./install.sh
+./setup.sh
 ```
 
 This step:
 
-- symlinks everything in `dotfiles/` into your home folder. Any file it
-  replaces is moved to `~/.archive-backup/<date>/` first.
+- links the machine's files (`core/home/`) and the chosen theme's
+  (`themes/<id>/home/`) into your home folder (`ultra-theme`). Any file it
+  replaces is moved to `~/.ultra-backup/<date>/` first.
 - refreshes the font cache.
 - sets the day or night mode by the clock and themes GTK, Qt and foot to match.
-- enables `archive-mode.timer`, which checks for sunrise and sunset every 5 minutes.
+- starts the theme's `ultra-mode.timer` at each login, which checks for sunrise and sunset every 5 minutes.
 - enables Bluetooth and power-profiles-daemon.
 - makes zsh your login shell.
 
 It's safe to run again at any time.
 
-**Check:** `ls -l ~/.config/hypr/hyprland.lua` points into `~/archive/dotfiles`,
-and `archive-mode status` prints `day` or `night`.
+**Check:** `ls -l ~/.config/hypr/hyprland.lua` points into `~/ultra/dotfiles`,
+and `ultra-mode status` prints `day` or `night`.
 
 ---
 
@@ -174,7 +178,7 @@ and `archive-mode status` prints `day` or `night`.
 plain typed prompt on boot and starts Hyprland:
 
 ```sh
-./install.sh --greeter
+./setup.sh
 ```
 
 If another display manager is enabled, disable it first, for example
@@ -203,8 +207,8 @@ The windows don't have their typed title bars yet. Build them once, from a
 terminal inside Hyprland (`Super + Return`):
 
 ```sh
-cd ~/archive
-./install.sh --plugins
+cd ~/ultra
+ultra-bars build
 ```
 
 This builds **archivebars**, which is hyprbars plus what the reference
@@ -212,7 +216,7 @@ windows need and Hyprland lacks: the ruled line under the bar, the ticket
 buttons, and the **torn paper edge** around every window. It fetches the
 hyprbars source that matches your Hyprland, patches it and compiles it, which
 takes a minute. After a Hyprland update, or a `git pull` that changes the
-plugin, it rebuilds itself at the next login (`archive-bars ensure`). If a
+plugin, it rebuilds itself at the next login (`ultra-bars ensure`). If a
 build ever fails, the installer falls back to stock hyprbars: the same bar,
 without the rule and the tickets, and windows get a plain straight rim.
 
@@ -234,7 +238,7 @@ outline is torn paper, not a straight line, and a short soft shadow falls
 below it. Terminals and the system's tools are grained like paper; browsers,
 players and other apps keep their true colours. The "░"
 shows a window's grain (dark: on, faded: off) and a click flips it, as does
-`Super + Shift + G`. `archive-bars status` shows what the plugin was built
+`Super + Shift + G`. `ultra-bars status` shows what the plugin was built
 for.
 
 ### Make it say *atlas@linden* (optional)
@@ -251,7 +255,7 @@ The bar, title bars and prompt all take the name from your user and host.
 
 ## Phase 8: Tell the archive where you are
 
-Edit `~/.config/archive/settings.json` (it's tracked in your clone). The shell
+Edit `~/.config/ultra/<theme>/settings.json` (it's tracked in your clone). The shell
 picks up changes as soon as you save.
 
 ```json
@@ -281,7 +285,7 @@ number is the current air pressure in hPa.
 | `Super + .` | Glyphs: emoji, and the marks a keyboard lacks (— “ ” → ± ° €…), in drawers by kind, the ones you used lately first. Type a name to find one (`heart`, `arrow`, `dash`); click types it, right-click copies it |
 | `Super + /` | Index of keys: every shortcut on one card (yours from `user.lua` too); type to find one |
 | `Super + Shift + D`, or the desk terminal's green ticket | Lift the desk terminal into an ordinary window: the same terminal, everything in it carried over (tmux, a running program, what you typed), tiled and in normal-size type; a fresh terminal is laid on the desk. On every other window the green ticket maximises, as before |
-| Launcher: "Themes", or Instruments → Themes | Themes: the full desktop themes kept, each with pictures to look through; choose the one to log in to (it takes effect at your next log-in). Only the Archive for now; new themes are added to `~/.local/share/archive/themes` |
+| Launcher: "Themes", or Instruments → Themes | Themes: the full desktop themes kept, each with pictures to look through; choose the one to log in to (it takes effect at your next log-in). Only the Archive for now; new themes are added to `~/.local/share/ultra/<theme>/themes` |
 | Launcher: "Text Editor"; in Files, right-click → New Document | Plain notes: GNOME Text Editor (`.txt` and `.md` open in it, code files in VS Code). New Document offers a blank text document or note (`~/Templates`; put any file there to add your own) |
 | `Super + D` | Lay the desk out again: record cards back in place, the desk terminal back (reopened if closed) |
 | `Super + Return` | Terminal (foot) |
@@ -297,12 +301,12 @@ number is the current air pressure in hPa.
 | `` Super + ` `` | Open the drawer (scratchpad) |
 | `Super + C` | Ledger (calendar): scroll (or ← →) through the months, `Home` for today; "Year" in its corner (or `F`) opens the whole year in the middle of the desk, where a click on a month opens that month |
 | `Super + I` | Instrument card (quick settings) |
-| `Super + N` | Turn the sheet: day or night. It stays as you set it (to follow the clock again, set `"autoMode": true` in `~/.config/archive/settings.json`) |
+| `Super + N` | Turn the sheet: day or night. It stays as you set it (to follow the clock again, set `"autoMode": true` in `~/.config/ultra/<theme>/settings.json`) |
 | `Super + Shift + G` | Paper grain on this window, on or off (the "░" in its title bar does the same; quick settings' Grain row turns it off everywhere) |
 | `Super + Alt + L` | Desk lamp at night (a warm pool of light that follows the pointer over the desk), on or off |
 | `Super + Escape` | Reading Room (lock): the card is sealed in wax; the right signature breaks the seal |
 | `Super + Shift + Escape` | Disposition (power menu: `l s o r d`) |
-| Power button | A press opens Disposition asking to shut down; press again to confirm. Held (if your laptop reports holding it), a card fills and the machine shuts down when it is full. `archive-boot power` sets this up; setup.sh does it for you |
+| Power button | A press opens Disposition asking to shut down; press again to confirm. Held (if your laptop reports holding it), a card fills and the machine shuts down when it is full. `ultra-boot power` sets this up; setup.sh does it for you |
 | `Ctrl + Backspace` | Screenshot of the whole screen, instantly (this takes Ctrl+Backspace from apps, where it deletes a word; remove the line in `archive/binds.lua` to give it back) |
 | `Print`, `Super + Shift + S` | File a screenshot of a region (`Shift + Print`: screen; `Super + Alt + S`: window). It drops onto the desk as a print with a paperclip, and a second later is sealed in an envelope and sent off (hover over it to keep it longer): click to open it in gThumb (crop, rotate, resize, colours: the edit button at the top right), right-click to file, middle-click to keep it. Any picture opens in gThumb too |
 | `Super + Shift + N` | File away all notifications |
@@ -319,13 +323,13 @@ when the last one closes. The small card button after the workspace numbers
 elsewhere.
 
 Starting and shutting down show the herbarium's page (a Plymouth splash)
-instead of scrolling text: `archive-boot quiet` sets it up (setup.sh does
-it), `archive-boot loud` brings the text back, `archive-boot status` shows
+instead of scrolling text: `ultra-boot quiet` sets it up (setup.sh does
+it), `ultra-boot loud` brings the text back, `ultra-boot status` shows
 what is set.
 
 Memory: the setup turns on compressed swap in RAM (zram), so a full
-memory slows nothing to a crawl; `archive-memory status` shows what it
-holds, `archive-memory off` turns it off. `archive-health` reports where
+memory slows nothing to a crawl; `ultra-memory status` shows what it
+holds, `ultra-memory off` turns it off. `ultra-health` reports where
 power and memory go.
 
 Mouse: click the sprig for the catalogue, the date for the ledger and the
@@ -356,13 +360,13 @@ Pick a plate with one plant on plain paper. Crop off the printed caption (the
 shell types its own labels), then:
 
 ```sh
-archive-plate import ~/Downloads/lindman-geranium-sylvaticum.jpg \
+ultra-plate import ~/Downloads/lindman-geranium-sylvaticum.jpg \
     --latin "Geranium sylvaticum" --authority "Linnaeus, 1753." \
     --family "Geraniaceae" --common "Wood cranesbill." \
     --loc "Scandinavia." --hab "Meadows and woodland edges." \
     --leg "C. A. M. Lindman" --det "C. A. M. Lindman" --dat "1901."
-archive-plate list
-archive-plate pin 0002-geranium-sylvaticum    # show it now; `archive-plate daily` to rotate
+ultra-plate list
+ultra-plate pin 0002-geranium-sylvaticum    # show it now; `ultra-plate daily` to rotate
 ```
 
 The import makes the line drawing (inked graphite by day, cream at night), a
@@ -378,12 +382,12 @@ pencil tick, a paper clip. No sounds are bundled, and missing ones are just
 silent. Record each with your phone in a quiet room, trim it, then:
 
 ```sh
-archive-sound-prep stamp.wav message        # one soft stamp press
-archive-sound-prep drawer-open.wav login
-archive-sound-prep pencil.wav volume
+ultra-sound-prep stamp.wav message        # one soft stamp press
+ultra-sound-prep drawer-open.wav login
+ultra-sound-prep pencil.wav volume
 ```
 
-[Here is the full list](dotfiles/.local/share/sounds/archive/stereo/README.md).
+[Here is the full list](home/.local/share/sounds/archive/stereo/README.md).
 The tool mixes each one to the spec: mono, 48 kHz, −24 LUFS, −12 dBFS peak,
 with a 10 ms fade-out.
 
@@ -408,10 +412,10 @@ with a 10 ms fade-out.
   installed (the setup makes it the default; `xdg-mime default code.desktop
   text/plain` does it by hand).
 - **Calls** (Teams, Meet, Discord): pick **Microphone (clear)**, the laptop's
-  microphone with the hiss, fan hum and echo taken out. `archive-mic test`
-  records five seconds and plays them back; `archive-mic tone soft` or `softer`
+  microphone with the hiss, fan hum and echo taken out. `ultra-mic test`
+  records five seconds and plays them back; `ultra-mic tone soft` or `softer`
   takes some of the sharp top off (`flat`, the default, leaves it);
-  `archive-mic off` goes back to the raw one. ("Monitor of ..." in a microphone list is the speakers' sound, not a
+  `ultra-mic off` goes back to the raw one. ("Monitor of ..." in a microphone list is the speakers' sound, not a
   microphone.) For calls on the speakers, also pick **Speakers (echo
   cancelled)** as the output, so the others do not hear themselves.
 

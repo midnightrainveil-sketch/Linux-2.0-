@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# ultra-grain: the paper grain over windows.
+#
+#   ultra-grain window              flip it for the focused window (Super+Shift+G,
+#                                     or the "░" in the window's title bar)
+#   ultra-grain on | off | toggle   everywhere at once (quick settings)
+#   ultra-grain status
+#
+# The grain is drawn by the title-bar plugin, per window: terminals and the
+# system's own tools are paper; browsers, players and anything else keep their
+# true colours until you flip them (see hypr/theme/look.lua, paper_apps).
+set -euo pipefail
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ultra/night-service"
+mkdir -p "$state_dir"
+current=$(cat "$state_dir/grain" 2>/dev/null || echo on)
+
+case ${1:-window} in
+    window)
+        hyprctl eval 'hl.plugin.archivebars.toggle_grain()' >/dev/null
+        exit 0
+        ;;
+    on) want=on ;;
+    off) want=off ;;
+    toggle) [[ $current == on ]] && want=off || want=on ;;
+    status) echo "$current"; exit 0 ;;
+    *) echo "usage: ultra-grain window|on|off|toggle|status" >&2; exit 2 ;;
+esac
+
+printf '%s\n' "$want" >"$state_dir/grain"
+strength=0
+[[ $want == on ]] && strength=1
+hyprctl eval "hl.config({ plugin = { archivebars = { grain = $strength } } })" >/dev/null

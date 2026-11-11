@@ -2,8 +2,8 @@
 
 ## settings.json
 
-`~/.config/archive/settings.json` is read by the shell (it applies changes as
-soon as you save), by Hyprland (on reload) and by `archive-mode`.
+`~/.config/ultra/<theme>/settings.json` is read by the shell (it applies changes as
+soon as you save), by Hyprland (on reload) and by `ultra-mode`.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ After changing `reducedMotion`, `paperEdges` or `deskTerminal`, run `hyprctl rel
 
 ### The torn window edge
 
-Its shape is set in `~/.config/hypr/archive/look.lua` (the `deckle_*` lines):
+Its shape is set in `~/.config/hypr/theme/look.lua` (the `deckle_*` lines):
 
 | Option | Default | Effect |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ change without logging out, build the preview tool (see the top of
 The palette is defined in three places. Keep them in sync:
 
 1. `~/.config/quickshell/theme/Theme.qml`: the shell, day (`day`) and night (`nite`).
-2. `~/.config/hypr/archive/palette.lua`: borders, shadows and title bars.
+2. `~/.config/hypr/theme/palette.lua`: borders, shadows and title bars.
 3. `tools/gen_themes.py` (run it again after editing): GTK and Qt.
 
 The terminal palette is in `~/.config/foot/foot.ini`: `[colors-light]` by day
@@ -75,9 +75,9 @@ Fontconfig defaults are in `~/.config/fontconfig/fonts.conf`.
 
 ## Window behaviour
 
-- Keybinds: `~/.config/hypr/archive/binds.lua`. The terminal, file manager and
+- Keybinds: `~/.config/hypr/theme/binds.lua`. The terminal, file manager and
   browser are set at the top.
-- Which windows float as small centred cards: `small_tools` in `archive/rules.lua`.
+- Which windows float as small centred cards: `small_tools` in `theme/rules.lua`.
 - Your own Hyprland additions: create `~/.config/hypr/user.lua`. It's loaded
   last, and git ignores it.
 
@@ -89,20 +89,20 @@ suspend.
 ## Day / night by hand
 
 ```sh
-archive-mode night     # until the next sunrise or sunset
-archive-mode day
-archive-mode toggle
-archive-mode auto      # back to the clock right away
+ultra-mode night     # until the next sunrise or sunset
+ultra-mode day
+ultra-mode toggle
+ultra-mode auto      # back to the clock right away
 ```
 
 ## Plates
 
 ```sh
-archive-plate list
-archive-plate import IMAGE --latin "Genus species" [--authority --family --common --loc --hab --leg --det --dat]
-archive-plate pin ID
-archive-plate daily
-archive-plate remove ID
+ultra-plate list
+ultra-plate import IMAGE --latin "Genus species" [--authority --family --common --loc --hab --leg --det --dat]
+ultra-plate pin ID
+ultra-plate daily
+ultra-plate remove ID
 ```
 
 A plate's `meta.json` holds its names, the specimen label, the `tapes`

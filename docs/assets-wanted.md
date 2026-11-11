@@ -16,7 +16,7 @@ python3 tools/import_drawer.py      # the catalogue drawer
 | `art/icons.webp` | `assets/icons/<name>.png` | One row of ten ink icons, left to right: seedling, screen, screen-night, speaker, speaker-loud, speaker-muted, wifi, wifi-none, wifi-off, record. |
 | `art/weather.webp` | `assets/weather/<name>.png` | A 3 × 3 grid of pencil weather sketches, row by row: overcast, clear, clear-night / partly, partly-night, fog / rain, snow, storm. |
 | `art/drawer/*.webp` | `quickshell/assets/drawer/` | The catalogue drawer, from `tools/import_drawer.py`: `front` (a square oak front, rebuilt wide with the grain lengthwise), `holder` and `pull` (brass on white, keyed out), `wood` (a seamless tile for the inside). Without them the drawer is drawn. |
-| `art/wallpaper.webp` | `~/.local/share/archive/plates/0001-geranium-pratense/` | The whole 16:9 sheet, used as the wallpaper with its own text: `sheet-day.jpg` (toned to the desk grey) and `sheet-night.jpg` (a cyanotype print of it). |
+| `art/wallpaper.webp` | `~/.local/share/ultra/<theme>/plates/0001-geranium-pratense/` | The whole 16:9 sheet, used as the wallpaper with its own text: `sheet-day.jpg` (toned to the desk grey) and `sheet-night.jpg` (a cyanotype print of it). |
 
 The sources can be ink on white: the scripts key out the paper and write
 black ink with alpha, which the shell tints graphite by day and pale blue at
@@ -28,12 +28,12 @@ night. Colour in the art is not kept.
   nine weather sketches in a 3 × 3 grid with clear gaps. The scripts find
   the pieces by those gaps and stop with a message if the count is wrong.
 - For the wallpaper, any finished 16:9 sheet works: run
-  `archive-wallpaper ~/path/to/image.png`. It keeps your image in
-  `~/.config/archive/`, outside the theme, so `archive-update` never
+  `ultra-wallpaper ~/path/to/image.png`. It keeps your image in
+  `~/.config/ultra/`, outside the theme, so `ultra-update` never
   replaces it, and rebuilds the day and night sheets from it. The screen fills
   with it, cropping a little off the sides on a 16:10 panel, so keep the
   sides of the picture quiet. A text-free plant on plain paper can instead go
-  through `archive-plate import`, and the shell types its labels.
+  through `ultra-plate import`, and the shell types its labels.
 - A larger source gives finer lines on the G14's 2880 × 1800 panel. The
   current wallpaper is 1672 × 941 and is upscaled 2×.
 

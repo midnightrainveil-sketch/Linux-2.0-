@@ -1,0 +1,224 @@
+import QtQuick
+import Quickshell
+import Qt5Compat.GraphicalEffects
+import qs.theme
+import qs.services
+import qs.components
+
+// Time Record, laid out to the reference card (485 x 323):
+//   header band with subtitle, rule at 58
+//   tall typewriter clock "14 : 26" | vertical rule | watercolour sprig
+//   rule, then a three-row table with an empty column on the right
+IndexCard {
+    id: card
+
+    title: Flavour.word("archiveName", Settings.archiveName)
+    subtitle: Flavour.word("timeSubtitle", "Time Record.")
+    number: Clock.timeRecordNo
+    labelWidth: 112
+    seed: 101
+    implicitHeight: 323
+
+    // One tall numeral: Courier Prime stretched upright like the
+    // reference's condensed typewriter figures, struck through a worn ribbon
+    // (assets/ink-wear.png: patchy ink, pale streaks, pinholes; each digit
+    // gets its own patch of it). The old digit fades out and the new one
+    // types in (120 ms).
+    component Digit: Item {
+        id: digit
+        property string value: "0"
+        property string shown: value
+        property int wear: 0
+        readonly property real em: Theme.sizeClock
+        // room around the figure for the ink, so a font that sits a little
+        // lower (or the ink's spread) is never clipped
+        readonly property real pad: Math.round(em * 0.12)
+        width: em * 0.6
+        height: em * 0.592 * Theme.clockStretch
+
+        Item {
+            id: struck
+            x: -digit.pad; y: -digit.pad
+            width: digit.width + 2 * digit.pad
+            height: digit.height + 2 * digit.pad
+            visible: false
+            InkText {
+                id: face
+                x: digit.pad
+                y: digit.pad - (0.782 - 0.592) * digit.em * Theme.clockStretch
+                text: digit.shown
+                color: Theme.soft
+                font.pixelSize: digit.em
+                spread: 1.6
+                transform: Scale { yScale: Theme.clockStretch }
+            }
+        }
+        Item {
+            id: ribbon
+            anchors.fill: struck
+            visible: false
+            clip: true
+            Image {
+                x: -(digit.wear * 53) % 256
+                y: -(digit.wear * 97) % 256
+                width: parent.width + 256
+                height: parent.height + 256
+                source: Qt.resolvedUrl("../../assets/ink-wear.png")
+                fillMode: Image.Tile
+            }
+        }
+        OpacityMask {
+            anchors.fill: struck
+            source: struck
+            maskSource: ribbon
+        }
+
+        onValueChanged: swap.restart()
+        SequentialAnimation {
+            id: swap
+            NumberAnimation { target: face; property: "opacity"; to: 0; duration: Theme.durDigit / 2 }
+            ScriptAction { script: digit.shown = digit.value }
+            NumberAnimation { target: face; property: "opacity"; to: 1; duration: Theme.durDigit / 2 }
+        }
+    }
+
+    // ---- clock band (card y 58 .. 197)
+    Item {
+        width: card.width
+        height: 139
+
+        Row {
+            id: clock
+            x: 37
+            y: 39
+            // typed with a worn ribbon (see Digit): graphite, not black
+            Digit { value: Clock.hours.charAt(0); wear: 1 }
+            Digit { value: Clock.hours.charAt(1); wear: 2 }
+            // the colon: two round dots, set apart like "14 : 26"
+            Item {
+                width: 72
+                height: parent.height
+                Repeater {
+                    model: 2
+                    Rectangle {
+                        required property int index
+                        width: 11; height: 11; radius: 5.5
+                        color: Theme.soft
+                        antialiasing: true
+                        x: parent.width / 2 - width / 2
+                        y: index === 0 ? parent.height * 0.32 - 5 : parent.height * 0.86 - 5
+                    }
+                }
+            }
+            Digit { value: Clock.minutes.charAt(0); wear: 3 }
+            Digit { value: Clock.minutes.charAt(1); wear: 4 }
+        }
+
+        Rule {
+            vertical: true
+            x: 375
+            y: 29
+            height: 97
+            width: implicitWidth
+            seed: 104
+        }
+
+        // the archive's sprig, a watercolour wash
+        Item {
+            x: 404
+            y: 22
+            width: 54
+            height: 110
+            Image {
+                id: sprigImage
+                anchors.fill: parent
+                source: Qt.resolvedUrl("../../assets/sprig-wash.png")
+                sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))   // (the file is 426 x 1369)
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                visible: false
+            }
+            ColorOverlay {
+                anchors.fill: parent
+                source: sprigImage
+                color: Theme.sprigInk
+                visible: Flavour.clockArt.toString() === ""
+            }
+            // a theme's own small picture, in its own colours (Flavour)
+            Image {
+                id: keyArt
+                anchors.fill: parent
+                visible: Flavour.clockArt.toString() !== ""
+                source: Flavour.clockArt
+                sourceSize: Qt.size(Math.ceil(width * 2), Math.ceil(height * 2))
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                asynchronous: true
+                opacity: Theme.night > 0.5 ? 0.85 : 1
+                // a click sets it swinging on its ring, and locks the screen
+                property real swing: 0
+                rotation: swing
+                transformOrigin: Item.Top
+                SequentialAnimation {
+                    id: swinging
+                    NumberAnimation { target: keyArt; property: "swing"; to: 16; duration: 180; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: -12; duration: 360; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 8; duration: 340; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: -4.5; duration: 320; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 2; duration: 300; easing.type: Easing.InOutQuad }
+                    NumberAnimation { target: keyArt; property: "swing"; to: 0; duration: 280; easing.type: Easing.OutQuad }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    // the compartment's key: a turn of it locks the compartment
+                    onClicked: { swinging.restart(); lockSoon.restart(); }
+                }
+                Timer {
+                    id: lockSoon
+                    interval: 650
+                    onTriggered: Quickshell.execDetached(["qs", "ipc", "call", "lock", "lock"])
+                }
+            }
+        }
+    }
+
+    // ---- table (card y 197 .. 323), an empty column right of x 382
+    Item {
+        width: card.width
+        height: 126
+
+        Rule {
+            x: Theme.ruleInset
+            width: parent.width - 2 * Theme.ruleInset
+            y: -height / 2
+            height: implicitHeight
+            seed: 105
+        }
+        Rule {
+            vertical: true
+            x: 382
+            y: 0
+            height: parent.height - Theme.edgeInset     // inside the card's cut edge
+            width: implicitWidth
+            seed: 106
+        }
+
+        Column {
+            y: 2
+            width: parent.width
+            DataRow { label: "Date"; value: Clock.longDate; labelWidth: card.labelWidth; ruleRight: 382 }
+            DataRow { label: "Day"; value: "Week " + Clock.week; labelWidth: card.labelWidth; ruleRight: 382 }
+            DataRow {
+                label: "Location"
+                value: Clock.coordinates(Settings.latitude, Settings.longitude)
+                labelWidth: card.labelWidth
+                ruleRight: 382
+                last: true
+                rowHeight: 40
+            }
+        }
+    }
+}

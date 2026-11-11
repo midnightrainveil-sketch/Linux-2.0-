@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Field Notebook
+GenericName=Notes
+Comment=Write in the field notebook (pages kept in ~/Documents/Field Notes)
+Exec=qs ipc call shell notebook
+Icon=accessories-text-editor
+Categories=Office;Utility;
+Keywords=notes;notepad;journal;write;

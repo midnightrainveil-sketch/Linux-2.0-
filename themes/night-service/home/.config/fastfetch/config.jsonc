@@ -1,0 +1,80 @@
+// fastfetch: the desk terminal's index card, written as a herbarium
+// specimen label (the one on the sheet: Loc. / Hab. / Leg. / Det. / Dat.).
+// The machine is the specimen:
+//
+//   snowglobe_express @ ZephyG14
+//   Specimen of the machine.  ──────────
+//   Spec.  Arch Linux x86_64              the species: the system
+//   Loc.   ROG Zephyrus G14 · GA403UV     where it was found
+//   Hab.   Hyprland · zsh · foot          what it lives in
+//   ...
+//   then the six ink swatches of foot.ini (slots 16-21), chalked on.
+//
+// Run through ultra-card (the desk terminal does; so does `ff`): it draws
+// the pictures for this terminal's cell size and the time of day, the
+// portrait (portrait.png) in place of the logo below and the swatches the
+// last module shows. Plain `fastfetch` gives the typed Arch mark (logo.txt).
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/logo.txt",
+    "color": { "1": "default" },
+    "padding": { "top": 1, "left": 2, "right": 3 }
+  },
+  "display": {
+    "separator": "",
+    "color": { "keys": "@17", "title": "default", "separator": "default", "output": "default" },
+    "key": { "width": 7 },
+    "brightColor": false,
+    "size": { "binaryPrefix": "iec", "ndigits": 1 },
+    // the disk's gauge: a ruled line, the used part inked in
+    "percent": { "type": ["bar", "num"], "color": { "green": "default", "yellow": "default", "red": "default" } },
+    "bar": {
+      "char": { "elapsed": "━", "total": "─" },
+      "border": { "left": "", "right": "" },
+      "color": { "elapsed": "default", "total": "@17", "border": "default" },
+      "width": 8
+    }
+  },
+  "modules": [
+    { "type": "title", "format": "{#1}{user-name}{#} {#@17}@{#} {#1}{host-name}{#}" },
+    { "type": "custom", "format": "{#@17}Specimen of the machine.{#} {#@17}──────────{#}" },
+    { "type": "os", "key": "Spec.", "format": "{name} {arch}" },
+    {
+      // the model, once (the firmware writes it twice: GA403UV_GA403UV)
+      "type": "command",
+      "key": "Loc.",
+      "text": "n=$(cat /sys/class/dmi/id/product_name 2>/dev/null | sed 's/_.*//; s/ \\([A-Z][A-Z0-9]*\\)$/ · \\1/'); echo \"${n:-$(uname -n)}\""
+    },
+    { "type": "wm", "key": "Hab.", "format": "{pretty-name} · zsh · foot" },
+    { "type": "kernel", "key": "Kern.", "format": "{release}" },
+    {
+      "type": "command",
+      "key": "Proc.",
+      "text": "n=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1 | sed 's/ w\\/.*//; s/ [0-9]*-Core Processor//; s/(R)//g; s/(TM)//g; s/^AMD //; s/^Intel //'); echo \"$n · $(nproc) threads\""
+    },
+    {
+      // both graphics chips on one line, without the makers' words
+      // (GeForce RTX 4060 Max-Q / Mobile, AMD Radeon 780M Graphics)
+      "type": "command",
+      "key": "Gr.",
+      "text": "fastfetch -c none -s gpu --format json 2>/dev/null | jq -r '.[0].result[].name' | sed 's/^NVIDIA //; s/^AMD //; s/^Intel(R) //; s/GeForce //; s| / Mobile||; s/ Graphics$//' | awk 'NR > 1 { printf \" · \" } { printf \"%s\", $0 } END { print \"\" }'"
+    },
+    { "type": "memory", "key": "Mem.", "format": "{used} / {total}" },
+    { "type": "disk", "key": "Disk.", "folders": "/", "format": "{size-percentage} {size-percentage-bar} of {size-total}" },
+    { "type": "packages", "key": "Pkgs.", "format": "{all}" },
+    { "type": "command", "key": "Dat.", "text": "echo \"$(date '+%-d %b %Y') · up $(uptime -p | sed 's/^up //; s/ hours\\?/h/; s/ minutes\\?/m/; s/ days\\?/d/; s/,//g')\"" },
+    { "type": "custom", "format": "{#@17}──────────────────────────────────{#}" },
+    {
+      "type": "command",
+      "key": " ",
+      // the cursor put back where the picture began, so the lines after it
+      // (the logo's) are not pushed down by its height. (Not while
+      // ultra-card measures the label.)
+      "text": "f=${XDG_CACHE_HOME:-$HOME/.cache}/ultra/night-service/card/swatches.six; if [ -n \"$ULTRA_CARD_MEASURE\" ]; then echo .; elif [ -f \"$f\" ]; then printf '\\0337'; cat \"$f\"; printf '\\0338'; fi; true"
+    },
+    "break",
+    "break"
+  ]
+}

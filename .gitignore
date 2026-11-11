@@ -1,3 +1,4 @@
-# personal additions, not tracked
-dotfiles/.config/hypr/user.lua
+.stamp
 __pycache__/
+*.new
+*.old

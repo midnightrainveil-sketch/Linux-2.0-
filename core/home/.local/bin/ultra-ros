@@ -1,0 +1,373 @@
+#!/usr/bin/env bash
+# ultra-ros: ROS Noetic in an Ubuntu 20.04 container (distrobox + podman).
+#
+#   ultra-ros            a ROS shell (sets everything up the first time)
+#   ultra-ros rviz       RViz (starts roscore first if none is running)
+#   ultra-ros ROBOT      a ROS shell talking to a robot's ROS master
+#   ultra-ros rviz ROBOT RViz on a robot (ROBOT: its IP, e.g. 192.168.68.153),
+#                          with that robot's saved setup (cb_007 for .153,
+#                          mag1500 for .241; ~/.config/ultra/rviz-setups for more)
+#   ultra-ros rviz [ROBOT] -d FILE.rviz   ... with a saved RViz setup
+#   ultra-ros rviz-indirect ROBOT [-d FILE.rviz]
+#                          the same, slower, for when the office Wi-Fi loses
+#                          the direct way to the robot: the robot through the
+#                          router, its inner network through an SSH tunnel into
+#                          it (sshuttle; the robot's password unless your key is
+#                          on it). Watching works; what RViz sends to the robot
+#                          (a goal, a pose) needs the robot to reach this laptop,
+#                          which only the direct way gives.
+#   ultra-ros setup      set up, or finish a setup that stopped
+#   ultra-ros remove     delete the container (your files stay)
+#
+# The container shares your home folder, sound and USB devices, so
+# ~/catkin_ws is the same folder inside and out. It draws with the CPU
+# (Ubuntu 20.04's drivers predate the Radeon 780M), which is plenty for RViz.
+# ROS windows (RViz, rqt) open in a screen of their own: a private X server
+# in a window on the desk, drawing without the graphics driver. The desk's
+# own X server (XWayland) crashes in Arch's Mesa when RViz draws on it, and
+# takes every X program with it; the private one cannot. The app drawer gets
+# "ROS Noetic" (a shell) and "RViz".
+set -euo pipefail
+box=ros-noetic
+image=docker.io/library/ubuntu:20.04
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/ros"
+rc="$conf/bashrc"
+apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+
+say() { printf '\n\033[1m:: %s\033[0m\n' "$*"; }
+
+have_box() { command -v distrobox >/dev/null && distrobox list 2>/dev/null | grep -qw "$box"; }
+ready() { have_box && [[ -f $conf/installed ]]; }
+
+# ------------------------------------------------------------------ the shell's settings inside
+write_rc() {
+    mkdir -p "$conf"
+    cat >"$rc" <<'EOF'
+# ROS Noetic shell (ultra-ros); your own ~/.bashrc is not used in here
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+source /opt/ros/noetic/setup.bash
+[ -f "$HOME/catkin_ws/devel/setup.bash" ] && source "$HOME/catkin_ws/devel/setup.bash"
+export ROS_MASTER_URI=${ROS_MASTER_URI:-http://localhost:11311}
+export ROS_HOSTNAME=${ROS_HOSTNAME:-localhost}
+# Qt 5.12 here talks X11, and draws 3D on the CPU
+export QT_QPA_PLATFORM=xcb
+export LIBGL_ALWAYS_SOFTWARE=1
+# drawing on the processor: leave some of it for the rest of the desk
+export LP_NUM_THREADS=${LP_NUM_THREADS:-4}
+# ROS windows go on a private X server in a window of its own (ultra-ros
+# starts it on request; the desk's XWayland crashes on RViz)
+_archive_x() {
+    local req=${ULTRA_X_REQ:-} ans=${ULTRA_X_REQ:-}.ans i
+    [ -n "$req" ] && [ -p "$req" ] || return 0
+    rm -f "$ans"
+    echo start >"$req"
+    for i in $(seq 80); do [ -s "$ans" ] && break; sleep 0.1; done
+    [ -s "$ans" ] || return 0
+    read -r DISPLAY _archive_geo <"$ans"
+    export DISPLAY
+}
+rviz() {
+    _archive_x
+    local t=$SECONDS
+    if [ -n "${_archive_geo:-}" ]; then
+        nice -n 10 rviz -geometry "${_archive_geo}+0+0" "$@" && return
+        [ $((SECONDS - t)) -lt 4 ] || return
+    fi
+    nice -n 10 rviz "$@"
+}
+onx() { _archive_x; "$@"; }     # any other window: onx rqt_graph
+rqt() { _archive_x; command rqt "$@"; }
+rqt_graph() { _archive_x; command rqt_graph "$@"; }
+rqt_plot() { _archive_x; command rqt_plot "$@"; }
+rqt_image_view() { _archive_x; command rqt_image_view "$@"; }
+alias cm='(cd ~/catkin_ws && catkin_make)'
+PS1='\[\e[1m\](noetic)\[\e[0m\] \w \$ '
+echo "ROS Noetic. Workspace: ~/catkin_ws   (build: cm   |   roscore, rviz, rqt, roslaunch ...)"
+EOF
+}
+
+# ------------------------------------------------------------------ setup
+setup() {
+    say "container tools (podman, distrobox)"
+    sudo pacman -S --needed --noconfirm podman distrobox
+    # rootless containers need a range of user ids
+    if ! grep -q "^$USER:" /etc/subuid 2>/dev/null; then
+        sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 "$USER"
+        podman system migrate >/dev/null 2>&1 || true
+    fi
+
+    if ! have_box; then
+        say "the Ubuntu 20.04 container"
+        distrobox create --name "$box" --image "$image" --yes
+    fi
+
+    say "ROS Noetic inside it (a few GB; 10 to 30 minutes)"
+    distrobox enter "$box" -- bash -s <<'INNER'
+set -e
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get update
+sudo -E apt-get install -y curl gnupg2 lsb-release ca-certificates locales software-properties-common
+sudo locale-gen en_US.UTF-8 >/dev/null || true
+
+# the ROS package source and its signing key: the ros-apt-source package
+# (current), else the key from rosdistro
+if ! ls /etc/apt/sources.list.d/ros* >/dev/null 2>&1; then
+    ok=0
+    ver=$(curl -fsSL https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest 2>/dev/null | grep -F '"tag_name"' | awk -F'"' '{print $4}' || true)
+    if [ -n "$ver" ] && curl -fsSL -o /tmp/ros-apt-source.deb \
+        "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ver}/ros-apt-source_${ver}.focal_all.deb"; then
+        sudo -E apt-get install -y /tmp/ros-apt-source.deb && ok=1
+    fi
+    if [ $ok = 0 ]; then
+        echo "   (ros-apt-source not available; using the key from rosdistro)"
+        curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | sudo gpg --dearmor --yes -o /usr/share/keyrings/ros-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu focal main" |
+            sudo tee /etc/apt/sources.list.d/ros1-latest.list >/dev/null
+    fi
+fi
+
+sudo -E apt-get update 2>&1 | tee /tmp/ros-apt.log
+if grep -qiE 'EXPKEYSIG|NO_PUBKEY|is not signed' /tmp/ros-apt.log; then
+    echo "!! the ROS package key was refused (see /tmp/ros-apt.log in the container)"
+    exit 1
+fi
+sudo -E apt-get install -y ros-noetic-desktop-full \
+    python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool \
+    python3-catkin-tools build-essential git
+[ -f /etc/ros/rosdep/sources.list.d/20-default.list ] || sudo rosdep init
+rosdep update || echo "   (rosdep update failed; run it later inside: rosdep update)"
+INNER
+
+    write_rc
+    mkdir -p "$HOME/catkin_ws/src"
+
+    say "app drawer entries"
+    mkdir -p "$apps"
+    cat >"$apps/ultra-ros.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=ROS Noetic
+GenericName=Robot Operating System
+Comment=A shell in the Ubuntu 20.04 ROS container
+Exec=foot --title=ROS -e $HOME/.local/bin/ultra-ros
+Icon=utilities-terminal
+Categories=Development;
+EOF
+    cat >"$apps/ultra-rviz.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=RViz
+GenericName=ROS 3D visualiser
+Comment=RViz from the ROS Noetic container
+Exec=$HOME/.local/bin/ultra-ros rviz
+Icon=applications-science
+Categories=Development;Science;
+EOF
+    touch "$conf/installed"
+    say "done: run ultra-ros (or open \"ROS Noetic\" from the drawer)"
+}
+
+# ------------------------------------------------------------------ a robot
+# robot <ip or name>: the ROS settings for talking to a robot's master. ROS 1
+# talks both ways, so the robot must reach this laptop too: it is told this
+# laptop's address on the robot's network (not a name it cannot look up).
+robot_env=""
+robot_up=1
+indirect=0          # rviz-indirect: through the router, and a tunnel into the robot
+inner_nets=()       # (indirect) the robot's inner networks, for the tunnel
+robot() {
+    local host=$1 addr me gw dev
+    addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}' || true)
+    [[ -n $addr ]] || { echo "ultra-ros: cannot find $host" >&2; exit 1; }
+    if ((indirect)); then
+        # the robot itself through the router, as ultra-lan does
+        read -r gw dev < <(ip -4 route show default | awk '{ for (i = 1; i < NF; i++) { if ($i == "via") g = $(i + 1); if ($i == "dev") d = $(i + 1) } print g, d; exit }')
+        if [[ -n ${gw:-} && $addr != "$gw" ]]; then
+            echo ":: reaching $host through the router ($gw)"
+            sudo ip route replace "$addr/32" via "$gw" dev "$dev" || true
+        fi
+    fi
+    me=$(ip -4 route get "$addr" 2>/dev/null | grep -oP 'src \K\S+' || true)
+    [[ -n $me ]] || { echo "ultra-ros: no network route to $host (same Wi-Fi?)" >&2; exit 1; }
+    echo ":: robot master http://$host:11311, this laptop $me"
+    if ! timeout 3 bash -c "exec 3<>/dev/tcp/$addr/11311" 2>/dev/null; then
+        echo "!! nothing answers on $host port 11311: is the robot's roscore (its bringup) running?" >&2
+        robot_up=0
+    fi
+    robot_env="export ROS_MASTER_URI=http://$host:11311 ROS_IP=$me ROS_HOSTNAME=$me;"
+    ((robot_up)) && robot_routes "$addr"
+}
+
+# robot_routes <robot address>: a robot's programs may announce addresses on a
+# network inside the robot (192.168.1.10 ...) that this laptop cannot reach
+# (RViz then hangs on "Connection timed out"). Ask its master where they are,
+# and send that network through the robot (sudo ip route replace ... via ...;
+# until the next reboot).
+xmlrpc() { # xmlrpc <url> <method> [string argument]
+    curl -s -m 3 -H 'Content-Type: text/xml' --data \
+        "<?xml version=\"1.0\"?><methodCall><methodName>$2</methodName><params><param><value><string>/archive_ros</string></value></param>${3:+<param><value><string>$3</string></value></param>}</params></methodCall>" "$1"
+}
+robot_routes() {
+    local addr=$1 master="http://$1:11311/" name uri ip port seen="" tries=0
+    command -v curl >/dev/null || return 0
+    while IFS= read -r name; do
+        ((++tries > 60)) && break
+        # (the master lists topics and services too: they have no address)
+        uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1 || true)
+        [[ -n $uri ]] || continue
+        ip=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri")
+        port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
+        [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && $ip != "$addr" && " $seen " != *" $ip "* ]] || continue
+        seen+=" $ip"
+        timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null && continue
+        if ((indirect)); then
+            # through the tunnel instead (a route through the robot needs the
+            # direct way to it, which is what is broken)
+            sudo ip route del "${ip%.*}.0/24" 2>/dev/null || true
+            inner_nets+=("${ip%.*}.0/24")
+            continue
+        fi
+        echo ":: the robot's programs are at $ip, which this laptop cannot reach directly;"
+        echo "   routing ${ip%.*}.0/24 through the robot (sudo, until the next reboot)"
+        sudo ip route replace "${ip%.*}.0/24" via "$addr" || echo "!! could not add the route: RViz may get no data" >&2
+    done < <(xmlrpc "$master" getSystemState | grep -oP '<string>\K/[^<]+' | sort -u)
+}
+# tunnel <robot address>: (indirect) the robot's inner networks through an SSH
+# tunnel into the robot (sshuttle; it asks the robot's password unless your
+# key is on it). The robot's user: ULTRA_ROS_USER, else bi.
+tunnel_pid=""
+tunnel() {
+    local addr=$1
+    ((${#inner_nets[@]})) || return 0
+    command -v sshuttle >/dev/null || sudo pacman -S --needed --noconfirm sshuttle
+    tunnel_pid="${XDG_RUNTIME_DIR:-/tmp}/ultra-ros-tunnel.pid"
+    echo ":: a tunnel into the robot for ${inner_nets[*]} (sshuttle as ${ULTRA_ROS_USER:-bi}@$addr)"
+    sshuttle -D --pidfile "$tunnel_pid" -r "${ULTRA_ROS_USER:-bi}@$addr" "${inner_nets[@]}" \
+        || { echo "!! no tunnel: RViz may get no data" >&2; tunnel_pid=""; return 0; }
+    sleep 1
+}
+untunnel() {
+    [[ -n $tunnel_pid && -f $tunnel_pid ]] && kill "$(cat "$tunnel_pid")" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------ the private screen
+# private_x: a private X server in a window of its own (rootful XWayland,
+# drawing in shared memory, not through the graphics driver), sized to the
+# screen. Prints "DISPLAY WIDTHxHEIGHT". It closes with its last window.
+private_x() {
+    local n=12 geo=1600x1000 w h shm=-shm
+    if read -r w h < <(hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused) | "\((.width / .scale * 0.92) | floor) \((.height / .scale * 0.86) | floor)"' 2>/dev/null) &&
+        [[ $w =~ ^[0-9]+$ && $h =~ ^[0-9]+$ ]]; then
+        geo="${w}x${h}"
+    fi
+    if [[ -S /tmp/.X11-unix/X$n ]] && pgrep -f "Xwayland :$n " >/dev/null; then
+        echo ":$n $(cat "${XDG_RUNTIME_DIR:-/tmp}/ultra-ros-x.geo" 2>/dev/null || echo "$geo")"
+        return
+    fi
+    rm -f "/tmp/.X11-unix/X$n" "/tmp/.X$n-lock" 2>/dev/null || true
+    Xwayland -help 2>&1 | grep -q -- '-shm' || shm=""
+    setsid -f Xwayland ":$n" -geometry "$geo" $shm -terminate >/dev/null 2>&1
+    echo "$geo" >"${XDG_RUNTIME_DIR:-/tmp}/ultra-ros-x.geo"
+    for _ in $(seq 50); do [[ -S /tmp/.X11-unix/X$n ]] && break; sleep 0.1; done
+    sleep 0.3
+    echo ":$n $geo"
+}
+
+# while a shell is open, it may ask for the private screen through a pipe
+x_broker() { # x_broker <fifo>
+    local fifo=$1
+    while [[ -p $fifo ]]; do
+        if read -r _ <"$fifo"; then private_x >"$fifo.ans"; fi
+    done
+}
+
+# saved_setup <robot address>: the robot's own RViz setup, opened without a
+# -d (a line "ADDRESS FILE" in ~/.config/ultra/rviz-setups adds or changes
+# one; these two are the office robots')
+saved_setup() {
+    local own="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/rviz-setups" ip file
+    if [[ -f $own ]]; then
+        while read -r ip file; do
+            [[ $ip == "$1" && -n $file ]] && { echo "${file/#\~/$HOME}"; return; }
+        done < <(grep -vE '^\s*(#|$)' "$own")
+    fi
+    case $1 in
+        192.168.68.153) echo "$HOME/Documents/Botsync/cb_007.rviz" ;;          # cb_007
+        192.168.68.241) echo "$HOME/Documents/Botsync/mag1500_config.rviz" ;;  # mag1500_044
+    esac
+}
+
+looks_like_host() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || ( $1 == *.* && $1 != */* ) ]]; }
+
+# ------------------------------------------------------------------ use
+# (your home is shared, so this can be typed inside the ROS shell too, where
+# it can neither set routes nor reach the container tools)
+if [[ -n ${CONTAINER_ID:-} || -e /run/.containerenv ]]; then
+    echo "ultra-ros: this is the ROS shell itself; type exit, then run it again outside" >&2
+    exit 2
+fi
+cmd=${1:-shell}
+if looks_like_host "$cmd"; then robot "$cmd"; cmd=shell; fi
+case $cmd in
+    shell)
+        ready || setup
+        write_rc
+        fifo="${XDG_RUNTIME_DIR:-/tmp}/ultra-ros-x.$$"
+        rm -f "$fifo" "$fifo.ans"; mkfifo "$fifo"
+        x_broker "$fifo" &
+        broker=$!
+        trap 'rm -f "$fifo" "$fifo.ans"; kill $broker 2>/dev/null' EXIT
+        distrobox enter "$box" -- bash -c "$robot_env export ULTRA_X_REQ='$fifo'; exec bash --rcfile '$rc' -i"
+        ;;
+    rviz | rviz-indirect)
+        [[ $cmd == rviz-indirect ]] && indirect=1
+        ready || { echo "ultra-ros: not set up yet: run ultra-ros in a terminal first" >&2; exit 1; }
+        write_rc
+        shift
+        robot_host=""
+        if [[ -n ${1:-} ]] && looks_like_host "$1"; then robot_host=$1; shift; fi
+        rviz_args=""                         # the rest goes to RViz (-d setup.rviz)
+        (($#)) && rviz_args=$(printf ' %q' "$@")
+        # the robot's own setup, when none is given
+        if [[ -n $robot_host && " $* " != *" -d "* ]]; then
+            setup_file=$(saved_setup "$(getent ahostsv4 "$robot_host" | awk '{print $1; exit}')")
+            if [[ -n $setup_file && -f $setup_file ]]; then
+                echo ":: its saved setup: $setup_file"
+                rviz_args+=$(printf ' -d %q' "$setup_file")
+            elif [[ -n $setup_file ]]; then
+                echo "!! its saved setup is not there ($setup_file): RViz opens blank" >&2
+            fi
+        fi
+        if [[ -n $robot_host ]]; then
+            robot "$robot_host"
+            # RViz shows nothing until it reaches the master: say so, rather
+            # than open an empty black window
+            if ((!robot_up)); then
+                echo "   RViz would only wait for it. Start the robot's ROS (or check you are on its Wi-Fi), then try again." >&2
+                exit 1
+            fi
+        fi
+        read -r disp geo < <(private_x)
+        show="export DISPLAY=$disp _archive_geo=$geo; rviz$rviz_args"
+        if [[ -n $robot_host ]]; then
+            if ((indirect)); then
+                tunnel "$(getent ahostsv4 "$robot_host" | awk '{print $1; exit}')"
+                trap untunnel EXIT
+                distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; $show"
+                exit
+            fi
+            exec distrobox enter "$box" -- bash -c "$robot_env source '$rc' >/dev/null; $show"
+        fi
+        # roscore first if none is running; stopped again with RViz
+        exec distrobox enter "$box" -- bash -c "source '$rc' >/dev/null
+            if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
+            $show; [ -n \"\${core:-}\" ] && kill \$core"
+        ;;
+    setup) setup ;;
+    remove)
+        distrobox rm --force "$box" || true
+        rm -f "$conf/installed" "$apps/ultra-ros.desktop" "$apps/ultra-rviz.desktop"
+        echo "removed the container (~/catkin_ws is untouched)"
+        ;;
+    *) echo "usage: ultra-ros [ROBOT] | rviz [ROBOT] | rviz-indirect ROBOT | setup | remove" >&2; exit 2 ;;
+esac

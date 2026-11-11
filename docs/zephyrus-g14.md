@@ -57,7 +57,7 @@ sudo systemctl enable nvidia-suspend nvidia-resume nvidia-hibernate
 Those services switch to a text console on the way to sleep and back on
 waking (a black screen with a blinking cursor, and a few seconds before the
 lock screen). With driver 595 or newer (open modules) the driver can suspend
-itself instead: `archive-rog sleep` sets
+itself instead: `ultra-rog sleep` sets
 `NVreg_UseKernelSuspendNotifiers=1` and switches the services off (the setup
 does it when the driver is new enough). Reboot afterwards.
 
@@ -76,10 +76,10 @@ show the card asleep.
 Since asusctl 6.3.9, asusd switches the GPU itself: use the **GPU page in
 ROG Control** (the Machine button in Instruments). `supergfxctl` is retired
 upstream, and a `supergfxd` still running keeps asusd from switching;
-`archive-rog switch` removes it. The switching goes through the kernel's
+`ultra-rog switch` removes it. The switching goes through the kernel's
 `asus-armoury` driver, in **Linux 6.19 and newer**: on `linux-lts` 6.18 the
 GPU page has nothing to switch, so start the regular `linux` kernel.
-`archive-rog status` shows what the kernel offers.
+`ultra-rog status` shows what the kernel offers.
 
 | Mode | When |
 | --- | --- |
@@ -96,9 +96,9 @@ option `prime-run %command%`.
 
 ## 4. Stable GPU names for Hyprland
 
-`./install.sh --g14` writes a udev rule that creates `/dev/dri/amd-igpu` and
+`./setup.sh` writes a udev rule that creates `/dev/dri/amd-igpu` and
 `/dev/dri/nvidia-dgpu`. Hyprland is then told to render on the iGPU first
-(`AQ_DRM_DEVICES` in `~/.config/hypr/archive/machine.lua`). The dGPU stays
+(`AQ_DRM_DEVICES` in `~/.config/hypr/ultra/machine.lua`). The dGPU stays
 listed so a monitor on the HDMI port (wired to the NVIDIA card on this model)
 still works. The names appear at the next boot (the rule is not applied to
 a running session: re-announcing the GPUs to a live Hyprland can crash it).
@@ -123,16 +123,16 @@ height, which the record column uses as breathing room.
   `power-profiles-daemon`. asusctl follows it, and the Instruments card
   shows it.
 - The profile follows the charger: Quiet on battery, Balanced plugged in
-  (`archive-rog power`, run by `setup.sh`; asusd does the switching).
-  `archive-rog calm` stops the switching instead. Both stop ROG Control's
+  (`ultra-rog power`, run by `setup.sh`; asusd does the switching).
+  `ultra-rog calm` stops the switching instead. Both stop ROG Control's
   notifications and its background copy.
 - Graphics: Hybrid. The screen runs on the iGPU (the MUX stays there) and the
   dGPU wakes for whatever asks for it (`prime-run`, games), then powers off
   again. On battery it is asleep, so Integrated mode, which needs a log-out
-  for every switch, is not used automatically. `archive-rog gpu` installs the
+  for every switch, is not used automatically. `ultra-rog gpu` installs the
   driver with headers for every kernel you have (linux-lts needs
   linux-lts-headers), the dGPU power settings and Hybrid mode; `setup.sh`
-  runs it when the driver is not loaded. `archive-rog status` shows the
+  runs it when the driver is not loaded. `ultra-rog status` shows the
   driver, the dGPU's state and the profile.
 - hypridle dims at 2.5 min, locks at 5, turns the screen off at 5.5, and
   suspends after 20 min on battery.
@@ -141,7 +141,7 @@ height, which the record column uses as breathing room.
 
 - Keyboard backlight: `Fn + F2` / `Fn + F3` (`brightnessctl -d asus::kbd_backlight`).
 - If a G14 key does nothing, run `wev` (from the `wev` package), press the key,
-  and put the `sym` it prints into `~/.config/hypr/archive/binds.lua`.
+  and put the `sym` it prints into `~/.config/hypr/theme/binds.lua`.
 - The AniMe Matrix on the lid (some G14 models) is controlled with `asusctl anime`.
   To keep the desk quiet, turn it off.
 

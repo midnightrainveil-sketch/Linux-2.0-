@@ -1,6 +1,11 @@
-# Archive: a botanical-archive desktop for Arch + Hyprland
+# Ultra: themed desktops for Arch + Hyprland
 
-The desktop as a sheet in a botanical archive. Windows are typed index cards
+A machine setup (`core/`) and a set of desktop themes (`themes/`), each theme
+a self-contained box; only the chosen one is ever linked into the home
+folder. Two ship: **Archive** (a botanical herbarium, below) and
+**Compartment 19** (a 1930s Vienna to Venice night train).
+
+The Archive: the desktop as a sheet in a botanical archive. Windows are typed index cards
 lying on the sheet, the wallpaper is the pressed specimen, and the bar is the
 printed footer of the page. Grey paper and graphite by day; cyanotype blue at
 night.
@@ -20,17 +25,17 @@ On an Arch Linux that already runs Hyprland, one command installs the whole
 theme:
 
 ```sh
-git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/archive
-~/archive/setup.sh
+git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/ultra
+~/ultra/setup.sh
 ```
 
-(or unpack the `archive-theme` tarball anywhere and run `./setup.sh` in it; it
-moves itself to `~/archive`). It installs the packages, links the
-configuration (your old files go to `~/.archive-backup/`), names the G14's
+(or unpack it anywhere and run `./setup.sh` in it; it copies itself to
+`~/ultra`). It installs the packages, links the
+configuration (your old files go to `~/.ultra-backup/`), names the G14's
 GPUs if it finds a G14, builds the title-bar and paper-edge plugin, and offers
 a typed login screen. Then reboot.
 
-To update later, run `archive-update` in a terminal: it downloads the latest
+To update later, run `ultra-update` in a terminal: it downloads the latest
 version and runs the same setup (then reboot).
 
 **→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
@@ -56,20 +61,24 @@ Arch install, with a check after each one.
 ## Repository layout
 
 ```
-GUIDE.md                    the install guide (start here)
-install.sh                  links dotfiles/ into $HOME, installs packages, services
-packages/                   pacman package lists (desktop, G14 extras)
-dotfiles/
-  .config/hypr/             hyprland.lua + archive/*.lua, hypridle.conf
-  .config/quickshell/       the shell: theme/, services/, components/, modules/, assets/
-  .config/archive/          settings.json, GTK colour sheets
-  .config/foot, fastfetch, zsh, gtk-3.0, gtk-4.0, qt6ct, fontconfig, systemd/user
-  .local/bin/               archive-mode, archive-update, archive-icons, archive-ros, archive-grain, archive-brightness, archive-icc, archive-plate, archive-screenshot, ...
-  .local/share/archive/     plates (starter: Geranium pratense)
-  .local/share/fonts/       Courier Prime, Pinyon Script (SIL OFL)
-  .local/share/sounds/      the archive sound theme (record your own)
-art/                        source artwork (twig, icons, weather, wallpaper)
-tools/                      importers for art/, generators for grain, paper, GTK/Qt colours
+setup.sh                    installs everything (run again to update)
+GUIDE.md                    the install guide, phase by phase
+core/                       the machine, shared by every theme
+  home/.config/hypr/        hyprland.lua (the selector), ultra/machine.lua
+  home/.config/zsh, pipewire
+  home/.local/bin/          ultra-theme, ultra-update, ultra-rog, ultra-lan, ultra-ros,
+                            ultra-refresh, ultra-snapshot, ultra-brightness, ultra-mic, ...
+  packages/                 pacman package lists
+  system/plymouth/          the start-up page
+themes/                     one folder per theme (see themes/README.md)
+  archive/                  the herbarium
+  night-service/            Compartment 19
+    theme.json, preview-*.jpg
+    home/                   linked into $HOME while the theme is on:
+      .config/hypr/theme.lua + theme/*.lua, quickshell/, foot, gtk, qt6ct ...
+      .local/bin/           ultra-mode, ultra-desk, ultra-bars, ultra-icons, ...
+      .local/share/         fonts, cursors, sounds, plates, the title-bar plugin
+    tools/, art/            importers and source artwork
 docs/                       G14 notes, customising, design map, troubleshooting
 ```
 

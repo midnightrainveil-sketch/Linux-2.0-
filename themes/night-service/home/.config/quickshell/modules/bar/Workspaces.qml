@@ -1,0 +1,92 @@
+import QtQuick
+import Quickshell.Hyprland
+import qs.theme
+import qs.services
+import qs.components
+
+// Workspaces as ticket stubs, numbered: one with windows on it in its own
+// pigment (madder, ochre, sage, ink blue), an empty one plain; the one in
+// use picked up (raised and turned a little). Urgent: a small stamp mark.
+Row {
+    id: root
+    spacing: 0
+
+    readonly property var ids: {
+        let top = Settings.minWorkspaces;
+        for (const w of Hyprland.workspaces.values)
+            if (w.id > 0 && w.id <= 9) top = Math.max(top, w.id);
+        const out = [];
+        for (let i = 1; i <= top; i++) out.push(i);
+        return out;
+    }
+    readonly property int activeId: Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1
+
+    // what each numbered workspace holds, as plain values read afresh on each
+    // change: the cells keep no workspace object, which a swipe (that makes
+    // a workspace and drops it again) could pull out from under them
+    readonly property var state: {
+        const out = {};
+        for (const w of Hyprland.workspaces.values) {
+            if (!w || w.id < 1 || w.id > 9) continue;
+            out[w.id] = { occupied: (w.toplevels?.values?.length ?? 0) > 0, urgent: w.urgent === true };
+        }
+        return out;
+    }
+
+    Repeater {
+        model: root.ids
+
+        Item {
+            id: cell
+            required property int modelData
+            readonly property bool active: root.activeId === modelData
+            readonly property bool occupied: root.state[modelData]?.occupied ?? false
+            readonly property bool urgent: root.state[modelData]?.urgent ?? false
+
+            width: 50
+            height: Theme.barHeight
+
+            Ticket {
+                id: num
+                anchors.centerIn: parent
+                fill: cell.occupied ? Theme.ticketInks[(cell.modelData - 1) % 4] : Theme.ticketPlain
+                labelColor: cell.occupied ? Theme.ticketEdge : Theme.ticketPlainInk
+                label: String(cell.modelData)
+                lifted: cell.active ? 1 : 0
+                Behavior on lifted { NumberAnimation { duration: Theme.dur(220); easing.type: Easing.Bezier; easing.bezierCurve: Theme.place } }
+                Behavior on fill { ColorAnimation { duration: Theme.durFocus } }
+            }
+
+            // urgent: a tiny ring stamp pressed beside the number
+            Canvas {
+                visible: cell.urgent
+                width: 9; height: 9
+                anchors.left: num.right
+                anchors.bottom: num.top
+                anchors.bottomMargin: -4
+                rotation: -8
+                property color c: Theme.accent
+                onCChanged: requestPaint()
+                onPaint: {
+                    const ctx = getContext("2d");
+                    ctx.reset();
+                    ctx.strokeStyle = c;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath(); ctx.ellipse(0.8, 0.8, width - 1.6, height - 1.6); ctx.stroke();
+                    ctx.lineWidth = 0.7;
+                    ctx.beginPath(); ctx.ellipse(2.6, 2.6, width - 5.2, height - 5.2); ctx.stroke();
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Hypr.workspace(cell.modelData)
+            }
+        }
+    }
+
+    WheelHandler {
+        onWheel: e => Hypr.relativeWorkspace(e.angleDelta.y > 0 ? -1 : 1)
+    }
+}

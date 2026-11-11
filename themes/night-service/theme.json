@@ -1,0 +1,26 @@
+{
+  "id": "night-service",
+  "name": "Compartment 19",
+  "by": "Built in",
+  "summary": "A night in compartment 19 of the Vienna – Venice sleeper: keepsakes from the journey on the sheet, a postcard and a luggage label to play with, the brass key on a timetable, a music box, a little train along the bar.",
+  "previews": [
+    "preview-day.jpg",
+    "preview-night.jpg"
+  ],
+  "captions": [
+    "By day.",
+    "By night."
+  ],
+  "own": {
+    "when": ".config/ultra/night-service/wallpaper.*",
+    "skip": [
+      ".local/share/ultra/night-service/plates/0101-*",
+      ".local/share/ultra/night-service/plates/0101/*",
+      ".local/share/ultra/night-service/plates/index.json"
+    ]
+  },
+  "leaves": [
+    ".config/gtk-3.0/gtk.css",
+    ".config/gtk-4.0/gtk.css"
+  ]
+}

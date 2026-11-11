@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+"""ultra-theme: which desktop theme you log in to, and putting it in place.
+
+    ultra-theme list          the themes kept, as JSON (for a Themes app)
+    ultra-theme chosen        the one chosen for the next log-in
+    ultra-theme current       the one in place now
+    ultra-theme set <id>      choose one; it takes effect at the next log-in
+    ultra-theme apply [<id>]  put the chosen theme (or <id>) in place now:
+                              its files linked into your home, the previous
+                              theme's taken out. Hyprland does this as a
+                              session starts; --force links everything again.
+    ultra-theme core          link the machine's own files (core/home)
+
+Each theme is a folder of its own, a box: ~/ultra/themes/<id>/ (shipped) or
+~/.local/share/ultra/themes/<id>/ (your own; these are never touched by
+updates). In it: theme.json, preview pictures, and home/, which mirrors
+your home folder (home/.config/hypr/theme.lua, home/.config/quickshell/...).
+Only the theme in place has its files in your home; nothing of the others
+is read, loaded or running. See ~/ultra/themes/README.md to add one.
+"""
+import fnmatch
+import glob
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import time
+
+HOME = pathlib.Path.home()
+REPO = pathlib.Path(os.path.realpath(__file__)).parents[4]      # ~/ultra
+if not (REPO / "themes").is_dir():
+    REPO = HOME / "ultra"
+CONFIG = pathlib.Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "ultra"
+STATE = pathlib.Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local/state") / "ultra"
+DATA = pathlib.Path(os.environ.get("XDG_DATA_HOME") or HOME / ".local/share") / "ultra"
+THEME_DIRS = [REPO / "themes", DATA / "themes"]
+BACKUP = HOME / ".ultra-backup" / time.strftime("%Y%m%d-%H%M%S")
+DEFAULT = "archive"
+
+
+def clean(text):
+    return re.sub(r"[^A-Za-z0-9_-]", "", (text or "").strip().splitlines()[0] if (text or "").strip() else "")
+
+
+def read(path):
+    try:
+        return pathlib.Path(path).read_text()
+    except OSError:
+        return ""
+
+
+def box(theme_id):
+    """The theme's folder, or None."""
+    for d in THEME_DIRS:
+        b = d / theme_id
+        if theme_id and (b / "theme.json").is_file() and (b / "home").is_dir():
+            return b
+    return None
+
+
+def themes():
+    out = {}
+    for d in THEME_DIRS:
+        for f in sorted(d.glob("*/theme.json")):
+            b = f.parent
+            if not (b / "home").is_dir() or b.name in out:
+                continue
+            try:
+                j = json.loads(f.read_text())
+            except (OSError, ValueError):
+                continue
+            j["id"] = b.name
+            j["dir"] = str(b)
+            out[b.name] = j
+    return sorted(out.values(), key=lambda j: (j["id"] != DEFAULT, (j.get("name") or j["id"]).lower()))
+
+
+def chosen():
+    t = clean(read(CONFIG / "theme"))
+    if box(t):
+        return t
+    if box(DEFAULT):
+        return DEFAULT
+    all_ = themes()
+    return all_[0]["id"] if all_ else DEFAULT
+
+
+def current():
+    return clean(read(STATE / "applied")) or chosen()
+
+
+# ------------------------------------------------------------------ linking
+def set_aside(path):
+    """Something of yours where a link must go: kept in ~/.ultra-backup."""
+    rel = os.path.relpath(path, HOME)
+    to = BACKUP / rel
+    to.parent.mkdir(parents=True, exist_ok=True)
+    os.rename(path, to)
+
+
+def make_dirs(path):
+    """The folders down to path; a file or link standing where a folder
+    must be is set aside (a link: just removed)."""
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        return
+    except (FileExistsError, NotADirectoryError):
+        pass
+    p = HOME
+    for part in path.relative_to(HOME).parts:
+        p = p / part
+        if p.is_symlink() and not p.is_dir():
+            p.unlink()
+        elif p.exists() and not p.is_dir():
+            set_aside(p)
+        if not p.exists():
+            p.mkdir()
+
+
+def files_of(src):
+    for root, _dirs, names in os.walk(src):
+        for n in names:
+            yield os.path.relpath(os.path.join(root, n), src)
+
+
+def link_tree(src, skip=()):
+    """Every file under src linked at the same place under your home.
+    Returns the places linked (relative to home)."""
+    done = []
+    for rel in files_of(src):
+        if any(fnmatch.fnmatch(rel, pat) for pat in skip):
+            continue
+        frm, to = os.path.join(src, rel), HOME / rel
+        done.append(rel)
+        if to.is_symlink():
+            if os.readlink(to) == frm:
+                continue
+            to.unlink()
+        elif to.is_dir():
+            set_aside(to)
+        elif to.exists():
+            set_aside(to)
+        make_dirs(to.parent)
+        os.symlink(frm, to)
+    return done
+
+
+def unlink_old(old_links, old_home, keep):
+    """Links of the previous manifest that are no longer wanted, and the
+    folders they leave empty."""
+    gone = []
+    for rel in old_links:
+        if rel in keep:
+            continue
+        to = HOME / rel
+        if to.is_symlink() and os.readlink(to).startswith(old_home + "/"):
+            to.unlink()
+            gone.append(rel)
+            d = to.parent
+            while d != HOME:
+                try:
+                    d.rmdir()
+                except OSError:
+                    break
+                d = d.parent
+    return gone
+
+
+def load(path):
+    try:
+        return json.loads(pathlib.Path(path).read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save(path, data):
+    STATE.mkdir(parents=True, exist_ok=True)
+    tmp = pathlib.Path(str(path) + ".new")
+    tmp.write_text(json.dumps(data, indent=0))
+    os.replace(tmp, path)
+
+
+def stamp():
+    """Changes whenever an update replaced the files (setup.sh writes it)."""
+    return read(REPO / ".stamp").strip()
+
+
+def apply_core():
+    src = str(REPO / "core" / "home")
+    old = load(STATE / "core.json")
+    links = link_tree(src)
+    unlink_old(old.get("links", []), old.get("home", src), set(links))
+    save(STATE / "core.json", {"home": src, "links": links})
+
+
+def apply(theme_id, force=False, session=False):
+    b = box(theme_id)
+    if b is None:
+        print('ultra-theme: no theme "%s"; using %s' % (theme_id, DEFAULT), file=sys.stderr)
+        theme_id, b = DEFAULT, box(DEFAULT)
+        if b is None:
+            sys.exit("ultra-theme: no themes in " + " or ".join(map(str, THEME_DIRS)))
+    src = str(b / "home")
+    old = load(STATE / "applied.json")
+    same = old.get("id") == theme_id and old.get("home") == src
+    if same and not force and old.get("stamp") == stamp() and (HOME / ".config/hypr/theme.lua").exists():
+        return theme_id                      # in place already: nothing to do
+    try:
+        manifest = json.loads((b / "theme.json").read_text())
+    except (OSError, ValueError):
+        manifest = {}
+    # files the theme leaves alone while you have your own (a wallpaper, say)
+    skip = []
+    own = manifest.get("own") or {}
+    if own.get("when") and glob.glob(str(HOME / own["when"])):
+        skip = list(own.get("skip") or [])
+    # the new theme first, then the old one out: never a moment with neither
+    links = link_tree(src, skip)
+    gone = unlink_old(old.get("links", []), old.get("home", src), set(links))
+    if not same:
+        # what the old theme made for itself outside its box (theme.json "leaves")
+        for rel in old.get("leaves", []):
+            p = HOME / rel
+            if p.is_symlink() or p.is_file():
+                p.unlink()
+        # its timers and services: stopped, so nothing of it keeps running
+        units = [os.path.basename(r) for r in gone if r.startswith(".config/systemd/user/") and r.count("/") == 3]
+        for u in units:
+            subprocess.run(["systemctl", "--user", "stop", u], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if units or any(r.startswith(".config/systemd/user/") for r in links):
+            subprocess.run(["systemctl", "--user", "daemon-reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    save(STATE / "applied.json", {"id": theme_id, "home": src, "stamp": stamp(),
+                                  "leaves": list(manifest.get("leaves") or []), "links": links})
+    (STATE / "applied").write_text(theme_id + "\n")
+    if BACKUP.is_dir():
+        print("ultra-theme: files of yours that were in the way are in", BACKUP, file=sys.stderr)
+    return theme_id
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = [a for a in sys.argv[1:] if a.startswith("--")]
+    cmd = args[0] if args else "current"
+    if cmd == "list":
+        print(json.dumps(themes(), ensure_ascii=False))
+    elif cmd == "chosen":
+        print(chosen())
+    elif cmd == "current":
+        print(current())
+    elif cmd == "set":
+        if len(args) < 2:
+            sys.exit("usage: ultra-theme set <id> (see: ultra-theme list)")
+        t = clean(args[1])
+        if box(t) is None:
+            sys.exit('ultra-theme: no theme "%s" (it needs theme.json and home/)' % args[1])
+        CONFIG.mkdir(parents=True, exist_ok=True)
+        (CONFIG / "theme").write_text(t + "\n")
+        print(t + (": in use" if t == current() else ": from your next log-in"))
+    elif cmd == "apply":
+        t = apply(clean(args[1]) if len(args) > 1 else chosen(), force="--force" in flags, session="--session" in flags)
+        if "--session" not in flags:
+            print(t + ": in place")
+    elif cmd == "core":
+        apply_core()
+    else:
+        print(__doc__.strip())
+        sys.exit(0 if cmd in ("help", "-h") else 2)
+
+
+if __name__ == "__main__":
+    main()

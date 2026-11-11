@@ -1,0 +1,7 @@
+[Sound Theme]
+Name=Archive
+Comment=A quiet archive room: paper, wood, brass and rubber foley.
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

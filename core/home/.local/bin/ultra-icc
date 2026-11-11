@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# ultra-icc: a colour profile (.icc / .icm) for a screen.
+#
+#   ultra-icc list                   the profiles it can find, one per line
+#   ultra-icc current [output]       the one in use, or "none"
+#   ultra-icc set <file> [output]    use it
+#   ultra-icc off [output]           back to none
+#
+# output is a monitor name (eDP-1, HDMI-A-1, ...; see hyprctl monitors);
+# the default is the focused one. Put profiles in ~/.local/share/icc (a file
+# given to `set` from anywhere else is copied there); ~/Downloads and the
+# system's /usr/share/color/icc are searched too. The quick settings card
+# (Colour row) cycles through them.
+#
+# The choice is a link, ~/.config/ultra/icc/<output>.icc, which
+# hypr/ultra/machine.lua hands to Hyprland as the monitor's icc option;
+# Hyprland then colour-manages that screen with it.
+set -euo pipefail
+store="${XDG_DATA_HOME:-$HOME/.local/share}/icc"
+links="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/icc"
+mkdir -p "$store" "$links"
+
+output() {
+    if [[ -n ${1:-} ]]; then
+        echo "$1"
+        return
+    fi
+    local o
+    o=$(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused)][0].name // empty' || true)
+    echo "${o:-eDP-1}"
+}
+
+# one per file name, ours first (a profile copied in from Downloads is listed
+# once); a folder that does not exist is not an error
+list() {
+    {
+        find "$store" -maxdepth 2 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+        find "${XDG_DATA_HOME:-$HOME/.local/share}/color/icc" "$HOME/Downloads" -maxdepth 2 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+        find /usr/share/color/icc -maxdepth 1 -type f \( -iname '*.icc' -o -iname '*.icm' \) 2>/dev/null | sort || true
+    } | awk -F/ '!seen[$NF]++'
+}
+
+# Hyprland reads the monitor rules again (the profile applies at once)
+apply() { hyprctl reload >/dev/null 2>&1 || true; }
+
+case ${1:-list} in
+    list) list ;;
+    current)
+        o=$(output "${2:-}")
+        [[ $o == eDP-* ]] && o=internal
+        l="$links/$o.icc"
+        if [[ -L $l || -f $l ]]; then readlink -f "$l"; else echo none; fi
+        ;;
+    set)
+        shift
+        out_arg=""
+        if [[ -n ${1:-} && -f $1 ]]; then
+            file=$1
+            out_arg=${2:-}
+        elif [[ -f "$*" ]]; then
+            file="$*"   # a path with spaces, typed without quotes
+        elif (($# > 1)) && [[ -f "${*:1:$#-1}" ]]; then
+            file="${*:1:$#-1}"   # the same, then a screen name
+            out_arg=${!#}
+        else
+            echo "usage: ultra-icc set <file.icc> [output]   (quote a path with spaces)" >&2
+            exit 2
+        fi
+        file=$(realpath "$file")
+        out=$(output "$out_arg")
+        case $file in
+            "$store"/* | /usr/share/*) ;;
+            *) cp -f "$file" "$store/" && file="$store/$(basename "$file")" ;;
+        esac
+        # the laptop panel's name moves between eDP-1 and eDP-2 with the GPU
+        # mode: keep its profile under one name for both
+        [[ $out == eDP-* ]] && { rm -f "$links"/eDP-*.icc; out=internal; }
+        ln -sfn "$file" "$links/$out.icc"
+        apply
+        echo "$out: $(basename "$file")"
+        ;;
+    off)
+        out=$(output "${2:-}")
+        [[ $out == eDP-* ]] && rm -f "$links"/eDP-*.icc && out=internal
+        rm -f "$links/$out.icc"
+        apply
+        echo "$out: no profile"
+        ;;
+    *) echo "usage: ultra-icc list|current|set <file> [output]|off [output]" >&2; exit 2 ;;
+esac

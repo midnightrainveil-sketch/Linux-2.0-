@@ -3,7 +3,7 @@
 Where each rule of the design language lives, and where the implementation
 has to differ from the spec, with the reason.
 
-Paths are relative to `dotfiles/`. `qs/` means `.config/quickshell/`.
+Paths are relative to `home/`. `qs/` means `.config/quickshell/`.
 
 ## 1. Principles
 
@@ -20,7 +20,7 @@ Paths are relative to `dotfiles/`. `qs/` means `.config/quickshell/`.
 
 | Spec | File |
 | --- | --- |
-| Tokens, day and night | `qs/theme/Theme.qml`, `.config/hypr/archive/palette.lua`, `tools/gen_themes.py` |
+| Tokens, day and night | `qs/theme/Theme.qml`, `.config/hypr/theme/palette.lua`, `tools/gen_themes.py` |
 | Terminal ANSI 16 | `.config/foot/foot.ini` (`[colors-light]` is the spec table; `[colors-dark]` is a cyanotype adaptation) |
 | Madder only when wrong | Low battery, critical notifications, REJECTED, unknown commands in zsh |
 
@@ -50,7 +50,7 @@ the plate is the one place that should match the mockup.
 | Ink: typed text reads heavier, like ink pressed into paper | `qs/components/InkText.qml` (two faint offset copies, `spread`) |
 | Stamps: uneven ink, ±8°, 75–85 % | `qs/components/Stamp.qml` (knock-out specks and scuffs) |
 | Foxing: 3–6 spots, wallpaper only | `qs/modules/background/Plate.qml` |
-| Paper grain on windows | drawn per window by archivebars (`DeckleDeco.cpp`, `Deckle::grainTile`): terminals and system tools by rule (`paper_apps` in `look.lua`), flipped per window by the bar's "░" or `Super + Shift + G`, off everywhere with `archive-grain off` |
+| Paper grain on windows | drawn per window by archivebars (`DeckleDeco.cpp`, `Deckle::grainTile`): terminals and system tools by rule (`paper_apps` in `look.lua`), flipped per window by the bar's "░" or `Super + Shift + G`, off everywhere with `ultra-grain off` |
 
 **Different from the spec:**
 
@@ -66,8 +66,8 @@ the plate is the one place that should match the mockup.
 
 | Spec | How |
 | --- | --- |
-| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`archive/rules.lua`: 31.25 % of the screen wide and 16:9 with its title bar, at 1.9 % / 25 %; clear of the plate's big leaf; its own 10 pt type so the fastfetch card fits), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
-| The desk stays as in the reference, and comes back | Record cards are `DeskCard`s (`components/DeskCard.qml`): drag anywhere, right-click to put away; `services/Desk.qml` remembers which are away. `archive-desk` (bar button after the workspaces, `Super + D`) calls `qs ipc call desk restore` and brings the desk terminal to the current workspace at its place, or reopens it |
+| Left desk ~35 %, centre ~35 %, right ~25 %, footer 40 px | Desk terminal rule (`theme/rules.lua`: 31.25 % of the screen wide and 16:9 with its title bar, at 1.9 % / 25 %; clear of the plate's big leaf; its own 10 pt type so the fastfetch card fits), plate box 0.375–0.665, `Theme.recordWidth` 480, `Theme.barHeight` 40 |
+| The desk stays as in the reference, and comes back | Record cards are `DeskCard`s (`components/DeskCard.qml`): drag anywhere, right-click to put away; `services/Desk.qml` remembers which are away. `ultra-desk` (bar button after the workspaces, `Super + D`) calls `qs ipc call desk restore` and brings the desk terminal to the current workspace at its place, or reopens it |
 | 8 px grid; margins 32, gaps 24, padding 16, header 10/14, rows 30 | `Theme.qml` |
 | Window gaps 8 between, 24 to the edge | `gaps_in = 4` (Hyprland doubles it between windows), `gaps_out = 24` |
 | 16:10: extra height as breathing room | `Records.qml` spreads the spare height between the cards, never adding one |
@@ -83,7 +83,7 @@ measurements rather than the spec text where the two disagree.
 | Aged paper: darker toward the edges, small tears, wrinkles, creased corners | the deckle's second layer, drawn over the window's padding: `deckle_tone` (`edge_tone`), `deckle_chips`, `deckle_creases` |
 | Shadow falling down and to the right | the deckle's own shadow (blur 4.5, offset 1.5/3, 40 %) plus a tight contact shadow under the edge, so the shadow follows the torn outline. Hyprland's shadow is off |
 | Square corners, just worn | the deckle's corner tiles; `rounding = 0` |
-| 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `archive-bars`), configured in `look.lua` |
+| 46 px paper title bar: three dark dots 11 px, 21 px apart; title in Courier Prime 18; "–" at the right; a ruled line under it, 11 px in from each side | **archivebars** (hyprbars + `rule_*` + `right_icon*`, built by `ultra-bars`), configured in `look.lua` |
 | Dots: close, maximise, drawer. "–": drawer | buttons and `right_icon_action` |
 | Paper texture inside the window | the plugin's grain, on terminals and system tools (see above); the ragged-ink nudge of the old shader is gone |
 | Focus lifts the card | focused: darker edge and 40 % shadow; unfocused: lighter edge, 24 % shadow, faded title |
@@ -160,7 +160,7 @@ scrollbar (no shell list is long enough to scroll).
 | Footer strip | `qs/modules/bar/Bar.qml`, `Workspaces.qml`, `Status.qml` |
 | Card Catalogue: a wooden catalogue drawer slides out of the bar; ruled index cards riffle, typed tabs show the cards behind; the query is typed on the brass label holder's card | `qs/modules/launcher/Catalogue.qml`, `CatalogueCard.qml` |
 | Correspondence: envelopes slide in, stamped; click to turn over, lift the flap and slide the letter out; unopened ones go to the letter tray | `qs/modules/notifications/Correspondence.qml`, `Letter.qml`, `LetterTray.qml`, `qs/services/Notifs.qml` |
-| Screenshots develop as prints: a flash, the print drops onto the desk with a paperclip, then files itself into the bar | `qs/modules/photo/Photograph.qml`, `archive-screenshot` |
+| Screenshots develop as prints: a flash, the print drops onto the desk with a paperclip, then files itself into the bar | `qs/modules/photo/Photograph.qml`, `ultra-screenshot` |
 | Desk lamp (night): warm light follows the pointer over the desk | `qs/services/Lamp.qml`, `qs/components/LampLight.qml` (drawn over the record layer) |
 | Instrument reading (OSD) | `qs/modules/osd/Instrument.qml` |
 | Ledger | `qs/modules/calendar/Ledger.qml` |
@@ -200,7 +200,7 @@ scrollbar (no shell list is long enough to scroll).
 | --- | --- |
 | Theme `archive`, freedesktop names | `.local/share/sounds/archive/` (`index.theme`; files go in `stereo/`) |
 | Played by the shell | `qs/services/Sounds.qml` (`pw-play`) |
-| Mixing: mono, 48 kHz, −24 LUFS, −12 dBFS, 10 ms fade | `archive-sound-prep` |
+| Mixing: mono, 48 kHz, −24 LUFS, −12 dBFS, 10 ms fade | `ultra-sound-prep` |
 | Silent on purpose | Nothing plays on typing, focus, windows or workspaces |
 
 The sound files aren't bundled. Recording your own is the spec's
@@ -211,7 +211,7 @@ recommendation.
 | Spec | How |
 | --- | --- |
 | Text-free plate, labels typed by the shell | `Plate.qml` + `qs/services/Plates.qml` |
-| 7–14 plates, a new one each day | `archive-plate import`, rotated by day of the year |
+| 7–14 plates, a new one each day | `ultra-plate import`, rotated by day of the year |
 | Day version / cyanotype night version | One ink mask, inked graphite by day or cream at night, plus a silhouette photogram at night |
 | Time Record No. = YY + day of the year | `Clock.timeRecordNo` |
 | Meteorological No. = pressure (hPa) | `Weather.pressure` |
@@ -227,7 +227,7 @@ upscales it, tones its paper to the desk grey, and prints a cyanotype version
 for night (pale ink on Prussian blue, the paper's mottling kept); `Plate.qml`
 crossfades between the two. Note that the sheet's own text says "Herbarium"
 and "HERB. REG. BOT.", which the spec keeps off the screen; it is shown
-because the picture is yours. Plates imported with `archive-plate` carry no
+because the picture is yours. Plates imported with `ultra-plate` carry no
 text, and for those the shell types the labels live (`Tab.` week numeral,
 Specimen No. and so on).
 
@@ -239,8 +239,8 @@ Specimen No. and so on).
 | White silhouette, vein detail | The plate's ink in cream plus `silhouette.png` at 16 % |
 | Pale stamps | Stamp opacity drops to 45 % at night |
 | Stronger grain | `Theme.grainDark` / `grainLight` rise with `night` |
-| Sunrise and sunset, fixed times for Singapore | `archive-mode` + `archive-mode.timer`, with `dayStart` / `nightStart` |
-| The key holds until the next boundary | `archive-mode toggle` writes `mode-hold` |
+| Sunrise and sunset, fixed times for Singapore | `ultra-mode` + `ultra-mode.timer`, with `dayStart` / `nightStart` |
+| The key holds until the next boundary | `ultra-mode toggle` writes `mode-hold` |
 
 ## 15. Implementation map
 

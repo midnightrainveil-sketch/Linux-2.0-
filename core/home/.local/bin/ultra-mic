@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# ultra-mic: the laptop microphone, made clear.
+#
+#   ultra-mic          make "Microphone (clear)" the default microphone and
+#                        turn the raw one's gain down (less hiss and grain)
+#   ultra-mic tone flat|soft|softer
+#                        how much of the sharp top is taken off (flat: none,
+#                        the default; soft: some; softer: more, and warmer)
+#   ultra-mic check    what microphones the laptop has (for the G14's array)
+#   ultra-mic test     record 5 seconds from the default mic and play it back
+#   ultra-mic off      back to the raw microphone
+#
+# "Microphone (clear)" comes from ~/.config/pipewire/pipewire.conf.d/60-ultra-mic.conf.
+# "Monitor of ..." in a list of microphones is not a microphone: it is what
+# the speakers are playing (for recording the desktop's sound).
+set -u
+
+id_of() { # id_of <node.name>
+    pw-dump 2>/dev/null | jq -r --arg n "$1" '.[] | select(.info.props["node.name"] == $n) | .id' | head -n1
+}
+raw_mics() { # the hardware microphones' node names
+    pw-dump 2>/dev/null | jq -r '.[] | select(.info.props["media.class"] == "Audio/Source")
+        | select(.info.props["node.name"] | startswith("alsa_input.")) | .info.props["node.name"]'
+}
+
+tone_file="${XDG_STATE_HOME:-$HOME/.local/state}/ultra/mic-tone"
+# tone <name>: the tone filter's settings (warmth, presence, air, top)
+tone_values() {
+    case $1 in
+        flat | bright) echo "0 0 0 18000" ;;
+        soft) echo "2 -2 -6 11000" ;;
+        softer) echo "3 -3.5 -10 8500" ;;
+        *) return 1 ;;
+    esac
+}
+set_tone() { # set_tone <name>
+    local v warmth presence air top id
+    v=$(tone_values "$1") || { echo "tones: flat, soft, softer" >&2; return 2; }
+    read -r warmth presence air top <<<"$v"
+    # the filter's controls live on its nodes; set them on both ends
+    for n in archive_mic_tone archive_mic; do
+        id=$(id_of "$n")
+        [[ -n $id ]] && pw-cli set-param "$id" Props "{ params = [ \"warmth:Gain\" $warmth \"presence:Gain\" $presence \"air:Gain\" $air \"top:Freq\" $top ] }" >/dev/null 2>&1
+    done
+    mkdir -p "$(dirname "$tone_file")"
+    echo "$1" >"$tone_file"
+}
+
+case ${1:-on} in
+tone)
+    if [[ -n ${2:-} ]]; then
+        set_tone "$2" && echo "microphone tone: $2"
+    else
+        # at login: the tone chosen last time (flat is built in)
+        t=$(cat "$tone_file" 2>/dev/null || echo flat)
+        [[ $t == flat || $t == bright ]] || set_tone "$t"
+    fi
+    ;;
+on)
+    clear=$(id_of archive_mic)
+    # the tone filter is newer than the first clear microphone: an older
+    # sound system still running is restarted to pick it up
+    [[ -z $(id_of archive_mic_tone) ]] && clear=""
+    if [[ -z $clear ]]; then
+        echo "restarting the sound system to load the clear microphone..."
+        systemctl --user restart pipewire pipewire-pulse wireplumber
+        for _ in $(seq 20); do clear=$(id_of archive_mic); [[ -n $clear ]] && break; sleep 0.5; done
+    fi
+    if [[ -z $clear ]]; then
+        echo "the clear microphone did not appear; see: journalctl --user -u pipewire -n 30" >&2
+        exit 1
+    fi
+    # the raw mic at half: the hardware boost is what makes it grainy; the
+    # clear one evens the loudness out after the noise is taken away
+    while read -r name; do
+        [[ -n $name ]] && wpctl set-volume "$(id_of "$name")" 0.45
+    done < <(raw_mics)
+    wpctl set-default "$clear"
+    echo "default microphone: Microphone (clear)"
+    echo "in Teams / Firefox / Discord pick \"Microphone (clear)\"; try it: ultra-mic test"
+    ;;
+off)
+    first=$(raw_mics | head -n1)
+    [[ -n $first ]] && wpctl set-default "$(id_of "$first")" && wpctl set-volume "$(id_of "$first")" 0.8
+    echo "default microphone: the raw one ($first)"
+    ;;
+test)
+    f=$(mktemp --suffix=.wav)
+    echo "recording 5 seconds: say something..."
+    timeout 5 pw-record "$f" 2>/dev/null
+    echo "playing it back"
+    pw-play "$f"; rm -f "$f"
+    ;;
+check)
+    echo "== sound cards"
+    cat /proc/asound/cards
+    echo; echo "== capture devices"
+    arecord -l 2>/dev/null || echo "(arecord not installed: sudo pacman -S alsa-utils)"
+    echo; echo "== AMD audio co-processor (the G14's microphone array sits on it)"
+    lsmod | grep -E '^snd_(pci_ps|ps_|acp|soc_ps|pci_acp|sof_amd)' || echo "(no ACP drivers loaded)"
+    lspci -nn | grep -iE 'audio|multimedia'
+    echo; echo "== microphones PipeWire sees"
+    wpctl status | sed -n '/Sources:/,/Filters:/p'
+    echo; echo "kernel: $(uname -r)"
+    ;;
+*)
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+esac

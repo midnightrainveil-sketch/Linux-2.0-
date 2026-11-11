@@ -1,0 +1,313 @@
+#!/usr/bin/env python3
+"""Turn a checkout of hyprland-plugins/hyprbars into "archivebars".
+
+    patch.py <path to hyprbars source dir>
+
+Changes, kept deliberately small so they survive upstream updates:
+  * renamed (plugin name, config namespace plugin:archivebars:*, window rule
+    effects archivebars:*, Lua table hl.plugin.archivebars) so it can never
+    clash with a stock hyprbars that hyprpm may also have installed;
+  * rule_color / rule_width / rule_inset: a ruled line along the bottom of
+    the bar, inset from the window's edges (the reference title bar);
+  * right_icon / right_icon_action / right_icon_color / right_icon_size: a
+    typed glyph on the right of the bar (the reference's "-"), clickable;
+  * grain_icon / grain_icon_color / grain_icon_color_off: a second glyph left
+    of it that shows and flips the window's paper grain (DeckleDeco.cpp);
+  * ticket_edge: the buttons drawn as ticket stubs (a coloured card with a
+    white edge and its mark, lifting under the cursor) instead of dots;
+  * deckle / deckle_*: a torn paper edge, bevel and shadow around every
+    window, laid out of repeating tiles (deckle.cpp, DeckleDeco.cpp, copied in
+    from next to this script), so it fits any window size.
+Every edit is anchored on upstream text; if an anchor is missing the script
+stops with an error and the installer falls back to stock hyprbars.
+"""
+import pathlib
+import shutil
+import sys
+
+src = pathlib.Path(sys.argv[1])
+
+
+# newer hyprbars passes a render context (ctx) to every drawing call
+NEWAPI = "renderBarButtons(ctx, &textBox" in (src / "barDeco.cpp").read_text()
+
+
+def api(text):
+    if not NEWAPI:
+        return text
+    return (text.replace("renderBarButtons(&textBox", "renderBarButtons(ctx, &textBox")
+                .replace('g_pKeybindManager->m_dispatchers[\"exec\"](RCMD);', "Config::Supplementary::executor()->spawn(RCMD);")
+                .replace('g_pKeybindManager->m_dispatchers["exec"](RCMD);', "Config::Supplementary::executor()->spawn(RCMD);")
+                .replace("g_pHyprOpenGL->renderRect(ruleBox", "g_pHyprOpenGL->renderRect(ctx, ruleBox")
+                .replace("g_pHyprOpenGL->renderTexture(m_pRightTex", "g_pHyprOpenGL->renderTexture(ctx, m_pRightTex")
+                .replace("g_pHyprOpenGL->renderTexture(m_pGrainTex", "g_pHyprOpenGL->renderTexture(ctx, m_pGrainTex"))
+
+
+def edit_any(name, alternatives):
+    p = src / name
+    s = p.read_text()
+    for old, new in alternatives:
+        if old in s:
+            p.write_text(s.replace(old, new, 1))
+            return
+    sys.exit(f"archivebars patch: anchor not found in {name}:\n{alternatives[0][0][:200]}")
+
+
+def edit(name, pairs, count_check=True):
+    p = src / name
+    s = p.read_text()
+    for old, new in pairs:
+        if name == "barDeco.cpp":
+            old, new = api(old), api(new)
+        if old not in s:
+            sys.exit(f"archivebars patch: anchor not found in {name}:\n{old[:200]}")
+        s = s.replace(old, new)
+    p.write_text(s)
+
+
+def rename(name):
+    p = src / name
+    s = p.read_text()
+    s = s.replace("plugin:hyprbars:", "plugin:archivebars:")
+    s = s.replace('registerEffect("hyprbars:', 'registerEffect("archivebars:')
+    s = s.replace('addLuaFunction(PHANDLE, "hyprbars"', 'addLuaFunction(PHANDLE, "archivebars"')
+    s = s.replace('return {"hyprbars",', 'return {"archivebars",')
+    s = s.replace('"Hyprbar"', '"Archivebar"')
+    s = s.replace("[hyprbars]", "[archivebars]")
+    p.write_text(s)
+
+
+for f in ("main.cpp", "barDeco.cpp", "globals.hpp", "barDeco.hpp"):
+    rename(f)
+
+# ---- new config values
+edit("globals.hpp", [(
+    "        SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;\n",
+    "        SP<Config::Values::CStringValue>     barTextFont, barTextAlign, barButtonsAlignment, onDoubleClick;\n"
+    "        SP<Config::Values::CColorValue>      ruleColor, rightIconColor;\n"
+    "        SP<Config::Values::CIntValue>        ruleWidth, ruleInset, rightIconSize;\n"
+    "        SP<Config::Values::CStringValue>     rightIcon, rightIconCmd, grainIcon;\n"
+    "        SP<Config::Values::CColorValue>      grainIconColor, grainIconColorOff;\n",
+)])
+
+edit("main.cpp", [(
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);\n",
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.onDoubleClick);\n"
+    "\n"
+    "    g_pGlobalState->config.ruleColor      = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:rule_color\", \"Colour of the rule under the bar (0 = none)\", 0x00000000);\n"
+    "    g_pGlobalState->config.ruleWidth      = makeShared<Config::Values::CIntValue>(\"plugin:archivebars:rule_width\", \"Thickness of the rule under the bar\", 1);\n"
+    "    g_pGlobalState->config.ruleInset      = makeShared<Config::Values::CIntValue>(\"plugin:archivebars:rule_inset\", \"Inset of the rule from the window edges\", 0);\n"
+    "    g_pGlobalState->config.rightIcon      = makeShared<Config::Values::CStringValue>(\"plugin:archivebars:right_icon\", \"Text glyph on the right of the bar\", \"\");\n"
+    "    g_pGlobalState->config.rightIconCmd   = makeShared<Config::Values::CStringValue>(\"plugin:archivebars:right_icon_action\", \"Command run when the right glyph is clicked\", \"\");\n"
+    "    g_pGlobalState->config.rightIconColor = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:right_icon_color\", \"Colour of the right glyph\", 0xff000000);\n"
+    "    g_pGlobalState->config.rightIconSize  = makeShared<Config::Values::CIntValue>(\"plugin:archivebars:right_icon_size\", \"Size of the right glyph\", 16);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.ruleColor);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.ruleWidth);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.ruleInset);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIcon);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconCmd);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconColor);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.rightIconSize);\n"
+    "    g_pGlobalState->config.grainIcon         = makeShared<Config::Values::CStringValue>(\"plugin:archivebars:grain_icon\", \"Glyph that shows and flips the window's grain (empty = none)\", \"\");\n"
+    "    g_pGlobalState->config.grainIconColor    = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:grain_icon_color\", \"Grain glyph, grain on\", 0xff000000);\n"
+    "    g_pGlobalState->config.grainIconColorOff = makeShared<Config::Values::CColorValue>(\"plugin:archivebars:grain_icon_color_off\", \"Grain glyph, grain off\", 0x66000000);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIcon);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIconColor);\n"
+    "    HyprlandAPI::addConfigValueV2(PHANDLE, g_pGlobalState->config.grainIconColorOff);\n",
+)])
+
+# ---- state for the right glyph's texture
+edit("barDeco.hpp", [(
+    "    SP<Render::ITexture>       m_pTextTex;\n",
+    "    SP<Render::ITexture>       m_pTextTex;\n"
+    "    SP<Render::ITexture>       m_pRightTex;\n"
+    "    std::string                m_szRightKey;\n"
+    "    SP<Render::ITexture>       m_pGrainTex;\n"
+    "    std::string                m_szGrainKey;\n",
+)])
+
+edit("barDeco.cpp", [
+    ('#include "barDeco.hpp"\n', '#include "barDeco.hpp"\n#include "DeckleDeco.hpp"\n'),
+    # the title leaves room for the right glyph
+    (
+        "    const int  paddingTotal      = scaledBarPadding * 2 + scaledButtonsSize + (ALIGN != \"left\" ? scaledButtonsSize : 0);\n",
+        "    const int  rightGlyphRoom    = (g_pGlobalState->config.rightIcon->value().empty() ? 0 : g_pGlobalState->config.rightIconSize->value() * 2 * scale) +\n"
+        "                                   (g_pGlobalState->config.grainIcon->value().empty() ? 0 : g_pGlobalState->config.rightIconSize->value() * 1.6 * scale);\n"
+        "    const int  paddingTotal      = scaledBarPadding * 2 + scaledButtonsSize + (ALIGN != \"left\" ? scaledButtonsSize : 0) + rightGlyphRoom;\n",
+    ),
+    # a click on the right glyph runs its action
+    (
+        "    if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT))\n        return;\n",
+        "    {\n"
+        "        const auto RICON = g_pGlobalState->config.rightIcon->value();\n"
+        "        const auto RCMD  = g_pGlobalState->config.rightIconCmd->value();\n"
+        "        const auto RSIZE = g_pGlobalState->config.rightIconSize->value();\n"
+        "        if (!RICON.empty() && !RCMD.empty() && COORDS.x >= assignedBoxGlobal().w - BARPADDING - RSIZE * 1.5) {\n"
+        "            g_pKeybindManager->m_dispatchers[\"exec\"](RCMD);\n"
+        "            return;\n"
+        "        }\n"
+        "        // the grain glyph, in the space to the left of it\n"
+        "        const double GRIGHT = assignedBoxGlobal().w - BARPADDING - (RICON.empty() ? 0.0 : RSIZE * 1.5);\n"
+        "        if (!g_pGlobalState->config.grainIcon->value().empty() && COORDS.x >= GRIGHT - RSIZE * 1.6 && COORDS.x < GRIGHT) {\n"
+        "            deckleToggleGrain(PWINDOW);\n"
+        "            damageEntire();\n"
+        "            return;\n"
+        "        }\n"
+        "    }\n"
+        "\n"
+        "    if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT))\n        return;\n",
+    ),
+    # draw the rule and the right glyph, inside the bar's scissor
+    (
+        "    renderBarButtons(&textBox, pMonitor->m_scale, a);\n",
+        "    {\n"
+        "        const auto RULECOL = g_pGlobalState->config.ruleColor->value();\n"
+        "        const auto RULEW   = g_pGlobalState->config.ruleWidth->value();\n"
+        "        const auto RULEIN  = g_pGlobalState->config.ruleInset->value();\n"
+        "        if (RULECOL != 0 && RULEW > 0) {\n"
+        "            CHyprColor ruleColor = configColor(RULECOL);\n"
+        "            ruleColor.a *= a;\n"
+        "            CBox ruleBox = {textBox.x + RULEIN * pMonitor->m_scale, textBox.y + BARBUF.y - RULEW * pMonitor->m_scale, BARBUF.x - 2.0 * RULEIN * pMonitor->m_scale,\n"
+        "                            RULEW * pMonitor->m_scale};\n"
+        "            ruleBox.round();\n"
+        "            if (ruleBox.w > 0 && ruleBox.h > 0)\n"
+        "                g_pHyprOpenGL->renderRect(ruleBox, ruleColor, {.round = 0, .roundingPower = 2.F});\n"
+        "        }\n"
+        "\n"
+        "        const auto RICON = g_pGlobalState->config.rightIcon->value();\n"
+        "        if (!RICON.empty()) {\n"
+        "            const auto RSIZE = g_pGlobalState->config.rightIconSize->value();\n"
+        "            const auto RCOL  = g_pGlobalState->config.rightIconColor->value();\n"
+        "            const auto RFONT = g_pGlobalState->config.barTextFont->value();\n"
+        "            const auto RKEY  = std::string{RICON} + \"|\" + std::to_string(RSIZE) + \"|\" + std::to_string(RCOL) + \"|\" + std::to_string(pMonitor->m_scale);\n"
+        "            if (!m_pRightTex || m_pRightTex->m_texID == 0 || m_szRightKey != RKEY) {\n"
+        "                m_pRightTex  = g_pHyprRenderer->renderText(std::string{RICON}, configColor(RCOL), std::round(RSIZE * pMonitor->m_scale), false, std::string{RFONT});\n"
+        "                m_szRightKey = RKEY;\n"
+        "            }\n"
+        "            if (m_pRightTex && m_pRightTex->m_texID != 0) {\n"
+        "                const auto RPAD = g_pGlobalState->config.barPadding->value();\n"
+        "                CBox       rbox = {textBox.x + BARBUF.x - RPAD * pMonitor->m_scale - m_pRightTex->m_size.x, textBox.y + std::round((BARBUF.y - m_pRightTex->m_size.y) / 2.0),\n"
+        "                                   m_pRightTex->m_size.x, m_pRightTex->m_size.y};\n"
+        "                g_pHyprOpenGL->renderTexture(m_pRightTex, rbox, {.a = a});\n"
+        "            }\n"
+        "        }\n"
+        "\n"
+        "        const auto GICON = g_pGlobalState->config.grainIcon->value();\n"
+        "        if (!GICON.empty()) {\n"
+        "            const bool GON   = deckleGrainOn(m_pWindow.lock());\n"
+        "            const auto GSIZE = g_pGlobalState->config.rightIconSize->value();\n"
+        "            const auto GCOL  = GON ? g_pGlobalState->config.grainIconColor->value() : g_pGlobalState->config.grainIconColorOff->value();\n"
+        "            const auto GFONT = g_pGlobalState->config.barTextFont->value();\n"
+        "            const auto GKEY  = std::string{GICON} + \"|\" + std::to_string(GSIZE) + \"|\" + std::to_string(GCOL) + \"|\" + std::to_string(pMonitor->m_scale);\n"
+        "            if (!m_pGrainTex || m_pGrainTex->m_texID == 0 || m_szGrainKey != GKEY) {\n"
+        "                m_pGrainTex  = g_pHyprRenderer->renderText(std::string{GICON}, configColor(GCOL), std::round(GSIZE * 0.8 * pMonitor->m_scale), false, std::string{GFONT});\n"
+        "                m_szGrainKey = GKEY;\n"
+        "            }\n"
+        "            if (m_pGrainTex && m_pGrainTex->m_texID != 0) {\n"
+        "                const auto RPAD = g_pGlobalState->config.barPadding->value();\n"
+        "                const double cx = BARBUF.x - (RPAD + GSIZE * (g_pGlobalState->config.rightIcon->value().empty() ? 0.7 : 2.3)) * pMonitor->m_scale;\n"
+        "                CBox         gbox = {textBox.x + std::round(cx - m_pGrainTex->m_size.x / 2.0), textBox.y + std::round((BARBUF.y - m_pGrainTex->m_size.y) / 2.0),\n"
+        "                                     m_pGrainTex->m_size.x, m_pGrainTex->m_size.y};\n"
+        "                g_pHyprOpenGL->renderTexture(m_pGrainTex, gbox, {.a = a});\n"
+        "            }\n"
+        "        }\n"
+        "    }\n"
+        "\n"
+        "    renderBarButtons(&textBox, pMonitor->m_scale, a);\n",
+    ),
+    # re-render the glyph after a config reload
+    (
+        "    m_pTextTex           = nullptr;\n",
+        "    m_pTextTex           = nullptr;\n"
+        "    m_pRightTex          = nullptr;\n"
+        "    m_pGrainTex          = nullptr;\n",
+    ),
+])
+
+# ---- the buttons as ticket stubs (plugin:archivebars:ticket_edge, DeckleDeco.cpp)
+CTX = "ctx, " if NEWAPI else ""
+edit("barDeco.hpp", [(
+    "    unsigned int m_iButtonHoverState = 0;\n",
+    "    unsigned int m_iButtonHoverState = 0;\n"
+    "    // which ticket the cursor is over (lifted), a bit per button\n"
+    "    unsigned int m_iTicketHover = 0;\n",
+)])
+edit_any("barDeco.cpp", [
+    (f"        g_pHyprOpenGL->renderRect({CTX}buttonBox, color, {{.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F}});\n",
+     "        if (deckleTickets()) {\n"
+     "            CHyprColor ink = color;\n"
+     "            ink.a          = 1.F;\n"
+     "            double     pad = 0;\n"
+     "            const auto tex = deckleTicket(button.icon, ink, button.size, scale, (m_iTicketHover & (1u << i)) != 0, &pad);\n"
+     "            if (tex && tex->m_texID != 0) {\n"
+     "                CBox tbox = {std::round(buttonBox.x + buttonBox.w / 2.0 - tex->m_size.x / 2.0), std::round(buttonBox.y + buttonBox.h / 2.0 - tex->m_size.y / 2.0),\n"
+     "                             tex->m_size.x, tex->m_size.y};\n"
+     f"                g_pHyprOpenGL->renderTexture({CTX}tex, tbox, {{.a = a}});\n"
+     "            }\n"
+     "        } else\n"
+     f"            g_pHyprOpenGL->renderRect({CTX}buttonBox, color, {{.round = sc<int>(std::round(scaledButtonSize / 2.0)), .roundingPower = 2.F}});\n"),
+])
+edit_any("barDeco.cpp", [
+    (sig + "\n", sig + "\n    if (deckleTickets())\n        return; // (the tickets carry their own marks)\n")
+    for sig in ("void CHyprBar::renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a) {",
+                "void CHyprBar::renderBarButtonsText(CBox* barBox, const float scale, const float a) {")
+])
+edit_any("barDeco.cpp", [(
+    "void CHyprBar::onMouseMove(Vector2D coords) {\n",
+    "void CHyprBar::onMouseMove(Vector2D coords) {\n"
+    "    // the ticket under the cursor lifts a little\n"
+    "    if (deckleTickets()) {\n"
+    "        const auto   PAD    = g_pGlobalState->config.barPadding->value();\n"
+    "        const auto   BPAD   = g_pGlobalState->config.barButtonPadding->value();\n"
+    "        const auto   HEIGHT = g_pGlobalState->config.barHeight->value();\n"
+    "        const bool   RIGHT  = g_pGlobalState->config.barButtonsAlignment->value() != \"left\";\n"
+    "        const auto   COORDS = cursorRelativeToBar();\n"
+    "        const double BARW   = assignedBoxGlobal().w;\n"
+    "        unsigned int hover  = 0;\n"
+    "        float        offset = PAD;\n"
+    "        unsigned int bit    = 0;\n"
+    "        for (auto& b : g_pGlobalState->buttons) {\n"
+    "            const double x = std::floor(RIGHT ? BARW - BPAD - b.size - offset : offset), y = std::floor((HEIGHT - b.size) / 2.0);\n"
+    "            if (bit < 32 && VECINRECT(COORDS, x, y, x + b.size + BPAD, y + b.size))\n"
+    "                hover |= 1u << bit;\n"
+    "            offset += BPAD + b.size;\n"
+    "            ++bit;\n"
+    "        }\n"
+    "        if (hover != m_iTicketHover) {\n"
+    "            m_iTicketHover = hover;\n"
+    "            damageEntire();\n"
+    "        }\n"
+    "    }\n"
+    "\n",
+)])
+
+# ---- the paper edge: its own decoration, in its own files
+here = pathlib.Path(__file__).resolve().parent
+for f in ("deckle.hpp", "deckle.cpp", "DeckleDeco.hpp", "DeckleDeco.cpp"):
+    shutil.copy(here / f, src / f)
+
+edit("Makefile", [
+    ("SRC = main.cpp barDeco.cpp BarPassElement.cpp\n", "SRC = main.cpp barDeco.cpp BarPassElement.cpp deckle.cpp DeckleDeco.cpp\n"),
+    ("INCLUDES = `pkg-config --cflags ", "INCLUDES = `pkg-config --cflags cairo "),
+])
+
+edit("main.cpp", [
+    ('#include "barDeco.hpp"\n', '#include "barDeco.hpp"\n#include "DeckleDeco.hpp"\n'),
+    ("static void onNewWindow(PHLWINDOW window) {\n", "static void onNewWindow(PHLWINDOW window) {\n    deckleOnNewWindow(window);\n\n"),
+    ("static void onUpdateWindowRules(PHLWINDOW window) {\n", "static void onUpdateWindowRules(PHLWINDOW window) {\n    deckleOnUpdateRules(window);\n\n"),
+])
+# (anchors that moved between hyprbars versions: the first one found)
+edit_any("main.cpp", [
+    ("    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword(",
+     "    deckleInit(PHANDLE);\n\n    if (Config::mgr()->type() == Config::CONFIG_LEGACY)\n        HyprlandAPI::addConfigKeyword("),
+    ('    HyprlandAPI::addLuaFunction(PHANDLE, "archivebars", "add_button"',
+     '    deckleInit(PHANDLE);\n\n    HyprlandAPI::addLuaFunction(PHANDLE, "archivebars", "add_button"'),
+])
+edit_any("main.cpp", [
+    ('    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n',
+     '    g_pHyprRenderer->m_renderPass.removeAllOfType("CBarPassElement");\n    deckleExit();\n'),
+    ('    g_pHyprRenderer->context().m_pass.removeAllOfType("CBarPassElement");\n',
+     '    g_pHyprRenderer->context().m_pass.removeAllOfType("CBarPassElement");\n    deckleExit();\n'),
+])
+
+print("archivebars: patched", src)

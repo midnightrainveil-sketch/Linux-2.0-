@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# ultra-icons: the "Compartment19" icon theme (Papirus in aged inks on old paper).
+#
+#   ultra-icons          build it (or rebuild) from the installed Papirus
+#   ultra-icons ensure   rebuild only if Papirus changed (run at login)
+#   ultra-icons off      plain Papirus colours again (the theme stays
+#                          selected but becomes an empty layer over Papirus)
+#
+# App icons are muted and tinted sepia; folders and files drawn by hand in
+# ink on paper (manila folders, cream sheets with their type typed on);
+# symbolic icons warmed (tools/make_icons.py, tools/inked_icons.py). GTK, Qt and the shell use it by name; apps
+# already open show it when they start again.
+set -euo pipefail
+src=/usr/share/icons/Papirus
+dst="${XDG_DATA_HOME:-$HOME/.local/share}/icons/Compartment19"
+box="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"   # this theme's folder
+maker="$box/tools/make_icons.py"
+stamp="$dst/.made-from"
+
+# how this theme draws folders (tools/inked_icons.py)
+export ULTRA_FOLDERS=suitcase
+
+want() { echo "$(pacman -Q papirus-icon-theme 2>/dev/null || stat -c %Y "$src") $(cat "$maker" "$(dirname "$maker")/inked_icons.py" 2>/dev/null | sha1sum | cut -c1-12) $ULTRA_FOLDERS"; }
+
+build() {
+    [[ -d $src ]] || { echo "ultra-icons: Papirus is not installed (sudo pacman -S papirus-icon-theme)" >&2; exit 1; }
+    python3 "$maker" "$src" "$dst"
+    if command -v gtk-update-icon-cache >/dev/null; then gtk-update-icon-cache -f -q "$dst" 2>/dev/null || true; fi
+    want >"$stamp"
+}
+
+use_theme() {
+    if command -v gsettings >/dev/null; then gsettings set org.gnome.desktop.interface icon-theme 'Compartment19' 2>/dev/null || true; fi
+}
+
+case ${1:-build} in
+    build) build; use_theme ;;
+    ensure)
+        if [[ ! -f $stamp || $(cat "$stamp") != "$(want)" ]] && [[ ! -f $dst/.off ]]; then build; fi
+        # without its cache GTK reads every folder of the theme at each program's start
+        if [[ ! -f $dst/icon-theme.cache && -f $dst/index.theme ]] && command -v gtk-update-icon-cache >/dev/null; then
+            gtk-update-icon-cache -f -q "$dst" || echo "ultra-icons: could not make the icon cache" >&2
+        fi
+        ;;
+    off)
+        rm -rf "$dst"
+        mkdir -p "$dst"
+        printf '[Icon Theme]\nName=Compartment19\nComment=Papirus as it comes (ultra-icons off)\nInherits=Papirus,breeze,hicolor\nDirectories=\n' >"$dst/index.theme"
+        touch "$dst/.off"
+        echo "plain Papirus colours (ultra-icons to age them again)"
+        ;;
+    *) echo "usage: ultra-icons [build|ensure|off]" >&2; exit 2 ;;
+esac

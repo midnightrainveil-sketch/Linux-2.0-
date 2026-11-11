@@ -30,8 +30,8 @@ sed -n '/^Backtrace:/,/^Log tail:/p' "$f" | head -n 40
 Then log out (Super + M) and log in again, or reboot. If the crash was in the
 title-bar plugin (`archivebars.so` in the backtrace), the config leaves the
 plugin out from then on and you get straight window edges and a note saying
-so, instead of a crash at every login. `archive-bars retry` (or a rebuild,
-`archive-bars build`) lets it load again at the next login.
+so, instead of a crash at every login. `ultra-bars retry` (or a rebuild,
+`ultra-bars build`) lets it load again at the next login.
 
 `setup.sh` leaves the session you run it from alone (it turns off the
 automatic config reload there), so everything it installs takes effect after
@@ -49,8 +49,8 @@ common cause is a plugin option set before the plugin loaded, which is why
 Both come from the archivebars plugin. Check it:
 
 ```sh
-archive-bars status    # what it was built for, and what is running
-archive-bars build     # rebuild now; the log is in ~/.cache/archive/archivebars/build.log
+ultra-bars status    # what it was built for, and what is running
+ultra-bars build     # rebuild now; the log is in ~/.cache/ultra/<theme>/archivebars/build.log
 ```
 
 If the build fails, check that `base-devel git` are installed. While it
@@ -63,14 +63,14 @@ hyprpm reload -n
 ```
 
 To turn the torn edges off but keep the title bars, set `"paperEdges": false`
-in `~/.config/archive/settings.json` and run `hyprctl reload`.
+in `~/.config/ultra/<theme>/settings.json` and run `hyprctl reload`.
 
 ## Black screen or Hyprland won't start on the G14
 
 - Switch to tty2 with `Ctrl + Alt + F2`, log in, and read the log:
   `cat $XDG_RUNTIME_DIR/hypr/*/hyprland.log | tail -50`.
 - Check the GPU names: `ls -l /dev/dri/amd-igpu /dev/dri/nvidia-dgpu`.
-  If they are missing, run `./install.sh --g14` and reboot.
+  If they are missing, run `./setup.sh` and reboot.
 - If you switched to *AsusMuxDgpu* mode, the iGPU no longer drives the
   panel. Go back to Hybrid (ROG Control's GPU page) or remove `amd-igpu` from
   `machine.lua`.
@@ -96,7 +96,7 @@ screen is the session's (`kb_layout` in `machine.lua`).
 
 ## Weather says "Awaiting reading."
 
-- Check the coordinates in `~/.config/archive/settings.json`.
+- Check the coordinates in `~/.config/ultra/<theme>/settings.json`.
 - Check the network: `curl -s "https://api.open-meteo.com/v1/forecast?latitude=1.35&longitude=103.82&current=temperature_2m"`.
 - The shell tries again every minute after a failure, and every 15 minutes
   once it has a reading.
@@ -104,17 +104,17 @@ screen is the session's (`kb_layout` in `machine.lua`).
 ## Day / night does not switch
 
 ```sh
-archive-mode status
-systemctl --user status archive-mode.timer
-cat ~/.local/state/archive/mode-hold 2>/dev/null && date +%s   # a manual choice is being held
-archive-mode auto
+ultra-mode status
+systemctl --user status ultra-mode.timer
+cat ~/.local/state/ultra/<theme>/mode-hold 2>/dev/null && date +%s   # a manual choice is being held
+ultra-mode auto
 ```
 
 ## foot: `[colors-dark]: invalid section name`
 
 Your foot is older than 1.26. Update it, or rename `[colors-light]` to
 `[colors2]` and `[colors-dark]` to `[colors]` in `~/.config/foot/foot.ini`.
-Then swap the `USR1` and `USR2` signals in `archive-mode`.
+Then swap the `USR1` and `USR2` signals in `ultra-mode`.
 
 ## Fonts look wrong (not typewriter)
 
@@ -130,18 +130,18 @@ Plex comes from the `ttf-ibm-plex` package.
 
 - Volume: `wpctl status` should list a default sink. The shell shows the
   reading when PipeWire reports a change.
-- Brightness: `archive-brightness doctor` shows the backlights it found and
+- Brightness: `ultra-brightness doctor` shows the backlights it found and
   which one it uses. The ruler sets the backlight linearly, never below 5 %
   (the G14's OLED goes nearly black and red near zero). If the screen is
-  ever stuck dark or tinted, `archive-brightness reset` puts back the plain
+  ever stuck dark or tinted, `ultra-brightness reset` puts back the plain
   backlight at 70 %. For a panel without a working backlight,
-  `"brightness": "gamma"` in `~/.config/archive/settings.json` dims in
+  `"brightness": "gamma"` in `~/.config/ultra/<theme>/settings.json` dims in
   software instead; `"backlightDevice": "amdgpu_bl1"` picks a backlight.
 
 ## The screen dims or locks too soon (or too late)
 
 Quick settings, the Lock row: 2, 5, 10 or 30 minutes, or Never. Or from a
-terminal: `archive-idle 10` (minutes), `archive-idle never`. The screen dims
+terminal: `ultra-idle 10` (minutes), `ultra-idle never`. The screen dims
 at half that time, locks at it and turns off 30 s later; on battery the
 laptop sleeps after four times it (20 min at least).
 
@@ -150,8 +150,8 @@ laptop sleeps after four times it (20 min at least).
 Put `.icc` / `.icm` files in `~/.local/share/icc` (or leave them in
 `~/Downloads`). In quick settings, the Colour row steps through them: click
 for the next, right-click for the previous, "None" to switch off. From a
-terminal: `archive-icc set ~/Downloads/panel.icc` (the focused screen), or
-`archive-icc set file.icc HDMI-A-1`, and `archive-icc off`. Hyprland applies
+terminal: `ultra-icc set ~/Downloads/panel.icc` (the focused screen), or
+`ultra-icc set file.icc HDMI-A-1`, and `ultra-icc off`. Hyprland applies
 it at once; a file it cannot read shows in its red error bar. For the G14,
 ASUS's own panel profiles are on the Windows side, under
 `C:\Windows\System32\spool\drivers\color`.
@@ -165,28 +165,28 @@ or stop them: `pkill mako; pkill dunst`.
 
 On the office mesh Wi-Fi the laptop sometimes reaches the router and the
 internet but not the FMS server or a robot: "Destination Host Unreachable".
-The router can still reach them, so `archive-lan on` (once) keeps them
+The router can still reach them, so `ultra-lan on` (once) keeps them
 reachable: every few seconds it asks each one directly, sends one that does
 not answer through the router instead, and goes direct again when it
-answers. `archive-lan status` shows which way each goes; the machines are in
-`/etc/archive/lan-hosts` (FMS 192.168.68.202, the robots .153 and .241: add
-others there). `archive-lan off` stops it.
+answers. `ultra-lan status` shows which way each goes; the machines are in
+`/etc/ultra/lan-hosts` (FMS 192.168.68.202, the robots .153 and .241: add
+others there). `ultra-lan off` stops it.
 
 ## An update broke something (restore points)
 
-`archive-snapshot` keeps restore points of the system (Timeshift): one before
+`ultra-snapshot` keeps restore points of the system (Timeshift): one before
 every system update and one a day. They hold the programs, `/etc` and the
 kernel, never your home folder, so going back does not touch your files.
 
 - **The desktop still starts:** Instruments, then **Restore**; or in a
-  terminal `archive-snapshot restore`. Timeshift lists the restore points
+  terminal `ultra-snapshot restore`. Timeshift lists the restore points
   by number: pick the one from before the update, confirm, and it restarts.
 - **The desktop does not start:** press `Ctrl + Alt + F2`, log in, and run
   `sudo timeshift --restore`.
-- `archive-snapshot list` shows them; `archive-snapshot now` makes one by
-  hand (before trying something risky); `archive-snapshot off` stops them.
+- `ultra-snapshot list` shows them; `ultra-snapshot now` makes one by
+  hand (before trying something risky); `ultra-snapshot off` stops them.
 
 ## Starting over
 
-Your old files are in `~/.archive-backup/<date>/`. To remove the links, run
-`find ~ -lname "$HOME/archive/dotfiles/*" -delete`, then copy back what you need.
+Your old files are in `~/.ultra-backup/<date>/`. To remove the links, run
+`find ~/.config ~/.local -lname "$HOME/ultra/*" -delete`, then copy back what you need.

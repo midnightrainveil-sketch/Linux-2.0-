@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# ultra-lan: keep the office's machines reachable on a mesh Wi-Fi that
+# sometimes loses the way to them.
+#
+#   ultra-lan on        watch them from now on (also after a reboot)
+#   ultra-lan off       stop watching; the normal way to them again
+#   ultra-lan status    which of them answer, and how
+#   ultra-lan hosts     the machines watched (edit: sudo nano /etc/ultra/lan-hosts)
+#
+# On some mesh Wi-Fi (Deco) the laptop can reach the router and the internet
+# but not, for a while, another machine on the same network: the FMS server,
+# a robot. The router can still reach them, so the way round is through the
+# router. Every few seconds each watched machine is pinged directly, past the
+# routing table (ping -r: a real round trip, which a mesh answering for it on
+# the way, as it may to an arping, cannot fake); one that misses three checks
+# running is reached through the router instead, and directly again only once
+# it has answered steadily for ten minutes (every change of way can stall an
+# open ssh session, so it changes rarely). The router's "go direct" (an ICMP redirect) is turned
+# off, or it would undo the detour.
+set -euo pipefail
+installed=/usr/local/bin/ultra-lan
+unit=/etc/systemd/system/ultra-lan.service
+hosts_file=/etc/ultra/lan-hosts
+sysctl_file=/etc/sysctl.d/99-ultra-lan.conf
+default_hosts="192.168.68.202 fms
+192.168.68.153 robot cb_007
+192.168.68.241 robot mag1500"
+
+say() { printf ':: %s\n' "$*"; }
+
+# the watched addresses (first word of each line, # for notes)
+hosts() { grep -oE '^\s*[0-9]+(\.[0-9]+){3}' "$hosts_file" 2>/dev/null | tr -d ' \t' || true; }
+
+# the way out: the default route's gateway and device, and our own address
+gateway() { ip -4 route show default 2>/dev/null | awk '{ for (i = 1; i < NF; i++) { if ($i == "via") g = $(i + 1); if ($i == "dev") d = $(i + 1) } print g, d; exit }'; }
+own_addr() { ip -4 -o addr show dev "$1" 2>/dev/null | awk '{ split($4, a, "/"); print a[1]; exit }'; }
+same_net() { [[ ${1%.*} == "${2%.*}" ]]; }   # (a /24 home or office network)
+
+detoured() { ip -4 route show "$1/32" 2>/dev/null | grep -q " via "; }
+
+# the direct way: a ping sent straight out of the device, past any detour
+direct() { ping -r -I "$2" -c 1 -W 1 "$1" >/dev/null 2>&1; }
+declare -A good=()   # answers in a row, per machine, while it is detoured
+declare -A bad=()    # misses in a row, per machine, while it is direct
+MISSES=3             # misses running before the detour (15 s)
+STEADY=120           # answers running before going direct again (10 min)
+
+# one look at every watched machine (as root)
+check() {
+    local gw dev me h
+    read -r gw dev < <(gateway) || return 0
+    [[ -n ${gw:-} && -n ${dev:-} ]] || return 0
+    me=$(own_addr "$dev")
+    [[ -n $me ]] || return 0
+    for h in $(hosts); do
+        same_net "$h" "$me" || continue
+        [[ $h == "$gw" || $h == "$me" ]] && continue
+        if direct "$h" "$dev"; then
+            bad[$h]=0
+            if detoured "$h"; then
+                good[$h]=$(( ${good[$h]:-0} + 1 ))
+                if (( good[$h] >= STEADY )); then
+                    ip -4 route del "$h/32" 2>/dev/null || true
+                    good[$h]=0
+                    echo "ultra-lan: $h answers directly again"
+                fi
+            fi
+        else
+            good[$h]=0
+            detoured "$h" && continue
+            bad[$h]=$(( ${bad[$h]:-0} + 1 ))
+            (( bad[$h] >= MISSES )) || continue
+            bad[$h]=0
+            ip -4 route replace "$h/32" via "$gw" dev "$dev" 2>/dev/null \
+                && echo "ultra-lan: $h not answering directly; through the router ($gw)"
+        fi
+    done
+}
+
+watch() {
+    [[ $EUID -eq 0 ]] || { echo "ultra-lan watch runs as root (ultra-lan on)" >&2; exit 2; }
+    while true; do
+        check || true
+        sleep 5
+    done
+}
+
+on() {
+    sudo install -Dm755 "$(readlink -f "$0")" "$installed"
+    if [[ ! -f $hosts_file ]]; then
+        sudo mkdir -p "$(dirname "$hosts_file")"
+        printf '# machines ultra-lan keeps reachable: an address, then a note\n%s\n' "$default_hosts" | sudo tee "$hosts_file" >/dev/null
+    fi
+    printf '%s\n' "# ultra-lan: the router's \"go direct\" must not undo a detour" \
+        "net.ipv4.conf.all.accept_redirects = 0" "net.ipv4.conf.default.accept_redirects = 0" |
+        sudo tee "$sysctl_file" >/dev/null
+    sudo sysctl -q -p "$sysctl_file"
+    sudo tee "$unit" >/dev/null <<EOF
+[Unit]
+Description=Keep the office's machines reachable on mesh Wi-Fi (ultra-lan)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=$installed watch
+Restart=always
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable ultra-lan.service >/dev/null 2>&1
+    # (restarted, not just started: a watcher already running keeps the old version)
+    sudo systemctl restart ultra-lan.service
+    say "watching: $(hosts | tr '\n' ' ')(edit: sudo nano $hosts_file)"
+}
+
+off() {
+    sudo systemctl disable --now ultra-lan.service 2>/dev/null || true
+    local h
+    for h in $(hosts); do detoured "$h" && sudo ip -4 route del "$h/32" 2>/dev/null || true; done
+    sudo rm -f "$unit" "$installed" "$sysctl_file"
+    sudo systemctl daemon-reload
+    say "stopped; the machines are reached directly again"
+}
+
+status() {
+    systemctl is-active --quiet ultra-lan.service && echo "ultra-lan: watching" || echo "ultra-lan: off (ultra-lan on)"
+    local h note
+    while read -r h note; do
+        [[ $h =~ ^[0-9] ]] || continue
+        if detoured "$h"; then echo "  $h  ${note:-}: through the router"
+        else echo "  $h  ${note:-}: direct"; fi
+    done <"$hosts_file" 2>/dev/null || true
+}
+
+case ${1:-status} in
+    on) on ;;
+    off) off ;;
+    watch) watch ;;
+    status) status ;;
+    hosts) cat "$hosts_file" 2>/dev/null || echo "$default_hosts" ;;
+    *) sed -n '2,18p' "$0"; exit 2 ;;
+esac

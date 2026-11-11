@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# ultra-wallpaper: use your own image as the sheet on the desk.
+#
+#   ultra-wallpaper <image>     png, jpg or webp; 16:9, the larger the better
+#   ultra-wallpaper reset       back to the theme's own sheet
+#
+# The image is kept as ~/.config/ultra/night-service/wallpaper.<ext>, outside the theme's
+# folder, so ultra-update never replaces it (setup.sh rebuilds the sheet
+# from it after every update). The day sheet is the image toned to the desk's
+# grey, the night sheet a cyanotype print of it, both sized to the screen.
+set -euo pipefail
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/night-service"
+box="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"   # this theme's folder
+importer="$box/tools/import_wallpaper.py"
+[[ -f $importer ]] || { echo "ultra-wallpaper: the theme's tools are missing (run ultra-update)" >&2; exit 1; }
+mkdir -p "$dir"
+
+case ${1:-} in
+    "" | -h | --help) sed -n '2,11p' "$0"; exit 0 ;;
+    reset)
+        rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp}
+        # the theme's sheet again: links back to it where yours was written
+        ultra-theme apply --force >/dev/null
+        ;;
+    *)
+        [[ -f $1 ]] || { echo "ultra-wallpaper: no such file: $1" >&2; exit 1; }
+        ext=${1##*.}
+        ext=${ext,,}
+        case $ext in png | jpg | jpeg | webp) ;; *) echo "ultra-wallpaper: use a png, jpg or webp" >&2; exit 1 ;; esac
+        rm -f "$dir"/wallpaper.{png,jpg,jpeg,webp}
+        cp -f "$1" "$dir/wallpaper.$ext"
+        ;;
+esac
+
+[[ ${1:-} == reset ]] || python3 "$importer"
+# the shell picks up the new sheet when it starts again
+# (it runs as qs or as quickshell, depending on how it was started)
+qs kill >/dev/null 2>&1 || true
+pkill -x qs 2>/dev/null || true
+pkill -x quickshell 2>/dev/null || true
+sleep 0.5
+if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
+    setsid -f ultra-shell >/dev/null 2>&1
+fi
+echo "done: the desk shows it now"
