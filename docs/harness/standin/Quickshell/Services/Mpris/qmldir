@@ -1,0 +1,3 @@
+module Quickshell.Services.Mpris
+singleton Mpris Mpris.qml
+MprisPlayer 1.0 MprisPlayer.qml

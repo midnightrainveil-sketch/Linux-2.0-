@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# ultra-screenshot: take a picture of the screen.
+#   ultra-screenshot region | window | screen
+#   ultra-screenshot count        how many pictures are kept (the bar's frame counter)
+# Saved to ~/Pictures/Viewfinder/ and copied to the clipboard.
+set -euo pipefail
+dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Viewfinder"
+
+if [[ ${1:-} == count ]]; then
+    find "$dir" -maxdepth 1 -name '*.png' 2>/dev/null | wc -l
+    exit 0
+fi
+
+mkdir -p "$dir"
+file="$dir/frame-$(date +%Y%m%d-%H%M%S).png"
+# quick PNG compression: the full panel at the default level takes a while
+grim() { command grim -l 1 "$@"; }
+
+case ${1:-region} in
+    region)
+        geom=$(slurp -d -b '00000055' -c 'f2efedff' -s '00000000' -w 2) || exit 0
+        grim -g "$geom" "$file"
+        ;;
+    window)
+        geom=$(hyprctl activewindow -j | jq -r 'if .at then "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])" else empty end')
+        if [[ -n $geom ]]; then
+            grim -g "$geom" "$file"
+        else
+            grim -o "$(hyprctl activeworkspace -j | jq -r '.monitor')" "$file"
+        fi
+        ;;
+    screen)
+        grim -o "$(hyprctl activeworkspace -j | jq -r '.monitor')" "$file"
+        ;;
+    *) echo "usage: ultra-screenshot region|window|screen|count" >&2; exit 2 ;;
+esac
+
+wl-copy --type image/png <"$file" &
+qs ipc call shots refresh >/dev/null 2>&1 || true
+notify-send --app-name Viewfinder "Frame taken" "${file/#$HOME/\~}" || true
+wait

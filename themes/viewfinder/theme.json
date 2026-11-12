@@ -1,0 +1,16 @@
+{
+  "id": "viewfinder",
+  "name": "Viewfinder",
+  "by": "Built in",
+  "summary": "The desktop seen through a camera on a rainy night under the blossom: black and white with a little pink. Workspaces are the frames of a film strip, windows are prints with a caption under each, the camera in the corner takes the screenshot.",
+  "previews": [
+    "preview.jpg"
+  ],
+  "captions": [
+    "The crossing."
+  ],
+  "leaves": [
+    ".config/gtk-3.0/gtk.css",
+    ".config/gtk-4.0/gtk.css"
+  ]
+}

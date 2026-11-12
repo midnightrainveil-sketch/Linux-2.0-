@@ -1,0 +1,3 @@
+module Quickshell.Networking
+singleton Networking Networking.qml
+DeviceType 1.0 DeviceType.qml

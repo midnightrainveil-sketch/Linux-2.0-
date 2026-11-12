@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Themes
+GenericName=Desktop themes
+Comment=Choose the desktop theme to log in to
+Exec=qs ipc call shell themes
+Icon=preferences-desktop-theme
+Categories=Settings;
+Keywords=theme;look;desktop;style;appearance;wallpaper;

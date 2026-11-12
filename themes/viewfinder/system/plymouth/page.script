@@ -1,0 +1,126 @@
+# Viewfinder: the page shown while the machine starts and stops (Plymouth).
+# Black, with the viewfinder's corner marks, the focusing mark in the
+# middle, the name with a line ruled under it, and a word on what is
+# happening. The pictures come from tools/make_splash.py, drawn for a
+# 1800 px tall screen (the G14) and fitted to others.
+
+W = Window.GetWidth();
+H = Window.GetHeight();
+k = H / 1800;
+
+fun fit(img) {
+    if (k > 0.97 && k < 1.03) return img;
+    return img.Scale(Math.Int(img.GetWidth() * k + 0.5), Math.Int(img.GetHeight() * k + 0.5));
+}
+
+# ------------------------------------------------------------------ the frame
+Window.SetBackgroundTopColor(0.043, 0.039, 0.043);
+Window.SetBackgroundBottomColor(0.043, 0.039, 0.043);
+
+m = Math.Int(40 * k);
+c_img = fit(Image("corner-tl.png"));
+c_w = c_img.GetWidth();
+c_tl = Sprite(c_img);
+c_tl.SetPosition(m, m, 0);
+c_tr = Sprite(fit(Image("corner-tr.png")));
+c_tr.SetPosition(W - m - c_w, m, 0);
+c_bl = Sprite(fit(Image("corner-bl.png")));
+c_bl.SetPosition(m, H - m - c_w, 0);
+c_br = Sprite(fit(Image("corner-br.png")));
+c_br.SetPosition(W - m - c_w, H - m - c_w, 0);
+
+sprig_img = fit(Image("mark.png"));
+sprig = Sprite(sprig_img);
+sprig.SetPosition(Math.Int((W - sprig_img.GetWidth()) / 2), Math.Int(H * 0.40 - sprig_img.GetHeight() / 2), 1);
+sprig.SetOpacity(0);
+
+head_img = fit(Image("heading.png"));
+head = Sprite(head_img);
+head_y = Math.Int(H * 0.40 + sprig_img.GetHeight() / 2 + 46 * k);
+head.SetPosition(Math.Int((W - head_img.GetWidth()) / 2), head_y, 1);
+head.SetOpacity(0);
+
+rule_img = fit(Image("rule.png"));
+rule_w = rule_img.GetWidth();
+rule_h = rule_img.GetHeight();
+rule_x = Math.Int((W - rule_w) / 2);
+rule_y = head_y + head_img.GetHeight() + 14 * k;
+rule = Sprite();
+rule.SetPosition(rule_x, rule_y, 1);
+
+# what is happening
+mode = Plymouth.GetMode();
+which = "boot";
+if (mode == "shutdown") which = "shutdown";
+if (mode == "reboot") which = "reboot";
+if (mode == "updates" || mode == "system-upgrade" || mode == "firmware-upgrade") which = "updates";
+line_img = fit(Image("line-" + which + ".png"));
+line = Sprite(line_img);
+line_y = rule_y + rule_h + 18 * k;
+line.SetPosition(Math.Int((W - line_img.GetWidth()) / 2), line_y, 1);
+line.SetOpacity(0);
+
+# ------------------------------------------------------------------ the passphrase (an encrypted disk)
+prompt_img = fit(Image("prompt.png"));
+prompt = Sprite(prompt_img);
+prompt.SetPosition(Math.Int((W - prompt_img.GetWidth()) / 2), line_y, 2);
+prompt.SetOpacity(0);
+bullet_img = fit(Image("bullet.png"));
+bullets = [];
+asking = 0;
+
+fun show_bullets(n) {
+    gap = bullet_img.GetWidth() + 4 * k;
+    total = n * gap;
+    x0 = (W - total) / 2;
+    for (i = 0; i < n || bullets[i]; i++) {
+        if (!bullets[i]) global.bullets[i] = Sprite(bullet_img);
+        global.bullets[i].SetPosition(Math.Int(x0 + i * gap), Math.Int(line_y + prompt_img.GetHeight() + 10 * k), 2);
+        if (i < n) global.bullets[i].SetOpacity(1); else global.bullets[i].SetOpacity(0);
+    }
+}
+
+fun on_password(prompt_text, n) {
+    global.asking = 1;
+    prompt.SetOpacity(1);
+    line.SetOpacity(0);
+    show_bullets(n);
+}
+
+fun on_normal() {
+    global.asking = 0;
+    prompt.SetOpacity(0);
+    show_bullets(0);
+}
+
+Plymouth.SetDisplayPasswordFunction(on_password);
+Plymouth.SetDisplayNormalFunction(on_normal);
+
+# ------------------------------------------------------------------ coming into focus
+t = 0;
+drawn = -1;
+
+fun ease(x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return x * x * (3 - 2 * x);
+}
+
+fun refresh() {
+    global.t = t + 1 / 50;
+    sprig.SetOpacity(ease(t / 0.9));
+    head.SetOpacity(ease((t - 0.35) / 0.7));
+    # the line ruled under the heading, left to right, once
+    p = ease((t - 0.6) / 1.1);
+    w = Math.Int(rule_w * p);
+    if (w != drawn && w > 0) {
+        rule.SetImage(rule_img.Scale(w, rule_h));
+        global.drawn = w;
+    }
+    # the word on what is happening, breathing while it works
+    if (!asking) {
+        a = ease((t - 1.2) / 0.6);
+        line.SetOpacity(a * (0.78 + 0.22 * Math.Cos((t - 1.8) * 2.4)));
+    }
+}
+Plymouth.SetRefreshFunction(refresh);

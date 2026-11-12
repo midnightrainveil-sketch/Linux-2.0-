@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# ultra-desk: the small terminal on the picture, as at login.
+#
+#   ultra-desk       bring it to the workspace you are on, at its place and
+#                    size; if it was closed, a new one opens (Super + D)
+#
+# It is an ordinary terminal that floats where the reference picture has
+# it. While a tiled window is on the workspace it steps out of the way,
+# and it comes back when the workspace is clear (hypr/theme.lua).
+set -uo pipefail
+
+# its place and size as fractions of the screen (as in hypr/theme.lua)
+X=0.1375 Y=0.1467 W=0.2146 H=0.2217
+FONT="JetBrains Mono:size=9.5"
+opening="${XDG_RUNTIME_DIR:-/tmp}/ultra-desk-opening"
+
+desk_window() {
+    hyprctl clients -j | jq -r '[.[] | select(.class == "viewfinder.desk")][0] | if . == null then empty else .address end'
+}
+
+open_terminal() {
+    # one desk terminal: not again while one is still starting (5 s)
+    if [[ -e $opening ]] && (( $(date +%s) - $(stat -c %Y "$opening") < 5 )); then return; fi
+    touch "$opening"
+    setsid -f foot --app-id=viewfinder.desk \
+        --override="main.font=$FONT" \
+        --override="main.font-bold=JetBrains Mono:weight=Bold:size=9.5" \
+        --override="main.pad=14x10" \
+        env ULTRA_DESK=1 zsh >/dev/null 2>&1
+}
+
+addr=$(desk_window) || true
+if [[ -z ${addr:-} ]]; then
+    open_terminal            # theme.lua floats it and puts it in place
+    exit 0
+fi
+
+mon=$(hyprctl monitors -j | jq -c '.[] | select(.focused)')
+ws=$(jq -r '.activeWorkspace.id' <<<"$mon")
+# the monitor in layout coordinates (its size divided by its scale, turned if rotated)
+read -r mx my mw mh < <(jq -r '
+    (.transform % 2 == 1) as $turned
+    | [.x, .y, ((if $turned then .height else .width end) / .scale | floor), ((if $turned then .width else .height end) / .scale | floor)]
+    | @tsv' <<<"$mon")
+px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
+py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
+pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
+ph=$(awk -v h="$mh" -v f="$H" 'BEGIN { printf "%d", h * f }')
+
+win="window = \"address:$addr\""
+hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null
+hyprctl dispatch "hl.dsp.window.float({ action = \"on\", $win })" >/dev/null
+hyprctl dispatch "hl.dsp.window.resize({ x = $pw, y = $ph, $win })" >/dev/null
+hyprctl dispatch "hl.dsp.window.move({ x = $px, y = $py, $win })" >/dev/null

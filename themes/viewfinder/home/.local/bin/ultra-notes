@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# ultra-notes: open the notes shown on the desk, to write them.
+# One note a line:   [ ] to do      [x] done
+set -euo pipefail
+file="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/viewfinder/notes.txt"
+mkdir -p "${file%/*}"
+[[ -e $file ]] || printf '[ ] Write a note here\n[ ] One a line\n' >"$file"
+if command -v gnome-text-editor >/dev/null; then
+    exec gnome-text-editor "$file"
+fi
+exec xdg-open "$file"
