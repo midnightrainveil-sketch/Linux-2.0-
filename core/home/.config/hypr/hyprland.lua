@@ -66,6 +66,7 @@ require("ultra.machine")
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("ultra-brightness init")            -- a software dim, if the panel needs one
+    hl.exec_cmd("ultra-refresh watch")              -- Auto: 60 Hz on battery, 120 plugged in, as the charger comes and goes
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("sh -c 'sleep 4; ultra-mic tone'")   -- the microphone's tone, as last chosen

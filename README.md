@@ -68,7 +68,8 @@ core/                       the machine, shared by every theme
   home/.config/hypr/        hyprland.lua (the selector), ultra/machine.lua
   home/.config/zsh, pipewire
   home/.local/bin/          ultra-theme, ultra-update, ultra-rog, ultra-lan, ultra-ros,
-                            ultra-refresh, ultra-snapshot, ultra-brightness, ultra-mic, ...
+                            ultra-refresh, ultra-snapshot, ultra-brightness, ultra-mic,
+                            ultra-memory, ultra-tune, ultra-health ...
   packages/                 the machine's packages (pacman.txt), the G14's (g14.txt)
 themes/                     one folder per theme (see themes/README.md)
   archive/                  the herbarium

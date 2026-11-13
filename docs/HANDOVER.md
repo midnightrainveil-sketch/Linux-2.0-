@@ -45,8 +45,11 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     `ultra-update`, `ultra-lan` (mesh Wi-Fi detour, calm switching),
     `ultra-rog` (GPU/power), `ultra-refresh`, `ultra-snapshot` (Timeshift),
     `ultra-ros` (rviz), `ultra-brightness`, `ultra-mic`, `ultra-icc`,
-    `ultra-boot`, `ultra-memory`. `setup.sh` also bakes in: ssh keepalive,
-    Wi-Fi power saving off. Nothing depends on the kernel (linux, linux-lts).
+    `ultra-boot`, `ultra-memory`, `ultra-tune` (small reversible tunings:
+    no wait for the network at start-up, 20 s for a hung program at
+    shut-down, the watchdog off, weekly trim). `setup.sh` also bakes in:
+    ssh keepalive, Wi-Fi power saving off. `ultra-refresh watch` (started
+    by the selector) makes Auto follow the charger under any theme. Nothing depends on the kernel (linux, linux-lts).
   - `themes/<id>/`: one self-contained box per theme; `home/` is linked
     into the home folder only while that theme is on. No box refers to
     another; each has its own copy of the shell, scripts, tools and art.

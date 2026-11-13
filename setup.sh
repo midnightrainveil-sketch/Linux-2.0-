@@ -156,7 +156,7 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
 mkdir -p "$config/ultra" "$state/ultra"
-[[ -f $state/ultra/refresh ]] || echo 120 >"$state/ultra/refresh"   # the panel's rate (ultra-refresh)
+[[ -f $state/ultra/refresh ]] || echo auto >"$state/ultra/refresh"   # the panel's rate: 120 Hz plugged in, 60 on battery (ultra-refresh)
 ultra_theme core || { warn "could not link the machine's files"; exit 1; }
 # the theme in place stays (a new choice is for the next login, as ever)
 theme=$(ultra_theme current)
@@ -368,6 +368,14 @@ say "a quiet start: your theme's page instead of the start-up text"
 # squeezed in RAM instead of the laptop slowing to a crawl
 say "memory: compressed swap in RAM (zram)"
 "$bin/ultra-memory" on || warn "zram was not set up; run ultra-memory on"
+
+# ------------------------------------------------------------------ small tunings
+# a quicker start and stop, a little less power at rest, a trimmed disk
+# (ultra-tune); kept current, unless you turned it off (ultra-tune off)
+if [[ ! -f $state/ultra/tune-off ]]; then
+    say "small tunings: a quicker start and stop, less power at rest (ultra-tune)"
+    "$bin/ultra-tune" on || warn "the tunings were not set; run ultra-tune on"
+fi
 
 # ------------------------------------------------------------------ 5. each theme's own
 # Icons and the title-bar plugin are made per theme, from its own folder, so

@@ -24,7 +24,7 @@ Shared by all (in `core/`, not in any box): the machine. Screens, GPUs and
 input (`hypr/ultra/machine.lua`), and the commands that are not about looks:
 `ultra-update`, `ultra-rog`, `ultra-lan`, `ultra-ros`, `ultra-refresh`,
 `ultra-snapshot`, `ultra-brightness`, `ultra-mic`, `ultra-icc`, `ultra-boot`,
-`ultra-memory`, `ultra-theme`. (`ultra-boot` only installs the start-up page;
+`ultra-memory`, `ultra-tune`, `ultra-theme`. (`ultra-boot` only installs the start-up page;
 the page itself is the theme's.)
 
 ## What a box holds

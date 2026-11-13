@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ultra-tune: small, well-known laptop tunings, all undone by `off`.
+#
+#   ultra-tune on       set them (setup.sh does, unless you turned them off)
+#   ultra-tune off      as Arch has it again, and setup.sh leaves it so
+#   ultra-tune status   what is set
+#
+# What it sets, and why:
+#   start-up    NetworkManager-wait-online is switched off: the start no
+#               longer waits (up to a minute) for the Wi-Fi to connect
+#               before the login screen. Nothing here needs the network
+#               that early.
+#   shut-down   a program that will not close is given 20 s, not 90,
+#               before it is stopped
+#   at rest     the kernel's lock-up watchdog is off (it wakes the
+#               processor many times a second to check for a hang), and
+#               changed files are written to the disk every 15 s, not
+#               every 5, so the disk and processor sleep longer
+#   the disk    the SSD is told once a week which blocks are free
+#               (fstrim.timer), which keeps it quick as it fills
+#
+# Not touched: the Wi-Fi (its power saving stays off, for ssh and the
+# mesh), sound, Bluetooth, the boot loader. Memory is ultra-memory; the
+# graphics chips and fan profiles are ultra-rog; the panel's rate is
+# ultra-refresh.
+set -euo pipefail
+sysctl_file=/etc/sysctl.d/99-ultra-tune.conf
+stop_file=/etc/systemd/system.conf.d/ultra-tune.conf
+state="${XDG_STATE_HOME:-$HOME/.local/state}/ultra"
+
+say() { printf ':: %s\n' "$*"; }
+
+on() {
+    local want
+    want=$'# ultra-tune: less work at rest\nkernel.nmi_watchdog = 0\nvm.dirty_writeback_centisecs = 1500\n'
+    if [[ $(cat "$sysctl_file" 2>/dev/null) != "${want%$'\n'}" ]]; then
+        printf '%s' "$want" | sudo tee "$sysctl_file" >/dev/null
+        sudo sysctl -q -p "$sysctl_file" || true
+    fi
+    want=$'# ultra-tune: a program that will not close gets 20 s\n[Manager]\nDefaultTimeoutStopSec=20s\n'
+    if [[ $(cat "$stop_file" 2>/dev/null) != "${want%$'\n'}" ]]; then
+        sudo mkdir -p "${stop_file%/*}"
+        printf '%s' "$want" | sudo tee "$stop_file" >/dev/null
+        sudo systemctl daemon-reload
+    fi
+    if systemctl is-enabled --quiet NetworkManager-wait-online.service 2>/dev/null; then
+        sudo systemctl disable NetworkManager-wait-online.service >/dev/null 2>&1 || true
+    fi
+    if systemctl list-unit-files fstrim.timer 2>/dev/null | grep -q fstrim.timer \
+        && ! systemctl is-enabled --quiet fstrim.timer 2>/dev/null; then
+        sudo systemctl enable --now fstrim.timer >/dev/null 2>&1 || true
+    fi
+    rm -f "$state/tune-off"
+    say "tunings set (ultra-tune status)"
+}
+
+off() {
+    sudo rm -f "$sysctl_file" "$stop_file"
+    sudo sysctl -q -w kernel.nmi_watchdog=1 vm.dirty_writeback_centisecs=500 || true
+    sudo systemctl daemon-reload
+    sudo systemctl enable NetworkManager-wait-online.service >/dev/null 2>&1 || true
+    # (fstrim.timer is left on: it only helps)
+    mkdir -p "$state" && touch "$state/tune-off"
+    say "tunings off; setup.sh will leave them off (ultra-tune on to set them again)"
+}
+
+status() {
+    local wait trim
+    wait=$(systemctl is-enabled NetworkManager-wait-online.service 2>/dev/null) || true
+    trim=$(systemctl is-enabled fstrim.timer 2>/dev/null) || true
+    echo "start-up:   waiting for the network: ${wait:-off}"
+    echo "shut-down:  $( [[ -f $stop_file ]] && echo '20 s for a program that will not close' || echo "systemd's own 90 s")"
+    echo "at rest:    watchdog $(cat /proc/sys/kernel/nmi_watchdog 2>/dev/null || echo '?') (0 is off), files written every $(( $(cat /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || echo 0) / 100 )) s"
+    echo "the disk:   weekly trim: ${trim:-off}"
+}
+
+case ${1:-status} in
+    on) on ;;
+    off) off ;;
+    status) status ;;
+    *) sed -n '2,24p' "$0"; exit 2 ;;
+esac

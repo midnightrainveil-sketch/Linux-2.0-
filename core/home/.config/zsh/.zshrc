@@ -11,7 +11,14 @@ setopt share_history hist_ignore_dups hist_ignore_space hist_reduce_blanks exten
 # ---- behaviour
 setopt auto_cd interactive_comments no_beep prompt_subst
 bindkey -e
-autoload -Uz compinit && compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+# completions: the list is made once a day; other terminals read the one
+# kept (checking every program's completions at each start is most of the
+# time a new terminal takes)
+autoload -Uz compinit
+_zdump="${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+_zfresh=( $_zdump(N.mh-24) )          # the list kept, if under a day old
+if (( $#_zfresh )); then compinit -C -d "$_zdump"; else compinit -d "$_zdump"; fi
+unset _zdump _zfresh
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 
