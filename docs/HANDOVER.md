@@ -57,7 +57,7 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     night train; a full copy with its own parts (keepsakes, music box).
   - **Viewfinder** (`themes/viewfinder`): the desktop seen through a camera,
     black and white with blossom pink, on the user's own wallpaper
-    (`art/wallpaper-source.png`). Written from nothing, small (about 30
+    (`art/wallpaper-source.jpg`). Written from nothing, small (about 30
     files of shell): two bars, a film strip of workspaces down the left
     (takes room from windows), now playing / notes / notifications on the
     right, a caption under each window and focus marks round the one in
@@ -71,6 +71,24 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
 - **Start-up / shut-down page** (Plymouth): each box's `system/plymouth/`;
   `ultra-boot quiet` installs root's `ultra-page` and a path unit that
   swaps the page (and rebuilds the initramfs) when the theme changes.
+
+## Kept apart (checked November 2026)
+
+- The machine (`core/`) names no theme and calls none; the one command of a
+  theme it uses, `ultra-card` in `.zshrc`, is used only if the theme in
+  place has one. Packages: the machine's in `core/packages/pacman.txt`,
+  each theme's in `themes/<id>/packages.txt`. A theme's notes are in its
+  own `docs/`; `docs/` here is the machine's and this handover.
+- No box names another. Switching among the three in a scratch home leaves
+  no link of another theme and no broken link (the loop is in "Testing").
+- Left as they are, on purpose: files this setup wrote on the laptop under
+  the project's first name (`/etc/NetworkManager/conf.d/archive-wifi-powersave.conf`,
+  `/etc/udev/rules.d/90-archive-gpu-names.rules`, `/etc/plymouth/archive*`,
+  `*.archive-bak` backups, the microphone's `archive_mic*` nodes). They are
+  the machine's, not the Archive theme's; renaming them means moving files
+  as root on a working laptop, which cannot be tried here. Also Compartment
+  19's inner names (`archive.shell`, `Archive-Cursors`, `archivebars`): it
+  began as a copy, and they clash with nothing since only one box is linked.
 
 ## Testing here (the harness)
 

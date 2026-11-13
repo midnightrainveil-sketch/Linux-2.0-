@@ -1,41 +1,28 @@
-# Archive desktop: official Arch packages (install with ./install.sh --packages)
+# The machine's packages: what every theme needs, and the tools that are not
+# about looks. Each theme lists its own in themes/<id>/packages.txt; setup.sh
+# installs these and those of every theme kept. (Official Arch packages; an
+# AUR helper is used for any pacman does not have.)
 # ---- compositor and session
 hyprland
 xdg-desktop-portal-hyprland
 xdg-desktop-portal-gtk
-hypridle
 hyprpolkitagent
-hyprpicker
 greetd
 greetd-tuigreet
-# ---- the shell (Quickshell) and the Qt modules it uses
-quickshell
-qt6-5compat
-qt6-svg
-qt6-imageformats
-qt6-wayland
-# ---- build tools for hyprpm (title bar plugin)
+# ---- for building from the AUR
 base-devel
 git
-cmake
-meson
-cpio
-pkgconf
 # ---- terminal and shell
 foot
 zsh
 zsh-autosuggestions
 zsh-syntax-highlighting
-fastfetch
-# ---- audio, media
+# ---- audio
 pipewire
 pipewire-pulse
 pipewire-alsa
 wireplumber
 pavucontrol
-playerctl
-mpv
-mpv-mpris
 alsa-utils
 # ---- network, bluetooth, power
 networkmanager
@@ -47,28 +34,16 @@ upower
 power-profiles-daemon
 brightnessctl
 hyprsunset
-# ---- screenshots, clipboard, notifications from scripts
-grim
-slurp
+# ---- clipboard, and what the ultra-* commands use
 wl-clipboard
 cliphist
-wtype
 jq
 libnotify
 xdg-utils
-# ---- look: fonts, GTK / Qt themes, icons
-ttf-ibm-plex
+# ---- fonts every program falls back on
 noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
-adw-gtk-theme
-papirus-icon-theme
-qt6ct
-nwg-look
-# ---- plates and sounds
-python-pillow
-python-numpy
-ffmpeg
 # ---- everyday apps (swap for your own)
 nautilus
 gnome-text-editor
@@ -83,7 +58,7 @@ bind
 nmap
 # ---- the start-up and shut-down page (ultra-boot)
 plymouth
-# ---- compressed swap in memory (ultra-memory)
+# ---- compressed swap in memory (ultra-memory), restore points (ultra-snapshot)
 zram-generator
 timeshift
 rsync

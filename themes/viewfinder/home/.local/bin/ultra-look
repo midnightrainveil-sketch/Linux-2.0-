@@ -23,5 +23,6 @@ if command -v gsettings >/dev/null; then
     gsettings set $i cursor-theme Adwaita
     gsettings set $i cursor-size 24
     gsettings set org.gnome.desktop.wm.preferences button-layout ':'
+    gsettings set org.gnome.desktop.sound theme-name freedesktop     # (no sounds of its own: not another theme's)
 fi 2>/dev/null
 wait

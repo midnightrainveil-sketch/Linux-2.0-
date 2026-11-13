@@ -1,4 +1,4 @@
-# zsh: plain and typed, like the mockup's desk terminal.
+# zsh: plain. The prompt:
 #   [atlas@linden ~]$
 
 # ---- history
@@ -26,7 +26,7 @@ precmd() {
 preexec() { print -Pn "\e]2;%n@%m: %~\a" }
 PROMPT='[%n@%m %1~]${vcs_info_msg_0_}%(?..%F{1} %?%f)$ '
 
-# ---- quiet, muted helpers (the palette's madder, sage, ochre... not neon)
+# ---- quiet helpers (the terminal's own eight colours: each theme sets them)
 export LS_COLORS='di=34:ln=36:so=35:pi=33:ex=32:bd=33:cd=33:su=31:sg=31:tw=34:ow=34'
 alias ls='ls --color=auto --group-directories-first'
 alias ll='ls -lh'

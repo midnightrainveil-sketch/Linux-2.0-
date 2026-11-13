@@ -1,0 +1,34 @@
+# What this theme needs beyond the machine's packages (core/packages/pacman.txt).
+# ---- the shell (Quickshell) and the Qt modules it uses
+quickshell
+qt6-5compat
+qt6-svg
+qt6-imageformats
+qt6-wayland
+# ---- idle: dim, lock, screen off
+hypridle
+# ---- building the title-bar plugin for your Hyprland (ultra-bars)
+cmake
+meson
+cpio
+pkgconf
+# ---- the terminal's card, the phonograph, media keys
+fastfetch
+playerctl
+mpv
+mpv-mpris
+# ---- screenshots, the colour picker, typing into the desk terminal
+grim
+slurp
+hyprpicker
+wtype
+# ---- look: fonts, GTK / Qt themes, icons
+ttf-ibm-plex
+adw-gtk-theme
+papirus-icon-theme
+qt6ct
+nwg-look
+# ---- plates, icons and sounds made on your machine
+python-pillow
+python-numpy
+ffmpeg

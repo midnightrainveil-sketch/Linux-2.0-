@@ -9,7 +9,16 @@ Box {
     title: "Now playing"
     height: 206
 
-    // five bars at the right of the heading, moving while it plays
+    // five bars at the right of the heading, moving while it plays (one
+    // timer for all five; still under a fullscreen window)
+    property var levels: [0.3, 0.75, 1, 0.55, 0.25]
+    Timer {
+        interval: 420
+        running: Media.playing && !Hypr.fullscreen
+        repeat: true
+        onTriggered: card.levels = card.levels.map(() => 0.2 + Math.random() * 0.8)
+        onRunningChanged: if (!running) card.levels = [0.3, 0.75, 1, 0.55, 0.25]
+    }
     Row {
         parent: card.header
         anchors.right: parent.right
@@ -18,23 +27,13 @@ Box {
         anchors.bottomMargin: 12
         spacing: 3
         Repeater {
-            model: [0.3, 0.75, 1, 0.55, 0.25]
+            model: 5
             Rectangle {
-                id: bar
-                required property real modelData
                 required property int index
-                property real level: modelData
                 width: 2
-                height: Math.max(2, Math.round(14 * level))
+                height: Math.max(2, Math.round(14 * card.levels[index]))
                 anchors.bottom: parent.bottom
                 color: Theme.ink
-                Timer {
-                    interval: 380 + bar.index * 70
-                    running: Media.playing
-                    repeat: true
-                    onTriggered: bar.level = 0.2 + Math.random() * 0.8
-                    onRunningChanged: if (!running) bar.level = bar.modelData
-                }
             }
         }
     }

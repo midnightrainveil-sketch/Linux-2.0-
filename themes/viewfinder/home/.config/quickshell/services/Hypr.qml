@@ -66,8 +66,12 @@ Singleton {
         }
         out.sort((a, b) => a.y - b.y || a.x - b.x);
         fullscreen = full || (ws?.hasFullscreen ?? false);
-        windows = out;
+        // only when something moved: nothing is drawn again for a look that
+        // finds the windows where they were
+        const mark = JSON.stringify(out);
+        if (mark !== seen) { seen = mark; windows = out; }
     }
+    property string seen: "[]"
 
     function look(): void { Hyprland.refreshToplevels(); soon.restart(); settled.restart(); }
     // once quickly, and once when the window has finished moving
@@ -75,7 +79,8 @@ Singleton {
     Timer { id: settled; interval: 420; onTriggered: { Hyprland.refreshToplevels(); late.restart(); } }
     Timer { id: late; interval: 90; onTriggered: root.collect() }
     // a window dragged or resized by hand says nothing: look now and then
-    Timer { interval: 2500; running: root.windows.length > 0; repeat: true; onTriggered: root.look() }
+    // (not under a fullscreen window, where no caption shows)
+    Timer { interval: 2500; running: root.windows.length > 0 && !root.fullscreen; repeat: true; onTriggered: root.look() }
 
     Connections {
         target: Hyprland

@@ -1,7 +1,10 @@
-# Archive desktop: the install guide
+# Ultra: the install guide
 
 From a fresh Arch Linux install on the ASUS ROG Zephyrus G14 (2024) to the
-botanical-archive desktop in the reference mockup. Follow the phases in order.
+desktop, with the Archive (the botanical herbarium) as the first theme in
+place. Phases 0 to 7 are the machine and are the same for every theme; from
+Phase 8 on the guide describes the Archive. The others are chosen in the
+Themes app or with `ultra-theme set <id>` (see [themes/README.md](themes/README.md)). Follow the phases in order.
 Each phase ends with a check, so you know it worked before moving on.
 
 You start with:
@@ -18,14 +21,14 @@ Total time: about an hour, most of it waiting for downloads.
 > login screen). Clone the repository to `~/ultra` first (Phase 2), run it,
 > then reboot and continue at Phase 8.
 
-> **What you get.** Hyprland 0.55+ (Lua config) handles windows: paper cards
+> **What you get (the Archive).** Hyprland 0.55+ (Lua config) handles windows: paper cards
 > with torn edges and short soft shadows, darker-edged when focused, with
 > typed title bars. Quickshell 0.3+ draws everything else: the plate wallpaper,
 > the record cards, the footer bar, the launcher, calendar, quick settings, power
 > menu, notifications, volume reading and lock screen. Day is grey paper and
 > graphite. Night is cyanotype blue, and the switch happens at sunrise and sunset.
 
-![Day](docs/img/preview-day.jpg)
+![Day](themes/archive/docs/img/preview-day.jpg)
 
 ---
 
@@ -109,12 +112,12 @@ cd ~/ultra
 ./setup.sh
 ```
 
-This installs everything in [core/packages/pacman.txt](core/packages/pacman.txt):
-Hyprland and its portal, hypridle, the polkit agent, Quickshell with the Qt
-modules it needs (`qt6-5compat`, `qt6-svg`), foot, zsh, fastfetch, PipeWire,
-NetworkManager tools, BlueZ, brightnessctl, grim and slurp, the IBM Plex fonts,
-adw-gtk3, Papirus icons, qt6ct, the greeter, and Firefox and Nautilus. Swap the
-last two for your own apps if you like.
+This installs the machine's packages, [core/packages/pacman.txt](core/packages/pacman.txt)
+(Hyprland and its portal, the polkit agent, foot, zsh, PipeWire,
+NetworkManager tools, BlueZ, brightnessctl, the greeter, and Firefox and
+Nautilus: swap the last two for your own apps if you like), and each
+theme's own, `themes/<id>/packages.txt` (Quickshell with the Qt modules it
+needs, hypridle, fastfetch, grim and slurp, fonts, adw-gtk3, Papirus icons).
 
 Everything comes from the official repos, so you need no AUR helper.
 Courier Prime and Pinyon Script (both SIL Open Font License) ship inside this
@@ -265,7 +268,7 @@ picks up changes as soon as you save.
 ```
 
 The weather comes from Open-Meteo, which needs no account or API key. All the
-other settings are listed in [docs/customise.md](docs/customise.md).
+other settings are listed in [themes/archive/docs/customise.md](themes/archive/docs/customise.md).
 
 **Check:** the Meteorological card shows a temperature, and its catalogue
 number is the current air pressure in hPa.
@@ -434,7 +437,7 @@ with a 10 ms fade-out.
 - [ ] Screenshot with `Print`: file in `~/Pictures/Archive/`, a FILED stamp.
 
 If something is off, see [docs/troubleshooting.md](docs/troubleshooting.md).
-[docs/design-map.md](docs/design-map.md) traces every rule in the design
+[themes/archive/docs/design-map.md](themes/archive/docs/design-map.md) traces every rule in the design
 spec to the file that implements it, and says where the result differs.
 
-![Night](docs/img/preview-night.jpg)
+![Night](themes/archive/docs/img/preview-night.jpg)

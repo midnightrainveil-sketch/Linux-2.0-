@@ -32,6 +32,8 @@ the page itself is the theme's.)
 ```
 themes/<id>/
   theme.json            id, name, by, summary, previews, captions
+  packages.txt          the packages it needs beyond the machine's (optional;
+                        setup.sh installs them)
   preview-*.jpg         pictures for the Themes app (16:10, about 1280 x 800)
   home/                 mirrors your home folder; linked while the theme is on
     .config/hypr/theme.lua      its Hyprland side: look, keybinds, rules, and
@@ -44,7 +46,7 @@ themes/<id>/
                         its pictures. A root helper (ultra-page, set up by
                         ultra-boot quiet) installs the page of the theme in
                         place whenever the theme changes.
-  tools/, art/          what its pictures are made from (optional)
+  tools/, art/, docs/   what its pictures are made from, its own notes (optional)
 ```
 
 Each theme keeps its own settings and state apart from the others':

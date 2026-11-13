@@ -57,7 +57,7 @@ Singleton {
 
     // MPRIS does not push position updates: ask once a second while playing
     Timer {
-        running: root.playing
+        running: root.playing && !Hypr.fullscreen
         interval: 1000
         repeat: true
         onTriggered: root.player?.positionChanged()

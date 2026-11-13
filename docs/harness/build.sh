@@ -12,7 +12,8 @@ Q=${Q:-/tmp/qsreal}
 mkdir -p "$Q" && cd "$Q"
 
 # a compositor to run it under, screenshots, a session bus, Lua for config checks
-apt-get install -y sway grim dbus-x11 lua5.4 libpam0g-dev >apt.log 2>&1 || echo "apt: see $Q/apt.log"
+apt-get update >apt.log 2>&1 || true      # (a fresh container knows no packages yet)
+apt-get install -y sway grim dbus-x11 lua5.4 libpam0g-dev >>apt.log 2>&1 || echo "apt: see $Q/apt.log"
 
 # Qt 6.12 and the build tools, from conda-forge (the distribution's Qt is too old)
 [ -x ./micromamba ] || curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj --strip-components=1 bin/micromamba

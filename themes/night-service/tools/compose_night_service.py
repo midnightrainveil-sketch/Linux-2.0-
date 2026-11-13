@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compartment 19's sheet, laid out loose: the keepsakes spread over the desk
-as in the layout study (docs/compartment-19-layout.webp), rather than in the
+as in the layout study (docs/layout-study.webp), rather than in the
 plate's single column.
 
     python3 tools/compose_night_service.py

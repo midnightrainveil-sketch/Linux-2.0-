@@ -8,7 +8,7 @@
 #   core/            the machine: screens, GPUs, Wi-Fi, ROS, updates, the
 #                    ultra-* commands that are not about looks
 #   themes/<id>/     one folder per desktop theme, each complete in itself
-#                    (archive, night-service, any you add)
+#                    (archive, night-service, viewfinder, any you add)
 # Only the chosen theme's files are linked into your home (ultra-theme).
 #
 # What it does, in order:
@@ -16,7 +16,8 @@
 #   2. links the machine's files and the chosen theme into your home (files
 #      of yours in the way go to ~/.ultra-backup); an older install in
 #      ~/archive is moved over, with your settings
-#   3. installs the packages (pacman; an AUR helper for anything pacman lacks)
+#   3. installs the packages, the machine's and each theme's (pacman; an AUR
+#      helper for anything pacman lacks)
 #   4. on a Zephyrus G14, gives the GPUs stable names for Hyprland
 #   5. builds each theme's icons and title-bar plugin for your Hyprland
 #   6. optionally starts Hyprland at boot from a typed login screen
@@ -154,7 +155,7 @@ if [[ -e $hypr_conf && ! -L $hypr_conf ]]; then
     mv "$hypr_conf" "$keep/"
     note "your old hyprland.conf is in $keep (your own additions go in ~/.config/hypr/user.lua)"
 fi
-mkdir -p "$config/ultra" "$state/ultra" "$HOME/Pictures/Archive"
+mkdir -p "$config/ultra" "$state/ultra"
 [[ -f $state/ultra/refresh ]] || echo 120 >"$state/ultra/refresh"   # the panel's rate (ultra-refresh)
 ultra_theme core || { warn "could not link the machine's files"; exit 1; }
 # the theme in place stays (a new choice is for the next login, as ever)
@@ -172,7 +173,8 @@ if ! sudo pacman -Syu --noconfirm; then
     warn "the upgrade needs a decision; answering it yourself this time"
     sudo pacman -Syu || warn "the system upgrade reported a problem; see above"
 fi
-mapfile -t wanted < <(grep -vE '^\s*(#|$)' "$here/core/packages/pacman.txt")
+# the machine's, and those of every theme kept (themes/<id>/packages.txt)
+mapfile -t wanted < <(cat "$here/core/packages/pacman.txt" "$here"/themes/*/packages.txt 2>/dev/null | grep -vE '^\s*(#|$)' | sort -u)
 repo_pkgs=() aur_pkgs=()
 for p in "${wanted[@]}"; do
     if pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
@@ -203,7 +205,7 @@ if (( ${#aur_pkgs[@]} )); then
         warn "install them yourself, then run ./setup.sh again"
     fi
 fi
-command -v qs >/dev/null || warn "Quickshell (qs) is missing: the bar, cards and wallpaper need it"
+command -v qs >/dev/null || warn "Quickshell (qs) is missing: the themes' shells need it"
 
 ver=$(Hyprland --version 2>/dev/null | grep -oE 'Hyprland [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -n1)
 if [[ -n $ver ]] && (( $(cut -d. -f2 <<<"$ver") < 55 )); then
