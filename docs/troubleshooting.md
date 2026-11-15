@@ -190,3 +190,18 @@ kernel, never your home folder, so going back does not touch your files.
 
 Your old files are in `~/.ultra-backup/<date>/`. To remove the links, run
 `find ~/.config ~/.local -lname "$HOME/ultra/*" -delete`, then copy back what you need.
+
+
+## The pointer is invisible
+
+The graphics chip's own cursor layer can stop showing the pointer after a
+kernel or Hyprland update. `core/home/.config/hypr/ultra/machine.lua` has
+Hyprland draw the pointer itself for that reason. If it is ever invisible
+again, for this session:
+
+```sh
+hyprctl eval 'hl.config({ cursor = { no_hardware_cursors = 1 } })'
+```
+
+To go back to the chip's layer (a later update may have mended it), put
+`"hardwareCursor": true` in `~/.config/ultra/settings.json` and log out and in.

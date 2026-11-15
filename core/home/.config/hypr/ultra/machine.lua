@@ -83,6 +83,17 @@ if #devices > 0 then
     hl.env("AQ_DRM_DEVICES", table.concat(devices, ":"))
 end
 
+------------------------------------------------------------------ the pointer
+-- Drawn by Hyprland itself, not handed to the graphics chip's own cursor
+-- layer: with kernel 7.3 and Hyprland 0.57 (November 2026) the chip's layer
+-- showed no pointer at all on this laptop. It costs next to nothing (a
+-- small redraw as the pointer moves). To try the chip's layer again after a
+-- kernel or Hyprland update: "hardwareCursor": true in
+-- ~/.config/ultra/settings.json, then log out and in.
+if not state.setting_bool("hardwareCursor", false) then
+    hl.config({ cursor = { no_hardware_cursors = 1 } })
+end
+
 ------------------------------------------------------------------ input
 hl.config({
     input = {
