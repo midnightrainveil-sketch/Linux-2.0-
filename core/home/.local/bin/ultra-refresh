@@ -6,6 +6,8 @@
 #   ultra-refresh toggle     the other of 60 / 120 (from auto: the other of
 #                              the rate it is at now)
 #   ultra-refresh apply      Auto: set the rate the charger asks for now
+#                              (not while the session is locked or the
+#                              screen is off)
 #   ultra-refresh watch      wait for the charger to be plugged or pulled and
 #                              apply then (Hyprland starts this with the
 #                              session; it sleeps until the kernel says so)
@@ -42,13 +44,18 @@ panel_rate() {
 
 # Set the panel to the chosen rate, and see that it took: Hyprland is asked
 # to set the panel again (ultra_panel in hypr/ultra/machine.lua), which
-# it may answer "ok" to without doing it, so the rate is read back; failing
-# twice, the whole config is read again (the panel blinks once).
-set_panel() {
-    local want=$1 now i
+# it may answer "ok" to without doing it, so the rate is read back. Nothing
+# is done when the panel is at that rate already. When you chose the rate
+# yourself and it failed twice, the whole config is read again (the panel
+# blinks once); a change that comes by itself (the charger) never does that.
+set_panel() { # set_panel <rate> [gentle]
+    local want=$1 gentle=${2:-} now i
+    now=$(panel_rate)
+    [[ -z $now || $now == "$want" ]] && return 0
     for i in 1 2 3; do
         if ((i < 3)); then hyprctl eval 'ultra_panel()' >/dev/null 2>&1 || true
-        else hyprctl reload >/dev/null 2>&1 || true; fi
+        elif [[ -z $gentle ]]; then hyprctl reload >/dev/null 2>&1 || true
+        else break; fi
         sleep 0.7
         now=$(panel_rate)
         [[ -z $now || $now == "$want" ]] && return 0
@@ -56,6 +63,18 @@ set_panel() {
     echo "the panel stayed at $now Hz (asked for $want)" >&2
     return 1
 }
+
+# Away: the session is locked, or the laptop's screen is off. The panel's
+# rate is not changed then: the lock screen is drawn on that panel, and a
+# change of rate under it as the laptop wakes can leave it standing still.
+locked() {
+    [[ $(loginctl show-session "${XDG_SESSION_ID:-auto}" -p LockedHint --value 2>/dev/null) == yes ]]
+}
+screen_off() {
+    [[ $(hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.name | startswith("eDP"))][0] | if . != null and .dpmsStatus == false then "off" else "on" end' 2>/dev/null) == off ]]
+}
+away() { locked || screen_off; }
+
 rate_of() { # the rate a choice gives now
     if [[ $1 == auto ]]; then plugged && echo 120 || echo 60; else echo "$1"; fi
 }
@@ -65,17 +84,23 @@ rate_of() { # the rate a choice gives now
 watch() {
     exec 9>"${XDG_RUNTIME_DIR:-/tmp}/ultra-refresh-watch.lock"
     flock -n 9 || exit 0                       # one watcher is enough
-    local was now line
+    local was now line n
     plugged && was=1 || was=0
     command -v udevadm >/dev/null || exit 0
     udevadm monitor --udev --subsystem-match=power_supply 2>/dev/null | while read -r line; do
         [[ $line == *change* ]] || continue
-        sleep 1                                # (a plug is announced several times over)
+        sleep 2                                # (a plug is announced several times over)
+        while read -r -t 0.2 line; do :; done
+        # not while away: waking announces the charger too. Wait until you
+        # are back (looked at every 5 s, for an hour at most), then see
+        # what the charger is doing by then.
+        n=0
+        while away && ((n < 720)); do sleep 5; n=$((n + 1)); done
         while read -r -t 0.2 line; do :; done
         plugged && now=1 || now=0
         [[ $now == "$was" ]] && continue
         was=$now
-        "$0" apply >/dev/null 2>&1 || true
+        "$0" apply 9>&- >/dev/null 2>&1 || true
     done
 }
 [[ ${1:-} == watch ]] && { watch; exit 0; }
@@ -89,7 +114,18 @@ case ${1:-status} in
     *) echo "usage: ultra-refresh 60|120|auto|toggle|apply|watch|status" >&2; exit 2 ;;
 esac
 
+# one at a time: two asked at once (the charger's watcher and a theme's
+# bar) would each set the panel, and then each set it again
+exec 8>"${XDG_RUNTIME_DIR:-/tmp}/ultra-refresh.lock"
+flock -w 20 8 || exit 0
+
 echo "$want" >"$state/refresh"
 rate=$(rate_of "$want")
-set_panel "$rate" || true
+if [[ ${1:-} == apply ]]; then
+    # by itself: not while away (the watcher waits and asks again), and
+    # without reading the whole config again
+    away || set_panel "$rate" gentle || true
+else
+    set_panel "$rate" || true
+fi
 echo "$want ($rate Hz)"

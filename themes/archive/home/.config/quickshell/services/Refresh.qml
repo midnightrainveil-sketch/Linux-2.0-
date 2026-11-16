@@ -8,8 +8,8 @@ import Quickshell.Hyprland
 
 // The panel's refresh rate (ultra-refresh): 60, 120 or "auto", which is
 // 120 Hz plugged in and 60 Hz on battery. Hyprland sets the rate when it
-// reads its config (hypr/theme/machine.lua); on Auto this tells it again
-// when the charger is plugged in or pulled out.
+// reads its config (hypr/ultra/machine.lua); on Auto the machine tells it
+// again when the charger is plugged in or pulled out (ultra-refresh watch).
 Singleton {
     id: root
 
@@ -60,7 +60,9 @@ Singleton {
     Timer { id: after; interval: 1600; onTriggered: { root.readActual(); late.restart(); } }
     Timer { id: late; interval: 2600; onTriggered: root.readActual() }
 
-    onPluggedChanged: if (choice === "auto") run("apply")
+    // (the charger: the machine's own watcher sets the panel, ultra-refresh
+    // watch; here the rate is only read again once it has)
+    onPluggedChanged: if (choice === "auto") { after.restart(); }
 
     FileView {
         id: file

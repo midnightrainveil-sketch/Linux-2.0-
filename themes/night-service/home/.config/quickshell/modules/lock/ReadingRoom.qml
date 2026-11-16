@@ -68,6 +68,14 @@ Scope {
         }
     }
 
+    // a check that never answers must not leave the signature line dead:
+    // after ten seconds it takes typing again
+    Timer {
+        interval: 10000
+        running: room.busy
+        onTriggered: { room.busy = false; room.buffer = ""; room.verdict = "rejected"; }
+    }
+
     // let the ADMITTED stamp land, then fade the sheet away
     SequentialAnimation {
         id: unlockLater

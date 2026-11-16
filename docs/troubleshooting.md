@@ -75,6 +75,26 @@ in `~/.config/ultra/<theme>/settings.json` and run `hyprctl reload`.
   panel. Go back to Hybrid (ROG Control's GPU page) or remove `amd-igpu` from
   `machine.lua`.
 
+## The lock screen stands still after the lid is opened
+
+First see what is standing still. Wait for the minute to change on the
+lock screen's clock, and press Caps Lock to see whether its light answers.
+
+- The clock moves but typing does nothing: the keyboard did not wake.
+  Close and open the lid once more.
+- Nothing moves: go to a text screen with `Ctrl + Alt + F3`. If that
+  appears, only the desktop is stuck: log in there and run
+  `pkill -x qs`, then the two lines under "The lock screen crashed"
+  below, and go back with `Ctrl + Alt + F1`. No need to hold the power
+  button, and nothing open is lost.
+- `Ctrl + Alt + F3` does nothing either: the kernel did not come back
+  from sleep (a driver; more likely right after a kernel update). Hold the
+  power button.
+
+Either way, after starting again run `ultra-health sleep`: it prints what
+the laptop wrote down around that sleep and wake, which says which of the
+three it was.
+
 ## The lock screen crashed (solid colour, cannot unlock)
 
 That's Wayland keeping you safe: the lock stays even if the shell dies. From

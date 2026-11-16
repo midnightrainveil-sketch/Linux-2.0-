@@ -3,6 +3,10 @@
 
     ultra-health               a report: power draw, the graphics chips,
                                  the busiest programs, memory, the shell
+    ultra-health sleep         what the laptop wrote down around its last
+                                 sleep and wake, this start and the one
+                                 before (for a wake that froze: run it
+                                 after starting again, and send the output)
     ultra-health launch APP    time how long APP takes to open a window,
                                  and whether it woke the NVIDIA chip
                                  (e.g. ultra-health launch nautilus)
@@ -265,7 +269,40 @@ def launch(cmd):
             "waking it costs ~1 s and power" if woke else "")
 
 
+# ------------------------------------------------------------------ sleep and wake
+SLEEP_WORDS = re.compile(
+    r"PM: suspend|PM: resume|Suspending|Lid (closed|opened)|system-sleep|sleep\.target|systemd-sleep"
+    r"|hypridle|Hyprland|quickshell|\bqs\b|amdgpu|nvidia|NVRM|Xid|drm\b|i2c_hid|asus|ucsi|ACPI Error"
+    r"|segfault|coredump|Call Trace|BUG:|WARNING:|hung|timed out|failed|locked|Lock", re.I)
+
+
+def sleep_report():
+    for boot, title in (("-1", "The start before this one"), ("0", "This start")):
+        head(title)
+        out = sh("journalctl", "-b", boot, "--no-pager", "-o", "short-iso", timeout=40)
+        lines = [ln for ln in out.splitlines() if not ln.startswith("-- ")]
+        if not lines:
+            print("  (no log to read: is your user in the wheel or systemd-journal group?)")
+            continue
+        print("  from %s to %s" % (lines[0][:19], lines[-1][:19]))
+        entries = [i for i, ln in enumerate(lines) if "PM: suspend entry" in ln]
+        if not entries:
+            print("  it did not sleep")
+            continue
+        print("  it went to sleep %d time%s; the last:" % (len(entries), "" if len(entries) == 1 else "s"))
+        start = max(0, entries[-1] - 40)
+        picked = [ln for ln in lines[start:] if SLEEP_WORDS.search(ln)]
+        for ln in picked[:25] + (["  ..."] if len(picked) > 95 else []) + picked[25:][-70:]:
+            print("  " + ln[:230])
+        if boot == "-1":
+            print(DIM + "  (the last line above is the last thing written before it was switched off)" + OFF)
+    print()
+
+
 def main():
+    if sys.argv[1:2] == ["sleep"]:
+        sleep_report()
+        return
     if sys.argv[1:2] == ["launch"] and len(sys.argv) > 2:
         launch(sys.argv[2:])
         return

@@ -145,6 +145,19 @@ lines, small capitals, few panels, full contrast (not washed out, not
 "horror"), nothing that looks like paper or objects. They keep the mock-up
 they picked as the reference and want it matched.
 
+**Open (16 November 2026): the lock screen stood still after a lid-open,
+twice, since the system update to kernel 7.3.4 / Hyprland 0.57.2.** Cause
+not known: no log was seen. Done on suspicion: `ultra-refresh` no longer
+changes the panel's rate while locked or with the screen off, runs one at a
+time, and never reloads the config by itself (the watcher and the older
+shells both asked at wake before); the lock screens free their password
+line if a check does not answer in 10 s. `ultra-health sleep` prints the
+journal round the last sleep and wake: ask for its output, and
+`ultra-refresh status`, before guessing further. If the kernel did not come
+back (no text console either), it is the kernel's, not ours.
+The pointer: `no_hardware_cursors` is on in `machine.lua` since the same
+update (the chip's cursor layer showed nothing).
+
 ## Next
 
 - Fix what the first install shows.

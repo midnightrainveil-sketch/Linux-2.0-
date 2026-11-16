@@ -53,6 +53,13 @@ Scope {
             room.buffer = "";
         }
     }
+    // a check that never answers must not leave the line dead: after ten
+    // seconds it takes typing again
+    Timer {
+        interval: 10000
+        running: room.busy
+        onTriggered: { room.busy = false; room.buffer = ""; room.verdict = "wrong"; }
+    }
     Timer { id: unlockLater; interval: 250; onTriggered: { sessionLock.locked = false; room.buffer = ""; room.verdict = ""; } }
 
     WlSessionLock {
