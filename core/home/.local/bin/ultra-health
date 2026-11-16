@@ -7,6 +7,10 @@
                                  sleep and wake, this start and the one
                                  before (for a wake that froze: run it
                                  after starting again, and send the output)
+    ultra-health wake          wait for the next sleep and wake, then time
+                                 when Hyprland and the shell answer again
+                                 (run it, close the lid, open it, unlock;
+                                 the timeline prints 30 s after the wake)
     ultra-health launch APP    time how long APP takes to open a window,
                                  and whether it woke the NVIDIA chip
                                  (e.g. ultra-health launch nautilus)
@@ -299,7 +303,112 @@ def sleep_report():
     print()
 
 
+# ------------------------------------------------------------------ wake timing
+def wake_report():
+    import threading
+    import socket as sk
+    t_wake = [None]
+    events = []                       # (wall time, text)
+    lock = threading.Lock()
+
+    def note(text):
+        with lock:
+            events.append((time.time(), text))
+
+    # Hyprland's own events (a screen removed and added, a reload ...), as they come
+    sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    run = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+    path = os.path.join(run, "hypr", sig, ".socket2.sock")
+
+    def hypr_events():
+        try:
+            s = sk.socket(sk.AF_UNIX, sk.SOCK_STREAM)
+            s.connect(path)
+        except OSError:
+            note("(Hyprland's event socket could not be read)")
+            return
+        buf = b""
+        while True:
+            data = s.recv(4096)
+            if not data:
+                return
+            buf += data
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                name = line.decode(errors="replace").split(">>")[0]
+                if name in ("monitoradded", "monitoraddedv2", "monitorremoved", "monitorremovedv2",
+                            "configreloaded", "focusedmon", "focusedmonv2", "lockgroups") or t_wake[0]:
+                    if name not in ("activewindow", "activewindowv2", "workspace", "workspacev2"):
+                        note("Hyprland event: " + line.decode(errors="replace")[:90])
+    threading.Thread(target=hypr_events, daemon=True).start()
+
+    print(BOLD + "Waiting for the laptop to sleep." + OFF + " Close the lid now; open it, unlock, and wait.")
+    mon = subprocess.Popen(["gdbus", "monitor", "--system", "--dest", "org.freedesktop.login1",
+                            "--object-path", "/org/freedesktop/login1"],
+                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    for line in mon.stdout:
+        if "PrepareForSleep (true" in line:
+            note("going to sleep")
+        elif "PrepareForSleep (false" in line:
+            t_wake[0] = time.time()
+            note("awake (logind says so)")
+            break
+    mon.terminate()
+
+    def answers(cmd):
+        t = time.time()
+        try:
+            ok = subprocess.run(cmd, capture_output=True, timeout=3).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            ok = False
+        return ok, time.time() - t
+
+    first = {}
+    slowest = {}
+    end = t_wake[0] + 30
+    while time.time() < end:
+        for name, cmd in (("Hyprland", ["hyprctl", "-j", "version"]), ("the shell", ["qs", "ipc", "show"])):
+            ok, took = answers(cmd)
+            if ok and name not in first:
+                first[name] = time.time()
+                note("%s answers (in %.2f s)" % (name, took))
+            if took > slowest.get(name, (0,))[0]:
+                slowest[name] = (took, time.time())
+            if took > 0.5:
+                note("%s took %.1f s to answer" % (name, took))
+        locked = sh("loginctl", "show-session", os.environ.get("XDG_SESSION_ID", "auto"), "-p", "LockedHint", "--value").strip()
+        if locked == "no" and "unlocked" not in first:
+            first["unlocked"] = time.time()
+            note("unlocked")
+        time.sleep(0.2)
+
+    head("The wake, second by second (0.0 = awake)")
+    for t, text in sorted(events):
+        rel = t - t_wake[0]
+        print("  %+7.2f s  %s" % (rel, text))
+    for name in ("Hyprland", "the shell"):
+        took, _ = slowest.get(name, (0, 0))
+        row(name, "answered at the latest within %.2f s" % took,
+            "this one is stalling" if took > 2 else "")
+    if "unlocked" not in first:
+        print(DIM + "  (not unlocked within 30 s of the wake)" + OFF)
+    try:
+        log = pathlib.Path.home() / ".cache/ultra/wake.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with open(log, "a") as f:
+            f.write(time.strftime("%F %T") + "\n")
+            for t, text in sorted(events):
+                f.write("  %+7.2f s  %s\n" % (t - t_wake[0], text))
+        print(DIM + "  (kept in ~/.cache/ultra/wake.log)" + OFF)
+    except OSError:
+        pass
+    print()
+
+
 def main():
+    if sys.argv[1:2] == ["wake"]:
+        wake_report()
+        return
     if sys.argv[1:2] == ["sleep"]:
         sleep_report()
         return
