@@ -376,10 +376,6 @@ def wake_report():
                 slowest[name] = (took, time.time())
             if took > 0.5:
                 note("%s took %.1f s to answer" % (name, took))
-        locked = sh("loginctl", "show-session", os.environ.get("XDG_SESSION_ID", "auto"), "-p", "LockedHint", "--value").strip()
-        if locked == "no" and "unlocked" not in first:
-            first["unlocked"] = time.time()
-            note("unlocked")
         time.sleep(0.2)
 
     head("The wake, second by second (0.0 = awake)")
@@ -390,8 +386,6 @@ def wake_report():
         took, _ = slowest.get(name, (0, 0))
         row(name, "answered at the latest within %.2f s" % took,
             "this one is stalling" if took > 2 else "")
-    if "unlocked" not in first:
-        print(DIM + "  (not unlocked within 30 s of the wake)" + OFF)
     try:
         log = pathlib.Path.home() / ".cache/ultra/wake.log"
         log.parent.mkdir(parents=True, exist_ok=True)
