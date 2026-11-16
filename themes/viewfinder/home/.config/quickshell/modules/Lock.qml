@@ -65,6 +65,12 @@ Scope {
     WlSessionLock {
         id: sessionLock
         locked: false
+        // tell the system the session is locked (logind's LockedHint): the
+        // machine's commands that must not act under the lock read it
+        // (ultra-refresh, ultra-health wake)
+        onLockedChanged: Quickshell.execDetached(["busctl", "call", "org.freedesktop.login1",
+            "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session",
+            "SetLockedHint", "b", locked ? "true" : "false"])
 
         WlSessionLockSurface {
             id: surface

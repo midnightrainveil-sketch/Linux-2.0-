@@ -376,6 +376,13 @@ def wake_report():
                 slowest[name] = (took, time.time())
             if took > 0.5:
                 note("%s took %.1f s to answer" % (name, took))
+        locked = sh("loginctl", "show-session", os.environ.get("XDG_SESSION_ID", "auto"), "-p", "LockedHint", "--value").strip()
+        if locked == "yes" and "locked" not in first:
+            first["locked"] = time.time()
+            note("the lock screen is up")
+        if locked == "no" and "locked" in first and "unlocked" not in first:
+            first["unlocked"] = time.time()
+            note("unlocked")
         time.sleep(0.2)
 
     head("The wake, second by second (0.0 = awake)")
