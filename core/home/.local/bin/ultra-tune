@@ -4,6 +4,8 @@
 #   ultra-tune on       set them (setup.sh does, unless you turned them off)
 #   ultra-tune off      as Arch has it again, and setup.sh leaves it so
 #   ultra-tune status   what is set
+#   ultra-tune wake     only the waking fix below (setup.sh always sets it,
+#                         whatever else is on or off)
 #
 # What it sets, and why:
 #   start-up    NetworkManager-wait-online is switched off: the start no
@@ -16,6 +18,13 @@
 #               processor many times a second to check for a hang), and
 #               changed files are written to the disk every 15 s, not
 #               every 5, so the disk and processor sleep longer
+#   waking      your programs are not held still while the laptop sleeps
+#               and wakes. systemd freezes every program of yours before
+#               sleep and lets them go only when its own waking work is
+#               done; here that left the lock screen lit but dead for
+#               about ten seconds after the lid was opened (no pointer, no
+#               Caps Lock light, typing arriving late). With this they run
+#               the moment the laptop is awake, as before systemd 256.
 #   the disk    the SSD is told once a week which blocks are free
 #               (fstrim.timer), which keeps it quick as it fills
 #
@@ -29,6 +38,35 @@ stop_file=/etc/systemd/system.conf.d/ultra-tune.conf
 state="${XDG_STATE_HOME:-$HOME/.local/state}/ultra"
 
 say() { printf ':: %s\n' "$*"; }
+
+# the sleep services: each gets a drop-in telling systemd-sleep not to
+# freeze the user's programs
+sleep_units=(systemd-suspend systemd-hibernate systemd-hybrid-sleep systemd-suspend-then-hibernate)
+wake_want=$'# ultra-tune: your programs run the moment the laptop wakes\n[Service]\nEnvironment=SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false\n'
+
+wake() {
+    local u f changed=0
+    for u in "${sleep_units[@]}"; do
+        f=/etc/systemd/system/$u.service.d/ultra-wake.conf
+        if [[ $(cat "$f" 2>/dev/null) != "${wake_want%$'\n'}" ]]; then
+            sudo mkdir -p "${f%/*}"
+            printf '%s' "$wake_want" | sudo tee "$f" >/dev/null
+            changed=1
+        fi
+    done
+    if ((changed)); then
+        sudo systemctl daemon-reload
+        say "waking: your programs are no longer held still while the laptop wakes (from the next sleep)"
+    fi
+}
+
+wake_off() {
+    local u
+    for u in "${sleep_units[@]}"; do
+        sudo rm -f "/etc/systemd/system/$u.service.d/ultra-wake.conf"
+        sudo rmdir "/etc/systemd/system/$u.service.d" 2>/dev/null || true
+    done
+}
 
 on() {
     local want
@@ -50,12 +88,14 @@ on() {
         && ! systemctl is-enabled --quiet fstrim.timer 2>/dev/null; then
         sudo systemctl enable --now fstrim.timer >/dev/null 2>&1 || true
     fi
+    wake
     rm -f "$state/tune-off"
     say "tunings set (ultra-tune status)"
 }
 
 off() {
     sudo rm -f "$sysctl_file" "$stop_file"
+    wake_off
     sudo sysctl -q -w kernel.nmi_watchdog=1 vm.dirty_writeback_centisecs=500 || true
     sudo systemctl daemon-reload
     sudo systemctl enable NetworkManager-wait-online.service >/dev/null 2>&1 || true
@@ -71,12 +111,14 @@ status() {
     echo "start-up:   waiting for the network: ${wait:-off}"
     echo "shut-down:  $( [[ -f $stop_file ]] && echo '20 s for a program that will not close' || echo "systemd's own 90 s")"
     echo "at rest:    watchdog $(cat /proc/sys/kernel/nmi_watchdog 2>/dev/null || echo '?') (0 is off), files written every $(( $(cat /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || echo 0) / 100 )) s"
+    echo "waking:     $( [[ -f /etc/systemd/system/systemd-suspend.service.d/ultra-wake.conf ]] && echo 'your programs run at once' || echo 'your programs are held until systemd has finished waking')"
     echo "the disk:   weekly trim: ${trim:-off}"
 }
 
 case ${1:-status} in
     on) on ;;
     off) off ;;
+    wake) wake ;;
     status) status ;;
-    *) sed -n '2,24p' "$0"; exit 2 ;;
+    *) sed -n '2,34p' "$0"; exit 2 ;;
 esac

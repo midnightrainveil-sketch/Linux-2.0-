@@ -376,6 +376,9 @@ if [[ ! -f $state/ultra/tune-off ]]; then
     say "small tunings: a quicker start and stop, less power at rest (ultra-tune)"
     "$bin/ultra-tune" on || warn "the tunings were not set; run ultra-tune on"
 fi
+# waking: your programs run the moment the lid is opened (without it the
+# lock screen stood lit but dead for about ten seconds); always set
+"$bin/ultra-tune" wake || warn "the waking fix was not set; run ultra-tune wake"
 
 # ------------------------------------------------------------------ 5. each theme's own
 # Icons and the title-bar plugin are made per theme, from its own folder, so

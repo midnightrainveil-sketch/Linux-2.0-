@@ -145,19 +145,24 @@ lines, small capitals, few panels, full contrast (not washed out, not
 "horror"), nothing that looks like paper or objects. They keep the mock-up
 they picked as the reference and want it matched.
 
-**Open (16 November 2026): the lock screen stood still after a lid-open,
-twice, since the system update to kernel 7.3.4 / Hyprland 0.57.2.** Cause
-not known: no log was seen. Done on suspicion: `ultra-refresh` no longer
-changes the panel's rate while locked or with the screen off, runs one at a
-time, and never reloads the config by itself (the watcher and the older
-shells both asked at wake before); the lock screens free their password
-line if a check does not answer in 10 s. Later: it is not frozen,
-it answers after about 10 s (the user's word), with the refresh fix
-installed and Auto on. The journal shows the kernel awake in 40 ms and
-nothing stalled in it, so the pause is in Hyprland or the shell, which do
-not write there. `ultra-health wake` times both after a real wake (and
-lists Hyprland's events: a screen removed and added would make the shell
-build every surface again); ask for its timeline before changing anything.
+**The lock screen after a lid-open (16-17 November 2026).** It stood lit
+but dead for about 10 s, then caught up: no pointer, no Caps Lock light,
+keys typed meanwhile arriving afterwards, the lock's animation only then
+beginning. Kernel awake in 40 ms; Hyprland and the shell answered at once
+as soon as they could be asked; PSR / panel replay were not in use;
+undoing the software pointer, `ultra-tune` and the refresh watcher changed
+nothing. All of that fits systemd (256+) freezing the user's programs for
+sleep and thawing them late, so `ultra-tune wake` (always set by setup.sh)
+gives the sleep services `SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false`.
+**Not yet confirmed on the laptop**: if the user says the pause is still
+there, the freeze was not it; ask for
+`journalctl -b 0 -o short-precise | grep -E "PM: suspend|systemd-sleep|returned from sleep"`
+and `ls /usr/lib/systemd/system-sleep/`. Along the way: `ultra-refresh`
+never changes the rate under the lock or with the screen off, one at a
+time, no reload by itself; the lock screens set logind's LockedHint and
+free their password line after 10 s; `ultra-health sleep` and
+`ultra-health wake` report on a sleep and wake. The user is tired of
+running diagnostics: fix first, ask little.
 The pointer: `no_hardware_cursors` is on in `machine.lua` since the same
 update (the chip's cursor layer showed nothing).
 
