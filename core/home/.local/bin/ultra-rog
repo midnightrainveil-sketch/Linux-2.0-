@@ -188,7 +188,9 @@ suspend_mode() {
 
 status() {
     echo "kernel:      $(uname -r)"
-    echo "nvidia:      $(lsmod | grep -q '^nvidia ' && echo loaded || echo 'NOT loaded')"
+    # (asked of the kernel directly: "lsmod | grep -q" can say no for a
+    # module that is loaded, when grep has its answer and leaves early)
+    echo "nvidia:      $([[ -d /sys/module/nvidia ]] && echo loaded || echo 'NOT loaded')"
     local dev
     dev=$(lspci -D -d 10de: 2>/dev/null | grep -iE 'vga|3d' | cut -d' ' -f1 | head -n1 || true)
     if [[ -n $dev ]]; then
@@ -211,9 +213,26 @@ status() {
     # who holds the dGPU open: anything here keeps ROG Control from switching
     # to Integrated (dGPU off)
     local users=""
-    if [[ -e /dev/dri/nvidia-dgpu ]]; then
-        users=$(fuser -v "$(readlink -f /dev/dri/nvidia-dgpu)" /dev/nvidia* 2>&1 | awk 'NR>1 && $NF!="" {print $NF}' | sort -u | tr '\n' ' ' || true)
-    fi
+    # (each with what it holds: "card" is the chip's screen side, which only
+    # Hyprland should have, and only with a screen on the HDMI port; "nvidia"
+    # is the driver itself, which a program gets by asking every graphics
+    # driver what it can do)
+    local card="" p name held f
+    [[ -e /dev/dri/nvidia-dgpu ]] && card=$(readlink -f /dev/dri/nvidia-dgpu)
+    for p in /proc/[0-9]*; do
+        held=""
+        for f in "$p"/fd/*; do
+            case $(readlink "$f" 2>/dev/null) in
+                "") ;;
+                "$card") [[ $held == *card* ]] || held+="card " ;;
+                /dev/nvidia*) [[ $held == *nvidia* ]] || held+="nvidia " ;;
+            esac
+        done
+        if [[ -n $held ]]; then
+            name=$(cat "$p/comm" 2>/dev/null || true)
+            users+="$name (${held% }) "
+        fi
+    done
     echo "dGPU open by: ${users:-nothing (Integrated can be chosen)}"
     echo "profile:     $(powerprofilesctl get 2>/dev/null || echo '?')"
     if grep -q 'NVreg_UseKernelSuspendNotifiers=1' /etc/modprobe.d/nvidia-power.conf 2>/dev/null; then

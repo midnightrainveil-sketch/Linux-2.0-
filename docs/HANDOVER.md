@@ -165,6 +165,19 @@ mode, from `ultra-rog status`, `systemctl is-enabled nvidia-suspend
 nvidia-resume`, `cat /usr/lib/systemd/system-sleep/nvidia` and
 `pacman -Q nvidia-utils systemd`, before changing anything again. A blind
 fix made it worse once: do not ship another without those.
+Seen since (`ultra-rog status`, 17 Nov, just after a start): Hybrid
+(`gpu_mux_mode=1 dgpu_disable=0`), dGPU `active`, **open by Hyprland and
+hyprpolkitagent**, nvidia-utils 620.70, systemd 262.2, nvidia-suspend and
+nvidia-resume disabled, the driver's own suspend set. "nvidia: NOT loaded"
+there was a false no (`lsmod | grep -q` under pipefail: fixed, and the same
+check in setup.sh had been re-running `ultra-rog gpu` at every update). So
+the desktop holds the NVIDIA chip, which is the old open item, and bringing
+that chip back on waking is now the leading suspect for the 10 s. Asked
+for: `dmesg` times of "PM: suspend entry / exit" (is the pause inside the
+kernel's wake?) and which nodes Hyprland holds (`ls -l /proc/<pid>/fd`):
+the chip's card (then `AQ_DRM_DEVICES` is not keeping it off) or only
+`/dev/nvidia*` (then it is EGL asking every driver, and
+`__EGL_VENDOR_LIBRARY_FILENAMES` for the session is the cure).
 Kept from the hunt: `ultra-refresh` never changes the rate under the lock
 or with the screen off, one at a time, no reload by itself; the lock
 screens set logind's LockedHint and free their password line after 10 s;

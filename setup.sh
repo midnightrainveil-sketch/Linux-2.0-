@@ -319,7 +319,10 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     say "Zephyrus G14 ($model): stable GPU names"
     gpu_names || warn "G14 step failed; see docs/zephyrus-g14.md"
     # the NVIDIA driver, built for the kernels you have (if it is not running)
-    if lspci -d 10de: 2>/dev/null | grep -qiE 'vga|3d' && ! lsmod | grep -q '^nvidia '; then
+    # (asked of the kernel directly: "lsmod | grep -q" under pipefail can say
+    # "not loaded" for a driver that is, and the whole driver step then ran
+    # again at every update)
+    if [[ -n $(lspci -d 10de: 2>/dev/null | grep -iE 'vga|3d') && ! -d /sys/module/nvidia ]]; then
         say "Zephyrus G14: the NVIDIA driver (Hybrid mode)"
         "$bin/ultra-rog" gpu || warn "the NVIDIA step failed; see docs/zephyrus-g14.md"
     fi
@@ -332,7 +335,7 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
     # Quiet on battery, Balanced plugged in; no ROG Control notifications
     "$bin/ultra-rog" power || warn "could not set the power profiles; run ultra-rog power"
     # waking without the black text screen: the NVIDIA driver suspends itself when it can
-    if lsmod | grep -q '^nvidia '; then
+    if [[ -d /sys/module/nvidia ]]; then
         "$bin/ultra-rog" sleep || warn "could not change how the NVIDIA driver sleeps; run ultra-rog sleep"
     fi
     note "fan curves, battery limit and GPU modes: see docs/zephyrus-g14.md (asusctl, ROG Control)"
