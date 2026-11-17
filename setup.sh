@@ -380,6 +380,10 @@ if [[ ! -f $state/ultra/tune-off ]]; then
     "$bin/ultra-tune" on || warn "the tunings were not set; run ultra-tune on"
 fi
 
+# waking: a USB device that does not answer (a wireless mouse's receiver) is
+# not waited for; always set, whatever else of ultra-tune is on or off
+"$bin/ultra-tune" usb || warn "the USB waking fix was not set; run ultra-tune usb"
+
 # (taken out again: a setting of 17 November 2026 that stopped systemd
 # holding programs still over sleep. With NVIDIA's sleep scripts it left a
 # black text screen on waking.)

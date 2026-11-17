@@ -4,6 +4,11 @@
 #   ultra-tune on       set them (setup.sh does, unless you turned them off)
 #   ultra-tune off      as Arch has it again, and setup.sh leaves it so
 #   ultra-tune status   what is set
+#   ultra-tune usb      only the USB fix below (setup.sh always sets it,
+#                         whatever else is on or off)
+#   ultra-tune usb VENDOR:PRODUCT
+#                       add a device of yours to it (the two numbers `lsusb`
+#                         shows, e.g. 093a:522c)
 #
 # What it sets, and why:
 #   start-up    NetworkManager-wait-online is switched off: the start no
@@ -16,6 +21,15 @@
 #               processor many times a second to check for a hang), and
 #               changed files are written to the disk every 15 s, not
 #               every 5, so the disk and processor sleep longer
+#   waking      a USB device that does not answer when the laptop wakes is
+#               not waited for. The kernel wakes every device before it
+#               lets any program run, and tries a silent one again and
+#               again: a wireless mouse's receiver (PIXART 093a:522c) held
+#               the lock screen dead for ten seconds to a minute after the
+#               lid was opened. Such a device is now let go at once and
+#               joined again in the background, a moment later. Only for
+#               the devices listed (in this file, and yours in
+#               ~/.config/ultra/usb-no-wait): a USB disk must be waited for.
 #   the disk    the SSD is told once a week which blocks are free
 #               (fstrim.timer), which keeps it quick as it fills
 #
@@ -29,6 +43,59 @@ stop_file=/etc/systemd/system.conf.d/ultra-tune.conf
 state="${XDG_STATE_HOME:-$HOME/.local/state}/ultra"
 
 say() { printf ':: %s\n' "$*"; }
+
+# ---------------------------------------------------------------- USB devices not waited for on waking
+# vendor:product, as lsusb shows them
+usb_known=(
+    093a:522c       # PIXART wireless gaming mouse receiver
+)
+usb_rules=/etc/udev/rules.d/91-ultra-usb-wake.rules
+usb_mine="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/usb-no-wait"
+
+usb_ids() { # the built-in ones and yours, one a line, lower case
+    {
+        printf '%s\n' "${usb_known[@]}"
+        if [[ -f $usb_mine ]]; then cat "$usb_mine"; fi
+    } | sed 's/#.*//' | tr 'A-F' 'a-f' | grep -oE '^[[:blank:]]*[0-9a-f]{4}:[0-9a-f]{4}' | tr -d ' \t' | sort -u
+}
+
+usb() {
+    local id want="" d v p
+    if [[ -n ${1:-} ]]; then
+        [[ ${1,,} =~ ^[0-9a-f]{4}:[0-9a-f]{4}$ ]] || { echo "usage: ultra-tune usb [VENDOR:PRODUCT]   (e.g. 093a:522c, from lsusb)" >&2; return 2; }
+        mkdir -p "${usb_mine%/*}"
+        grep -qix "$1" "$usb_mine" 2>/dev/null || echo "${1,,}" >>"$usb_mine"
+    fi
+    want=$'# ultra-tune usb: these are not waited for when the laptop wakes; they are\n# let go and joined again in the background (power/persist off)\n'
+    while read -r id; do
+        want+="ACTION==\"add\", SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", ATTR{idVendor}==\"${id%:*}\", ATTR{idProduct}==\"${id#*:}\", ATTR{power/persist}=\"0\""$'\n'
+    done < <(usb_ids)
+    if [[ $(cat "$usb_rules" 2>/dev/null) != "${want%$'\n'}" ]]; then
+        printf '%s' "$want" | sudo tee "$usb_rules" >/dev/null
+        sudo udevadm control --reload || true
+        say "USB: $(usb_ids | tr '\n' ' ')not waited for on waking"
+    fi
+    # those plugged in now, without unplugging them
+    for d in /sys/bus/usb/devices/*; do
+        [[ -r $d/idVendor && -e $d/power/persist ]] || continue
+        v=$(cat "$d/idVendor") p=$(cat "$d/idProduct")
+        if usb_ids | grep -qx "$v:$p" && [[ $(cat "$d/power/persist") != 0 ]]; then
+            echo 0 | sudo tee "$d/power/persist" >/dev/null || true
+        fi
+    done
+}
+
+usb_status() {
+    local d v p any=0
+    for d in /sys/bus/usb/devices/*; do
+        [[ -r $d/idVendor && -e $d/power/persist ]] || continue
+        v=$(cat "$d/idVendor") p=$(cat "$d/idProduct")
+        usb_ids | grep -qx "$v:$p" || continue
+        any=1
+        echo "waking:     $v:$p $(cat "$d/product" 2>/dev/null): $([[ $(cat "$d/power/persist") == 0 ]] && echo 'not waited for' || echo 'STILL waited for (run: ultra-tune usb)')"
+    done
+    ((any)) || echo "waking:     none of the listed USB devices is plugged in ($(usb_ids | tr '\n' ' '))"
+}
 
 on() {
     local want
@@ -71,12 +138,14 @@ status() {
     echo "start-up:   waiting for the network: ${wait:-off}"
     echo "shut-down:  $( [[ -f $stop_file ]] && echo '20 s for a program that will not close' || echo "systemd's own 90 s")"
     echo "at rest:    watchdog $(cat /proc/sys/kernel/nmi_watchdog 2>/dev/null || echo '?') (0 is off), files written every $(( $(cat /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || echo 0) / 100 )) s"
+    usb_status
     echo "the disk:   weekly trim: ${trim:-off}"
 }
 
 case ${1:-status} in
     on) on ;;
     off) off ;;
+    usb) usb "${2:-}" ;;
     status) status ;;
-    *) sed -n '2,24p' "$0"; exit 2 ;;
+    *) sed -n '2,39p' "$0"; exit 2 ;;
 esac

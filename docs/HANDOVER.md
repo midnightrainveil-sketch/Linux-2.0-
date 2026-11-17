@@ -145,53 +145,33 @@ lines, small capitals, few panels, full contrast (not washed out, not
 "horror"), nothing that looks like paper or objects. They keep the mock-up
 they picked as the reference and want it matched.
 
-**Open: waking to the lock screen (16-17 November 2026).** After a
-lid-open the lock screen is lit but dead for about 10 s, then catches up:
-no pointer, no Caps Lock light, keys typed meanwhile arrive afterwards, the
-lock's animation only then begins. Known: kernel awake in 40 ms; PSR and
-panel replay not in use; undoing the software pointer, `ultra-tune` and the
-refresh watcher changed nothing. It fits systemd (256+) freezing the user's
-programs for sleep and thawing them late.
-Tried and taken out: `SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false` on the
-sleep services. The laptop then woke to **a black text console with a
-blinking cursor**: something switches the console for sleep when sessions
-are not frozen, which on this machine can only be NVIDIA's sleep scripts
-(`nvidia-sleep.sh`, run by nvidia-suspend / nvidia-resume and by
-`/usr/lib/systemd/system-sleep/nvidia`). So those scripts are in play, and
-are the likely owner of the 10 s as well (their work on waking holds the
-thaw back). `ultra-rog sleep` is meant to retire them (driver 595+, open
-modules); find out why it has not, or what the scripts do in Integrated
-mode, from `ultra-rog status`, `systemctl is-enabled nvidia-suspend
-nvidia-resume`, `cat /usr/lib/systemd/system-sleep/nvidia` and
-`pacman -Q nvidia-utils systemd`, before changing anything again. A blind
-fix made it worse once: do not ship another without those.
-Seen since (`ultra-rog status`, 17 Nov, just after a start): Hybrid
-(`gpu_mux_mode=1 dgpu_disable=0`), dGPU `active`, **open by Hyprland and
-hyprpolkitagent**, nvidia-utils 620.70, systemd 262.2, nvidia-suspend and
-nvidia-resume disabled, the driver's own suspend set. "nvidia: NOT loaded"
-there was a false no (`lsmod | grep -q` under pipefail: fixed, and the same
-check in setup.sh had been re-running `ultra-rog gpu` at every update). So
-the desktop holds the NVIDIA chip, which is the old open item, and bringing
-that chip back on waking is now the leading suspect for the 10 s. Asked
-for: `dmesg` times of "PM: suspend entry / exit" (is the pause inside the
-kernel's wake?) and which nodes Hyprland holds (`ls -l /proc/<pid>/fd`):
-the chip's card (then `AQ_DRM_DEVICES` is not keeping it off) or only
-`/dev/nvidia*` (then it is EGL asking every driver, and
-`__EGL_VENDOR_LIBRARY_FILENAMES` for the session is the cure).
-Then (17 Nov): Hyprland's open files showed only the iGPU's card
-(`AQ_DRM_DEVICES` works) but also `/dev/nvidiactl`, `/dev/nvidia0` and the
-dGPU's render node: EGL offering every program to NVIDIA's driver first.
-`machine.lua` now sets `__EGL_VENDOR_LIBRARY_FILENAMES` to Mesa's when
-only the iGPU drives screens (and the selector tells systemd's user
-manager, for hyprpolkitagent); `ultra-rog run <program>` puts one program
-on the dGPU; `"nvidiaEgl": true` undoes it. **Not yet run on the laptop.**
-After it, `ultra-rog status` should say "dGPU open by: nothing" and the
-dGPU "suspended" a minute after log-in. The pause is intermittent: the
-same day a wake came up at once with nothing changed but a restart. Whether
-it comes when the dGPU is awake at lid-close is the thing to learn next.
-Kept from the hunt: `ultra-refresh` never changes the rate under the lock
-or with the screen off, one at a time, no reload by itself; the lock
-screens set logind's LockedHint and free their password line after 10 s;
+**Waking to a dead lock screen (16-17 November 2026): found.** `dmesg`
+of a bad wake showed the kernel stuck for 64 s on a USB device that did
+not answer (`usb 1-1: device descriptor read/64, error -110`, xhci "not
+part of TD"): the receiver of the user's wireless mouse, PIXART
+`093a:522c`, in whichever port it is. Programs are only thawed once every
+device is back, hence lit-but-dead for 10 s to a minute, typing arriving
+late. It began with kernel 7.3 (they run only `linux` since `linux-lts`
+was removed on this chat's advice). `ultra-tune usb` (always run by
+setup.sh) writes a udev rule setting `power/persist` to 0 for the listed
+devices, so the kernel logically disconnects a silent one and hub_wq
+re-enumerates it in the background; `ultra-tune usb VENDOR:PRODUCT` adds
+one. **Not yet confirmed on the laptop.** If the pause remains with
+persist at 0 (`ultra-tune status`), try the usbcore quirk
+`093a:522c:m` (disconnect on suspend) next.
+What was wrong on the way, for the record: the refresh watcher, the
+software pointer, ultra-tune, PSR, systemd's session freeze (that setting
+gave a black console and was taken out), NVIDIA's sleep scripts. Lesson:
+`sudo dmesg` from the last "PM: suspend entry" on, first.
+Also found then, separate: Hyprland held `/dev/nvidia*` through EGL;
+`machine.lua` now offers Mesa's EGL only when the iGPU drives all screens
+(`ultra-rog run <program>` for the dGPU, `"nvidiaEgl": true` to undo), not
+yet run on the laptop either: `ultra-rog status` should then say "dGPU
+open by: nothing". And `lsmod | grep -q` under pipefail misread the driver
+as not loaded (fixed).
+Kept: `ultra-refresh` never changes the rate under the lock or with the
+screen off, one at a time, no reload by itself; the lock screens set
+logind's LockedHint and free their password line after 10 s;
 `ultra-health sleep` and `ultra-health wake`.
 The pointer: `no_hardware_cursors` is on in `machine.lua` since the same
 update (the chip's cursor layer showed nothing).

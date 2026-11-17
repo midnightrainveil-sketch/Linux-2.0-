@@ -77,6 +77,26 @@ in `~/.config/ultra/<theme>/settings.json` and run `hyprctl reload`.
 
 ## The lock screen stands still after the lid is opened
 
+The usual cause: a USB device that does not answer when the laptop wakes.
+The kernel wakes every device before it lets any program run, and tries a
+silent one again and again, so the lock screen is lit (or black) and dead
+for ten seconds to a minute. See which one:
+
+```sh
+sudo dmesg | awk '/PM: suspend entry/{buf=""} {buf=buf $0 "\n"} END{printf "%s", buf}' | grep -E "usb|error -110"
+```
+
+Lines like `usb 1-1: device descriptor read/64, error -110` name the port.
+`lsusb` gives the device's two numbers; then
+
+```sh
+ultra-tune usb 093a:522c        # your device's numbers
+```
+
+has the kernel let that device go at once and join it again in the
+background. (A wireless mouse's receiver, PIXART 093a:522c, is listed
+already. Not for a USB disk: it must be waited for.)
+
 First see what is standing still. Wait for the minute to change on the
 lock screen's clock, and press Caps Lock to see whether its light answers.
 
