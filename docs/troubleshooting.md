@@ -77,12 +77,6 @@ in `~/.config/ultra/<theme>/settings.json` and run `hyprctl reload`.
 
 ## The lock screen stands still after the lid is opened
 
-(Lit, but no pointer, no Caps Lock light, and what you type arrives about
-ten seconds late: systemd holds your programs still while it wakes.
-`ultra-tune wake` stops that, and setup.sh sets it; `ultra-tune status`
-says "waking: your programs run at once" when it is in place. What follows
-is for a lock screen that stays stuck.)
-
 First see what is standing still. Wait for the minute to change on the
 lock screen's clock, and press Caps Lock to see whether its light answers.
 

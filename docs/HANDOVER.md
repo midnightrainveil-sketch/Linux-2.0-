@@ -145,24 +145,30 @@ lines, small capitals, few panels, full contrast (not washed out, not
 "horror"), nothing that looks like paper or objects. They keep the mock-up
 they picked as the reference and want it matched.
 
-**The lock screen after a lid-open (16-17 November 2026).** It stood lit
-but dead for about 10 s, then caught up: no pointer, no Caps Lock light,
-keys typed meanwhile arriving afterwards, the lock's animation only then
-beginning. Kernel awake in 40 ms; Hyprland and the shell answered at once
-as soon as they could be asked; PSR / panel replay were not in use;
-undoing the software pointer, `ultra-tune` and the refresh watcher changed
-nothing. All of that fits systemd (256+) freezing the user's programs for
-sleep and thawing them late, so `ultra-tune wake` (always set by setup.sh)
-gives the sleep services `SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false`.
-**Not yet confirmed on the laptop**: if the user says the pause is still
-there, the freeze was not it; ask for
-`journalctl -b 0 -o short-precise | grep -E "PM: suspend|systemd-sleep|returned from sleep"`
-and `ls /usr/lib/systemd/system-sleep/`. Along the way: `ultra-refresh`
-never changes the rate under the lock or with the screen off, one at a
-time, no reload by itself; the lock screens set logind's LockedHint and
-free their password line after 10 s; `ultra-health sleep` and
-`ultra-health wake` report on a sleep and wake. The user is tired of
-running diagnostics: fix first, ask little.
+**Open: waking to the lock screen (16-17 November 2026).** After a
+lid-open the lock screen is lit but dead for about 10 s, then catches up:
+no pointer, no Caps Lock light, keys typed meanwhile arrive afterwards, the
+lock's animation only then begins. Known: kernel awake in 40 ms; PSR and
+panel replay not in use; undoing the software pointer, `ultra-tune` and the
+refresh watcher changed nothing. It fits systemd (256+) freezing the user's
+programs for sleep and thawing them late.
+Tried and taken out: `SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=false` on the
+sleep services. The laptop then woke to **a black text console with a
+blinking cursor**: something switches the console for sleep when sessions
+are not frozen, which on this machine can only be NVIDIA's sleep scripts
+(`nvidia-sleep.sh`, run by nvidia-suspend / nvidia-resume and by
+`/usr/lib/systemd/system-sleep/nvidia`). So those scripts are in play, and
+are the likely owner of the 10 s as well (their work on waking holds the
+thaw back). `ultra-rog sleep` is meant to retire them (driver 595+, open
+modules); find out why it has not, or what the scripts do in Integrated
+mode, from `ultra-rog status`, `systemctl is-enabled nvidia-suspend
+nvidia-resume`, `cat /usr/lib/systemd/system-sleep/nvidia` and
+`pacman -Q nvidia-utils systemd`, before changing anything again. A blind
+fix made it worse once: do not ship another without those.
+Kept from the hunt: `ultra-refresh` never changes the rate under the lock
+or with the screen off, one at a time, no reload by itself; the lock
+screens set logind's LockedHint and free their password line after 10 s;
+`ultra-health sleep` and `ultra-health wake`.
 The pointer: `no_hardware_cursors` is on in `machine.lua` since the same
 update (the chip's cursor layer showed nothing).
 

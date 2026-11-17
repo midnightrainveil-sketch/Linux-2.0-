@@ -376,9 +376,19 @@ if [[ ! -f $state/ultra/tune-off ]]; then
     say "small tunings: a quicker start and stop, less power at rest (ultra-tune)"
     "$bin/ultra-tune" on || warn "the tunings were not set; run ultra-tune on"
 fi
-# waking: your programs run the moment the lid is opened (without it the
-# lock screen stood lit but dead for about ten seconds); always set
-"$bin/ultra-tune" wake || warn "the waking fix was not set; run ultra-tune wake"
+
+# (taken out again: a setting of 17 November 2026 that stopped systemd
+# holding programs still over sleep. With NVIDIA's sleep scripts it left a
+# black text screen on waking.)
+wake_gone=0
+for u in systemd-suspend systemd-hibernate systemd-hybrid-sleep systemd-suspend-then-hibernate; do
+    f=/etc/systemd/system/$u.service.d/ultra-wake.conf
+    if [[ -f $f ]]; then
+        sudo rm -f "$f" && wake_gone=1
+        sudo rmdir "${f%/*}" 2>/dev/null || true
+    fi
+done
+(( wake_gone )) && { sudo systemctl daemon-reload; note "waking: the setting that left a black text screen is taken out"; }
 
 # ------------------------------------------------------------------ 5. each theme's own
 # Icons and the title-bar plugin are made per theme, from its own folder, so
