@@ -83,6 +83,24 @@ if #devices > 0 then
     hl.env("AQ_DRM_DEVICES", table.concat(devices, ":"))
 end
 
+-- Drawing asks Mesa only (the iGPU's driver). Without this, every program
+-- that starts drawing, Hyprland first of all, is offered to NVIDIA's driver
+-- before Mesa's: that opens the dGPU, wakes it, and the program then keeps
+-- it open for as long as it runs, so the chip never sleeps and has to be
+-- brought back on every wake. Not when the dGPU drives a screen (Hyprland
+-- needs its driver then). To run one program on the dGPU: ultra-rog run
+-- <program>. "nvidiaEgl": true in ~/.config/ultra/settings.json leaves
+-- NVIDIA's driver on offer to everything, as before.
+ultra_mesa_egl = nil
+do
+    local mesa = "/usr/share/glvnd/egl_vendor.d/50_mesa.json"
+    if #devices == 1 and devices[1] == "/dev/dri/amd-igpu" and state.exists(mesa)
+        and not state.setting_bool("nvidiaEgl", false) then
+        hl.env("__EGL_VENDOR_LIBRARY_FILENAMES", mesa)
+        ultra_mesa_egl = mesa
+    end
+end
+
 ------------------------------------------------------------------ the pointer
 -- Drawn by Hyprland itself, not handed to the graphics chip's own cursor
 -- layer: with kernel 7.3 and Hyprland 0.57 (November 2026) the chip's layer

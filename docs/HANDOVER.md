@@ -178,6 +178,17 @@ kernel's wake?) and which nodes Hyprland holds (`ls -l /proc/<pid>/fd`):
 the chip's card (then `AQ_DRM_DEVICES` is not keeping it off) or only
 `/dev/nvidia*` (then it is EGL asking every driver, and
 `__EGL_VENDOR_LIBRARY_FILENAMES` for the session is the cure).
+Then (17 Nov): Hyprland's open files showed only the iGPU's card
+(`AQ_DRM_DEVICES` works) but also `/dev/nvidiactl`, `/dev/nvidia0` and the
+dGPU's render node: EGL offering every program to NVIDIA's driver first.
+`machine.lua` now sets `__EGL_VENDOR_LIBRARY_FILENAMES` to Mesa's when
+only the iGPU drives screens (and the selector tells systemd's user
+manager, for hyprpolkitagent); `ultra-rog run <program>` puts one program
+on the dGPU; `"nvidiaEgl": true` undoes it. **Not yet run on the laptop.**
+After it, `ultra-rog status` should say "dGPU open by: nothing" and the
+dGPU "suspended" a minute after log-in. The pause is intermittent: the
+same day a wake came up at once with nothing changed but a restart. Whether
+it comes when the dGPU is awake at lid-close is the thing to learn next.
 Kept from the hunt: `ultra-refresh` never changes the rate under the lock
 or with the screen off, one at a time, no reload by itself; the lock
 screens set logind's LockedHint and free their password line after 10 s;

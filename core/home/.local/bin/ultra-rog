@@ -17,6 +17,10 @@
 #                         systemd services, which switch to a text console
 #                         (the black screen with a blinking cursor) and back,
 #                         are switched off. Reboot afterwards.
+#   ultra-rog run <program ...>
+#                       run one program on the NVIDIA chip (Hybrid mode):
+#                         the desktop offers programs the iGPU's driver
+#                         only, so the chip can sleep; this offers NVIDIA's
 #   ultra-rog status    what is set, and what the dGPU is doing
 #
 # power and calm also quieten ROG Control: no notifications, and it quits
@@ -249,6 +253,13 @@ case ${1:-status} in
     calm) calm ;;
     switch) switch ;;
     sleep) suspend_mode ;;
+    run)
+        shift
+        (($#)) || { echo "usage: ultra-rog run <program ...>" >&2; exit 2; }
+        unset __EGL_VENDOR_LIBRARY_FILENAMES
+        export __NV_PRIME_RENDER_OFFLOAD=1 __VK_LAYER_NV_optimus=NVIDIA_only __GLX_VENDOR_LIBRARY_NAME=nvidia
+        exec "$@"
+        ;;
     status) status ;;
-    *) echo "usage: ultra-rog gpu|power|calm|switch|sleep|status" >&2; exit 2 ;;
+    *) echo "usage: ultra-rog gpu|power|calm|switch|sleep|run <program>|status" >&2; exit 2 ;;
 esac

@@ -67,7 +67,14 @@ require("ultra.machine")
 hl.on("hyprland.start", function()
     hl.exec_cmd("ultra-brightness init")            -- a software dim, if the panel needs one
     hl.exec_cmd("ultra-refresh watch")              -- Auto: 60 Hz on battery, 120 plugged in, as the charger comes and goes
-    hl.exec_cmd("systemctl --user start hyprpolkitagent")
+    -- (the password prompt is started by systemd, not by Hyprland: it is told
+    -- the same about drawing, machine.lua, and started afresh so it holds)
+    if ultra_mesa_egl ~= nil then
+        hl.exec_cmd("sh -c 'systemctl --user set-environment __EGL_VENDOR_LIBRARY_FILENAMES=" .. ultra_mesa_egl
+            .. "; systemctl --user restart hyprpolkitagent'")
+    else
+        hl.exec_cmd("sh -c 'systemctl --user unset-environment __EGL_VENDOR_LIBRARY_FILENAMES; systemctl --user restart hyprpolkitagent'")
+    end
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("sh -c 'sleep 4; ultra-mic tone'")   -- the microphone's tone, as last chosen
 end)

@@ -91,8 +91,11 @@ A mode change asks you to log out. In MUX dGPU mode the internal panel is
 often called `eDP-2`. `machine.lua` covers both names.
 
 To run one program on the dGPU in Hybrid mode, use
-`prime-run <program>` (from `nvidia-prime`), or in Steam set the launch
-option `prime-run %command%`.
+`ultra-rog run <program>`, or in Steam set the launch option
+`ultra-rog run %command%`. (The desktop offers programs the iGPU's driver
+only, so that nothing opens the dGPU by merely starting and the chip can
+sleep: `machine.lua`. Plain `prime-run` therefore does not reach it for
+programs that draw through EGL; `ultra-rog run` does.)
 
 ## 4. Stable GPU names for Hyprland
 
