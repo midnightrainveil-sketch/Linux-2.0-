@@ -158,6 +158,13 @@ nothing stalled in it, so the pause is in Hyprland or the shell, which do
 not write there. `ultra-health wake` times both after a real wake (and
 lists Hyprland's events: a screen removed and added would make the shell
 build every surface again); ask for its timeline before changing anything.
+17 November: `ultra-health wake` showed Hyprland answering in 0.05 s and
+the shell in 0.22 s after a wake, so the desktop is not stuck; the picture
+is (a stale panel). Suspected: amdgpu PSR / Panel Replay on the OLED since
+kernel 7.3 (the missing hardware cursor fits the same cause). Offered:
+`ultra-boot panel steady` (amdgpu.dcdebugmask=0x410 in every boot menu,
+both kernels; `panel default` undoes it). Waiting for the user's result;
+if it works, try `"hardwareCursor": true` again.
 The pointer: `no_hardware_cursors` is on in `machine.lua` since the same
 update (the chip's cursor layer showed nothing).
 

@@ -91,6 +91,11 @@ lock screen's clock, and press Caps Lock to see whether its light answers.
   from sleep (a driver; more likely right after a kernel update). Hold the
   power button.
 
+If it comes back by itself after a few seconds and what you typed meanwhile
+is there, the picture was stale, not the desktop: the AMD screen's
+power-saving self-refresh (PSR / Panel Replay). Turn it off with
+`ultra-boot panel steady` and reboot (`ultra-boot panel default` undoes it).
+
 Either way, after starting again run `ultra-health sleep`: it prints what
 the laptop wrote down around that sleep and wake, which says which of the
 three it was.

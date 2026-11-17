@@ -16,6 +16,13 @@
 #   ultra-boot power    the power button: a press opens the power menu,
 #                         holding it shuts down (the shell shows it filling;
 #                         outside the desktop, a 5 s hold does it)
+#   ultra-boot panel steady   the laptop's screen without its power-saving
+#                         self-refresh (AMD's PSR and Panel Replay). These
+#                         can leave the screen showing a stale picture for
+#                         seconds after a wake while everything behind it
+#                         runs. Costs a little battery (about 0.3-0.5 W).
+#                         Both kernels; reboot afterwards.
+#   ultra-boot panel default  the kernel's own choice again (reboot)
 #   ultra-boot status   what is set
 #
 # Every file changed is first kept as <file>.archive-bak. Safe to run again:
@@ -283,8 +290,52 @@ EOF
     fi
 }
 
+# ------------------------------------------------------------------ the panel's self-refresh
+# amdgpu.dcdebugmask: 0x10 turns PSR off, 0x400 Panel Replay; 0x410 both.
+# Kept apart from "quiet": ultra-boot loud leaves it, and the other way round.
+panel_opt=amdgpu.dcdebugmask=0x410
+panel() { # panel steady|default
+    local how kind file out found=0 grub_changed=0
+    case ${1:-} in
+        steady) how=add ;;
+        default) how=remove ;;
+        *) echo "usage: ultra-boot panel steady|default" >&2; exit 2 ;;
+    esac
+    while read -r kind file; do
+        [[ -n $kind ]] || continue
+        found=1
+        keep "$file"
+        out=$(cmdline "$how" "$file" "$kind" "$panel_opt" </dev/null)
+        if [[ -n $out ]]; then
+            say "boot menu: $file"
+            [[ $kind == grub ]] && grub_changed=1
+            if [[ $kind == limine-default ]] && command -v limine-update >/dev/null; then sudo limine-update </dev/null || true; fi
+        fi
+    done < <(menus)
+    if ((grub_changed)); then
+        local cfg
+        cfg=$(sudo sh -c 'ls /boot/grub/grub.cfg /efi/grub/grub.cfg /boot/efi/grub/grub.cfg 2>/dev/null' | head -n1 || true)
+        sudo grub-mkconfig -o "${cfg:-/boot/grub/grub.cfg}"
+    fi
+    if ((!found)); then
+        warn "no boot menu found that I know (GRUB, systemd-boot, rEFInd, Limine)"
+        warn "add this to your kernel's options yourself: $panel_opt"
+        exit 1
+    fi
+    if [[ $how == add ]]; then
+        say "done: the screen's self-refresh is off from the next start (reboot)"
+    else
+        say "done: the kernel's own choice from the next start (reboot)"
+    fi
+}
+
 status() {
     echo "kernel options now: $(cat /proc/cmdline)"
+    if grep -qw "$panel_opt" /proc/cmdline; then
+        echo "screen self-refresh: off (ultra-boot panel steady)"
+    else
+        echo "screen self-refresh: the kernel's choice (ultra-boot panel steady turns it off)"
+    fi
     echo "splash theme: $(sed -n 's/^Theme=//p' /etc/plymouth/plymouthd.conf 2>/dev/null || echo none)"
     echo "start-up hooks: $(grep -hE '^\s*HOOKS=' "$(hooks_file)" 2>/dev/null || echo '?')"
     echo "boot menus:"; menus | sed 's/^/   /'
@@ -295,6 +346,7 @@ case ${1:-status} in
     quiet) quiet "${2:-}" ;;
     loud) loud ;;
     power) power ;;
+    panel) panel "${2:-}" ;;
     status) status ;;
-    *) sed -n '2,17p' "$0"; exit 2 ;;
+    *) sed -n '2,25p' "$0"; exit 2 ;;
 esac
