@@ -292,8 +292,8 @@ saved_setup() {
         done < <(grep -vE '^\s*(#|$)' "$own")
     fi
     case $1 in
-        192.168.68.153) echo "$HOME/Documents/Botsync/cb_007.rviz" ;;          # cb_007
-        192.168.68.241) echo "$HOME/Documents/Botsync/mag1500_config.rviz" ;;  # mag1500_044
+        192.168.68.153) echo "$HOME/Documents/Botsync/02_RvizConfigs/cb_007.rviz" ;;          # cb_007
+        192.168.68.241) echo "$HOME/Documents/Botsync/02_RvizConfigs/mag1500_config.rviz" ;;  # mag1500_044
     esac
 }
 
