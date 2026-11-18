@@ -1,29 +1,37 @@
-# Ultra: themed desktops for Arch + Hyprland
+# Ultra: one machine, many desktops
 
-A machine setup (`core/`) and a set of desktop themes (`themes/`), each theme
-a self-contained box; only the chosen one is ever linked into the home
-folder. Three ship: **Archive** (a botanical herbarium, below),
-**Compartment 19** (a 1930s Vienna to Venice night train) and **Viewfinder**
-(the desktop seen through a camera, black and white with blossom pink).
+A desktop for **Arch Linux + Hyprland**, in two halves:
 
-The Archive: the desktop as a sheet in a botanical archive. Windows are typed index cards
-lying on the sheet, the wallpaper is the pressed specimen, and the bar is the
-printed footer of the page. Grey paper and graphite by day; cyanotype blue at
-night.
+- **The machine** (`core/`): everything that is not about looks. Screens,
+  GPUs, power, Wi-Fi, the microphone, updates, restore points, the
+  `ultra-*` commands. It is always there, whatever the desktop looks like.
+- **The themes** (`themes/`): complete desktops, each in a box of its own:
+  its shell, bar, widgets, wallpaper, fonts, sounds, lock screen and
+  start-up page. Only the chosen one is ever in your home folder; the others
+  are folders on disk, nothing more.
 
-Built for the **ASUS ROG Zephyrus G14 (2024)** on Arch Linux, with
-**Hyprland 0.55+** (Lua config) and **Quickshell 0.3+**. Everything except the
-machine file is portable.
+Change the theme from the Themes app in the launcher, or with
+`ultra-theme set <id>`; it takes effect at the next log-in.
 
-![Day](themes/archive/docs/img/preview-day.jpg)
+Built for the **ASUS ROG Zephyrus G14 (2024)**, with **Hyprland 0.55+**
+(Lua config) and **Quickshell 0.3+**. Everything except the machine file
+is portable.
 
-<sub>Rendered from the shell's own QML. Window shadows and the real terminal
-are left out of this offscreen preview.</sub>
+## The themes
+
+| | |
+| --- | --- |
+| [![Archive](themes/archive/preview-day.jpg)](themes/archive/) | **[Archive](themes/archive/)** · `archive`<br>A botanical herbarium on paper. Windows are typed index cards on the sheet, the wallpaper is the month's pressed specimen, the bar is the printed footer of the page. Grey paper and graphite by day, cyanotype blue at night. |
+| [![Compartment 19](themes/night-service/preview-day.jpg)](themes/night-service/) | **[Compartment 19](themes/night-service/)** · `night-service`<br>A night in compartment 19 of the Vienna to Venice sleeper, 1930s. Keepsakes from the journey on the sheet, a postcard and a luggage label, the brass key on a timetable, a music box, a little train along the bar. |
+| [![Viewfinder](themes/viewfinder/preview.jpg)](themes/viewfinder/) | **[Viewfinder](themes/viewfinder/)** · `viewfinder`<br>The desktop seen through a camera on a rainy night under the blossom: black and white with a little pink. Workspaces are frames of a film strip, windows are prints with a caption under each. |
+| *in the works* | **Retro Futurism**<br>The next theme, now being designed: tomorrow as it was imagined yesterday. Mock-ups first; it will arrive as its own box in `themes/`. |
+
+<sub>Previews are rendered from each shell's own QML.</sub>
 
 ## Start here
 
-On an Arch Linux that already runs Hyprland, one command installs the whole
-theme:
+On an Arch Linux that already runs Hyprland, one command installs the
+machine and every theme:
 
 ```sh
 git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/ultra
@@ -31,60 +39,66 @@ git clone https://github.com/midnightrainveil-sketch/Linux-2.0-.git ~/ultra
 ```
 
 (or unpack it anywhere and run `./setup.sh` in it; it copies itself to
-`~/ultra`). It installs the packages, links the
-configuration (your old files go to `~/.ultra-backup/`), names the G14's
-GPUs if it finds a G14, builds the title-bar and paper-edge plugin, and offers
-a typed login screen. Then reboot.
+`~/ultra`). It installs the packages, links the machine's files and the
+chosen theme (your old files go to `~/.ultra-backup/`), names the G14's
+GPUs if it finds a G14, builds each theme's icons and title-bar plugin, and
+offers a typed login screen. Then reboot.
 
-To update later, run `ultra-update` in a terminal: it downloads the latest
-version and runs the same setup (then reboot).
+To update later: `ultra-update` (it downloads the latest version and runs
+the same setup; then reboot).
 
 **→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
 Arch install, with a check after each one.
 
-## What's inside
+## The machine
 
-| | |
+Shared by every theme, and the same whichever is on. Hyprland's config
+(`~/.config/hypr/hyprland.lua`) is a small selector: it sets up the
+screens, GPUs and input from `ultra/machine.lua`, then hands over to the
+chosen theme.
+
+| Command | What it does |
 | --- | --- |
-| **Plate** (wallpaper) | The *Geranium pratense* sheet, whole, with its typed labels, stamp and tape; at night the same sheet printed as a cyanotype. Plates without text also work: then the shell types the labels itself. |
-| **The desk** | At login: the three record cards on the right and a live terminal on the left, as in the reference. Drag them anywhere, right-click a card to put it away, close the terminal; the card button in the bar (or `Super + D`) lays the desk out again. |
-| **Record cards** | Time Record (clock, date, week, coordinates), Meteorological Observation (Open-Meteo, no key), Audio Archive (any MPRIS player). Every `No.` is real data. |
-| **Footer bar** | Sprig (launcher), typed workspaces with a blue underline, `/ home / atlas /` breadcrumb, sketched status marks, date. |
-| **Popups** | Card Catalogue (launcher), Ledger (calendar), Instrument card (Wi-Fi, Bluetooth, battery, power profile, day/night, grain, volume and light rulers), Disposition (power menu). |
-| **Correspondence** | The notification daemon: cards with a RECEIVED stamp; critical ones stay, with a madder URGENT stamp. |
-| **Reading Room** | The lock screen. Signature field; REJECTED or ADMITTED stamps. |
-| **Windows** | Paper cards with torn edges (drawn by the archivebars plugin from repeating tiles, any size), soft shadows, typed title bars with three ticket-stub buttons and a ruled line, damped motion. |
-| **Night** | At sunset the whole sheet crossfades over 2 s to cyanotype, and GTK, Qt and foot follow. |
-| **Extras** | Paper grain per window (terminals and system tools; a title-bar toggle), colour profiles (ICC), foley sound theme hooks, screenshot filing with a stamp, plate importer. |
+| `ultra-theme` | List, choose (`set <id>`) or show (`current`) the theme |
+| `ultra-update` | Fetch the latest version and install it |
+| `ultra-rog` | The G14's graphics and power: NVIDIA driver, Hybrid mode, the dGPU off when unused |
+| `ultra-profile` | Step through the power profiles (the fan key) |
+| `ultra-refresh` | The panel's refresh rate: 60, 120, or Auto (follows the charger) |
+| `ultra-brightness` | The screen's brightness |
+| `ultra-icc` | A colour profile for a screen |
+| `ultra-mic` | The laptop microphone, made clear |
+| `ultra-lan` | Keep the office's machines reachable on a mesh Wi-Fi |
+| `ultra-ros` | ROS Noetic and RViz in an Ubuntu container |
+| `ultra-snapshot` | Restore points (Timeshift) before every system update |
+| `ultra-memory` | Compressed swap in memory (zram) |
+| `ultra-tune` | Small, reversible laptop tunings |
+| `ultra-boot` | A quiet start-up and shut-down showing the theme's own page |
+| `ultra-health` | What happened around a wake from sleep, timed |
+| `ultra-browser`, `ultra-session` | Open the default browser; log out cleanly |
 
-![Cards](themes/archive/docs/img/preview-cards.jpg)
+`setup.sh` also sets ssh keepalive and turns Wi-Fi power saving off for
+good. Nothing depends on the kernel: `linux` and `linux-lts` are served alike.
 
 ## Repository layout
 
 ```
-setup.sh                    installs everything (run again to update)
-GUIDE.md                    the install guide, phase by phase
-core/                       the machine, shared by every theme
+setup.sh                  installs everything (run again to update)
+GUIDE.md                  the install guide, phase by phase
+core/                     THE MACHINE, shared by every theme
   home/.config/hypr/        hyprland.lua (the selector), ultra/machine.lua
   home/.config/zsh, pipewire
-  home/.local/bin/          ultra-theme, ultra-update, ultra-rog, ultra-lan, ultra-ros,
-                            ultra-refresh, ultra-snapshot, ultra-brightness, ultra-mic,
-                            ultra-memory, ultra-tune, ultra-health ...
+  home/.local/bin/          the ultra-* commands above
   packages/                 the machine's packages (pacman.txt), the G14's (g14.txt)
-themes/                     one folder per theme (see themes/README.md)
+themes/                   THE THEMES, one self-contained box each
+  README.md                 how boxes are kept apart, and how to add one
   archive/                  the herbarium
   night-service/            Compartment 19
   viewfinder/               the camera
-    theme.json, preview*.jpg
-    packages.txt            what the theme needs beyond the machine's packages
-    home/                   linked into $HOME while the theme is on:
-      .config/hypr/theme.lua + theme/*.lua, quickshell/, foot, gtk ...
-      .local/bin/           its own commands (ultra-shell, ultra-idle, ultra-desk ...)
-      .local/share/         its fonts, pictures, cursors, sounds
-    system/plymouth/        its start-up and shut-down page (ultra-boot installs it)
-    tools/, art/, docs/     importers, source artwork, the theme's own notes
-docs/                       the machine: G14 notes, troubleshooting; the handover
-                            and the test harness for whoever works on this next
+    theme.json, preview*.jpg, packages.txt
+    home/                   linked into $HOME while the theme is on
+    system/plymouth/        its start-up and shut-down page
+    tools/, art/, docs/     importers, source artwork, its own notes
+docs/                     the machine's notes, the handover and test harness
 ```
 
 ## Docs
@@ -93,17 +107,16 @@ docs/                       the machine: G14 notes, troubleshooting; the handove
 - [themes/README.md](themes/README.md): how themes are kept apart, and how to add one
 - [docs/zephyrus-g14.md](docs/zephyrus-g14.md): the laptop side: asusctl, GPU modes, NVIDIA, battery
 - [docs/troubleshooting.md](docs/troubleshooting.md)
-- The Archive's own: [customising](themes/archive/docs/customise.md) (settings, colours,
-  plates, keybinds), the [design map](themes/archive/docs/design-map.md), the
-  [artwork](themes/archive/docs/artwork.md) sources and how to replace them
+- [docs/HANDOVER.md](docs/HANDOVER.md): where a new session picks the project up
+- Each theme's own page: [Archive](themes/archive/),
+  [Compartment 19](themes/night-service/), [Viewfinder](themes/viewfinder/)
 
 ## Credits
 
-- Typefaces: [Courier Prime](https://github.com/quoteunquoteapps/CourierPrime)
-  and [Pinyon Script](https://fonts.google.com/specimen/Pinyon+Script), both
-  under the SIL Open Font License (licences included next to the fonts);
-  [IBM Plex](https://github.com/IBM/plex) from the Arch repos;
-  [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) (Viewfinder),
-  also under the SIL Open Font License.
+- Typefaces: [Courier Prime](https://github.com/quoteunquoteapps/CourierPrime),
+  [Pinyon Script](https://fonts.google.com/specimen/Pinyon+Script) and
+  [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), under the SIL
+  Open Font License (licences next to the fonts); [IBM Plex](https://github.com/IBM/plex)
+  from the Arch repos.
 - [Hyprland](https://hypr.land), [hyprland-plugins](https://github.com/hyprwm/hyprland-plugins)
   (hyprbars), [Quickshell](https://quickshell.org), [Open-Meteo](https://open-meteo.com).
