@@ -10,7 +10,7 @@ Gadgets in steel, cream and sage with e-ink screens.
 ## Done so far
 
 - **Wallpaper**: the girl on the evening train.
-- **Lock screen**: her room at night. The Botsync clock on the night stand
+- **Lock screen**: her room at night. The Suisei clock on the night stand
   is live: the time (the colon blinks each second) and the date in its
   dot-matrix strip. The rest of the picture stays still. Type the password
   (nothing shows) and press Enter.

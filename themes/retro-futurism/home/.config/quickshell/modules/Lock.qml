@@ -6,7 +6,7 @@ import qs.services
 import qs.components
 
 // The lock screen: the room at night, asleep under the headphones. The
-// Botsync clock on the night stand keeps the time and the date; the rest
+// Suisei clock on the night stand keeps the time and the date; the rest
 // of the picture is still. The password is typed unseen, then Enter.
 // Lock with:  qs ipc call lock lock (Super + Escape and the idle timer do this.)
 //
@@ -103,7 +103,7 @@ Scope {
 
             MouseArea { anchors.fill: parent; onPressed: field.forceActiveFocus() }
 
-            // ---- the Botsync DC-80: time and date
+            // ---- the Suisei DC-80: time and date
             readonly property var days: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
             readonly property var months: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 

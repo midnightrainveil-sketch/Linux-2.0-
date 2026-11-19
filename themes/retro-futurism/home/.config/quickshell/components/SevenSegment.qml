@@ -1,6 +1,6 @@
 import QtQuick
 
-// Amber seven-segment digits, as on the Botsync DC-80: "HH:MM", leaning a
+// Amber seven-segment digits, as on the Suisei DC-80: "HH:MM", leaning a
 // little forward, the unlit segments faintly there behind the lit ones.
 // Drawn in its own units (a cell of 154 x 77, the clock's window in the
 // lock picture); the item may be any size.

@@ -1,7 +1,7 @@
 import QtQuick
 
 // A line of amber dot-matrix text (5 x 7 dots a letter), as in the date
-// strip of the Botsync DC-80. Capitals, figures and a few signs.
+// strip of the Suisei DC-80. Capitals, figures and a few signs.
 Canvas {
     id: strip
 
