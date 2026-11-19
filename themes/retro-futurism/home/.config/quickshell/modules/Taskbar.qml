@@ -52,7 +52,7 @@ PanelWindow {
     readonly property color amber: "#ffb04c"
     readonly property string face: "Inter"
     readonly property string figures: "Barlow"     // the numbers: workspaces, battery, time
-    readonly property real icon: s / 0.78 * 0.82   // the readouts' icons: small and fine
+    readonly property real icon: s / 0.78 * 0.74   // the readouts' icons: small and fine
 
     // ---- the bar itself
     Image {
@@ -152,8 +152,8 @@ PanelWindow {
                     color: bar.ink
                     opacity: cell.active || cellMouse.containsMouse ? 1 : 0.7
                     font.family: bar.figures
-                    font.pixelSize: Math.round(23 * bar.s)
-                    font.weight: cell.active ? Font.DemiBold : Font.Medium
+                    font.pixelSize: Math.round(21 * bar.s)
+                    font.weight: cell.active ? Font.Bold : Font.DemiBold
                 }
                 // the mark under it: the red line for the one in view, else a
                 // dot (dark where windows are)
@@ -248,14 +248,14 @@ PanelWindow {
         onPaint: {
             const c = getContext("2d"); c.reset();
             const cx = width / 2, cy = height - 2;
-            c.lineCap = "round"; c.lineWidth = 1.9;
+            c.lineCap = "round"; c.lineWidth = 2.6;
             for (let i = 1; i <= 3; i++) {
                 c.strokeStyle = bar.ink;
                 c.globalAlpha = i <= level ? 1 : 0.22;
                 c.beginPath(); c.arc(cx, cy, 4 + i * 4.6, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
             }
             c.globalAlpha = level > 0 ? 1 : 0.4;
-            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 2.1, 0, Math.PI * 2); c.fill();
+            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 2.5, 0, Math.PI * 2); c.fill();
         }
         MouseArea {
             anchors.fill: parent; anchors.margins: -8
@@ -277,7 +277,7 @@ PanelWindow {
             c.beginPath();
             c.moveTo(2, 7); c.lineTo(6, 7); c.lineTo(11, 2.5); c.lineTo(11, 17.5); c.lineTo(6, 13); c.lineTo(2, 13);
             c.closePath(); c.fill();
-            c.lineWidth = 1.9; c.lineCap = "round";
+            c.lineWidth = 2.6; c.lineCap = "round";
             if (waves < 0) {
                 c.beginPath(); c.moveTo(15, 6.5); c.lineTo(22, 13.5); c.moveTo(22, 6.5); c.lineTo(15, 13.5); c.stroke();
             }
@@ -303,7 +303,7 @@ PanelWindow {
         readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
         Rectangle {
             width: 34; height: 18; radius: 5
-            color: "transparent"; border.width: 1.5; border.color: bar.ink
+            color: "transparent"; border.width: 2.1; border.color: bar.ink
             Rectangle {
                 x: 3; y: 3
                 height: parent.height - 6; radius: 2.5
@@ -331,8 +331,8 @@ PanelWindow {
         color: Power.low ? bar.rust : bar.ink
         opacity: 0.85
         font.family: bar.figures
-        font.pixelSize: Math.round(20 * bar.s)
-        font.weight: Font.Medium
+        font.pixelSize: Math.round(18 * bar.s)
+        font.weight: Font.DemiBold
         font.features: { "tnum": 1 }
     }
     Sep { x: bar.rx(1954); visible: Power.present }
@@ -343,8 +343,8 @@ PanelWindow {
         text: Clock.time
         color: bar.ink
         font.family: bar.figures
-        font.pixelSize: Math.round(27 * bar.s)
-        font.weight: Font.Medium
+        font.pixelSize: Math.round(24 * bar.s)
+        font.weight: Font.DemiBold
         font.letterSpacing: 1 * bar.s
         font.features: { "tnum": 1 }
     }
