@@ -90,11 +90,11 @@ Widget {
         onSession: self.choose(0)
 
         component Glow: Text {
-            color: dev.ink
+            color: "#f2f8ff"
             font.family: "Barlow"
             font.weight: Font.Medium
         }
-        component Rule: Rectangle { height: 3; color: dev.ink; opacity: 0.92 }
+        component Rule: Rectangle { height: 3; color: "#f2f8ff"; opacity: 0.92 }
         component Slashes: Repeater {
             id: sl
             property real x0: 0
@@ -103,7 +103,7 @@ Widget {
             model: 3
             Rectangle {
                 required property int index
-                x: sl.x0 + index * sl.h * 1.45; y: sl.y0; width: sl.h * 0.6; height: sl.h; color: dev.ink
+                x: sl.x0 + index * sl.h * 1.45; y: sl.y0; width: sl.h * 0.6; height: sl.h; color: "#f2f8ff"
                 transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.6, 0, sl.h * 0.6, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
             }
         }
@@ -117,7 +117,7 @@ Widget {
             onNameChanged: requestPaint()
             onPaint: {
                 const c = getContext("2d"); c.reset();
-                c.strokeStyle = dev.ink; c.fillStyle = dev.ink;
+                c.strokeStyle = "#f2f8ff"; c.fillStyle = "#f2f8ff";
                 c.lineWidth = ic.stroke; c.lineCap = "round"; c.lineJoin = "round";
                 switch (ic.name) {
                 case "lock":

@@ -207,8 +207,10 @@ PanelWindow {
     }
 
     component Sep: Rectangle {
-        width: Math.max(1, 1.6 * bar.s); height: 28 * bar.s
-        y: bar.my(368) - height / 2
+        property real k: 1                  // (handed in: the bar's scale, the tube's middle)
+        property real cy: 0
+        width: Math.max(1, 1.6 * k); height: 28 * k
+        y: cy - height / 2
         color: "#3a352d"; opacity: 0.4
     }
 
@@ -427,7 +429,7 @@ PanelWindow {
             c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 3.0, 0, Math.PI * 2); c.fill();
         }
     }
-    Sep { x: bar.rx(1737) }
+    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1737) }
     // volume: the speaker and as many waves as it is loud (x 1791)
     Canvas {
         id: vol
@@ -450,7 +452,7 @@ PanelWindow {
             }
         }
     }
-    Sep { x: bar.rx(1806) }
+    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1806) }
     // battery: one smooth bar, as full as the battery (x 1888); amber
     // while charging, rust when low
     Item {
@@ -485,7 +487,7 @@ PanelWindow {
         font.weight: Font.Bold
         font.features: { "tnum": 1 }
     }
-    Sep { x: bar.rx(1954); visible: Power.present }
+    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1954); visible: Power.present }
     // Wi-Fi, volume and the battery: one place to click for the control
     // deck (widgets/controls), the wheel for the volume
     MouseArea {

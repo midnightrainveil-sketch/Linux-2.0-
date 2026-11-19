@@ -274,11 +274,11 @@ Scope {
 
 
                     component Glow: Text {
-                        color: ticket.ink
+                        color: "#f2f8ff"
                         font.family: "Barlow"
                         font.weight: Font.Medium
                     }
-                    component Rule: Rectangle { height: 3; color: ticket.ink; opacity: 0.92 }
+                    component Rule: Rectangle { height: 3; color: "#f2f8ff"; opacity: 0.92 }
 
                     // header: the mark, カセットOS
                     Canvas {

@@ -114,10 +114,10 @@ Widget {
             id: lcd
             x: deck.X(212); y: deck.Y(176); width: 747; height: 321
             component Lcd: Text {
-                color: self.lcdInk
-                font.family: self.lcdFace
+                color: "#2a2c2a"
+                font.family: "VT323"
                 font.pixelSize: 40
-                style: Text.Raised; styleColor: self.lcdGhost      // the faint shadow of LCD ink
+                style: Text.Raised; styleColor: Qt.rgba(0.16, 0.17, 0.16, 0.07)      // the faint shadow of LCD ink
             }
             // header
             Row {
@@ -278,12 +278,15 @@ Widget {
 
         // ---- WI-FI and BT: switches (slots 1100-1243 and 1372-1511, y 203-257)
         component Switch: Item {
+            // (what it reaches for: the widget and the deck, handed in)
+            property var w: null
+            property var dk: null
             id: sw
             required property real sx                  // the slot's left edge
             property bool on: false
             property bool usable: true
             signal flipped(bool to)
-            x: deck.X(sx - 30); y: deck.Y(200)
+            x: sw.dk.X(sx - 30); y: sw.dk.Y(200)
             width: 176; height: 100
             opacity: usable ? 1 : 0.5
             // the lamp beside it
@@ -312,7 +315,7 @@ Widget {
             }
             Image {
                 id: knob
-                source: self.art("knob.png")
+                source: sw.w.art("knob.png")
                 y: 6
                 readonly property real onX: 61
                 readonly property real offX: 102
@@ -324,9 +327,9 @@ Widget {
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter; anchors.horizontalCenterOffset: 14
                 y: 66; spacing: 12
-                Text { text: "ON"; color: self.plateInk; opacity: sw.on ? 1 : 0.35; font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
-                Text { text: "/"; color: self.plateInk; opacity: 0.35; font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
-                Text { text: "OFF"; color: self.plateInk; opacity: sw.on ? 0.35 : 1; font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
+                Text { text: "ON"; color: sw.w.plateInk; opacity: sw.on ? 1 : 0.35; font.family: sw.w.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
+                Text { text: "/"; color: sw.w.plateInk; opacity: 0.35; font.family: sw.w.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
+                Text { text: "OFF"; color: sw.w.plateInk; opacity: sw.on ? 0.35 : 1; font.family: sw.w.plateFace; font.weight: Font.Bold; font.pixelSize: 26 }
             }
             // click to flip; or slide the knob over and let go
             MouseArea {
@@ -356,11 +359,12 @@ Widget {
                 onCanceled: dragging = false
             }
         }
-        Switch { sx: 1100; on: Net.wifiOn; onFlipped: to => Net.setWifi(to) }
-        Switch { sx: 1372; on: Net.bluetoothOn; usable: Net.bluetoothAvailable; onFlipped: to => Net.setBluetooth(to) }
+        Switch { w: self; dk: deck; sx: 1100; on: Net.wifiOn; onFlipped: to => Net.setWifi(to) }
+        Switch { w: self; dk: deck; sx: 1372; on: Net.bluetoothOn; usable: Net.bluetoothAvailable; onFlipped: to => Net.setBluetooth(to) }
 
         // ---- a round button, as the mock-up's (up, or lit), pressed in a little
         component Key: Item {
+            property var w: null
             id: key
             property bool lit: false
             property string up: "key-up.png"
@@ -370,7 +374,7 @@ Widget {
             signal hit()
             Image {
                 anchors.fill: parent
-                source: self.art(key.lit ? key.litArt : key.up)
+                source: key.w.art(key.lit ? key.litArt : key.up)
                 smooth: true; mipmap: true
                 scale: keyArea.pressed ? 0.965 : 1
                 y: keyArea.pressed ? 2 : 0
@@ -381,7 +385,7 @@ Widget {
                     text: key.label
                     color: key.lit ? "#f3f3fb" : "#2f3033"
                     style: key.lit ? Text.Raised : Text.Normal; styleColor: "#3a3f7a"
-                    font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 30
+                    font.family: key.w.plateFace; font.weight: Font.Bold; font.pixelSize: 30
                 }
             }
             MouseArea { id: keyArea; anchors.fill: parent; anchors.margins: 4; cursorShape: Qt.PointingHandCursor; onClicked: key.hit() }
@@ -402,6 +406,7 @@ Widget {
                 readonly property real cx: [1134, 1308, 1480][index]
                 readonly property bool lit: Power.profile === modelData.id
                 Key {
+                    w: self
                     x: deck.X(mode.cx - 73); y: deck.Y(376)
                     width: 146; height: 69
                     lit: mode.lit
@@ -432,6 +437,7 @@ Widget {
         Repeater {
             model: self.rates
             Key {
+                w: self
                 required property var modelData
                 required property int index
                 x: deck.X([158, 333, 510][index]); y: deck.Y(604)
@@ -477,6 +483,8 @@ Widget {
 
         // ---- VOLUME and BRIGHTNESS: faders (tracks 222-682 and 943-1393)
         component Fader: Item {
+            property var w: null
+            property var dk: null
             id: fader
             required property real track0                   // the track's left end, in the mock-up
             property real value: 0                           // 0..1
@@ -485,9 +493,9 @@ Widget {
             signal moved(real v)
             readonly property real lo: track0 + 38           // where the thumb's middle can go
             readonly property real hi: track0 + 422
-            x: deck.X(track0); y: deck.Y(752); width: 470; height: 100
+            x: fader.dk.X(track0); y: fader.dk.Y(752); width: 470; height: 100
             Image {
-                source: self.art("fader.png")
+                source: fader.w.art("fader.png")
                 y: 9
                 x: (fader.lo + (fader.hi - fader.lo) * Math.max(0, Math.min(1, fader.value))) - fader.track0 - width / 2
                 Behavior on x { enabled: !faderArea.pressed; NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
@@ -508,15 +516,17 @@ Widget {
                 text: fader.muted ? "--" : Math.round(Math.max(0, Math.min(1, fader.value)) * 100)
                 color: "#f4f6f8"
                 style: Text.Outline; styleColor: Qt.rgba(0.8, 0.9, 1, 0.18)
-                font.family: self.lcdFace; font.pixelSize: 58
+                font.family: fader.w.lcdFace; font.pixelSize: 58
             }
         }
         Fader {
+            w: self; dk: deck
             track0: 222; readoutX: 746
             value: Audio.volume; muted: Audio.muted
             onMoved: v => { if (Audio.muted) Audio.toggleMute(); Audio.setVolume(v); }
         }
         Fader {
+            w: self; dk: deck
             track0: 943; readoutX: 1478
             value: Brightness.percent / 100
             onMoved: v => Brightness.set(Math.max(1, Math.round(v * 100)))

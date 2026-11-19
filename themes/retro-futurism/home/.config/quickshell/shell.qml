@@ -43,6 +43,9 @@ ShellRoot {
     // the launcher's lifter, over the taskbar while it lowers a cartridge in
     Lifter { screen: shell.focusedScreen }
 
+    // ULTRA_CHECK=1: compile and make every widget once, and say how it went
+    LazyLoader { active: Quickshell.env("ULTRA_CHECK") === "1"; SelfCheck {} }
+
     Lock { id: lockScreen }
     Connections { target: Scene; function onLockNow() { lockScreen.lock(); } }
 

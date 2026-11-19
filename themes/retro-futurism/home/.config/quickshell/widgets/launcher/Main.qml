@@ -207,13 +207,13 @@ Widget {
             z: 30
             readonly property color ink: "#2a2c2a"
             component Lcd: Text {
-                color: lcd.ink
+                color: "#2a2c2a"
                 font.family: "VT323"
                 font.pixelSize: 50
                 // a heavier stroke, as the mock-up's (VT323 has one weight)
                 style: Text.Outline; styleColor: color
             }
-            component Line: Rectangle { x: unit.X(248); width: 1100; height: 3; color: lcd.ink }
+            component Line: Rectangle { width: 1100; height: 3; color: "#2a2c2a" }
 
             // the index, and where in it
             Canvas {
@@ -231,7 +231,7 @@ Widget {
                 readonly property string n: String(self.results.length).padStart(2, "0")
                 text: (self.results.length ? String(self.sel + 1).padStart(2, "0") : "00") + " / " + n
             }
-            Line { y: unit.Y(616) }
+            Line { x: unit.X(248); y: unit.Y(616) }
 
             // the search
             Canvas {
@@ -247,7 +247,7 @@ Widget {
                 x: unit.X(333); y: unit.Y(648) - height / 2
                 text: "SEARCH > " + self.query.toLowerCase() + (tick.date.getSeconds() % 2 === 0 || !self.shown ? "_" : " ")
             }
-            Line { y: unit.Y(676) }
+            Line { x: unit.X(248); y: unit.Y(676) }
 
             // the chosen app: its icon, as the screen shows it, its name, its state
             Rectangle {
