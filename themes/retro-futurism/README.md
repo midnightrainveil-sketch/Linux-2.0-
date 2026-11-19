@@ -37,11 +37,12 @@ Gadgets in steel, cream and sage with e-ink screens.
   slot the app cartridges go in; click it for the launcher, its lamp lit
   while the launcher is open); workspaces 1 to 9 (a dark dot where windows
   are, the red line under the one in view; click, or scroll to step); the
-  sage band with the window in use, CASSETTE OS and the Arch logo (click:
+  sage band with its red line, CASSETTE OS and the Arch logo (click:
   the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
   battery (one smooth bar; click: the next power profile) and the time.
   The cartridge port is painted into the picture by the tool (a slot in a
-  steel bezel, gold fingers at the back); the shell lights its lamp.
+  steel bezel with four gold contacts, as on the cartridges, the red
+  indicator under it, a ribbed grip); the shell lights the indicator.
 
 Everything else (launcher, panels, power menu) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups

@@ -14,8 +14,8 @@ import qs.components
 //   the port       the slot the app cartridges go in: click for the launcher
 //   workspaces     1 to 9; a dark dot where windows are, the red line under
 //                  the one in view. Click to go, scroll to step through.
-//   the band       the window in use, a red line, CASSETTE OS and the Arch
-//                  logo (click: the power menu)
+//   the band       a red line, CASSETTE OS and the Arch logo (click: the
+//                  power menu)
 //   the readouts   Wi-Fi (click: nmtui), volume (scroll; click mutes),
 //                  battery (click: the next power profile), the time
 PanelWindow {
@@ -78,8 +78,9 @@ PanelWindow {
     }
 
     // ======== the port: where the app cartridges go in (plate 52-195). The
-    // slot itself is in the picture; here its lamp (the lens at 179,369)
-    // lights while the launcher is open, and a click opens it.
+    // slot, its four contacts (as on the cartridges) and the grip are in the
+    // picture; here the indicator under the slot (92-118, 384-389) glows
+    // while the launcher is open, and a click opens it.
     Item {
         id: port
         x: bar.lx(52); y: bar.my(339)
@@ -87,29 +88,29 @@ PanelWindow {
         readonly property bool lit: Panels.open === "launcher"
         // the bezel catches a little light under the pointer
         Rectangle {
-            x: (63 - 52) * bar.s; y: (351 - 339) * bar.s
-            width: 100 * bar.s; height: 36 * bar.s; radius: 6 * bar.s
+            x: (60 - 52) * bar.s; y: (345 - 339) * bar.s
+            width: 90 * bar.s; height: 34 * bar.s; radius: 5 * bar.s
             color: "transparent"
             border.width: Math.max(1, 1.4 * bar.s); border.color: "#fff6dc"
             opacity: portMouse.containsMouse && !port.lit ? 0.55 : 0
             Behavior on opacity { NumberAnimation { duration: 140 } }
         }
-        // the lamp, lit: an amber lens and its glow
+        // the indicator, lit: amber, with its glow
         Rectangle {
-            x: (179 - 52) * bar.s - width / 2; y: (369 - 339) * bar.s - height / 2
-            width: 9.2 * bar.s; height: width; radius: width / 2
+            x: (92 - 52) * bar.s; y: (384 - 339) * bar.s
+            width: 26 * bar.s; height: 5.5 * bar.s; radius: height / 2
             color: bar.amber
             opacity: port.lit ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: 180 } }
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 2.8; height: width; radius: width / 2
+                width: parent.width + 10 * bar.s; height: parent.height + 9 * bar.s; radius: height / 2
                 color: bar.amber; opacity: 0.25
             }
-            Rectangle {   // the lens's glint
-                x: parent.width * 0.2; y: parent.height * 0.12
-                width: parent.width * 0.32; height: width * 0.8; radius: width / 2
-                color: "#fffbe8"; opacity: 0.85
+            Rectangle {
+                x: parent.width * 0.12; y: parent.height * 0.18
+                width: parent.width * 0.76; height: parent.height * 0.28; radius: height / 2
+                color: "#fff3cf"; opacity: 0.8
             }
         }
         MouseArea {
@@ -221,22 +222,9 @@ PanelWindow {
             }
         }
     }
-    Text {
-        id: title
-        x: bar.lx(747)
-        y: bar.my(368) - height / 2
-        width: Math.min(implicitWidth, brand.x - x - 120 * bar.s)
-        text: Hypr.activeTitle.toUpperCase()
-        elide: Text.ElideRight
-        color: "#2a2b20"
-        font.family: bar.face
-        font.pixelSize: Math.round(20 * bar.s)
-        font.weight: Font.DemiBold
-        font.letterSpacing: 2.6 * bar.s
-    }
     Rectangle {
-        // the red line, as on the mock-up, from the title to the brand
-        x: title.text === "" ? bar.lx(747) : title.x + title.width + 26 * bar.s
+        // the red line, as on the mock-up (from x 747), up to the brand
+        x: bar.lx(747)
         width: brand.x - x - 40 * bar.s
         y: bar.my(368.5) - height / 2
         height: Math.max(1.5, 4 * bar.s); radius: height / 2

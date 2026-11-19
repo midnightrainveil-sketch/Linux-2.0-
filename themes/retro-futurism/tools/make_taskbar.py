@@ -28,8 +28,8 @@ def erase(x0, y0, x1, y1, grain=1.2):
     a[y0:y1, x0:x1] += rng.normal(0, grain, (n, x1 - x0, 1))
 
 erase(75, 348, 178, 389)          # the port plate's /// logo
-erase(228, 345, 703, 390)         # the workspace numbers and dots
-erase(735, 364, 1302, 374)        # the band's red line
+erase(228, 345, 684, 390)         # the workspace numbers and dots (inside the plate)
+erase(744, 365, 1302, 373)        # the band's red line (inside the band)
 erase(1306, 347, 1628, 389)       # /// CYPHERUM | A
 erase(1682, 344, 2078, 392)       # Wi-Fi, volume, battery, the time
 
@@ -58,54 +58,52 @@ def paint_port():
             gd.line([(0, yy), (x1 - x0, yy)], fill=c)
         m = Image.new('L', gr.size, 0); ImageDraw.Draw(m).rounded_rectangle([0, 0, gr.size[0] - 1, gr.size[1] - 1], r * Z, fill=255)
         g.paste(gr, (x0, y0), m); return g
-    bx0, by0, bx1, by1 = 63, 351, 163, 387            # the bezel
+    bx0, by0, bx1, by1 = 60, 345, 150, 379            # the bezel round the slot
     # let into the plate: shade above, a light lip below
-    sh = layer(); rr(sh, (bx0 - 1.5, by0 - 1.5, bx1 + 1.5, by1 + 0.5), 7, (70, 52, 30, 120))
+    sh = layer(); rr(sh, (bx0 - 1.5, by0 - 1.5, bx1 + 1.5, by1 + 0.5), 6, (70, 52, 30, 120))
     base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.6 * Z)))
-    lip = layer(); rr(lip, (bx0 - 1, by0 + 1, bx1 + 1, by1 + 1.6), 7, (255, 250, 238, 200))
+    lip = layer(); rr(lip, (bx0 - 1, by0 + 1, bx1 + 1, by1 + 1.6), 6, (255, 250, 238, 200))
     base.alpha_composite(lip.filter(ImageFilter.GaussianBlur(0.5 * Z)))
     # the steel bezel
-    base.alpha_composite(vgrad((bx0 - 0.5, by0 - 0.5, bx1 + 0.5, by1 + 0.5), [(0, (60, 56, 50, 255)), (1, (60, 56, 50, 255))], 6.5))
+    base.alpha_composite(vgrad((bx0 - 0.5, by0 - 0.5, bx1 + 0.5, by1 + 0.5), [(0, (60, 56, 50, 255)), (1, (60, 56, 50, 255))], 5.5))
     base.alpha_composite(vgrad((bx0, by0, bx1, by1), [(0, (238, 236, 230, 255)), (0.18, (196, 192, 184, 255)),
-        (0.55, (150, 145, 136, 255)), (0.85, (206, 202, 195, 255)), (1, (120, 115, 106, 255))], 6))
-    # brushed lines across the steel
+        (0.55, (150, 145, 136, 255)), (0.85, (206, 202, 195, 255)), (1, (120, 115, 106, 255))], 5))
     br = layer(); bd = ImageDraw.Draw(br); rng2 = np.random.default_rng(9)
-    for i in range(160):
+    for i in range(150):
         y = rng2.uniform(by0 * Z, by1 * Z) - Y0 * Z; x = rng2.uniform(0, w)
         bd.line([(x, y), (x + rng2.uniform(30, 160), y)], fill=(255, 255, 255, int(rng2.uniform(8, 26))), width=1)
-    bm = layer(); rr(bm, (bx0, by0, bx1, by1), 6, (0, 0, 0, 255))
+    bm = layer(); rr(bm, (bx0, by0, bx1, by1), 5, (0, 0, 0, 255))
     br.putalpha(Image.fromarray(np.minimum(np.asarray(br)[..., 3], np.asarray(bm)[..., 3])))
     base.alpha_composite(br)
-    # the mouth: deep, darkest at the top where the lip shades it
-    cx0, cy0, cx1, cy1 = bx0 + 4.5, by0 + 4.5, bx1 - 4.5, by1 - 4.5
-    base.alpha_composite(vgrad((cx0 - 0.6, cy0 - 0.6, cx1 + 0.6, cy1 + 0.6), [(0, (40, 38, 34, 255)), (1, (225, 222, 215, 255))], 3.2))
-    base.alpha_composite(vgrad((cx0, cy0, cx1, cy1), [(0, (3, 3, 3, 255)), (0.45, (12, 11, 10, 255)), (1, (34, 31, 27, 255))], 2.8))
-    # guide rails inside, either side
-    for gx in (cx0 + 2.2, cx1 - 3.4):
-        base.alpha_composite(vgrad((gx, cy0 + 2, gx + 1.2, cy1 - 1.5), [(0, (70, 66, 60, 200)), (1, (110, 104, 95, 220))], 0.5))
-    # the edge connector at the back: a dark block, gold fingers on it
-    kx0, ky0, kx1, ky1 = cx0 + 6, cy0 + 12.5, cx1 - 6, cy1 - 2.2
-    base.alpha_composite(vgrad((kx0, ky0, kx1, ky1), [(0, (52, 48, 40, 255)), (1, (24, 22, 19, 255))], 1))
-    n = 14; gap = 1.25; fw = (kx1 - kx0 - 4 - gap * (n - 1)) / n
-    for i in range(n):
-        if i == 9: continue                                 # the key
-        fx = kx0 + 2 + i * (fw + gap)
-        base.alpha_composite(vgrad((fx, ky0 + 1.2, fx + fw, ky1 - 1.0), [(0, (255, 236, 168, 255)), (0.25, (226, 182, 88, 255)),
-            (0.7, (170, 124, 44, 255)), (1, (110, 78, 26, 255))], 0.35))
+    # the mouth, and the inside: its top wall in light, the floor deep
+    cx0, cy0, cx1, cy1 = bx0 + 4, by0 + 4, bx1 - 4, by1 - 4
+    base.alpha_composite(vgrad((cx0 - 0.6, cy0 - 0.6, cx1 + 0.6, cy1 + 0.6), [(0, (40, 38, 34, 255)), (1, (225, 222, 215, 255))], 2.8))
+    base.alpha_composite(vgrad((cx0, cy0, cx1, cy1), [(0, (92, 88, 80, 255)), (0.22, (58, 56, 51, 255)),
+        (0.3, (20, 19, 17, 255)), (1, (44, 42, 38, 255))], 2.4))
+    # the four contacts, as on the cartridges: wide gold pads in a dark seat
+    pw, ph, pg = 13.5, 11.5, 6.0
+    tot = 4 * pw + 3 * pg; px0 = (cx0 + cx1) / 2 - tot / 2; py0 = cy1 - 2.4 - ph
+    base.alpha_composite(vgrad((px0 - 3, py0 - 2.2, px0 + tot + 3, cy1 - 1), [(0, (30, 29, 27, 255)), (1, (52, 50, 46, 255))], 1.6))
+    for i in range(4):
+        x = px0 + i * (pw + pg)
+        base.alpha_composite(vgrad((x - 0.5, py0 - 0.5, x + pw + 0.5, py0 + ph + 0.5), [(0, (90, 68, 26, 255)), (1, (60, 44, 16, 255))], 1.6))
+        base.alpha_composite(vgrad((x, py0, x + pw, py0 + ph), [(0, (250, 226, 160, 255)), (0.3, (222, 184, 104, 255)),
+            (0.75, (188, 148, 72, 255)), (1, (150, 112, 48, 255))], 1.4))
+        g = layer(); ImageDraw.Draw(g).rounded_rectangle([*P(x + 1.2, py0 + 1.0), *P(x + pw - 1.2, py0 + 2.2)], Z, fill=(255, 248, 220, 160))
+        base.alpha_composite(g.filter(ImageFilter.GaussianBlur(0.35 * Z)))
     # the light along the bezel's upper edge
-    hl = layer(); hd = ImageDraw.Draw(hl)
-    hd.rounded_rectangle([*P(bx0 + 3, by0 + 0.6), *P(bx1 - 3, by0 + 1.4)], Z, fill=(255, 255, 255, 150))
+    hl = layer(); ImageDraw.Draw(hl).rounded_rectangle([*P(bx0 + 3, by0 + 0.6), *P(bx1 - 3, by0 + 1.4)], Z, fill=(255, 255, 255, 150))
     base.alpha_composite(hl.filter(ImageFilter.GaussianBlur(0.4 * Z)))
-    # the insert mark, printed on the plate above
-    mk = layer(); ImageDraw.Draw(mk).polygon([P(109, 342.3), P(119, 342.3), P(114, 347.6)], fill=(178, 81, 47, 255))
-    base.alpha_composite(mk.filter(ImageFilter.GaussianBlur(0.15 * Z)))
-    # the lamp: a small lens in a dark ring (the shell lights it)
-    lx, ly, lr = 179, 369, 4.6
-    ring = layer(); ImageDraw.Draw(ring).ellipse([*P(lx - lr - 1.2, ly - lr - 1.2), *P(lx + lr + 1.2, ly + lr + 1.2)], fill=(70, 60, 46, 255))
-    base.alpha_composite(ring)
-    base.alpha_composite(vgrad((lx - lr, ly - lr, lx + lr, ly + lr), [(0, (150, 120, 70, 255)), (0.5, (96, 74, 40, 255)), (1, (70, 54, 30, 255))], lr))
-    gl = layer(); ImageDraw.Draw(gl).ellipse([*P(lx - 2.6, ly - 3.6), *P(lx - 0.2, ly - 1.6)], fill=(255, 255, 240, 170))
-    base.alpha_composite(gl.filter(ImageFilter.GaussianBlur(0.3 * Z)))
+    # the indicator under the slot, as on the launcher (the shell lights it)
+    ix0, iy0, ix1, iy1 = 92, 384, 118, 389.5
+    base.alpha_composite(vgrad((ix0 - 0.8, iy0 - 0.8, ix1 + 0.8, iy1 + 0.8), [(0, (120, 100, 78, 255)), (1, (250, 244, 230, 255))], 2.4))
+    base.alpha_composite(vgrad((ix0, iy0, ix1, iy1), [(0, (214, 98, 60, 255)), (1, (160, 64, 36, 255))], 2))
+    # the grip: ribs pressed into the plate, right of the slot
+    for i in range(6):
+        x = 160 + i * 5
+        base.alpha_composite(vgrad((x, 352, x + 2, 386), [(0, (150, 132, 104, 255)), (1, (196, 182, 160, 255))], 1))
+        hl2 = layer(); ImageDraw.Draw(hl2).rounded_rectangle([*P(x + 2, 352), *P(x + 2.8, 386)], int(0.4 * Z), fill=(255, 250, 236, 170))
+        base.alpha_composite(hl2)
     small = np.asarray(base.convert('RGB').resize((X1 - X0, Y1 - Y0), Image.LANCZOS)).astype(float)
     a[Y0:Y1, X0:X1] = small
 paint_port()
