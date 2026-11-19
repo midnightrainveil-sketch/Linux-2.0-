@@ -29,10 +29,10 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `vending` | Cassette vending | Super + V | CassetteVending |
 | `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |
 | `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
-| `power` | Power | Super + Shift + Escape (and the Arch logo) | Power |
+| `power` | Power (**built**) | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |
 | `pager` | Notifications | none: the shell brings it up | Notification |
 
-Built: the control deck and the clock. The rest are placeholders: their mock-up, and a tag
+Built: the control deck, the clock and power. The rest are placeholders: their mock-up, and a tag
 that shows the last key or click they were given.
 
 ## Where they come up
@@ -82,6 +82,20 @@ then seconds; the date strip (Space) turns the alarm on or off, starts or
 pauses the timer; Up / Down or the wheel over a pair of digits steps it;
 R resets the timer. Ringing: any key or click stops it, MODE or Z snoozes
 the alarm 9 minutes.
+
+## Power, and the device it shares with the lock screen
+
+`components/PassDevice.qml` is the silver Kasetto device (`art/Login0.png`,
+`assets/pass.png`): its picture, one glow for what is put on its face, its
+buttons as signals, and its roller, drawn as a turning cylinder (the wheel
+over the device turns it a ridge a notch and says so with `rolled`). The
+lock screen's access pass and `widgets/power` are both built on it.
+
+Power: Lock, Suspend, Log out, Restart, Shut down. The wheel (the roller
+turns with it), the arrow keys, ◀◀ / ▶▶, 1-5 or a click choose; Enter,
+Space, the roller or a click on the chosen line do it. ‖ POWER USER SESSION
+choose Suspend, Shut down, Log out, Lock. It opens on Suspend; Restart and
+Shut down light the red lamp.
 
 ## Building one
 

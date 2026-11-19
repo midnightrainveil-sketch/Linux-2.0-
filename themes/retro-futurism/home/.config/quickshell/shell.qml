@@ -42,6 +42,7 @@ ShellRoot {
     WidgetStage { screen: shell.focusedScreen; taskbar: true }
 
     Lock { id: lockScreen }
+    Connections { target: Scene; function onLockNow() { lockScreen.lock(); } }
 
     // ---- IPC, used by Hyprland's binds, the idle timer and scripts
     IpcHandler {

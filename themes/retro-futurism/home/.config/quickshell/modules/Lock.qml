@@ -253,284 +253,210 @@ Scope {
                 y: -height - 40 + room.passLevel * ((surface.height - height) / 2 + height + 40)
                 visible: room.passLevel > 0.001
 
-                Item {
+                PassDevice {
                     id: ticket
-                    width: 1162; height: 1201
                     scale: pass.pk
                     transformOrigin: Item.TopLeft
-                    function X(x) { return x - 38; }        // a point of the mock-up
-                    function Y(y) { return y - 26; }
-
-                    Image {
-                        anchors.fill: parent
-                        source: Quickshell.shellPath("assets/pass.png")
-                        smooth: true; mipmap: true
+                    lamp: room.verdict === "wrong"            // the red lamp: the key was wrong
+                    onPause: Quickshell.execDetached(["systemctl", "suspend"])
+                    onPower: {                                // twice to shut down
+                        if (room.powerAsked) Quickshell.execDetached(["systemctl", "poweroff"]);
+                        else room.powerAsked = true;
                     }
-                    // clicks on the pass stay with it
+                    onUser: { room.buffer = ""; room.verdict = ""; }
+                    onSession: room.rest()
+                    onBack: room.buffer = room.buffer.slice(0, -1)
+                    onEnter: room.submit()
+                    onRolled: field.forceActiveFocus()
+
+                    // clicks on the pass keep the keyboard on the password
                     MouseArea { anchors.fill: parent; onPressed: field.forceActiveFocus() }
 
-                    // ---- what glows on its face
+
+                    component Glow: Text {
+                        color: ticket.ink
+                        font.family: "Barlow"
+                        font.weight: Font.Medium
+                    }
+                    component Rule: Rectangle { height: 3; color: ticket.ink; opacity: 0.92 }
+
+                    // header: the mark, カセットOS
+                    Canvas {
+                        x: ticket.X(193); y: ticket.Y(188); width: 154; height: 48
+                        onPaint: {
+                            const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
+                            const bar = (y, x0, x1, h) => { c.beginPath(); c.moveTo(x0 + 14, y); c.lineTo(x1 + 14, y); c.lineTo(x1, y + h); c.lineTo(x0, y + h); c.closePath(); c.fill(); };
+                            bar(0, 52, 152, 12);           // the mark: a cassette's E, leaning
+                            bar(18, 26, 128, 12);
+                            bar(36, 0, 140, 12);
+                            c.beginPath(); c.moveTo(70, 0); c.lineTo(84, 0); c.lineTo(56, 48); c.lineTo(42, 48); c.closePath(); c.fill();
+                        }
+                    }
+                    Rectangle { x: ticket.X(375); y: ticket.Y(194); width: 3; height: 40; color: ticket.ink }
+                    Glow { x: ticket.X(410); y: ticket.Y(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
+
+                    Glow { x: ticket.X(184); y: ticket.Y(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
+                    Glow { x: ticket.X(186); y: ticket.Y(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
+                    Rule { x: ticket.X(187); y: ticket.Y(377); width: 526 }
+                    Repeater {
+                        model: 3
+                        Rectangle {
+                            required property int index
+                            x: ticket.X(733 + index * 21); y: ticket.Y(366); width: 9; height: 15; color: ticket.ink
+                            transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.6, 0, 9, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
+                        }
+                    }
+
+                    // passenger
+                    Glow { x: ticket.X(186); y: ticket.Y(424); text: "PASSENGER"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Canvas {
+                        x: ticket.X(196); y: ticket.Y(474); width: 52; height: 54
+                        onPaint: {
+                            const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
+                            c.beginPath(); c.arc(26, 15, 14, 0, Math.PI * 2); c.fill();
+                            c.beginPath(); c.moveTo(0, 54); c.lineTo(0, 46); c.bezierCurveTo(0, 33, 12, 30, 26, 30);
+                            c.bezierCurveTo(40, 30, 52, 33, 52, 46); c.lineTo(52, 54); c.closePath(); c.fill();
+                        }
+                    }
+                    Glow {
+                        x: ticket.X(274); y: ticket.Y(464); width: 500; elide: Text.ElideRight
+                        text: Settings.user; font.pixelSize: 52; font.letterSpacing: 1.4
+                    }
+                    Rule { x: ticket.X(187); y: ticket.Y(554); width: 579 }
+
+                    // from the lock screen to the desk
+                    Glow { x: ticket.X(190); y: ticket.Y(584); text: "FROM"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.X(538); y: ticket.Y(584); text: "TO"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.X(192); y: ticket.Y(616); text: "LOCK\nSCREEN"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
+                    Glow { x: ticket.X(538); y: ticket.Y(616); text: "DESKTOP\nSESSION"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
+                    Canvas {
+                        x: ticket.X(413); y: ticket.Y(634); width: 66; height: 30
+                        onPaint: {
+                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
+                            c.beginPath(); c.moveTo(2, 15); c.lineTo(62, 15); c.moveTo(48, 3); c.lineTo(62, 15); c.lineTo(48, 27); c.stroke();
+                        }
+                    }
+                    Rule { x: ticket.X(187); y: ticket.Y(734); width: 579 }
+
+                    // today
+                    Canvas {
+                        x: ticket.X(195); y: ticket.Y(765); width: 42; height: 42
+                        onPaint: {
+                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.fillStyle = ticket.ink; c.lineWidth = 3;
+                            c.strokeRect(2, 6, 38, 34); c.fillRect(2, 6, 38, 9);
+                            c.fillRect(9, 0, 4, 10); c.fillRect(29, 0, 4, 10);
+                            for (const [a, b] of [[9, 21], [19, 21], [29, 21], [9, 30], [19, 30]]) c.fillRect(a, b, 5, 5);
+                        }
+                    }
+                    readonly property var monthsUp: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+                    Glow {
+                        x: ticket.X(270); y: ticket.Y(760)
+                        text: tick.date.getDate() + " " + ticket.monthsUp[tick.date.getMonth()] + " " + tick.date.getFullYear()
+                        font.pixelSize: 40; font.letterSpacing: 0.4
+                        font.features: { "tnum": 1 }
+                    }
+                    Rectangle { x: ticket.X(532); y: ticket.Y(765); width: 3; height: 41; color: ticket.ink }
+                    Canvas {
+                        x: ticket.X(577); y: ticket.Y(764); width: 44; height: 44
+                        onPaint: {
+                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
+                            c.beginPath(); c.arc(22, 22, 19, 0, Math.PI * 2); c.stroke();
+                            c.beginPath(); c.moveTo(22, 10); c.lineTo(22, 23); c.lineTo(31, 28); c.stroke();
+                        }
+                    }
+                    Glow {
+                        x: ticket.X(651); y: ticket.Y(760)
+                        text: Qt.formatTime(tick.date, "hh:mm")
+                        font.pixelSize: 40; font.letterSpacing: 0.4
+                        font.features: { "tnum": 1 }
+                    }
+                    Rule { x: ticket.X(187); y: ticket.Y(841); width: 593 }
+
+                    // the access key: a dot for each key, the cursor after them
+                    Glow { x: ticket.X(192); y: ticket.Y(873); text: "ACCESS KEY"; font.pixelSize: 25; font.letterSpacing: 6 }
                     Item {
-                        id: glowing
-                        anchors.fill: parent
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: "#cfe6ff"
-                            shadowBlur: 0.7
-                            shadowOpacity: 1.0
-                            shadowHorizontalOffset: 0
-                            shadowVerticalOffset: 0
-                            blurMax: 22
-                        }
-                        readonly property color ink: "#f2f8ff"
-
-                        component Glow: Text {
-                            color: glowing.ink
-                            font.family: "Barlow"
-                            font.weight: Font.Medium
-                        }
-                        component Rule: Rectangle { height: 3; color: glowing.ink; opacity: 0.92 }
-
-                        // header: the mark, カセットOS
-                        Canvas {
-                            x: ticket.X(193); y: ticket.Y(188); width: 154; height: 48
-                            onPaint: {
-                                const c = getContext("2d"); c.reset(); c.fillStyle = glowing.ink;
-                                const bar = (y, x0, x1, h) => { c.beginPath(); c.moveTo(x0 + 14, y); c.lineTo(x1 + 14, y); c.lineTo(x1, y + h); c.lineTo(x0, y + h); c.closePath(); c.fill(); };
-                                bar(0, 52, 152, 12);           // the mark: a cassette's E, leaning
-                                bar(18, 26, 128, 12);
-                                bar(36, 0, 140, 12);
-                                c.beginPath(); c.moveTo(70, 0); c.lineTo(84, 0); c.lineTo(56, 48); c.lineTo(42, 48); c.closePath(); c.fill();
-                            }
-                        }
-                        Rectangle { x: ticket.X(375); y: ticket.Y(194); width: 3; height: 40; color: glowing.ink }
-                        Glow { x: ticket.X(410); y: ticket.Y(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
-
-                        Glow { x: ticket.X(184); y: ticket.Y(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
-                        Glow { x: ticket.X(186); y: ticket.Y(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
-                        Rule { x: ticket.X(187); y: ticket.Y(377); width: 526 }
+                        id: keyLine
+                        x: ticket.X(247); y: ticket.Y(950)
+                        readonly property int shown: Math.min(room.buffer.length, 10)
                         Repeater {
-                            model: 3
+                            model: keyLine.shown
                             Rectangle {
                                 required property int index
-                                x: ticket.X(733 + index * 21); y: ticket.Y(366); width: 9; height: 15; color: glowing.ink
-                                transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.6, 0, 9, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
+                                x: index * 52.2 - 13; y: -13
+                                width: 26; height: 26; radius: 13
+                                color: ticket.ink
+                                opacity: room.busy ? pulse.level : 1
+                                scale: 1
+                                Component.onCompleted: popIn.start()
+                                NumberAnimation on scale { id: popIn; from: 0.4; to: 1; duration: 120; easing.type: Easing.OutBack; running: false }
                             }
                         }
-
-                        // passenger
-                        Glow { x: ticket.X(186); y: ticket.Y(424); text: "PASSENGER"; font.pixelSize: 25; font.letterSpacing: 6 }
-                        Canvas {
-                            x: ticket.X(196); y: ticket.Y(474); width: 52; height: 54
-                            onPaint: {
-                                const c = getContext("2d"); c.reset(); c.fillStyle = glowing.ink;
-                                c.beginPath(); c.arc(26, 15, 14, 0, Math.PI * 2); c.fill();
-                                c.beginPath(); c.moveTo(0, 54); c.lineTo(0, 46); c.bezierCurveTo(0, 33, 12, 30, 26, 30);
-                                c.bezierCurveTo(40, 30, 52, 33, 52, 46); c.lineTo(52, 54); c.closePath(); c.fill();
-                            }
-                        }
-                        Glow {
-                            x: ticket.X(274); y: ticket.Y(464); width: 500; elide: Text.ElideRight
-                            text: Settings.user; font.pixelSize: 52; font.letterSpacing: 1.4
-                        }
-                        Rule { x: ticket.X(187); y: ticket.Y(554); width: 579 }
-
-                        // from the lock screen to the desk
-                        Glow { x: ticket.X(190); y: ticket.Y(584); text: "FROM"; font.pixelSize: 25; font.letterSpacing: 6 }
-                        Glow { x: ticket.X(538); y: ticket.Y(584); text: "TO"; font.pixelSize: 25; font.letterSpacing: 6 }
-                        Glow { x: ticket.X(192); y: ticket.Y(616); text: "LOCK\nSCREEN"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
-                        Glow { x: ticket.X(538); y: ticket.Y(616); text: "DESKTOP\nSESSION"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
-                        Canvas {
-                            x: ticket.X(413); y: ticket.Y(634); width: 66; height: 30
-                            onPaint: {
-                                const c = getContext("2d"); c.reset(); c.strokeStyle = glowing.ink; c.lineWidth = 3.2; c.lineCap = "round";
-                                c.beginPath(); c.moveTo(2, 15); c.lineTo(62, 15); c.moveTo(48, 3); c.lineTo(62, 15); c.lineTo(48, 27); c.stroke();
-                            }
-                        }
-                        Rule { x: ticket.X(187); y: ticket.Y(734); width: 579 }
-
-                        // today
-                        Canvas {
-                            x: ticket.X(195); y: ticket.Y(765); width: 42; height: 42
-                            onPaint: {
-                                const c = getContext("2d"); c.reset(); c.strokeStyle = glowing.ink; c.fillStyle = glowing.ink; c.lineWidth = 3;
-                                c.strokeRect(2, 6, 38, 34); c.fillRect(2, 6, 38, 9);
-                                c.fillRect(9, 0, 4, 10); c.fillRect(29, 0, 4, 10);
-                                for (const [a, b] of [[9, 21], [19, 21], [29, 21], [9, 30], [19, 30]]) c.fillRect(a, b, 5, 5);
-                            }
-                        }
-                        readonly property var monthsUp: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-                        Glow {
-                            x: ticket.X(270); y: ticket.Y(760)
-                            text: tick.date.getDate() + " " + glowing.monthsUp[tick.date.getMonth()] + " " + tick.date.getFullYear()
-                            font.pixelSize: 40; font.letterSpacing: 0.4
-                            font.features: { "tnum": 1 }
-                        }
-                        Rectangle { x: ticket.X(532); y: ticket.Y(765); width: 3; height: 41; color: glowing.ink }
-                        Canvas {
-                            x: ticket.X(577); y: ticket.Y(764); width: 44; height: 44
-                            onPaint: {
-                                const c = getContext("2d"); c.reset(); c.strokeStyle = glowing.ink; c.lineWidth = 3.2; c.lineCap = "round";
-                                c.beginPath(); c.arc(22, 22, 19, 0, Math.PI * 2); c.stroke();
-                                c.beginPath(); c.moveTo(22, 10); c.lineTo(22, 23); c.lineTo(31, 28); c.stroke();
-                            }
-                        }
-                        Glow {
-                            x: ticket.X(651); y: ticket.Y(760)
-                            text: Qt.formatTime(tick.date, "hh:mm")
-                            font.pixelSize: 40; font.letterSpacing: 0.4
-                            font.features: { "tnum": 1 }
-                        }
-                        Rule { x: ticket.X(187); y: ticket.Y(841); width: 593 }
-
-                        // the access key: a dot for each key, the cursor after them
-                        Glow { x: ticket.X(192); y: ticket.Y(873); text: "ACCESS KEY"; font.pixelSize: 25; font.letterSpacing: 6 }
-                        Item {
-                            id: keyLine
-                            x: ticket.X(247); y: ticket.Y(950)
-                            readonly property int shown: Math.min(room.buffer.length, 10)
-                            Repeater {
-                                model: keyLine.shown
-                                Rectangle {
-                                    required property int index
-                                    x: index * 52.2 - 13; y: -13
-                                    width: 26; height: 26; radius: 13
-                                    color: glowing.ink
-                                    opacity: room.busy ? pulse.level : 1
-                                    scale: 1
-                                    Component.onCompleted: popIn.start()
-                                    NumberAnimation on scale { id: popIn; from: 0.4; to: 1; duration: 120; easing.type: Easing.OutBack; running: false }
-                                }
-                            }
-                            Rectangle {
-                                // the cursor
-                                x: keyLine.shown === 0 ? -14 : (keyLine.shown - 1) * 52.2 + 36
-                                y: -34; width: 4; height: 64
-                                color: glowing.ink
-                                visible: !room.busy && room.verdict !== "ok"
-                                opacity: tick.date.getSeconds() % 2 === 0 ? 1 : 0.15
-                            }
-                            // a wrong key: the line shakes
-                            SequentialAnimation on x {
-                                running: room.verdict === "wrong"
-                                NumberAnimation { to: ticket.X(247) - 14; duration: 50 }
-                                NumberAnimation { to: ticket.X(247) + 14; duration: 70 }
-                                NumberAnimation { to: ticket.X(247) - 9; duration: 70 }
-                                NumberAnimation { to: ticket.X(247); duration: 60 }
-                            }
-                        }
-                        Rule { x: ticket.X(191); y: ticket.Y(999); width: 590 }
-
-                        // what it is doing
                         Rectangle {
-                            x: ticket.X(198); y: ticket.Y(1065); width: 30; height: 30; radius: 15
-                            color: room.verdict === "wrong" ? "transparent" : glowing.ink
-                            border.width: 3; border.color: glowing.ink
-                            opacity: room.busy ? pulse.level : 1
+                            // the cursor
+                            x: keyLine.shown === 0 ? -14 : (keyLine.shown - 1) * 52.2 + 36
+                            y: -34; width: 4; height: 64
+                            color: ticket.ink
+                            visible: !room.busy && room.verdict !== "ok"
+                            opacity: tick.date.getSeconds() % 2 === 0 ? 1 : 0.15
                         }
-                        Glow {
-                            x: ticket.X(261); y: ticket.Y(1060); width: 400
-                            font.pixelSize: 33; font.letterSpacing: 3
-                            text: room.verdict === "ok" ? "BOARDING"
-                                : room.busy ? "CHECKING"
-                                : room.verdict === "wrong" ? "ACCESS DENIED"
-                                : room.powerAsked ? "AGAIN: SHUT DOWN"
-                                : room.buffer === "" ? "ENTER ACCESS KEY" : "READY TO BOARD"
-                        }
-                        Rectangle { x: ticket.X(678); y: ticket.Y(1046); width: 3; height: 57; color: glowing.ink }
-                        Glow { x: ticket.X(733); y: ticket.Y(1042); text: "TKT No."; font.pixelSize: 25; font.letterSpacing: 3 }
-                        Glow {
-                            x: ticket.X(733); y: ticket.Y(1070)
-                            // a ticket number of your own: from your name
-                            text: {
-                                let h = 7;
-                                for (const ch of Settings.user) h = (h * 31 + ch.charCodeAt(0)) % 1000000;
-                                return "KST-" + String(h).padStart(6, "0");
-                            }
-                            font.pixelSize: 26; font.letterSpacing: 3
-                        }
-                        Repeater {
-                            model: 3
-                            Rectangle {
-                                required property int index
-                                x: ticket.X(1022 + index * 30); y: ticket.Y(1053); width: 14; height: 40; color: glowing.ink
-                                transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.55, 0, 22, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-                            }
+                        // a wrong key: the line shakes
+                        SequentialAnimation on x {
+                            running: room.verdict === "wrong"
+                            NumberAnimation { to: ticket.X(247) - 14; duration: 50 }
+                            NumberAnimation { to: ticket.X(247) + 14; duration: 70 }
+                            NumberAnimation { to: ticket.X(247) - 9; duration: 70 }
+                            NumberAnimation { to: ticket.X(247); duration: 60 }
                         }
                     }
-                    QtObject {
-                        id: pulse
-                        property real level: 1
-                        property var anim: SequentialAnimation {
-                            running: room.busy
-                            loops: Animation.Infinite
-                            NumberAnimation { target: pulse; property: "level"; to: 0.3; duration: 360 }
-                            NumberAnimation { target: pulse; property: "level"; to: 1; duration: 360 }
-                            onRunningChanged: if (!running) pulse.level = 1
-                        }
-                    }
+                    Rule { x: ticket.X(191); y: ticket.Y(999); width: 590 }
 
-                    // the red lamp on top: lit when the key was wrong
+                    // what it is doing
                     Rectangle {
-                        x: ticket.X(1006); y: ticket.Y(205); width: 63; height: 16; radius: 8
-                        color: "#ff4a3a"
-                        opacity: room.verdict === "wrong" ? 0.85 : 0
-                        Behavior on opacity { NumberAnimation { duration: 160 } }
-                        Rectangle { anchors.centerIn: parent; width: parent.width + 26; height: parent.height + 22; radius: height / 2; color: "#ff4a3a"; opacity: 0.25 }
+                        x: ticket.X(198); y: ticket.Y(1065); width: 30; height: 30; radius: 15
+                        color: room.verdict === "wrong" ? "transparent" : ticket.ink
+                        border.width: 3; border.color: ticket.ink
+                        opacity: room.busy ? pulse.level : 1
                     }
-
-                    // ---- its buttons
-                    component Press: Item {
-                        id: press
-                        signal hit()
-                        property real r: 18
+                    Glow {
+                        x: ticket.X(261); y: ticket.Y(1060); width: 400
+                        font.pixelSize: 33; font.letterSpacing: 3
+                        text: room.verdict === "ok" ? "BOARDING"
+                            : room.busy ? "CHECKING"
+                            : room.verdict === "wrong" ? "ACCESS DENIED"
+                            : room.powerAsked ? "AGAIN: SHUT DOWN"
+                            : room.buffer === "" ? "ENTER ACCESS KEY" : "READY TO BOARD"
+                    }
+                    Rectangle { x: ticket.X(678); y: ticket.Y(1046); width: 3; height: 57; color: ticket.ink }
+                    Glow { x: ticket.X(733); y: ticket.Y(1042); text: "TKT No."; font.pixelSize: 25; font.letterSpacing: 3 }
+                    Glow {
+                        x: ticket.X(733); y: ticket.Y(1070)
+                        // a ticket number of your own: from your name
+                        text: {
+                            let h = 7;
+                            for (const ch of Settings.user) h = (h * 31 + ch.charCodeAt(0)) % 1000000;
+                            return "KST-" + String(h).padStart(6, "0");
+                        }
+                        font.pixelSize: 26; font.letterSpacing: 3
+                    }
+                    Repeater {
+                        model: 3
                         Rectangle {
-                            anchors.fill: parent; radius: press.r
-                            color: "#1d2024"
-                            opacity: area.pressed ? 0.22 : area.containsMouse ? 0.07 : 0
-                            Behavior on opacity { NumberAnimation { duration: 70 } }
-                        }
-                        MouseArea {
-                            id: area
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onPressed: field.forceActiveFocus()
-                            onClicked: press.hit()
+                            required property int index
+                            x: ticket.X(1022 + index * 30); y: ticket.Y(1053); width: 14; height: 40; color: ticket.ink
+                            transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.55, 0, 22, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
                         }
                     }
-                    Press {                                  // ‖ : sleep
-                        x: ticket.X(855); y: ticket.Y(190); width: 85; height: 42; r: 21
-                        onHit: Quickshell.execDetached(["systemctl", "suspend"])
+                QtObject {
+                    id: pulse
+                    property real level: 1
+                    property var anim: SequentialAnimation {
+                        running: room.busy
+                        loops: Animation.Infinite
+                        NumberAnimation { target: pulse; property: "level"; to: 0.3; duration: 360 }
+                        NumberAnimation { target: pulse; property: "level"; to: 1; duration: 360 }
+                        onRunningChanged: if (!running) pulse.level = 1
                     }
-                    Press {                                  // POWER: twice to shut down
-                        x: ticket.X(865); y: ticket.Y(300); width: 205; height: 38; r: 19
-                        onHit: {
-                            if (room.powerAsked) Quickshell.execDetached(["systemctl", "poweroff"]);
-                            else room.powerAsked = true;
-                        }
-                    }
-                    Press {                                  // USER: clear the key
-                        x: ticket.X(917); y: ticket.Y(403); width: 98; height: 38; r: 19
-                        onHit: { room.buffer = ""; room.verdict = ""; }
-                    }
-                    Press {                                  // SESSION: put the pass away
-                        x: ticket.X(897); y: ticket.Y(505); width: 136; height: 38; r: 19
-                        onHit: room.rest()
-                    }
-                    Press {                                  // ◀◀ : one key back
-                        x: ticket.X(835); y: ticket.Y(640); width: 70; height: 82; r: 30
-                        onHit: room.buffer = room.buffer.slice(0, -1)
-                    }
-                    Press {                                  // the roller: enter
-                        x: ticket.X(908); y: ticket.Y(630); width: 132; height: 90; r: 12
-                        onHit: room.submit()
-                    }
-                    Press {                                  // ▶▶ : enter
-                        x: ticket.X(1045); y: ticket.Y(640); width: 65; height: 82; r: 30
-                        onHit: room.submit()
-                    }
+                }
                 }
             }
 
