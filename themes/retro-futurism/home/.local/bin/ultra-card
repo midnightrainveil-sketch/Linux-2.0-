@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# ultra-card: the terminal's greeting (the machine, in a few lines). zsh
+# runs it as a terminal opens; `ff` does too.
+exec fastfetch "$@"

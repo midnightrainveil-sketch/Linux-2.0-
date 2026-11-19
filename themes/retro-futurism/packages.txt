@@ -1,0 +1,15 @@
+# What this theme needs beyond the machine's packages (core/packages/pacman.txt).
+# ---- the shell (Quickshell)
+quickshell
+qt6-wayland
+# ---- idle: dim, lock, screen off
+hypridle
+# ---- the terminal's greeting, media keys
+fastfetch
+playerctl
+# ---- screenshots
+grim
+slurp
+# ---- look: GTK theme, icons
+adw-gtk-theme
+papirus-icon-theme

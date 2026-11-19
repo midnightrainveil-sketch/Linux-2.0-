@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Notes
+GenericName=Desk notes
+Comment=Write the notes shown on the desk
+Exec=ultra-notes
+Icon=accessories-text-editor
+Categories=Utility;
+Keywords=notes;todo;list;

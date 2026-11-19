@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# ultra-vitals: the machine's readings for the bottom bar, one line every
+# three seconds:   <processor %> <memory in use, GiB> <memory %> <temperature °C>
+# The shell starts it and reads the lines; it ends with the shell.
+set -u
+temp_file=""
+for n in /sys/class/hwmon/hwmon*/name; do
+    case $(cat "$n" 2>/dev/null) in
+        k10temp | coretemp | zenpower) temp_file="${n%/name}/temp1_input"; break ;;
+    esac
+done
+[[ -z $temp_file && -r /sys/class/thermal/thermal_zone0/temp ]] && temp_file=/sys/class/thermal/thermal_zone0/temp
+
+read -r _ a b c idle rest </proc/stat
+last_total=$((a + b + c + idle + ${rest// /+})) last_idle=$idle
+while sleep 3; do
+    [[ -d /proc/$PPID ]] || exit 0
+    read -r _ a b c idle rest </proc/stat
+    total=$((a + b + c + idle + ${rest// /+}))
+    dt=$((total - last_total)) di=$((idle - last_idle))
+    cpu=0; ((dt > 0)) && cpu=$(((100 * (dt - di) + dt / 2) / dt))
+    last_total=$total last_idle=$idle
+    mem=$(awk '/^MemTotal:/ { t = $2 } /^MemAvailable:/ { a = $2 } END { printf "%.1f %d", (t - a) / 1048576, (t - a) * 100 / t }' /proc/meminfo)
+    temp=0; [[ -n $temp_file ]] && temp=$(($(cat "$temp_file" 2>/dev/null || echo 0) / 1000))
+    echo "$cpu $mem $temp"
+done

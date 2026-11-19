@@ -1,0 +1,18 @@
+{
+  "id": "retro-futurism",
+  "name": "Retro Futurism",
+  "by": "Built in",
+  "summary": "Cassette OS: a Japanese future grown out of the 1980s. Gadgets in steel, cream and sage with e-ink screens; the girl on the evening train, and her room at night as the lock screen, where the clock on the night stand keeps the time. In the works: the lock screen and the pictures are its own, the rest is still borrowed from Viewfinder.",
+  "previews": [
+    "preview.jpg",
+    "preview-lock.jpg"
+  ],
+  "captions": [
+    "The evening train.",
+    "The lock screen."
+  ],
+  "leaves": [
+    ".config/gtk-3.0/gtk.css",
+    ".config/gtk-4.0/gtk.css"
+  ]
+}
