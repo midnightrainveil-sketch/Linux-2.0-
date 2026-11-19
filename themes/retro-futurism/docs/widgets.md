@@ -107,8 +107,10 @@ as large as the slot (a cartridge is the same size in both), so the bar
 has six workspaces. On Enter the app starts and the slot's lower bracket
 (`widgets/launcher/bracket.png`, cut out by `tools/make_launcher.py`, the
 body filled in behind it) carries the cartridge straight down on the
-launcher's own rods (a slice of each, stretched), into the port behind the
-bar's tube, with a small knock as it seats; there it is let go
+launcher's own rods (a slice of each, stretched), over the bar, into its
+port, with a small knock as it seats (while it works `modules/Lifter.qml`
+draws the bracket, the rods and the cartridge over the taskbar, where the
+launcher had them; the cartridge is cut off at the port's mouth); there it is let go
 (`Cartridges.land`: the bar shows it from then), the bracket goes back up,
 quickly, the launcher is put away and the bar slides home.
 

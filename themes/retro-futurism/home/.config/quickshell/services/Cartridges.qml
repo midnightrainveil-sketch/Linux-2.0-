@@ -21,6 +21,7 @@ import Quickshell
 //                           foot on the screen, its scale (the bar says)
 //   dock(entry)             the launcher starts lowering one (flying: true)
 //   land()                  it is in: lastLaunched, landed()
+//   lifting, drop ...       the lifter's state, for modules/Lifter.qml
 Singleton {
     id: root
 
@@ -31,8 +32,20 @@ Singleton {
     property real portX: 0
     property real portY: 0
     property real portS: 0.49
+    property real portClipY: 0      // the port's mouth: a cartridge in it is cut off below this
     signal landed()
-    function dock(entry: var): void { flyEntry = entry; flying = true; }
+    function dock(entry: var): void { flyEntry = entry; flying = true; lifting = true; }
+
+    // the lifter, drawn over the taskbar while it works (modules/Lifter.qml):
+    // the launcher's own pixels to the screen (liftOX, liftOY: where its
+    // mock-up's 24, 23 is; liftK: screen px per mock-up px), how far down its
+    // bracket is (drop, mock-up px), and whether it still holds the cartridge
+    property bool lifting: false
+    property real liftOX: 0
+    property real liftOY: 0
+    property real liftK: 1
+    property real drop: 0
+    property real slotScale: 0.68
     function land(): void {
         lastLaunched = flyEntry;
         flying = false;

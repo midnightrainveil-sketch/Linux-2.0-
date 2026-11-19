@@ -241,6 +241,7 @@ PanelWindow {
     Binding { target: Cartridges; property: "portX"; value: bar.lx(171) + bar.shift; when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portClipY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(374); when: bar.focusedScreen }
 
     // ======== the port: where the app cartridges go in (plate 52-290). The
     // port itself is in the picture (bezel 104-238 x 350-386, its mouth

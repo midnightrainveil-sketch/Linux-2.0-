@@ -49,7 +49,6 @@ Widget {
     // up, quickly, and the launcher is put away.
     property bool ejecting: false
     property bool letGoDone: false
-    property real drop: 0                    // the bracket and the slot's cartridge, down (mock-up px)
     property var docking: null
     function launch(): void {
         if (!current || ejecting) return;
@@ -64,19 +63,23 @@ Widget {
         const perPx = (u1.y - u0.y) / 1000;
         const seat = Cartridges.portY - (425 - 222.5) * Cartridges.portS;
         docking = current;
+        // the lifter is drawn over the taskbar from here (modules/Lifter.qml):
+        // tell it where the launcher is
+        Cartridges.liftOX = u0.x; Cartridges.liftOY = u0.y; Cartridges.liftK = perPx;
+        Cartridges.drop = 0;
         Cartridges.dock(current);
         lower.to = Math.max(0, (seat - (a.y + b.y) / 2) / perPx);
         dockAnim.restart();
     }
     SequentialAnimation {
         id: dockAnim
-        NumberAnimation { id: lower; target: self; property: "drop"; duration: 460; easing.type: Easing.InOutCubic }
+        NumberAnimation { id: lower; target: Cartridges; property: "drop"; duration: 460; easing.type: Easing.InOutCubic }
         // in: a small knock as it seats
-        NumberAnimation { target: self; property: "drop"; to: lower.to + 7; duration: 50; easing.type: Easing.OutQuad }
-        NumberAnimation { target: self; property: "drop"; to: lower.to; duration: 70; easing.type: Easing.OutQuad }
+        NumberAnimation { target: Cartridges; property: "drop"; to: lower.to + 7; duration: 50; easing.type: Easing.OutQuad }
+        NumberAnimation { target: Cartridges; property: "drop"; to: lower.to; duration: 70; easing.type: Easing.OutQuad }
         ScriptAction { script: { self.letGoDone = true; Cartridges.land(); } }
-        NumberAnimation { target: self; property: "drop"; to: 0; duration: 230; easing.type: Easing.OutCubic }
-        ScriptAction { script: self.close() }
+        NumberAnimation { target: Cartridges; property: "drop"; to: 0; duration: 230; easing.type: Easing.OutCubic }
+        ScriptAction { script: { Cartridges.lifting = false; self.close(); } }
     }
     // where the slot is across the screen, for the bar to slide its port under
     onOpened: Cartridges.slotX = unit.mapToItem(null, unit.X(784), 0).x
@@ -169,14 +172,14 @@ Widget {
                 Cartridge {
                     id: cart
                     entry: place.app
-                    // the slot's: down with the bracket when launched; gone once let go
-                    opacity: place.ao < 0.5 && self.letGoDone ? 0 : 1
+                    // the slot's: the lifter draws it (over the taskbar) once launched
+                    opacity: place.ao < 0.5 && self.ejecting ? 0 : 1
                     number: place.idx + 1
                     lit: place.ao < 0.5
                     scale: place.s
                     transformOrigin: Item.Center
                     x: unit.X(place.cx) - width / 2
-                    y: unit.Y(place.cy) - height / 2 + (place.ao < 0.5 ? self.drop : 0)
+                    y: unit.Y(place.cy) - height / 2
                 }
                 MouseArea {
                     x: unit.X(place.cx) - 350 * place.s / 2; y: unit.Y(place.cy) - 445 * place.s / 2
@@ -187,24 +190,13 @@ Widget {
             }
         }
 
-        // the lifter: its two rods run on down after the bracket (a slice of
-        // each stretched, from well up their length to the bracket's top), and
-        // the bracket, in front of the slot's cartridge, carries it
+        // the slot's lower bracket, in front of the slot's cartridge (once a
+        // cartridge is launched the lifter, modules/Lifter.qml, draws it, over
+        // the taskbar, and its rods, as it goes down and back)
         Image {
-            x: unit.X(627); y: unit.Y(240); width: 35; height: 160 + self.drop
-            z: 15
-            source: self.art("rod-left.png"); fillMode: Image.Stretch; smooth: true
-            visible: self.drop > 0
-        }
-        Image {
-            x: unit.X(920); y: unit.Y(240); width: 36; height: 160 + self.drop
-            z: 15
-            source: self.art("rod-right.png"); fillMode: Image.Stretch; smooth: true
-            visible: self.drop > 0
-        }
-        Image {
-            x: unit.X(596); y: unit.Y(396) + self.drop
+            x: unit.X(596); y: unit.Y(396)
             z: 20
+            visible: !self.ejecting
             source: self.art("bracket.png")
             smooth: true; mipmap: true
         }
