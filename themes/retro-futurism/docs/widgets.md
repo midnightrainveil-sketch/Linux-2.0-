@@ -27,12 +27,12 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `organizer` | Organizer | Super + C | Calendar |
 | `cassette` | Cassette player | Super + A | CassettePlayerWidget |
 | `vending` | Cassette vending | Super + V | CassetteVending |
-| `clock` | Clock | Super + W | ClockWidget |
+| `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |
 | `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
 | `power` | Power | Super + Shift + Escape (and the Arch logo) | Power |
 | `pager` | Notifications | none: the shell brings it up | Notification |
 
-Built: the control deck. The rest are placeholders: their mock-up, and a tag
+Built: the control deck and the clock. The rest are placeholders: their mock-up, and a tag
 that shows the last key or click they were given.
 
 ## Where they come up
@@ -62,6 +62,26 @@ brightness (`Brightness.qml`).
 The colour profile is the machine's, not the theme's: `ultra-icc` links it at
 `~/.config/ultra/icc/<screen>.icc` and `hypr/ultra/machine.lua` hands it to
 Hyprland under every theme; the deck's screen shows the one in use.
+
+## The clock
+
+`tools/make_clock.py` lifts `art/ClockWidget.png` off its white, makes its
+display glass and date strip anew (a smooth fit of their own colour, so no
+ghost of the mock-up's figures is left), turns the lit lamp off and the
+brand into SUISEI. `widgets/clock/Main.qml` draws the digits
+(`components/SevenSegment.qml`, the lock screen's, set to this size) and the
+date strip (`DotMatrix.qml`). The alarm and the timer are
+`services/Alarms.qml`, not the widget: they keep going with the clock put
+away, ring with a sound (`sound-theme-freedesktop`, played by `pw-play`), a
+notification and the clock brought up, and are kept in
+`~/.local/state/ultra/retro-futurism/clock.json`.
+
+Its controls: MODE (M, Tab, or a lamp) TIME / ALARM / TIMER; SET (S, Enter)
+sets the alarm's hour then minute (and turns it on), or the timer's minutes
+then seconds; the date strip (Space) turns the alarm on or off, starts or
+pauses the timer; Up / Down or the wheel over a pair of digits steps it;
+R resets the timer. Ringing: any key or click stops it, MODE or Z snoozes
+the alarm 9 minutes.
 
 ## Building one
 

@@ -42,5 +42,8 @@ FocusScope {
     width: preferredWidth
     height: preferredHeight
     focus: true
-    Keys.onEscapePressed: close()
+    // Esc puts it away, unless the widget takes it first: escapeHandler, if
+    // set, is called and returns true when it used the key (to leave an edit)
+    property var escapeHandler: null
+    Keys.onEscapePressed: if (!(escapeHandler && escapeHandler())) close()
 }

@@ -66,7 +66,9 @@ Gadgets in steel, cream and sage with e-ink screens.
   Built so far: the **control deck** (click the taskbar's Wi-Fi, volume or
   battery): Wi-Fi and Bluetooth switches, power mode, refresh rate, lock
   time, volume and brightness faders, and a screen with the battery and the
-  state of each. The rest are placeholders (their mock-up) until made.
+  state of each; and the **clock** (click the taskbar's time): the time and
+  date, an alarm and a timer that ring even with the clock put away. The
+  rest are placeholders (their mock-up) until made.
 
 Everything else (panels, notifications) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups

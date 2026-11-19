@@ -15,3 +15,5 @@ adw-gtk-theme
 papirus-icon-theme
 # the taskbar's lettering
 inter-font
+# the clock's alarm and timer sound
+sound-theme-freedesktop

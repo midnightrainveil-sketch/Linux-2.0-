@@ -355,6 +355,13 @@ PanelWindow {
         onClicked: Widgets.toggle("controls")
         onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
     }
+    // the time: a click brings up the clock (widgets/clock)
+    MouseArea {
+        x: bar.rx(1962); width: bar.rx(2100) - x
+        y: bar.my(330); height: bar.my(408) - y
+        cursorShape: Qt.PointingHandCursor
+        onClicked: Widgets.toggle("clock")
+    }
     // the time, centred where the mock-up's was (x 2028)
     Text {
         x: bar.rx(2025) - width / 2
