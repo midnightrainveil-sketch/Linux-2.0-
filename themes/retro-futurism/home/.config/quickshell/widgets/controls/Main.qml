@@ -7,8 +7,10 @@ import qs.services
 // gadget. Comes up over the taskbar's readouts (click Wi-Fi, volume or the
 // battery there; Super + S), stays over the windows, nothing behind blurred.
 //
-//   screen        the battery, Wi-Fi, Bluetooth, power mode, refresh rate and
-//                 colour profile, as they are now
+//   screen        the battery (its charge, watts in or out, time left) and
+//                 Wi-Fi, Bluetooth, power mode, refresh rate, colour profile:
+//                 each row lights up under the pointer; a click toggles or
+//                 steps it on
 //   WI-FI, BT     switches: click or drag
 //   POWER         Quiet / Balanced / Performance
 //   REFRESH RATE  60 Hz / 120 Hz / Auto (120 plugged in, 60 on battery)
@@ -35,6 +37,7 @@ Widget {
     // ---- the look
     readonly property color lcdInk: "#2a2c2a"
     readonly property color lcdGhost: Qt.rgba(0.16, 0.17, 0.16, 0.07)
+    readonly property color glass: "#c6c7c3"          // the screen's own grey, for inverted text
     readonly property color plateInk: "#3b3b3d"
     readonly property color indigo: "#565aa6"
     readonly property string lcdFace: "VT323"
@@ -130,60 +133,143 @@ Widget {
             Lcd { x: 148; y: 0; text: "SYSTEM CONTROL"; font.pixelSize: 50; font.letterSpacing: 2 }
             Rectangle { x: 22; y: 54; width: 693; height: 2.5; color: self.lcdInk }
 
-            // left: the battery
-            Lcd { x: 40; y: 70; text: Power.present ? "BATTERY" : "POWER" }
+            // ---- left: the battery
+            readonly property string remaining: Power.remaining === "" ? ""
+                : Power.remaining.replace(" h ", ":").replace(" min", "").replace(/:(\d)$/, ":0$1")
+            Lcd {
+                x: 22; y: 64; width: 260; horizontalAlignment: Text.AlignHCenter
+                text: Power.present ? "BATTERY" : "POWER"; font.pixelSize: 34; font.letterSpacing: 2
+            }
             Row {
-                x: 40; y: 108; width: 210
-                Item { width: (parent.width - figure.implicitWidth - percent.implicitWidth) / 2; height: 1 }
-                Lcd { id: figure; text: Power.present ? Power.percent : "AC"; font.pixelSize: 112 }
-                Lcd { id: percent; y: 44; text: Power.present ? "%" : ""; font.pixelSize: 54 }
+                // the figure, centred over the gauge
+                x: 22 + (260 - width) / 2; y: 88
+                Lcd { text: Power.present ? Power.percent : "AC"; font.pixelSize: 104 }
+                Lcd { y: 42; text: Power.present ? "%" : ""; font.pixelSize: 50 }
             }
             Item {
-                // the cells: one bar, filled to the charge
-                x: 40; y: 236; width: 206; height: 56
+                // the gauge: a case, the charge filling it smoothly, the
+                // unlit part faintly there as on a real LCD; a bolt while
+                // charging; the fill blinks when low
+                id: gauge
+                x: 36; y: 204; width: 232; height: 48
                 visible: Power.present
-                Rectangle { width: 192; height: 56; color: "transparent"; border.width: 4; border.color: self.lcdInk }
-                Rectangle { x: 192; y: 16; width: 12; height: 24; color: self.lcdInk }
-                Row {
-                    x: 10; y: 10; spacing: 6
-                    Repeater {
-                        model: 6
+                readonly property real level: Math.max(0, Math.min(1, Power.percent / 100))
+                Rectangle {
+                    width: 216; height: 48; radius: 3
+                    color: "transparent"; border.width: 4; border.color: self.lcdInk
+                    Rectangle {          // the unlit cells
+                        x: 8; y: 8; width: parent.width - 16; height: parent.height - 16
+                        color: self.lcdInk; opacity: 0.07
+                    }
+                    Rectangle {          // the charge
+                        id: charge
+                        x: 8; y: 8; height: parent.height - 16
+                        width: Math.max(4, (parent.width - 16) * gauge.level)
+                        color: self.lcdInk
+                        Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
+                        SequentialAnimation on opacity {
+                            running: Power.low && self.shown
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.25; duration: 500 }
+                            NumberAnimation { to: 1; duration: 500 }
+                            onRunningChanged: if (!running) charge.opacity = 1
+                        }
+                    }
+                    Repeater {          // quarter marks along the top edge
+                        model: 3
                         Rectangle {
                             required property int index
-                            width: 24; height: 36
-                            color: self.lcdInk
-                            opacity: index < Math.ceil(Power.percent / 100 * 6) ? 1 : 0.08
+                            x: 8 + (parent.width - 16) * (index + 1) / 4 - 1; y: 4
+                            width: 2; height: 6; color: self.lcdInk
                         }
                     }
                 }
+                Rectangle { x: 216; y: 14; width: 10; height: 20; color: self.lcdInk }   // the tip
+                Canvas {
+                    // the bolt, cut out of the charge (in the glass's colour), ink round it
+                    anchors.centerIn: parent; anchors.horizontalCenterOffset: -8
+                    width: 28; height: 34
+                    visible: Power.charging
+                    onPaint: {
+                        const c = getContext("2d"); c.reset();
+                        c.beginPath();
+                        c.moveTo(16, 1); c.lineTo(5, 19); c.lineTo(13, 19); c.lineTo(10, 33); c.lineTo(23, 13); c.lineTo(15, 13); c.closePath();
+                        c.fillStyle = self.glass; c.fill();
+                        c.lineWidth = 2.5; c.strokeStyle = self.lcdInk; c.stroke();
+                    }
+                }
+            }
+            Lcd {
+                x: 22; y: 262; width: 260; horizontalAlignment: Text.AlignHCenter
+                font.pixelSize: 32
+                text: !Power.present ? ""
+                    : Power.stateWord === "Full" ? "FULL"
+                    : lcd.remaining === "" ? "" : lcd.remaining + (Power.charging ? " TO FULL" : " LEFT")
             }
             Rectangle { x: 296; y: 76; width: 2.5; height: 230; color: self.lcdInk }
 
-            // right: the state of things
+            // ---- right: the state of things. Each row lights up (inverted)
+            // under the pointer, and a click does the obvious thing.
             Column {
-                x: 336; y: 62; spacing: 0
+                x: 326; y: 62; spacing: 0
                 Lcd {
-                    text: (Power.present ? Power.stateWord.toUpperCase() : "ON MAINS")
-                        + (Power.remaining !== "" ? "  " + Power.remaining.replace(" h ", ":").replace(" min", "").replace(/:(\d)$/, ":0$1") : "")
+                    x: 10
+                    // charging with its watts in, or on battery with its watts out
+                    text: !Power.present ? "ON MAINS"
+                        : Power.stateWord === "Full" ? "FULLY CHARGED"
+                        : (Power.charging ? "CHARGING" : "ON BATTERY")
+                          + (Power.rate >= 0.1 ? "  " + (Power.charging ? "+" : "-")
+                             + (Power.rate < 10 ? Power.rate.toFixed(1) : Math.round(Power.rate)) + "W" : "")
                     font.pixelSize: 40
                 }
                 Item { width: 1; height: 8 }
                 Repeater {
                     model: [
-                        ["WI-FI", !Net.wifiOn ? "OFF" : Net.wired ? "WIRED" : Net.ssid !== "" ? Net.ssid.toUpperCase() : "ON"],
-                        ["BLUETOOTH", !Net.bluetoothAvailable ? "NONE" : !Net.bluetoothOn ? "OFF"
-                            : Net.bluetoothConnected > 0 ? Net.bluetoothConnected + " ON" : "ON"],
-                        ["POWER", (self.modes.find(m => m.id === Power.profile) ?? { word: "-" }).word.slice(0, 8)],
-                        ["DISPLAY", Machine.refresh === "auto" ? "AUTO" : Machine.refresh + "HZ"],
-                        ["COLOUR", Machine.colourName.toUpperCase()]
+                        { label: "WI-FI",
+                          value: !Net.wifiOn ? "OFF" : Net.wired ? "WIRED" : Net.ssid !== "" ? Net.ssid.toUpperCase() : "ON",
+                          act: () => Net.setWifi(!Net.wifiOn) },
+                        { label: "BLUETOOTH",
+                          value: !Net.bluetoothAvailable ? "NONE" : !Net.bluetoothOn ? "OFF"
+                              : Net.bluetoothConnected > 0 ? Net.bluetoothConnected + " ON" : "ON",
+                          act: Net.bluetoothAvailable ? () => Net.setBluetooth(!Net.bluetoothOn) : null },
+                        { label: "POWER",
+                          value: (self.modes.find(m => m.id === Power.profile) ?? { word: "-" }).word.slice(0, 8),
+                          act: () => self.nextMode(1) },
+                        { label: "DISPLAY",
+                          value: Machine.refresh === "auto" ? "AUTO" : Machine.refresh + "HZ",
+                          act: () => {
+                              const i = self.rates.findIndex(r => r.id === Machine.refresh);
+                              Machine.setRefresh(self.rates[(i + 1) % self.rates.length].id);
+                          } },
+                        { label: "COLOUR", value: Machine.colourName.toUpperCase(), act: null }
                     ]
                     Item {
+                        id: row
                         required property var modelData
-                        width: 380; height: 38
-                        Lcd { text: modelData[0]; font.pixelSize: 36 }
+                        readonly property bool lit: rowArea.containsMouse
+                        width: 400; height: 38
+                        Rectangle {
+                            // the inverted bar
+                            anchors.fill: parent; anchors.topMargin: 1; anchors.bottomMargin: 1
+                            color: self.lcdInk
+                            opacity: row.lit ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 90 } }
+                        }
                         Lcd {
-                            x: 196; width: 184; elide: Text.ElideRight
-                            text: modelData[1]; font.pixelSize: 36
+                            x: 10; text: row.modelData.label; font.pixelSize: 36
+                            color: row.lit ? self.glass : self.lcdInk
+                        }
+                        Lcd {
+                            x: 206; width: 186; elide: Text.ElideRight
+                            text: row.modelData.value; font.pixelSize: 36
+                            color: row.lit ? self.glass : self.lcdInk
+                        }
+                        MouseArea {
+                            id: rowArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: row.modelData.act ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: if (row.modelData.act) row.modelData.act()
                         }
                     }
                 }
