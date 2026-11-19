@@ -39,7 +39,8 @@ Gadgets in steel, cream and sage with e-ink screens.
   are, the red line under the one in view; click, or scroll to step); the
   sage band with its red line, CASSETTE OS and the Arch logo (click:
   the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
-  battery (one smooth bar; click: the next power profile) and the time.
+  battery (one smooth bar and its percentage; click: the next power
+  profile) and the time.
   The cartridge port is painted into the picture by the tool (a slot in a
   steel bezel with four gold contacts, as on the cartridges, the red
   indicator under it, a ribbed grip); the shell lights the indicator.

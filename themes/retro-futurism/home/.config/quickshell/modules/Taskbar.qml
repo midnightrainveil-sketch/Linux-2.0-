@@ -17,7 +17,7 @@ import qs.components
 //   the band       a red line, CASSETTE OS and the Arch logo (click: the
 //                  power menu)
 //   the readouts   Wi-Fi (click: nmtui), volume (scroll; click mutes),
-//                  battery (click: the next power profile), the time
+//                  battery and its % (click: the next power profile), the time
 PanelWindow {
     id: bar
 
@@ -79,7 +79,7 @@ PanelWindow {
 
     // ======== the port: where the app cartridges go in (plate 52-195). The
     // slot, its four contacts (as on the cartridges) and the grip are in the
-    // picture; here the indicator under the slot (92-118, 384-389) glows
+    // picture; here the indicator under the slot (111-137, 384-389) glows
     // while the launcher is open, and a click opens it.
     Item {
         id: port
@@ -88,7 +88,7 @@ PanelWindow {
         readonly property bool lit: Panels.open === "launcher"
         // the bezel catches a little light under the pointer
         Rectangle {
-            x: (60 - 52) * bar.s; y: (345 - 339) * bar.s
+            x: (79 - 52) * bar.s; y: (345 - 339) * bar.s
             width: 90 * bar.s; height: 34 * bar.s; radius: 5 * bar.s
             color: "transparent"
             border.width: Math.max(1, 1.4 * bar.s); border.color: "#fff6dc"
@@ -97,7 +97,7 @@ PanelWindow {
         }
         // the indicator, lit: amber, with its glow
         Rectangle {
-            x: (92 - 52) * bar.s; y: (384 - 339) * bar.s
+            x: (111 - 52) * bar.s; y: (384 - 339) * bar.s
             width: 26 * bar.s; height: 5.5 * bar.s; radius: height / 2
             color: bar.amber
             opacity: port.lit ? 1 : 0
@@ -236,7 +236,7 @@ PanelWindow {
     Canvas {
         id: wifi
         width: 24; height: 20; scale: bar.u
-        x: bar.rx(1711) - width / 2; y: bar.my(368) - height / 2
+        x: bar.rx(1703) - width / 2; y: bar.my(368) - height / 2
         readonly property int level: !Net.online ? 0 : Net.wired ? 3 : Math.max(1, Math.ceil(Net.signal * 3))
         onLevelChanged: requestPaint()
         onPaint: {
@@ -257,12 +257,12 @@ PanelWindow {
             onClicked: Quickshell.execDetached([Settings.terminal, "-e", "nmtui"])
         }
     }
-    Sep { x: bar.rx(1750) }
+    Sep { x: bar.rx(1737) }
     // volume: the speaker and as many waves as it is loud (x 1791)
     Canvas {
         id: vol
         width: 26; height: 20; scale: bar.u
-        x: bar.rx(1791) - width / 2; y: bar.my(368) - height / 2
+        x: bar.rx(1771) - width / 2; y: bar.my(368) - height / 2
         readonly property int waves: Audio.muted ? -1 : Audio.volume <= 0.01 ? 0 : Audio.volume < 0.4 ? 1 : 2
         onWavesChanged: requestPaint()
         onPaint: {
@@ -286,13 +286,13 @@ PanelWindow {
             onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
         }
     }
-    Sep { x: bar.rx(1833) }
+    Sep { x: bar.rx(1806) }
     // battery: one smooth bar, as full as the battery (x 1888); amber
     // while charging, rust when low
     Item {
         id: batt
         width: 38; height: 18; scale: bar.u
-        x: bar.rx(1888) - width / 2; y: bar.my(368) - height / 2
+        x: bar.rx(1851) - width / 2; y: bar.my(368) - height / 2
         visible: Power.present
         readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
         Rectangle {
@@ -316,10 +316,22 @@ PanelWindow {
             }
         }
     }
+    // the battery's figure, beside it
+    Text {
+        visible: Power.present
+        x: bar.rx(1890)
+        y: bar.my(368) - height / 2
+        text: Power.percent + "%"
+        color: Power.low ? bar.rust : bar.ink
+        font.family: bar.face
+        font.pixelSize: Math.round(22 * bar.s)
+        font.weight: Font.Medium
+        font.features: { "tnum": 1 }
+    }
     Sep { x: bar.rx(1954); visible: Power.present }
     // the time, centred where the mock-up's was (x 2028)
     Text {
-        x: bar.rx(2028) - width / 2
+        x: bar.rx(2025) - width / 2
         y: bar.my(368) - height / 2
         text: Clock.time
         color: bar.ink

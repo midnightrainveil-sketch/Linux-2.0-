@@ -58,7 +58,7 @@ def paint_port():
             gd.line([(0, yy), (x1 - x0, yy)], fill=c)
         m = Image.new('L', gr.size, 0); ImageDraw.Draw(m).rounded_rectangle([0, 0, gr.size[0] - 1, gr.size[1] - 1], r * Z, fill=255)
         g.paste(gr, (x0, y0), m); return g
-    bx0, by0, bx1, by1 = 60, 345, 150, 379            # the bezel round the slot
+    bx0, by0, bx1, by1 = 79, 345, 169, 379            # the bezel round the slot, centred on the plate
     # let into the plate: shade above, a light lip below
     sh = layer(); rr(sh, (bx0 - 1.5, by0 - 1.5, bx1 + 1.5, by1 + 0.5), 6, (70, 52, 30, 120))
     base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(1.6 * Z)))
@@ -95,12 +95,11 @@ def paint_port():
     hl = layer(); ImageDraw.Draw(hl).rounded_rectangle([*P(bx0 + 3, by0 + 0.6), *P(bx1 - 3, by0 + 1.4)], Z, fill=(255, 255, 255, 150))
     base.alpha_composite(hl.filter(ImageFilter.GaussianBlur(0.4 * Z)))
     # the indicator under the slot, as on the launcher (the shell lights it)
-    ix0, iy0, ix1, iy1 = 92, 384, 118, 389.5
+    ix0, iy0, ix1, iy1 = 111, 384, 137, 389.5
     base.alpha_composite(vgrad((ix0 - 0.8, iy0 - 0.8, ix1 + 0.8, iy1 + 0.8), [(0, (120, 100, 78, 255)), (1, (250, 244, 230, 255))], 2.4))
     base.alpha_composite(vgrad((ix0, iy0, ix1, iy1), [(0, (214, 98, 60, 255)), (1, (160, 64, 36, 255))], 2))
-    # the grip: ribs pressed into the plate, right of the slot
-    for i in range(6):
-        x = 160 + i * 5
+    # the grip: ribs pressed into the plate, either side of the slot
+    for x in (59, 64, 69, 175, 180, 185):
         base.alpha_composite(vgrad((x, 352, x + 2, 386), [(0, (150, 132, 104, 255)), (1, (196, 182, 160, 255))], 1))
         hl2 = layer(); ImageDraw.Draw(hl2).rounded_rectangle([*P(x + 2, 352), *P(x + 2.8, 386)], int(0.4 * Z), fill=(255, 250, 236, 170))
         base.alpha_composite(hl2)
