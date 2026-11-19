@@ -71,7 +71,7 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     OS", gadgets in steel, cream and sage with e-ink screens. The user's
     mock-ups are in its `art/` (see its README). Begun as a copy of
     Viewfinder's box; only the wallpaper and the lock screen are its own so
-    far. On the lock screen only the clock is live (the user's choice: the
+    far (the window of the wallpaper shows a sunset scrolling past, see the box README). On the lock screen only the clock is live (the user's choice: the
     other gadgets in the picture stay still); see the box's README.
 - **In the first two** (each box has its own copy): ticket-stub workspaces, title-bar
   tickets (archivebars plugin, `home/.local/share/ultra/<id>/plugins/`),

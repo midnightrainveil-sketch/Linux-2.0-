@@ -29,6 +29,9 @@ Singleton {
     readonly property string search: get("search", "https://www.google.com/search?q=%s")
     // a picture of your own instead of the theme's: ~/.config/ultra/retro-futurism/wallpaper.jpg
     readonly property string wallpaper: get("wallpaper", "")
+    // the city outside the train's window: seconds for the view to come
+    // round once (0 holds it still)
+    readonly property int windowSeconds: get("windowSeconds", 90)
 
     FileView {
         id: file

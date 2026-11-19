@@ -20,14 +20,85 @@ PanelWindow {
     WlrLayershell.namespace: "retro-futurism-backdrop"
     color: "#0b0a0b"
 
+    // ---- the picture: the girl on the evening train. The city outside her
+    // window goes by: a long sunset (window-view.jpg, made to loop) slides
+    // behind the glass, and the train, she and the lights reflected in the
+    // glass lie over it (wallpaper-front.png, the glass cut out). A picture
+    // of your own (settings.json "wallpaper") is shown still, as it is.
+    readonly property bool ownPicture: Settings.wallpaper !== ""
     Image {
         anchors.fill: parent
-        source: Settings.wallpaper !== "" ? Settings.wallpaper : Settings.art + "/wallpaper.jpg"
+        visible: win.ownPicture
+        source: win.ownPicture ? Settings.wallpaper : ""
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         smooth: true
-        mipmap: false
         cache: false
+    }
+    Item {
+        id: scene
+        anchors.fill: parent
+        visible: !win.ownPicture
+
+        // the picture's own pixels (1585 x 992) to the screen, as
+        // PreserveAspectCrop lays it
+        readonly property real iw: 1585
+        readonly property real ih: 992
+        readonly property real k: Math.max(width / iw, height / ih)
+        readonly property real ox: (width - iw * k) / 2
+        readonly property real oy: (height - ih * k) / 2
+
+        // the glass: 592,0 to 1400,403 in the picture
+        Item {
+            id: glass
+            x: scene.ox + 592 * scene.k; y: scene.oy
+            width: 808 * scene.k; height: 403 * scene.k
+            clip: true
+
+            // the view, two copies end to end, sliding left as the train goes
+            // (the loop is 1580 x 603; shown at 0.862 of the picture's scale,
+            // its viaduct level with the old one, at y 300)
+            readonly property real loopW: 1580 * 0.862 * scene.k
+            readonly property real loopH: 603 * 0.862 * scene.k
+            readonly property bool still: Settings.windowSeconds <= 0
+                // nothing to see: a fullscreen window, or one over the whole glass
+                || Hypr.fullscreen
+                || Hypr.windows.some(w => w.x <= glass.x && w.y <= glass.y
+                                       && w.x + w.w >= glass.x + glass.width
+                                       && w.y + w.h >= glass.y + glass.height)
+            Row {
+                id: view
+                y: (300 - 376 * 0.862) * scene.k
+                Repeater {
+                    model: 2
+                    Image {
+                        width: glass.loopW; height: glass.loopH
+                        source: Settings.art + "/window-view.jpg"
+                        fillMode: Image.Stretch
+                        asynchronous: true
+                        smooth: true
+                    }
+                }
+                NumberAnimation on x {
+                    from: 0; to: -glass.loopW
+                    duration: Math.max(1, Settings.windowSeconds) * 1000
+                    loops: Animation.Infinite
+                    running: !win.ownPicture
+                    paused: running && glass.still
+                }
+            }
+            // the glass itself: a faint cool cast over what lies outside
+            Rectangle { anchors.fill: parent; color: "#465578"; opacity: 0.10 }
+        }
+
+        Image {
+            anchors.fill: parent
+            source: Settings.art + "/wallpaper-front.png"
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            smooth: true
+            cache: false
+        }
     }
 
     // ---- the frame lines
