@@ -40,7 +40,11 @@ PanelWindow {
         ? Math.round(128 * s - 8 * s + 10 - Theme.frameMargin) : 0
     WlrLayershell.namespace: "retro-futurism-bar"
     // with the launcher up the bar sits over its stage, out of the blur
-    WlrLayershell.layer: bar.docking ? WlrLayer.Overlay : WlrLayer.Top
+    // (set only once the shell has started: a panel made straight onto the
+    // overlay layer is not wanted)
+    property bool started: false
+    Timer { interval: 1500; running: true; onTriggered: bar.started = true }
+    WlrLayershell.layer: bar.started && bar.docking ? WlrLayer.Overlay : WlrLayer.Top
     color: "transparent"
 
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
@@ -67,7 +71,7 @@ PanelWindow {
     // the bar is up, else a thin strip along the screen's bottom edge
     mask: Region {
         item: bar.shown ? tubeZone : edgeStrip
-        Region { item: portStand }
+        regions: [ Region { item: portStand } ]
     }
     Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
     HoverHandler { onHoveredChanged: bar.hovered = hovered }

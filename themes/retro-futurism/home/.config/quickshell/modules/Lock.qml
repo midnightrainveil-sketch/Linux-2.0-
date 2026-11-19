@@ -124,7 +124,7 @@ Scope {
     }
 
     // the clock: ticks every second, only while locked
-    SystemClock { id: tick; precision: SystemClock.Seconds; enabled: sessionLock.locked }
+    SystemClock { id: tick; precision: SystemClock.Seconds }
 
     WlSessionLock {
         id: sessionLock

@@ -242,7 +242,7 @@ Widget {
                     c.beginPath(); c.moveTo(20, 20); c.lineTo(29, 29); c.stroke();
                 }
             }
-            SystemClock { id: tick; precision: SystemClock.Seconds; enabled: self.shown }
+            SystemClock { id: tick; precision: SystemClock.Seconds }
             Lcd {
                 x: unit.X(333); y: unit.Y(648) - height / 2
                 text: "SEARCH > " + self.query.toLowerCase() + (tick.date.getSeconds() % 2 === 0 || !self.shown ? "_" : " ")
