@@ -126,6 +126,15 @@ run under a headless sway, which catches QML errors and shows the desk:
   catches QML errors and shows the layout; it does not prove Quickshell
   accepts the file. Its stand-ins cover what Viewfinder uses; the older
   two boxes need more of them.
+- November 2026, when libEGL is missing in the container (Qt Quick will not
+  load): build an empty stand-in, `gcc -shared -fPIC -o libEGL.so.1 egl.c`
+  with a `void *eglX(void){return 0;}` for each egl symbol the Qt libraries
+  import (`nm -D --undefined-only`), and run with `LD_LIBRARY_PATH` at it.
+  Then Qt's real QML compiler runs (it catches what qmllint does not:
+  capitalised function names, FINAL properties like `left`), and so does
+  `preview.py` (`ULTRA_CHECK=1` makes Retro Futurism compile every widget;
+  `ipc:widget.open=controls` opens one). Effects (MultiEffect, layer.effect)
+  draw nothing in its software renderer: the glow layers come out blank.
 - Also: `bash -n` every script, `python3 -m py_compile`, and the Hyprland
   config run in plain `lua` with `hl` stubbed out (a table that accepts any
   call), which catches Lua errors and shows what would be started.

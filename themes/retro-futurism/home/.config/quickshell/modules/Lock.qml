@@ -282,7 +282,7 @@ Scope {
 
                     // header: the mark, カセットOS
                     Canvas {
-                        x: ticket.X(193); y: ticket.Y(188); width: 154; height: 48
+                        x: ticket.ax(193); y: ticket.ay(188); width: 154; height: 48
                         onPaint: {
                             const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
                             const bar = (y, x0, x1, h) => { c.beginPath(); c.moveTo(x0 + 14, y); c.lineTo(x1 + 14, y); c.lineTo(x1, y + h); c.lineTo(x0, y + h); c.closePath(); c.fill(); };
@@ -292,25 +292,25 @@ Scope {
                             c.beginPath(); c.moveTo(70, 0); c.lineTo(84, 0); c.lineTo(56, 48); c.lineTo(42, 48); c.closePath(); c.fill();
                         }
                     }
-                    Rectangle { x: ticket.X(375); y: ticket.Y(194); width: 3; height: 40; color: ticket.ink }
-                    Glow { x: ticket.X(410); y: ticket.Y(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
+                    Rectangle { x: ticket.ax(375); y: ticket.ay(194); width: 3; height: 40; color: ticket.ink }
+                    Glow { x: ticket.ax(410); y: ticket.ay(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
 
-                    Glow { x: ticket.X(184); y: ticket.Y(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
-                    Glow { x: ticket.X(186); y: ticket.Y(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
-                    Rule { x: ticket.X(187); y: ticket.Y(377); width: 526 }
+                    Glow { x: ticket.ax(184); y: ticket.ay(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
+                    Glow { x: ticket.ax(186); y: ticket.ay(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
+                    Rule { x: ticket.ax(187); y: ticket.ay(377); width: 526 }
                     Repeater {
                         model: 3
                         Rectangle {
                             required property int index
-                            x: ticket.X(733 + index * 21); y: ticket.Y(366); width: 9; height: 15; color: ticket.ink
+                            x: ticket.ax(733 + index * 21); y: ticket.ay(366); width: 9; height: 15; color: ticket.ink
                             transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.6, 0, 9, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
                         }
                     }
 
                     // passenger
-                    Glow { x: ticket.X(186); y: ticket.Y(424); text: "PASSENGER"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.ax(186); y: ticket.ay(424); text: "PASSENGER"; font.pixelSize: 25; font.letterSpacing: 6 }
                     Canvas {
-                        x: ticket.X(196); y: ticket.Y(474); width: 52; height: 54
+                        x: ticket.ax(196); y: ticket.ay(474); width: 52; height: 54
                         onPaint: {
                             const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
                             c.beginPath(); c.arc(26, 15, 14, 0, Math.PI * 2); c.fill();
@@ -319,28 +319,28 @@ Scope {
                         }
                     }
                     Glow {
-                        x: ticket.X(274); y: ticket.Y(464); width: 500; elide: Text.ElideRight
+                        x: ticket.ax(274); y: ticket.ay(464); width: 500; elide: Text.ElideRight
                         text: Settings.user; font.pixelSize: 52; font.letterSpacing: 1.4
                     }
-                    Rule { x: ticket.X(187); y: ticket.Y(554); width: 579 }
+                    Rule { x: ticket.ax(187); y: ticket.ay(554); width: 579 }
 
                     // from the lock screen to the desk
-                    Glow { x: ticket.X(190); y: ticket.Y(584); text: "FROM"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Glow { x: ticket.X(538); y: ticket.Y(584); text: "TO"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Glow { x: ticket.X(192); y: ticket.Y(616); text: "LOCK\nSCREEN"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
-                    Glow { x: ticket.X(538); y: ticket.Y(616); text: "DESKTOP\nSESSION"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
+                    Glow { x: ticket.ax(190); y: ticket.ay(584); text: "FROM"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.ax(538); y: ticket.ay(584); text: "TO"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.ax(192); y: ticket.ay(616); text: "LOCK\nSCREEN"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
+                    Glow { x: ticket.ax(538); y: ticket.ay(616); text: "DESKTOP\nSESSION"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
                     Canvas {
-                        x: ticket.X(413); y: ticket.Y(634); width: 66; height: 30
+                        x: ticket.ax(413); y: ticket.ay(634); width: 66; height: 30
                         onPaint: {
                             const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
                             c.beginPath(); c.moveTo(2, 15); c.lineTo(62, 15); c.moveTo(48, 3); c.lineTo(62, 15); c.lineTo(48, 27); c.stroke();
                         }
                     }
-                    Rule { x: ticket.X(187); y: ticket.Y(734); width: 579 }
+                    Rule { x: ticket.ax(187); y: ticket.ay(734); width: 579 }
 
                     // today
                     Canvas {
-                        x: ticket.X(195); y: ticket.Y(765); width: 42; height: 42
+                        x: ticket.ax(195); y: ticket.ay(765); width: 42; height: 42
                         onPaint: {
                             const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.fillStyle = ticket.ink; c.lineWidth = 3;
                             c.strokeRect(2, 6, 38, 34); c.fillRect(2, 6, 38, 9);
@@ -350,14 +350,14 @@ Scope {
                     }
                     readonly property var monthsUp: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
                     Glow {
-                        x: ticket.X(270); y: ticket.Y(760)
+                        x: ticket.ax(270); y: ticket.ay(760)
                         text: tick.date.getDate() + " " + ticket.monthsUp[tick.date.getMonth()] + " " + tick.date.getFullYear()
                         font.pixelSize: 40; font.letterSpacing: 0.4
                         font.features: { "tnum": 1 }
                     }
-                    Rectangle { x: ticket.X(532); y: ticket.Y(765); width: 3; height: 41; color: ticket.ink }
+                    Rectangle { x: ticket.ax(532); y: ticket.ay(765); width: 3; height: 41; color: ticket.ink }
                     Canvas {
-                        x: ticket.X(577); y: ticket.Y(764); width: 44; height: 44
+                        x: ticket.ax(577); y: ticket.ay(764); width: 44; height: 44
                         onPaint: {
                             const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
                             c.beginPath(); c.arc(22, 22, 19, 0, Math.PI * 2); c.stroke();
@@ -365,18 +365,18 @@ Scope {
                         }
                     }
                     Glow {
-                        x: ticket.X(651); y: ticket.Y(760)
+                        x: ticket.ax(651); y: ticket.ay(760)
                         text: Qt.formatTime(tick.date, "hh:mm")
                         font.pixelSize: 40; font.letterSpacing: 0.4
                         font.features: { "tnum": 1 }
                     }
-                    Rule { x: ticket.X(187); y: ticket.Y(841); width: 593 }
+                    Rule { x: ticket.ax(187); y: ticket.ay(841); width: 593 }
 
                     // the access key: a dot for each key, the cursor after them
-                    Glow { x: ticket.X(192); y: ticket.Y(873); text: "ACCESS KEY"; font.pixelSize: 25; font.letterSpacing: 6 }
+                    Glow { x: ticket.ax(192); y: ticket.ay(873); text: "ACCESS KEY"; font.pixelSize: 25; font.letterSpacing: 6 }
                     Item {
                         id: keyLine
-                        x: ticket.X(247); y: ticket.Y(950)
+                        x: ticket.ax(247); y: ticket.ay(950)
                         readonly property int shown: Math.min(room.buffer.length, 10)
                         Repeater {
                             model: keyLine.shown
@@ -402,23 +402,23 @@ Scope {
                         // a wrong key: the line shakes
                         SequentialAnimation on x {
                             running: room.verdict === "wrong"
-                            NumberAnimation { to: ticket.X(247) - 14; duration: 50 }
-                            NumberAnimation { to: ticket.X(247) + 14; duration: 70 }
-                            NumberAnimation { to: ticket.X(247) - 9; duration: 70 }
-                            NumberAnimation { to: ticket.X(247); duration: 60 }
+                            NumberAnimation { to: ticket.ax(247) - 14; duration: 50 }
+                            NumberAnimation { to: ticket.ax(247) + 14; duration: 70 }
+                            NumberAnimation { to: ticket.ax(247) - 9; duration: 70 }
+                            NumberAnimation { to: ticket.ax(247); duration: 60 }
                         }
                     }
-                    Rule { x: ticket.X(191); y: ticket.Y(999); width: 590 }
+                    Rule { x: ticket.ax(191); y: ticket.ay(999); width: 590 }
 
                     // what it is doing
                     Rectangle {
-                        x: ticket.X(198); y: ticket.Y(1065); width: 30; height: 30; radius: 15
+                        x: ticket.ax(198); y: ticket.ay(1065); width: 30; height: 30; radius: 15
                         color: room.verdict === "wrong" ? "transparent" : ticket.ink
                         border.width: 3; border.color: ticket.ink
                         opacity: room.busy ? pulse.level : 1
                     }
                     Glow {
-                        x: ticket.X(261); y: ticket.Y(1060); width: 400
+                        x: ticket.ax(261); y: ticket.ay(1060); width: 400
                         font.pixelSize: 33; font.letterSpacing: 3
                         text: room.verdict === "ok" ? "BOARDING"
                             : room.busy ? "CHECKING"
@@ -426,10 +426,10 @@ Scope {
                             : room.powerAsked ? "AGAIN: SHUT DOWN"
                             : room.buffer === "" ? "ENTER ACCESS KEY" : "READY TO BOARD"
                     }
-                    Rectangle { x: ticket.X(678); y: ticket.Y(1046); width: 3; height: 57; color: ticket.ink }
-                    Glow { x: ticket.X(733); y: ticket.Y(1042); text: "TKT No."; font.pixelSize: 25; font.letterSpacing: 3 }
+                    Rectangle { x: ticket.ax(678); y: ticket.ay(1046); width: 3; height: 57; color: ticket.ink }
+                    Glow { x: ticket.ax(733); y: ticket.ay(1042); text: "TKT No."; font.pixelSize: 25; font.letterSpacing: 3 }
                     Glow {
-                        x: ticket.X(733); y: ticket.Y(1070)
+                        x: ticket.ax(733); y: ticket.ay(1070)
                         // a ticket number of your own: from your name
                         text: {
                             let h = 7;
@@ -442,7 +442,7 @@ Scope {
                         model: 3
                         Rectangle {
                             required property int index
-                            x: ticket.X(1022 + index * 30); y: ticket.Y(1053); width: 14; height: 40; color: ticket.ink
+                            x: ticket.ax(1022 + index * 30); y: ticket.ay(1053); width: 14; height: 40; color: ticket.ink
                             transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.55, 0, 22, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
                         }
                     }

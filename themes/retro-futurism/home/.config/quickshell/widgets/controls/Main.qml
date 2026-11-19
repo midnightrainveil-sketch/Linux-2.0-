@@ -100,8 +100,8 @@ Widget {
         width: 1562; height: 920
         scale: self.k
         transformOrigin: Item.TopLeft
-        function X(x) { return x - 50; }               // a point of the mock-up
-        function Y(y) { return y - 28; }
+        function ax(x) { return x - 50; }               // a point of the mock-up
+        function ay(y) { return y - 28; }
 
         Image {
             anchors.fill: parent
@@ -112,7 +112,7 @@ Widget {
         // ---- the screen (glass 212-959 x 176-497) ---------------------------
         Item {
             id: lcd
-            x: deck.X(212); y: deck.Y(176); width: 747; height: 321
+            x: deck.ax(212); y: deck.ay(176); width: 747; height: 321
             component Lcd: Text {
                 color: "#2a2c2a"
                 font.family: "VT323"
@@ -286,7 +286,7 @@ Widget {
             property bool on: false
             property bool usable: true
             signal flipped(bool to)
-            x: sw.dk.X(sx - 30); y: sw.dk.Y(200)
+            x: sw.dk.ax(sx - 30); y: sw.dk.ay(200)
             width: 176; height: 100
             opacity: usable ? 1 : 0.5
             // the lamp beside it
@@ -393,7 +393,7 @@ Widget {
 
         // ---- POWER: the three modes (buttons 1065-1547 x 379-441)
         Text {
-            x: deck.X(1305) - width / 2; y: deck.Y(347) - height / 2
+            x: deck.ax(1305) - width / 2; y: deck.ay(347) - height / 2
             text: "POWER"; color: self.plateInk
             font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 30; font.letterSpacing: 1.5
         }
@@ -407,20 +407,20 @@ Widget {
                 readonly property bool lit: Power.profile === modelData.id
                 Key {
                     w: self
-                    x: deck.X(mode.cx - 73); y: deck.Y(376)
+                    x: deck.ax(mode.cx - 73); y: deck.ay(376)
                     width: 146; height: 69
                     lit: mode.lit
                     onHit: Power.setProfile(mode.modelData.id)
                 }
                 Text {
-                    x: deck.X(mode.cx) - width / 2; y: deck.Y(464) - height / 2
+                    x: deck.ax(mode.cx) - width / 2; y: deck.ay(464) - height / 2
                     text: mode.modelData.word
                     color: mode.lit ? "#2c2d6e" : self.plateInk
                     font.family: self.plateFace; font.weight: Font.Bold
                     font.pixelSize: mode.index === 2 ? 23 : 26
                 }
                 Rectangle {
-                    x: deck.X(mode.cx - 30); y: deck.Y(485)
+                    x: deck.ax(mode.cx - 30); y: deck.ay(485)
                     width: 60; height: 4; radius: 2; color: self.indigo
                     opacity: mode.lit ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: 160 } }
@@ -430,7 +430,7 @@ Widget {
 
         // ---- REFRESH RATE (buttons 161-663 x 607-674)
         Text {
-            x: deck.X(168); y: deck.Y(582) - height / 2
+            x: deck.ax(168); y: deck.ay(582) - height / 2
             text: "REFRESH RATE"; color: self.plateInk
             font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 30; font.letterSpacing: 1.5
         }
@@ -440,7 +440,7 @@ Widget {
                 w: self
                 required property var modelData
                 required property int index
-                x: deck.X([158, 333, 510][index]); y: deck.Y(604)
+                x: deck.ax([158, 333, 510][index]); y: deck.ay(604)
                 width: 156; height: 73
                 up: "rate-up.png"; litArt: "rate-lit.png"
                 label: modelData.word; labelOn: true
@@ -451,13 +451,13 @@ Widget {
 
         // ---- LOCK AFTER (track 846-1458, y 625; marks at 2m ... never)
         Text {
-            x: deck.X(840); y: deck.Y(582) - height / 2
+            x: deck.ax(840); y: deck.ay(582) - height / 2
             text: "LOCK AFTER"; color: self.plateInk
             font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 30; font.letterSpacing: 1.5
         }
         Item {
             id: lockBar
-            x: deck.X(836); y: deck.Y(596); width: 632; height: 80
+            x: deck.ax(836); y: deck.ay(596); width: 632; height: 80
             readonly property int at: self.lockIndex()
             function nearest(px) {               // px within this item
                 let best = 0;
@@ -493,7 +493,7 @@ Widget {
             signal moved(real v)
             readonly property real lo: track0 + 38           // where the thumb's middle can go
             readonly property real hi: track0 + 422
-            x: fader.dk.X(track0); y: fader.dk.Y(752); width: 470; height: 100
+            x: fader.dk.ax(track0); y: fader.dk.ay(752); width: 470; height: 100
             Image {
                 source: fader.w.art("fader.png")
                 y: 9
@@ -532,7 +532,7 @@ Widget {
             onMoved: v => Brightness.set(Math.max(1, Math.round(v * 100)))
         }
         Text {
-            x: deck.X(1203) - width / 2; y: deck.Y(736) - height / 2
+            x: deck.ax(1203) - width / 2; y: deck.ay(736) - height / 2
             text: "BRIGHTNESS"; color: self.plateInk
             font.family: self.plateFace; font.weight: Font.Bold; font.pixelSize: 28; font.letterSpacing: 0.5
         }

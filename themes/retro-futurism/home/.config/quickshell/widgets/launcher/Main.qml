@@ -82,7 +82,7 @@ Widget {
         ScriptAction { script: { Cartridges.lifting = false; self.close(); } }
     }
     // where the slot is across the screen, for the bar to slide its port under
-    onOpened: Cartridges.slotX = unit.mapToItem(null, unit.X(791), 0).x
+    onOpened: Cartridges.slotX = unit.mapToItem(null, unit.ax(791), 0).x
     onClosing: if (!ejecting) Cartridges.slotX = 0
     function slotCartridge(): var {
         for (let i = 0; i < rail.count; i++) {
@@ -134,8 +134,8 @@ Widget {
         width: 1534; height: 941
         scale: self.k
         transformOrigin: Item.TopLeft
-        function X(x) { return x - 24; }
-        function Y(y) { return y - 23; }
+        function ax(x) { return x - 24; }
+        function ay(y) { return y - 23; }
 
         Image {
             anchors.fill: parent
@@ -178,11 +178,11 @@ Widget {
                     lit: place.ao < 0.5
                     scale: place.s
                     transformOrigin: Item.Center
-                    x: unit.X(place.cx) - width / 2
-                    y: unit.Y(place.cy) - height / 2
+                    x: unit.ax(place.cx) - width / 2
+                    y: unit.ay(place.cy) - height / 2
                 }
                 MouseArea {
-                    x: unit.X(place.cx) - 350 * place.s / 2; y: unit.Y(place.cy) - 445 * place.s / 2
+                    x: unit.ax(place.cx) - 350 * place.s / 2; y: unit.ay(place.cy) - 445 * place.s / 2
                     width: 350 * place.s; height: 445 * place.s
                     cursorShape: Qt.PointingHandCursor
                     onClicked: place.ao < 0.5 ? self.launch() : self.choose(place.idx)
@@ -194,7 +194,7 @@ Widget {
         // cartridge is launched the lifter, modules/Lifter.qml, draws it, over
         // the taskbar, and its rods, as it goes down and back)
         Image {
-            x: unit.X(596); y: unit.Y(396)
+            x: unit.ax(596); y: unit.ay(396)
             z: 20
             visible: !self.ejecting
             source: self.art("bracket.png")
@@ -217,7 +217,7 @@ Widget {
 
             // the index, and where in it
             Canvas {
-                x: unit.X(271); y: unit.Y(575); width: 36; height: 28
+                x: unit.ax(271); y: unit.ay(575); width: 36; height: 28
                 onPaint: {
                     const c = getContext("2d"); c.reset(); c.strokeStyle = lcd.ink; c.lineWidth = 3;
                     c.strokeRect(9, 1.5, 25, 18); c.strokeRect(1.5, 8, 25, 18);
@@ -225,17 +225,17 @@ Widget {
                     c.fillStyle = lcd.ink; c.fillRect(6, 14, 16, 2.5); c.fillRect(6, 19, 11, 2.5);
                 }
             }
-            Lcd { x: unit.X(333); y: unit.Y(588) - height / 2; text: "APPLICATION INDEX"; font.letterSpacing: 1 }
+            Lcd { x: unit.ax(333); y: unit.ay(588) - height / 2; text: "APPLICATION INDEX"; font.letterSpacing: 1 }
             Lcd {
-                x: unit.X(1322) - width; y: unit.Y(588) - height / 2
+                x: unit.ax(1322) - width; y: unit.ay(588) - height / 2
                 readonly property string n: String(self.results.length).padStart(2, "0")
                 text: (self.results.length ? String(self.sel + 1).padStart(2, "0") : "00") + " / " + n
             }
-            Line { x: unit.X(248); y: unit.Y(616) }
+            Line { x: unit.ax(248); y: unit.ay(616) }
 
             // the search
             Canvas {
-                x: unit.X(270); y: unit.Y(633); width: 32; height: 32
+                x: unit.ax(270); y: unit.ay(633); width: 32; height: 32
                 onPaint: {
                     const c = getContext("2d"); c.reset(); c.strokeStyle = lcd.ink; c.lineWidth = 3.4; c.lineCap = "round";
                     c.beginPath(); c.arc(13, 13, 9.5, 0, Math.PI * 2); c.stroke();
@@ -244,14 +244,14 @@ Widget {
             }
             SystemClock { id: tick; precision: SystemClock.Seconds }
             Lcd {
-                x: unit.X(333); y: unit.Y(648) - height / 2
+                x: unit.ax(333); y: unit.ay(648) - height / 2
                 text: "SEARCH > " + self.query.toLowerCase() + (tick.date.getSeconds() % 2 === 0 || !self.shown ? "_" : " ")
             }
-            Line { x: unit.X(248); y: unit.Y(676) }
+            Line { x: unit.ax(248); y: unit.ay(676) }
 
             // the chosen app: its icon, as the screen shows it, its name, its state
             Rectangle {
-                x: unit.X(282); y: unit.Y(694); width: 179; height: 119; radius: 6
+                x: unit.ax(282); y: unit.ay(694); width: 179; height: 119; radius: 6
                 color: "#3b3c3a"
                 Image {
                     id: mono
@@ -277,16 +277,16 @@ Widget {
                     text: self.current ? self.current.name.charAt(0).toUpperCase() : "?"
                 }
             }
-            Rectangle { x: unit.X(488); y: unit.Y(694); width: 3; height: 119; color: lcd.ink }
+            Rectangle { x: unit.ax(488); y: unit.ay(694); width: 3; height: 119; color: lcd.ink }
             Lcd {
-                x: unit.X(523); y: unit.Y(724) - height / 2
+                x: unit.ax(523); y: unit.ay(724) - height / 2
                 width: 800; elide: Text.ElideRight
                 text: self.current ? self.current.name.toUpperCase() : "NO CARTRIDGE"
                 font.pixelSize: 84; font.letterSpacing: 2
             }
             Item {
                 // the state, on a dark slanted chip, and its slashes
-                x: unit.X(517); y: unit.Y(770)
+                x: unit.ax(517); y: unit.ay(770)
                 Canvas {
                     width: 440; height: 36
                     onPaint: {

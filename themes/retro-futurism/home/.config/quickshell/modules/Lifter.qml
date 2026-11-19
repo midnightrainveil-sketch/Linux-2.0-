@@ -24,19 +24,19 @@ PanelWindow {
     visible: Cartridges.lifting
 
     readonly property real k: Cartridges.liftK
-    function X(x) { return Cartridges.liftOX + (x - 24) * k; }
-    function Y(y) { return Cartridges.liftOY + (y - 23 + Cartridges.drop) * k; }
-    function Y0(y) { return Cartridges.liftOY + (y - 23) * k; }       // (what does not move)
+    function ax(x) { return Cartridges.liftOX + (x - 24) * k; }
+    function ay(y) { return Cartridges.liftOY + (y - 23 + Cartridges.drop) * k; }
+    function ay0(y) { return Cartridges.liftOY + (y - 23) * k; }       // (what does not move)
     readonly property string dir: Quickshell.shellPath("widgets/launcher/")
 
     // the rods, stretched from well up their length down to the bracket
     Image {
-        x: lifter.X(627); y: lifter.Y0(240)
+        x: lifter.ax(627); y: lifter.ay0(240)
         width: 35 * lifter.k; height: (160 + Cartridges.drop) * lifter.k
         source: lifter.dir + "rod-left.png"; fillMode: Image.Stretch; smooth: true
     }
     Image {
-        x: lifter.X(920); y: lifter.Y0(240)
+        x: lifter.ax(920); y: lifter.ay0(240)
         width: 36 * lifter.k; height: (160 + Cartridges.drop) * lifter.k
         source: lifter.dir + "rod-right.png"; fillMode: Image.Stretch; smooth: true
     }
@@ -51,13 +51,13 @@ PanelWindow {
             entry: Cartridges.flyEntry
             scale: Cartridges.slotScale * lifter.k
             transformOrigin: Item.Center
-            x: lifter.X(791) - width / 2
-            y: lifter.Y(304) - height / 2
+            x: lifter.ax(791) - width / 2
+            y: lifter.ay(304) - height / 2
         }
     }
     // the bracket, in front of it
     Image {
-        x: lifter.X(596); y: lifter.Y(396)
+        x: lifter.ax(596); y: lifter.ay(396)
         width: implicitWidth * lifter.k; height: implicitHeight * lifter.k
         source: lifter.dir + "bracket.png"
         smooth: true; mipmap: true

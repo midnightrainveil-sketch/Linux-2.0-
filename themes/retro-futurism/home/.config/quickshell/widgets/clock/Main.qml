@@ -165,8 +165,8 @@ Widget {
         width: 1425; height: 832
         scale: self.k
         transformOrigin: Item.TopLeft
-        function X(x) { return x - 79; }
-        function Y(y) { return y - 104; }
+        function ax(x) { return x - 79; }
+        function ay(y) { return y - 104; }
 
         Image {
             anchors.fill: parent
@@ -176,7 +176,7 @@ Widget {
 
         // ---- the digits (the glass 258-1162 x 288-620)
         SevenSegment {
-            x: face.X(330); y: face.Y(310)
+            x: face.ax(330); y: face.ay(310)
             width: 800; height: 270
             cellW: 800; cellH: 270
             digitX: [30, 194, 446, 608]
@@ -195,7 +195,7 @@ Widget {
             model: [{ x: 340, w: 360, pair: 0 }, { x: 740, w: 360, pair: 1 }]
             MouseArea {
                 required property var modelData
-                x: face.X(modelData.x); y: face.Y(320); width: modelData.w; height: 250
+                x: face.ax(modelData.x); y: face.ay(320); width: modelData.w; height: 250
                 enabled: self.mode !== 0 && self.ringing === ""
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 readonly property string pair: self.mode === 1 ? (modelData.pair === 0 ? "h" : "m")
@@ -211,7 +211,7 @@ Widget {
         // ---- the date strip (392-896 x 678-731): what it is doing; a click
         // turns the alarm on or off, starts or pauses the timer
         DotMatrix {
-            x: face.X(394); y: face.Y(679)
+            x: face.ax(394); y: face.ay(679)
             width: 500; height: 52
             pitch: 6.8
             lit: "#ffae3a"; glow: "#ff8a1e"
@@ -241,9 +241,9 @@ Widget {
                     if (index === 2 && Alarms.timerRunning) return 0.35;
                     return 0;
                 }
-                x: face.X(1218); y: face.Y(modelData - 22); width: 156; height: 44
+                x: face.ax(1218); y: face.ay(modelData - 22); width: 156; height: 44
                 Image {
-                    x: face.X(1222) - lampRow.x; y: face.Y(modelData - 16) - lampRow.y
+                    x: face.ax(1222) - lampRow.x; y: face.ay(modelData - 16) - lampRow.y
                     source: self.art("lamp-lit.png")
                     opacity: lampRow.level
                     Behavior on opacity { NumberAnimation { duration: 140 } }
@@ -275,11 +275,11 @@ Widget {
             }
         }
         Button {
-            x: face.X(1050); y: face.Y(683); width: 90; height: 55
+            x: face.ax(1050); y: face.ay(683); width: 90; height: 55
             onHit: self.ringing !== "" ? Alarms.stop() : self.set()
         }
         Button {
-            x: face.X(1167); y: face.Y(683); width: 85; height: 55
+            x: face.ax(1167); y: face.ay(683); width: 85; height: 55
             onHit: self.ringing !== "" ? Alarms.snooze() : self.nextMode()
         }
 

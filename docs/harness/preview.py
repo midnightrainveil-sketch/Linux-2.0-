@@ -6,6 +6,7 @@ where the real one cannot be built (docs/harness/build.sh).
 
     steps, run in order before the picture is taken:
         ipc:<target>.<function>     as `qs ipc call <target> <function>`
+        ipc:<target>.<function>=<arg>   ... with one argument
         notify:<summary>|<body>     a notification arrives (_ for a space)
         key:<text>                  typed into the focused field
         nowindows | idle | notes    no windows open / nothing playing / three sample notes
@@ -89,6 +90,8 @@ class Harness(QObject):
 
     @Slot(str, result=str)
     def env(self, name):
+        if name.startswith("ULTRA_"):
+            return os.environ.get(name, "")       # (ULTRA_CHECK=1: the shell's self-check)
         return {"HOME": str(self.home), "USER": "misaki"}.get(name, "")
 
     @Slot(str)
@@ -196,9 +199,14 @@ def main():
         kind, _, arg = s.partition(":")
         if kind == "ipc":
             target, _, fn = arg.partition(".")
+            fn, _, val = fn.partition("=")          # ipc:widget.toggle=controls: with an argument
             for h in root.findChildren(QObject, "ipc"):
                 if h.property("target") == target:
-                    QMetaObject.invokeMethod(h, fn)
+                    if val:
+                        from PySide6.QtCore import Q_ARG
+                        QMetaObject.invokeMethod(h, fn, Qt.DirectConnection, Q_ARG("QString", val))
+                    else:
+                        QMetaObject.invokeMethod(h, fn)
         elif kind == "notify":
             summary, _, body = arg.partition("|")
             harness.notify.emit(summary.replace("_", " "), body.replace("_", " "))

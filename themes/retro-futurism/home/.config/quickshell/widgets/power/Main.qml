@@ -150,13 +150,13 @@ Widget {
         }
 
         // ---- header: ⏻ | ///, SYSTEM CONTROL, POWER MANAGEMENT
-        Icon { x: dev.X(203); y: dev.Y(179); name: "power"; stroke: 4.6 }
-        Rectangle { x: dev.X(298); y: dev.Y(188); width: 3; height: 39; color: dev.ink }
-        Slashes { x0: dev.X(333); y0: dev.Y(197); h: 19 }
-        Glow { x: dev.X(191); y: dev.Y(250); text: "SYSTEM CONTROL"; font.pixelSize: 56; font.weight: Font.DemiBold; font.letterSpacing: 7.6 }
-        Glow { x: dev.X(192); y: dev.Y(318); text: "POWER MANAGEMENT"; font.pixelSize: 26; font.letterSpacing: 13.4 }
-        Rule { x: dev.X(191); y: dev.Y(373); width: 501 }
-        Slashes { x0: dev.X(708); y0: dev.Y(362); h: 16 }
+        Icon { x: dev.ax(203); y: dev.ay(179); name: "power"; stroke: 4.6 }
+        Rectangle { x: dev.ax(298); y: dev.ay(188); width: 3; height: 39; color: dev.ink }
+        Slashes { x0: dev.ax(333); y0: dev.ay(197); h: 19 }
+        Glow { x: dev.ax(191); y: dev.ay(250); text: "SYSTEM CONTROL"; font.pixelSize: 56; font.weight: Font.DemiBold; font.letterSpacing: 7.6 }
+        Glow { x: dev.ax(192); y: dev.ay(318); text: "POWER MANAGEMENT"; font.pixelSize: 26; font.letterSpacing: 13.4 }
+        Rule { x: dev.ax(191); y: dev.ay(373); width: 501 }
+        Slashes { x0: dev.ax(708); y0: dev.ay(362); h: 16 }
 
         // ---- the five lines
         Repeater {
@@ -166,7 +166,7 @@ Widget {
                 required property var modelData
                 required property int index
                 readonly property bool chosen: index === self.sel
-                x: dev.X(207); y: dev.Y(self.rowY[index] - 53)
+                x: dev.ax(207); y: dev.ay(self.rowY[index] - 53)
                 width: 487; height: 106
                 opacity: chosen ? 1 : 0.78
                 Behavior on opacity { NumberAnimation { duration: 140 } }
@@ -192,35 +192,35 @@ Widget {
         // the marks either side of the chosen line, gliding with it
         Item {
             id: marks
-            x: 0; y: dev.Y(self.rowY[self.sel])
+            x: 0; y: dev.ay(self.rowY[self.sel])
             Behavior on y { NumberAnimation { duration: 170; easing.type: Easing.OutCubic } }
             Canvas {
-                x: dev.X(193); y: -10; width: 20; height: 20
+                x: dev.ax(193); y: -10; width: 20; height: 20
                 onPaint: { const c = getContext("2d"); c.reset(); c.fillStyle = dev.ink; c.beginPath(); c.moveTo(0, 0); c.lineTo(18, 10); c.lineTo(0, 20); c.closePath(); c.fill(); }
             }
             Canvas {
-                x: dev.X(688); y: -10; width: 20; height: 20
+                x: dev.ax(688); y: -10; width: 20; height: 20
                 onPaint: { const c = getContext("2d"); c.reset(); c.fillStyle = dev.ink; c.beginPath(); c.moveTo(20, 0); c.lineTo(2, 10); c.lineTo(20, 20); c.closePath(); c.fill(); }
             }
             // and a faint band behind it
             Rectangle {
-                x: dev.X(207); y: -50; width: 487; height: 100
+                x: dev.ax(207); y: -50; width: 487; height: 100
                 color: dev.ink; opacity: 0.06
             }
         }
 
         // ---- what is chosen, and how to do it
-        Rule { x: dev.X(193); y: dev.Y(1001); width: 591 }
+        Rule { x: dev.ax(193); y: dev.ay(1001); width: 591 }
         Glow {
-            x: dev.X(196); y: dev.Y(1022)
+            x: dev.ax(196); y: dev.ay(1022)
             text: self.going ? self.options[self.sel].doing + "…" : "SELECTED: " + self.options[self.sel].word
             font.pixelSize: 30; font.letterSpacing: 4.2
         }
         Glow {
-            x: dev.X(196); y: dev.Y(1066)
+            x: dev.ax(196); y: dev.ay(1066)
             text: self.going ? "" : "ENTER TO CONFIRM"
             font.pixelSize: 24; font.letterSpacing: 6.6
         }
-        Slashes { x0: dev.X(703); y0: dev.Y(1033); h: 28 }
+        Slashes { x0: dev.ax(703); y0: dev.ay(1033); h: 28 }
     }
 }

@@ -64,15 +64,18 @@ PanelWindow {
     readonly property bool docking: Widgets.current === "launcher" || Cartridges.flying
     // (to the launcher's slot, where it says; else the screen's middle)
     readonly property real shift: docking ? Math.max(0, (Cartridges.slotX > 0 ? Cartridges.slotX : width / 2) - lx(171)) : 0
+    // the cartridge in the port: the window under the pointer's app, else the
+    // last launched; and whether this is the bar on the screen in use
+    readonly property var portEntry: Cartridges.lastLaunched
+    readonly property string portClass: Hypr.activeClass ?? ""
+    readonly property bool focusedScreen: (Hyprland.focusedMonitor?.name ?? "") === (bar.screen?.name ?? "")
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
-    // where the pointer counts: the tube and the cartridge in the port while
-    // the bar is up, else a thin strip along the screen's bottom edge
-    mask: Region {
-        item: bar.shown ? tubeZone : edgeStrip
-        regions: [ Region { item: portStand } ]
-    }
+    // where the pointer counts: the tube while the bar is up, else a thin
+    // strip along the screen's bottom edge
+    // (just the tube: the cartridge standing above it lets the pointer through)
+    mask: Region { item: bar.shown ? tubeZone : edgeStrip }
     Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
     HoverHandler { onHoveredChanged: bar.hovered = hovered }
 
@@ -220,8 +223,6 @@ PanelWindow {
     // ======== the cartridge in the port: the window under the pointer's app
     // (focus follows the pointer), else the last one launched. It stands in
     // the slot, its contacts out of sight in it; a click: the launcher.
-    readonly property var portEntry: Cartridges.lastLaunched
-    readonly property string portClass: Hypr.activeClass
     Item {
         id: portStand
         readonly property bool has: (bar.portClass !== "" || bar.portEntry !== null) && !Cartridges.flying
@@ -244,11 +245,10 @@ PanelWindow {
     }
     // where a cartridge stands in this bar's port, for one on its way there
     // (the bar on the screen in use; the bar's place once it is up)
-    readonly property bool focusedScreen: Hyprland.focusedMonitor?.name === bar.screen?.name
-    Binding { target: Cartridges; property: "portX"; value: bar.lx(171) + bar.shift; when: bar.focusedScreen }
-    Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen }
-    Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen }
-    Binding { target: Cartridges; property: "portClipY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(374); when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portX"; value: bar.lx(171) + bar.shift; when: bar.focusedScreen === true }
+    Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen === true }
+    Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen === true }
+    Binding { target: Cartridges; property: "portClipY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(374); when: bar.focusedScreen === true }
 
     // ======== the port: where the app cartridges go in (plate 52-290). The
     // port itself is in the picture (bezel 104-238 x 350-386, its mouth

@@ -13,7 +13,7 @@ import Quickshell
 //   PassDevice {
 //       scale: 0.6; transformOrigin: Item.TopLeft
 //       onEnter: ...
-//       Text { x: dev.X(193); y: dev.Y(262); text: "..." }
+//       Text { x: dev.ax(193); y: dev.ay(262); text: "..." }
 //   }
 //
 //   signals    pause (‖), power, user, session, back (◀◀), enter (the roller
@@ -26,8 +26,8 @@ Item {
 
     width: 1162
     height: 1201
-    function X(x) { return x - 38; }
-    function Y(y) { return y - 26; }
+    function ax(x) { return x - 38; }
+    function ay(y) { return y - 26; }
 
     readonly property color ink: "#f2f8ff"
     property bool lamp: false
@@ -88,7 +88,7 @@ Item {
 
     // ---- the red lamp on top
     Rectangle {
-        x: dev.X(1006); y: dev.Y(205); width: 63; height: 16; radius: 8
+        x: dev.ax(1006); y: dev.ay(205); width: 63; height: 16; radius: 8
         color: "#ff4a3a"
         opacity: dev.lamp ? 0.85 : 0
         Behavior on opacity { NumberAnimation { duration: 160 } }
@@ -99,7 +99,7 @@ Item {
     // going round as it turns
     Canvas {
         id: roller
-        x: dev.X(909); y: dev.Y(641); width: 132; height: 81
+        x: dev.ax(909); y: dev.ay(641); width: 132; height: 81
         readonly property real phase: dev.phase
         onPhaseChanged: requestPaint()
         onPaint: {
@@ -154,14 +154,14 @@ Item {
             onClicked: press.hit()
         }
     }
-    Press { x: dev.X(855); y: dev.Y(190); width: 85; height: 42; r: 21; onHit: dev.pause() }
-    Press { x: dev.X(865); y: dev.Y(300); width: 205; height: 38; r: 19; onHit: dev.power() }
-    Press { x: dev.X(917); y: dev.Y(403); width: 98; height: 38; r: 19; onHit: dev.user() }
-    Press { x: dev.X(897); y: dev.Y(505); width: 136; height: 38; r: 19; onHit: dev.session() }
-    Press { x: dev.X(835); y: dev.Y(640); width: 70; height: 82; r: 30; onHit: dev.back() }
-    Press { x: dev.X(908); y: dev.Y(630); width: 132; height: 90; r: 12; onHit: dev.enter() }
+    Press { x: dev.ax(855); y: dev.ay(190); width: 85; height: 42; r: 21; onHit: dev.pause() }
+    Press { x: dev.ax(865); y: dev.ay(300); width: 205; height: 38; r: 19; onHit: dev.power() }
+    Press { x: dev.ax(917); y: dev.ay(403); width: 98; height: 38; r: 19; onHit: dev.user() }
+    Press { x: dev.ax(897); y: dev.ay(505); width: 136; height: 38; r: 19; onHit: dev.session() }
+    Press { x: dev.ax(835); y: dev.ay(640); width: 70; height: 82; r: 30; onHit: dev.back() }
+    Press { x: dev.ax(908); y: dev.ay(630); width: 132; height: 90; r: 12; onHit: dev.enter() }
     Press {
-        x: dev.X(1045); y: dev.Y(640); width: 65; height: 82; r: 30
+        x: dev.ax(1045); y: dev.ay(640); width: 65; height: 82; r: 30
         onHit: dev.forwardIsEnter ? dev.enter() : dev.forward()
     }
 }
