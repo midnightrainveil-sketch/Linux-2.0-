@@ -14,31 +14,25 @@ import Quickshell
 //   of(entry)        { art, icon, colour } for a desktop entry
 //   ofClass(cls)     the same for a window's class (the taskbar's port)
 //
-// And the cartridge's way from the launcher to the taskbar's port:
-//   eject(entry, x, y, s, top)   the launcher lowers one: its middle at x, y on
-//                           the screen, drawn at scale s, the lifter's rods
-//                           from y top (modules/Flight.qml lowers it into the port)
-//   portX, portY, portS     where one stands in the port (the taskbar sets
-//                           them): its middle x, the y of its foot, its scale
-//   lastLaunched            what last went in; landed() when it has
+// And the cartridge's way from the launcher into the taskbar's port:
+//   slotX                   where the launcher's slot is across the screen
+//                           (the launcher says; the bar slides its port under it)
+//   portY, portS            where a cartridge stands in the port: the y of its
+//                           foot on the screen, its scale (the bar says)
+//   dock(entry)             the launcher starts lowering one (flying: true)
+//   land()                  it is in: lastLaunched, landed()
 Singleton {
     id: root
 
     property var lastLaunched: null
     property bool flying: false
     property var flyEntry: null
-    property real fromX: 0
-    property real fromY: 0
-    property real fromS: 1
-    property real liftTop: 0
+    property real slotX: 0
     property real portX: 0
     property real portY: 0
-    property real portS: 0.25
+    property real portS: 0.49
     signal landed()
-    function eject(entry: var, x: real, y: real, s: real, top: real): void {
-        flyEntry = entry; fromX = x; fromY = y; fromS = s; liftTop = top;
-        flying = true;
-    }
+    function dock(entry: var): void { flyEntry = entry; flying = true; }
     function land(): void {
         lastLaunched = flyEntry;
         flying = false;

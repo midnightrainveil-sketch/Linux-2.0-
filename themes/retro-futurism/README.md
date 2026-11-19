@@ -41,7 +41,7 @@ Gadgets in steel, cream and sage with e-ink screens.
   out, erases its contents and splits it in three: the ends, and a slice
   of the band stretched to the screen's width). On the left the cartridge port (the
   slot the app cartridges go in; click it for the launcher, its lamp lit
-  while the launcher is open); workspaces 1 to 9 (a dark dot where windows
+  while the launcher is open); workspaces 1 to 6 (a dark dot where windows
   are, the red line under the one in view; click, or scroll to step); the
   sage band with its red line, CASSETTE OS and the Arch logo (click:
   the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
@@ -79,8 +79,8 @@ Gadgets in steel, cream and sage with e-ink screens.
   **launcher** (Super + Space): the Kairo cartridge launcher, your apps as
   cartridges on its rail, the wheel or the arrows to choose, typing to
   search, Enter to launch: the taskbar slides across on its arm, the
-  launcher's lifter lowers the cartridge into its port and the bar slides
-  home; a cartridge stays there, the app of the window under the pointer.
+  slot's bracket lowers the cartridge into its port on the launcher's rods
+  and the bar slides home; a cartridge stays there, the app of the window under the pointer.
   The rest are
   placeholders (their mock-up) until made.
 

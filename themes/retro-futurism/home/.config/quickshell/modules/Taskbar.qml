@@ -13,7 +13,7 @@ import qs.components
 // band stretched to fit the screen, and the right end.
 //
 //   the port       the slot the app cartridges go in: click for the launcher
-//   workspaces     1 to 9; a dark dot where windows are, the red line under
+//   workspaces     1 to 6; a dark dot where windows are, the red line under
 //                  the one in view. Click to go, scroll to step through.
 //   the band       a red line, CASSETTE OS and the Arch logo (click: the
 //                  power menu)
@@ -58,7 +58,8 @@ PanelWindow {
     // the launcher: the bar slides right on its arm until its port is under
     // the launcher's slot, and stays there until the cartridge is in
     readonly property bool docking: Widgets.current === "launcher" || Cartridges.flying
-    readonly property real shift: docking ? Math.max(0, width / 2 - lx(123.5)) : 0
+    // (to the launcher's slot, where it says; else the screen's middle)
+    readonly property real shift: docking ? Math.max(0, (Cartridges.slotX > 0 ? Cartridges.slotX : width / 2) - lx(171)) : 0
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
@@ -95,7 +96,9 @@ PanelWindow {
     function rx(x) { return rightX + (x - 900) * s; }     // ... of the right piece
     function my(y) { return lift + (y - 312) * s; }
     // the cartridge in the port: its contacts the port's mouth wide (87-160)
-    readonly property real portS: (160 - 87) * s / 178
+    // (the size of a cartridge in the launcher's slot, so one goes from
+    // there into here unchanged)
+    readonly property real portS: (227 - 115) * s / 178
     readonly property real lift: Math.ceil(425 * portS - (378 - 312) * s + 6)
 
     // the look
@@ -109,16 +112,17 @@ PanelWindow {
     readonly property string figures: "Barlow"     // the numbers: workspaces, battery, time
     readonly property real icon: s / 0.78 * 0.74   // the readouts' icons: small and fine
 
-    // ---- the arm the bar rides out on (seen when it is shifted): a mount at
-    // the screen's left edge, a chrome sleeve, a rod running into the bar's
+    // ---- the arm the bar rides out on (seen when it is shifted): a mount
+    // behind the bar's home place, a chrome sleeve, a rod running into the bar's
     // left end. Behind the bar's pieces; in the bar's own coordinates, so
     // the screen's edge is at -x.
     Item {
         id: arm
         visible: body.x > 1
-        readonly property real left: -body.x
+        // its mount sits where the bar's left end is at home (behind it then)
+        readonly property real left: -body.x + bar.lx(70)
         readonly property real cy: bar.my(369)                  // the tube's middle
-        readonly property real sleeveLen: Math.min(420 * bar.s / 0.78, Math.max(0, (bar.lx(40) - left) * 0.55))
+        readonly property real sleeveLen: Math.min(420 * bar.s / 0.78, Math.max(0, (bar.lx(60) - left) * 0.55))
         component Chrome: Rectangle {
             gradient: Gradient {
                 GradientStop { position: 0.00; color: "#6c6862" }
@@ -214,7 +218,7 @@ PanelWindow {
     Item {
         id: portStand
         readonly property bool has: (bar.portClass !== "" || bar.portEntry !== null) && !Cartridges.flying
-        x: bar.lx(123.5) - 175 * bar.portS
+        x: bar.lx(171) - 175 * bar.portS
         width: has ? 350 * bar.portS : 0
         height: has ? bar.my(374) : 0
         clip: true
@@ -234,23 +238,23 @@ PanelWindow {
     // where a cartridge stands in this bar's port, for one on its way there
     // (the bar on the screen in use; the bar's place once it is up)
     readonly property bool focusedScreen: Hyprland.focusedMonitor?.name === bar.screen?.name
-    Binding { target: Cartridges; property: "portX"; value: bar.lx(123.5) + bar.shift; when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portX"; value: bar.lx(171) + bar.shift; when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen }
 
-    // ======== the port: where the app cartridges go in (plate 52-195). The
-    // port itself is in the picture (bezel 76-171 x 350-386, its mouth
-    // 87-160 x 355-381, four contacts on its floor from x 94.3, y 369.8).
+    // ======== the port: where the app cartridges go in (plate 52-290). The
+    // port itself is in the picture (bezel 104-238 x 350-386, its mouth
+    // 115-227 x 355-381, four contacts on its floor from x 125.7, y 369.8).
     // While the launcher is open its contacts glow warm, as if live.
     Item {
         id: port
         x: bar.lx(52); y: bar.my(339)
-        width: 143 * bar.s; height: 58 * bar.s
+        width: 238 * bar.s; height: 58 * bar.s
         readonly property bool lit: Widgets.current === "launcher"
         // the bezel catches a little light under the pointer
         Rectangle {
-            x: (76 - 52) * bar.s; y: (350 - 339) * bar.s
-            width: 95 * bar.s; height: 36 * bar.s; radius: 5.8 * bar.s
+            x: (104 - 52) * bar.s; y: (350 - 339) * bar.s
+            width: 134 * bar.s; height: 36 * bar.s; radius: 5.8 * bar.s
             color: "transparent"
             border.width: Math.max(1, 1.2 * bar.s); border.color: "#fffaf0"
             opacity: portMouse.containsMouse ? 0.5 : 0
@@ -264,14 +268,14 @@ PanelWindow {
                 model: 4
                 Rectangle {
                     required property int index
-                    x: (94.3 + index * 16.2 - 52) * bar.s; y: (369.8 - 339) * bar.s
-                    width: 10.6 * bar.s; height: 9 * bar.s; radius: 1.3 * bar.s
+                    x: (125.7 + index * 24.8 - 52) * bar.s; y: (369.8 - 339) * bar.s
+                    width: 16.2 * bar.s; height: 9 * bar.s; radius: 1.3 * bar.s
                     color: "#ffd27a"; opacity: 0.45
                 }
             }
             Rectangle {
-                x: (89 - 52) * bar.s; y: (358 - 339) * bar.s
-                width: 69 * bar.s; height: 12 * bar.s; radius: 2 * bar.s
+                x: (117 - 52) * bar.s; y: (358 - 339) * bar.s
+                width: 108 * bar.s; height: 12 * bar.s; radius: 2 * bar.s
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#00ffb04c" }
                     GradientStop { position: 1.0; color: "#55ffb04c" }
@@ -290,18 +294,18 @@ PanelWindow {
     // ======== workspaces (plate 209-712): nine places, evenly
     Item {
         id: spaces
-        x: bar.lx(209); y: bar.my(339)
-        width: 503 * bar.s; height: 58 * bar.s
-        readonly property real step: 53 * bar.s
+        x: bar.lx(304); y: bar.my(339)
+        width: 408 * bar.s; height: 58 * bar.s
+        readonly property real step: 56 * bar.s
         Repeater {
-            model: Hypr.ids.slice(0, 9)
+            model: Hypr.ids.slice(0, 6)
             Item {
                 id: cell
                 required property int modelData
                 required property int index
                 readonly property bool active: modelData === Hypr.activeId
                 readonly property var st: Hypr.state[modelData] ?? ({ occupied: false, urgent: false })
-                x: (248 - 209) * bar.s + index * spaces.step - width / 2
+                x: (380 - 304) * bar.s + index * spaces.step - width / 2
                 width: spaces.step; height: spaces.height
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter

@@ -33,13 +33,24 @@ erase(744, 365, 1302, 373)        # the band's red line (inside the band)
 erase(1306, 347, 1628, 389)       # /// CYPHERUM | A
 erase(1682, 344, 2078, 392)       # Wi-Fi, volume, battery, the time
 
-# ---- the cartridge port, painted into the left plate (x 52-195, y 339-397):
+# ---- the port's plate made wider and the workspaces' shorter (by D): the
+# port takes cartridges as large as the launcher's slot does, and six
+# workspaces are plenty. Column strips of the whole bar are moved, so the
+# tube runs on unbroken: the port's plate 52-290, a gap, the workspaces'
+# plate 304-712.
+D = 95
+seg = lambda x0, x1: a[:, x0:x1].copy()
+mid = seg(110, 140)
+filler = np.concatenate([mid] * ((30 + D) // 30 + 1), axis=1)[:, :30 + D]
+a[:, 52:712] = np.concatenate([seg(52, 110), filler, seg(140, 240), seg(240, 680 - D), seg(680, 712)], axis=1)
+
+# ---- the cartridge port, painted into the left plate (x 52-290, y 339-397):
 # a slot let into the plate, a chamfered steel bezel with two small screws,
 # and inside, seen a little from above, its floor and the four gold contacts
 # of the cartridges down on its floor
 from PIL import ImageFilter
-def paint_port():
-    X0, Y0, X1, Y1 = 52, 339, 195, 397
+def paint_port(X0=52, X1=290, bx0=104, bx1=238):
+    Y0, Y1 = 339, 397
     Z = 8
     w, h = (X1 - X0) * Z, (Y1 - Y0) * Z
     base = Image.fromarray(np.clip(a[Y0:Y1, X0:X1], 0, 255).astype('uint8')).resize((w, h), Image.BICUBIC).convert('RGBA')
@@ -64,7 +75,7 @@ def paint_port():
         al = np.minimum(np.asarray(img)[..., 3], np.asarray(mask)[..., 3]).astype('uint8')
         img.putalpha(Image.fromarray(al)); return img
     rng2 = np.random.default_rng(11)
-    bx0, by0, bx1, by1 = 76, 350, 171, 386                    # the bezel, centred on the plate
+    by0, by1 = 350, 386                                       # the bezel, centred on the plate
     # 1. the cut in the plate: shadow falls in from the top-left, a lit lip below
     base.alpha_composite(shape((bx0 - 2.2, by0 - 2.0, bx1 + 1.6, by1 + 0.6), 7, (60, 40, 18, 110), 1.8))
     base.alpha_composite(shape((bx0 - 0.8, by0 + 1.2, bx1 + 0.8, by1 + 1.8), 6.5, (255, 251, 240, 210), 0.45))
@@ -106,7 +117,7 @@ def paint_port():
     base.alpha_composite(clip(grad((mx1 - 3.2, my0, mx1, my1), [(0, (10, 10, 10, 0)), (1, (34, 32, 30, 200))], 0, True), inside))
     # 4. the four contacts on the floor: gold pads like the cartridges',
     # each in a dark seat, with a bright edge and a soft glint
-    cw, ch, cg = 10.6, 9.0, 5.6
+    cw, ch, cg = 16.2, 9.0, 8.6                                # (the cartridges' pads, at the slot's size)
     tot = 4 * cw + 3 * cg; cx0 = (mx0 + mx1) / 2 - tot / 2; cy0 = my1 - 2.2 - ch   # down on the floor
     for i in range(4):
         x = cx0 + i * (cw + cg)

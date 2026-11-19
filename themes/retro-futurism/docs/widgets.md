@@ -100,14 +100,17 @@ Shut down light the red lamp.
 ## The launcher, and the cartridge in the port
 
 With the launcher up, the taskbar moves over its stage (out of the blur) and
-slides right on its arm (drawn in `modules/Taskbar.qml`, mounted at the
-screen's left edge) until its port is under the launcher's slot. On Enter
-the app starts and the launcher hands its cartridge to the lifter
-(`Cartridges.eject`: its place and size, and where the rods start, under the
-clamp); `modules/Flight.qml`, an overlay that takes no clicks, runs two rods
-and a yoke down from the clamp, lowers the cartridge straight into the port
-(a click as it seats), lets go (`Cartridges.land`) and snaps the rods back
-up. The launcher is then put away and the bar slides home.
+slides right on its arm (drawn in `modules/Taskbar.qml`, mounted behind the
+bar's home place) until its port is under the launcher's slot
+(`Cartridges.slotX`, which the launcher gives once it is up). The port is
+as large as the slot (a cartridge is the same size in both), so the bar
+has six workspaces. On Enter the app starts and the slot's lower bracket
+(`widgets/launcher/bracket.png`, cut out by `tools/make_launcher.py`, the
+body filled in behind it) carries the cartridge straight down on the
+launcher's own rods (a slice of each, stretched), into the port behind the
+bar's tube, with a small knock as it seats; there it is let go
+(`Cartridges.land`: the bar shows it from then), the bracket goes back up,
+quickly, the launcher is put away and the bar slides home.
 
 The bar keeps a cartridge standing in the port (its panel is taller for it,
 its pointer area just the tube and the cartridge): the app of the window

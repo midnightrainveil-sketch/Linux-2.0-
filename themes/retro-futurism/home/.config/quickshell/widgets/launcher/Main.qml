@@ -13,8 +13,8 @@ import qs.services
 //   searching  just type: the rail keeps the apps that match (Backspace,
 //              Esc clears; Esc again puts it away)
 //   launching  Enter, or a click on the cartridge in the slot: the app
-//              starts, and the lifter lowers its cartridge into the taskbar's
-//              port, slid across under the slot (modules/Flight.qml)
+//              starts; the taskbar has slid across, its port under the slot,
+//              and the slot's bracket lowers the cartridge into it on its rods
 //
 // Everything is placed in the mock-up's own pixels (body.png starts at its
 // 24, 23; tools/make_launcher.py) and the whole launcher scaled once.
@@ -41,27 +41,46 @@ Widget {
         pos = sel;
     }
     function move(d: int): void { choose(sel + d); }
-    // launching: the app starts at once; the lifter lowers its cartridge out
-    // of the slot into the taskbar's port, which has slid across under the
-    // slot (Cartridges.eject; modules/Flight.qml), and once it is in the
-    // launcher is put away
+    // launching: the app starts at once. The taskbar has slid across, its
+    // port under the slot (Cartridges.slotX); the slot's lower bracket, the
+    // cartridge in it, runs down on its rods (stretching out after it) until
+    // the cartridge is in the port, behind the bar's tube; there it is let go
+    // (Cartridges.land: the bar shows it from then), the bracket goes back
+    // up, quickly, and the launcher is put away.
     property bool ejecting: false
     property bool letGoDone: false
+    property real drop: 0                    // the bracket and the slot's cartridge, down (mock-up px)
+    property var docking: null
     function launch(): void {
         if (!current || ejecting) return;
         const c = slotCartridge();
         ejecting = true;
         Apps.launch(current);
         if (!c) { close(); return; }
+        // how far: from the slot's cartridge's middle to where one stands in
+        // the port, in the launcher's own pixels
         const a = c.mapToItem(null, 0, 0), b = c.mapToItem(null, c.width, c.height);
-        const top = unit.mapToItem(null, 0, unit.Y(470)).y;            // under the clamp's bracket
-        Cartridges.eject(current, (a.x + b.x) / 2, (a.y + b.y) / 2, (b.x - a.x) / 350, top);
-        letGoDone = true;
+        const u0 = unit.mapToItem(null, 0, 0), u1 = unit.mapToItem(null, 0, 1000);
+        const perPx = (u1.y - u0.y) / 1000;
+        const seat = Cartridges.portY - (425 - 222.5) * Cartridges.portS;
+        docking = current;
+        Cartridges.dock(current);
+        lower.to = Math.max(0, (seat - (a.y + b.y) / 2) / perPx);
+        dockAnim.restart();
     }
-    Connections {
-        target: Cartridges
-        function onLanded() { if (self.ejecting) self.close(); }
+    SequentialAnimation {
+        id: dockAnim
+        NumberAnimation { id: lower; target: self; property: "drop"; duration: 460; easing.type: Easing.InOutCubic }
+        // in: a small knock as it seats
+        NumberAnimation { target: self; property: "drop"; to: lower.to + 7; duration: 50; easing.type: Easing.OutQuad }
+        NumberAnimation { target: self; property: "drop"; to: lower.to; duration: 70; easing.type: Easing.OutQuad }
+        ScriptAction { script: { self.letGoDone = true; Cartridges.land(); } }
+        NumberAnimation { target: self; property: "drop"; to: 0; duration: 230; easing.type: Easing.OutCubic }
+        ScriptAction { script: self.close() }
     }
+    // where the slot is across the screen, for the bar to slide its port under
+    onOpened: Cartridges.slotX = unit.mapToItem(null, unit.X(784), 0).x
+    onClosing: if (!ejecting) Cartridges.slotX = 0
     function slotCartridge(): var {
         for (let i = 0; i < rail.count; i++) {
             const p = rail.itemAt(i);
@@ -150,14 +169,14 @@ Widget {
                 Cartridge {
                     id: cart
                     entry: place.app
-                    // the slot's: rising when launched; gone once let go
+                    // the slot's: down with the bracket when launched; gone once let go
                     opacity: place.ao < 0.5 && self.letGoDone ? 0 : 1
                     number: place.idx + 1
                     lit: place.ao < 0.5
                     scale: place.s
                     transformOrigin: Item.Center
                     x: unit.X(place.cx) - width / 2
-                    y: unit.Y(place.cy) - height / 2
+                    y: unit.Y(place.cy) - height / 2 + (place.ao < 0.5 ? self.drop : 0)
                 }
                 MouseArea {
                     x: unit.X(place.cx) - 350 * place.s / 2; y: unit.Y(place.cy) - 445 * place.s / 2
@@ -168,11 +187,25 @@ Widget {
             }
         }
 
-        // the clamp's rods and lower bracket, in front of the slot's cartridge
+        // the lifter: its two rods run on down after the bracket (a slice of
+        // each stretched, from well up their length to the bracket's top), and
+        // the bracket, in front of the slot's cartridge, carries it
         Image {
-            anchors.fill: parent
+            x: unit.X(627); y: unit.Y(240); width: 35; height: 160 + self.drop
+            z: 15
+            source: self.art("rod-left.png"); fillMode: Image.Stretch; smooth: true
+            visible: self.drop > 0
+        }
+        Image {
+            x: unit.X(920); y: unit.Y(240); width: 36; height: 160 + self.drop
+            z: 15
+            source: self.art("rod-right.png"); fillMode: Image.Stretch; smooth: true
+            visible: self.drop > 0
+        }
+        Image {
+            x: unit.X(596); y: unit.Y(396) + self.drop
             z: 20
-            source: self.art("clamp.png")
+            source: self.art("bracket.png")
             smooth: true; mipmap: true
         }
 

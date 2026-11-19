@@ -7,9 +7,10 @@ the Kairo cartridge launcher with its bays empty and its screen blank).
 Makes, in the widget's folder:
     body.png     the launcher off its white ground (no shadow); its maker's
                  name made KAIRO (on the top plate, and in the footer)
-    clamp.png    the parts of the centre slot's clamp that lie in front of
-                 the cartridge in it: its two rods and its lower bracket
-                 (the bracket's window left open, for the cartridge's contacts)
+    body.png     (without the slot's lower bracket: what it leaves behind)
+    bracket.png  the slot's lower bracket (from 596, 396), its window open
+                 for the cartridge's contacts: it carries the cartridge down
+    rod-left.png, rod-right.png   a slice of each rod, to stretch
 Both in the mock-up's own pixels, from ORIGIN (printed); widgets/launcher
 places everything there.
 """
@@ -79,17 +80,46 @@ alpha = np.where(bg, 0.0, 1.0)
 alpha = np.where(edge, np.clip((255 - lum0) / 70, 0.35, 1), alpha)
 ys, xs = np.nonzero(alpha > 0.03)
 X0, Y0, X1, Y1 = int(xs.min()) - 2, int(ys.min()) - 2, int(xs.max()) + 3, int(ys.max()) + 3
+# ---- the lifter: its lower bracket, which travels (with the cartridge in
+# the slot) down to the taskbar's port and back, and a slice of each rod,
+# stretched as the rods run out after it. The bracket (its side posts, its
+# upper blocks, its bar and grille: 598-987 x 398-542) is told from what is
+# behind it by its light colour; its window (690-895 x 398-458) left open.
+BX0, BY0, BX1, BY1 = 596, 396, 990, 545
+part = src0[BY0:BY1, BX0:BX1]
+lum = part.mean(2)
+# what is dark and reaches the box's edge is behind it; the dark inside it
+# (its red mark, its grille's slots, its screws) is its own
+dark = lum <= 118
+hh, ww = dark.shape
+out_ = np.zeros_like(dark)
+q = deque([(x, y) for x in range(ww) for y in (0, hh - 1) if dark[y, x]] + [(x, y) for y in range(hh) for x in (0, ww - 1) if dark[y, x]])
+for x, y in q: out_[y, x] = True
+while q:
+    x, y = q.popleft()
+    for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+        if 0 <= nx < ww and 0 <= ny < hh and dark[ny, nx] and not out_[ny, nx]:
+            out_[ny, nx] = True; q.append((nx, ny))
+m = Image.fromarray(((~out_) * 255).astype('uint8')).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
+d = ImageDraw.Draw(m)
+d.rounded_rectangle([690 - BX0, 398 - BY0, 895 - BX0, 458 - BY0], 6, fill=0)
+# (the rail's end caps just at the box's lower corners are not the bracket's)
+d.rectangle([0, 125, 27, hh], fill=0); d.rectangle([ww - 27, 125, ww, hh], fill=0)
+m = np.asarray(m.filter(ImageFilter.GaussianBlur(0.7))).astype(float)
+Image.fromarray(np.dstack([part, m]).astype('uint8'), 'RGBA').save(os.path.join(out, 'bracket.png'), optimize=True)
+def strip(x0, x1):
+    return np.dstack([src0[200:260, x0:x1], np.full((60, x1 - x0), 255.0)]).astype('uint8')
+Image.fromarray(strip(627, 662), 'RGBA').save(os.path.join(out, 'rod-left.png'), optimize=True)
+Image.fromarray(strip(920, 956), 'RGBA').save(os.path.join(out, 'rod-right.png'), optimize=True)
+
+# the body without the bracket (what it leaves when it goes down): each row
+# carried across from the frame either side of it
+x0, x1 = 594, 992
+for y in range(394, 548):
+    l, r = img[y, x0 - 2:x0].mean(0), img[y, x1:x1 + 2].mean(0)
+    t = np.linspace(0, 1, x1 - x0 + 2)[1:-1][:, None]
+    img[y, x0:x1] = l * (1 - t) + r * t + rng.normal(0, 1.4, (x1 - x0, 1))
+img = np.clip(img, 0, 255)
 body = np.dstack([np.where(bg[..., None], 0, img), alpha * 255])
 Image.fromarray(body[Y0:Y1, X0:X1].astype('uint8'), 'RGBA').save(os.path.join(out, 'body.png'), optimize=True)
-
-# ---- the clamp's front: the rods and the lower bracket, the bracket's window open
-m = Image.new('L', (W * 4, H * 4), 0)
-d = ImageDraw.Draw(m)
-for r in ((627, 78, 662, 388), (920, 78, 956, 388)):
-    d.rounded_rectangle([v * 4 for v in r], 14 * 4, fill=255)
-d.rounded_rectangle([616 * 4, 366 * 4, 967 * 4, 478 * 4], 12 * 4, fill=255)
-d.rounded_rectangle([686 * 4, 383 * 4, 892 * 4, 436 * 4], 6 * 4, fill=0)
-m = np.asarray(m.resize((W, H), Image.LANCZOS)).astype(float) / 255 * alpha
-clamp = np.dstack([img, m * 255])
-Image.fromarray(clamp[Y0:Y1, X0:X1].astype('uint8'), 'RGBA').save(os.path.join(out, 'clamp.png'), optimize=True)
-print('ORIGIN', (X0, Y0), 'size', (X1 - X0, Y1 - Y0))
+print('ORIGIN', (X0, Y0), 'size', (X1 - X0, Y1 - Y0), 'bracket at', (BX0, BY0))
