@@ -61,10 +61,12 @@ PanelWindow {
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one
     // from x 20 to 800, the right one from 900 to 2152.
     readonly property real side: Theme.frameMargin         // its ends line up with a window's frame
-    readonly property real s: Math.min(Theme.taskbarScale, (width - 2 * side) / 2032)
+    // (the pieces span the mock-up's x 20 to 2152; the tube itself 35 to
+    // 2139: 15 px of air before it, 13 after, 2004 of tube)
+    readonly property real s: Math.min(Theme.taskbarScale, (width - 2 * side) / 2004)
     readonly property real u: s / 0.6                      // for things sized by eye at 0.6
     readonly property real leftX: side - 15 * s            // (the piece has 15 px of air before the tube)
-    readonly property real fillW: Math.max(0, width - 2 * side - 2032 * s)
+    readonly property real fillW: Math.max(0, width - 2 * side - 2004 * s)
     readonly property real rightX: leftX + 780 * s + fillW
     function lx(x) { return leftX + (x - 20) * s; }       // a point of the left piece
     function rx(x) { return rightX + (x - 900) * s; }     // ... of the right piece
