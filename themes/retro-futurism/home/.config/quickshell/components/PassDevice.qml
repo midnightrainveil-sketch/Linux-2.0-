@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 
-// The silver Kasetto device of the lock screen's pass and of the power
+// The silver Kairo device of the lock screen's pass and of the power
 // widget (art/Login0.png, lifted off by tools/make_pass.py): its picture,
 // what glows on its face, its buttons and its roller.
 //

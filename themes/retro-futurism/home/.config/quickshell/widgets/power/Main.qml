@@ -3,7 +3,7 @@ import Quickshell
 import qs.components
 import qs.services
 
-// Power (art/Power.png): the Kasetto device again (components/PassDevice),
+// Power (art/Power.png): the Kairo device again (components/PassDevice),
 // with what to do now on its face. Comes up when the laptop's power button
 // is pressed (held, it still shuts down at once: ultra-boot power), from the
 // Arch logo on the taskbar, or Super + Shift + Escape.

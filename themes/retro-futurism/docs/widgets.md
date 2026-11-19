@@ -85,7 +85,7 @@ the alarm 9 minutes.
 
 ## Power, and the device it shares with the lock screen
 
-`components/PassDevice.qml` is the silver Kasetto device (`art/Login0.png`,
+`components/PassDevice.qml` is the silver Kairo device (`art/Login0.png`,
 `assets/pass.png`): its picture, one glow for what is put on its face, its
 buttons as signals, and its roller, drawn as a turning cylinder (the wheel
 over the device turns it a ridge a notch and says so with `rolled`). The
