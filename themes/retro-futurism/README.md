@@ -39,8 +39,8 @@ Gadgets in steel, cream and sage with e-ink screens.
   are, the red line under the one in view; click, or scroll to step); the
   sage band with its red line, CASSETTE OS and the Arch logo (click:
   the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
-  battery (one smooth bar and its percentage; click: the next power
-  profile) and the time.
+  battery (one smooth bar and its percentage): click any of the three for
+  the control deck, scroll for the volume; and the time.
   The cartridge port is painted into the picture by the tool (a slot in a
   chamfered steel bezel with two screws, the cartridges' four gold contacts
   on its floor); its contacts glow warm while the launcher is open. The
@@ -63,8 +63,10 @@ Gadgets in steel, cream and sage with e-ink screens.
 - **Widgets** ([docs/widgets.md](docs/widgets.md)): the gadgets, called up
   over the blurred desk (Super + R the typewriter, Super + Space the
   launcher, Super + C the organizer ...) and worked with keys and clicks.
-  The system is built; each widget is a placeholder (its mock-up) until it
-  is made.
+  Built so far: the **control deck** (click the taskbar's Wi-Fi, volume or
+  battery): Wi-Fi and Bluetooth switches, power mode, refresh rate, lock
+  time, volume and brightness faders, and a screen with the battery and the
+  state of each. The rest are placeholders (their mock-up) until made.
 
 Everything else (panels, notifications) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups

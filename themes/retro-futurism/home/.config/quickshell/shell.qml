@@ -36,8 +36,10 @@ ShellRoot {
     // built only while open
     LazyLoader { active: Panels.open === "themes"; ThemesSheet { screen: shell.focusedScreen } }
 
-    // the widgets (widgets/index.json), on the screen in use
+    // the widgets (widgets/index.json), on the screen in use: in the middle
+    // over the blurred desk, or over the taskbar's right end
     WidgetStage { screen: shell.focusedScreen }
+    WidgetStage { screen: shell.focusedScreen; taskbar: true }
 
     Lock { id: lockScreen }
 

@@ -28,15 +28,40 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `cassette` | Cassette player | Super + A | CassettePlayerWidget |
 | `vending` | Cassette vending | Super + V | CassetteVending |
 | `clock` | Clock | Super + W | ClockWidget |
-| `controls` | Control deck | Super + S | ControlDeck |
+| `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
 | `power` | Power | Super + Shift + Escape (and the Arch logo) | Power |
 | `pager` | Notifications | none: the shell brings it up | Notification |
 
-All are placeholders for now: their mock-up, and a tag that shows the last
-key or click they were given.
+Built: the control deck. The rest are placeholders: their mock-up, and a tag
+that shows the last key or click they were given.
+
+## Where they come up
+
+`"placement"` in the index: `"center"` (the default) in the middle of the
+screen, the desk blurred and dimmed behind; `"taskbar"` over the taskbar's
+right end, its body's right edge on the bar's, over the windows, nothing
+blurred (the control deck). A widget with a clear margin round its picture
+(a shadow) says so with `airRight` / `airBottom`, so its body is what lines up.
 
 From a terminal: `qs ipc call widget toggle typewriter`, `... widget close`,
 `... widget list`.
+
+## How the control deck is made
+
+`tools/make_controldeck.py` turns `art/ControlDeck.png` into `deck.png` (the
+deck off its white, everything that changes erased and refilled from what
+lies round it) and the parts that move: the buttons up and lit, the switch
+knob, the fader and lock thumbs. `widgets/controls/Main.qml` lays the live
+parts in the mock-up's own pixels and scales the whole deck once, so each
+sits exactly where the picture has it. It reads and sets: Wi-Fi and
+Bluetooth (`services/Net.qml`), the power mode, battery (`Power.qml`), the
+refresh rate, the lock time and the colour profile (`Machine.qml`: the
+core's `ultra-refresh`, `ultra-idle`, `ultra-icc`), volume (`Audio.qml`) and
+brightness (`Brightness.qml`).
+
+The colour profile is the machine's, not the theme's: `ultra-icc` links it at
+`~/.config/ultra/icc/<screen>.icc` and `hypr/ultra/machine.lua` hands it to
+Hyprland under every theme; the deck's screen shows the one in use.
 
 ## Building one
 

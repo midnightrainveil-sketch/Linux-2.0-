@@ -1,5 +1,5 @@
 {
-  "about": "The widgets: one folder each (widgets/<id>/Main.qml and its pictures). 'key' is the Hyprland bind that calls it (hypr/theme/binds.lua; keep the two in step). 'callable': false for one the shell brings up itself. 'art' are its mock-ups in the theme's art/ folder.",
+  "about": "The widgets: one folder each (widgets/<id>/Main.qml and its pictures). 'key' is the Hyprland bind that calls it (hypr/theme/binds.lua; keep the two in step). 'callable': false for one the shell brings up itself. 'placement': 'center' (the default: in the middle, the desk blurred behind) or 'taskbar' (over the taskbar's right end, nothing blurred). 'art' are its mock-ups in the theme's art/ folder.",
   "widgets": [
     { "id": "typewriter", "name": "Typewriter",       "key": "SUPER + R",             "callable": true,  "art": ["Typewriter.png"] },
     { "id": "launcher",   "name": "App launcher",     "key": "SUPER + Space",         "callable": true,  "art": ["AppLauncher.png", "AppLauncherEmpty.png", "Cartridges.png"] },
@@ -7,7 +7,7 @@
     { "id": "cassette",   "name": "Cassette player",  "key": "SUPER + A",             "callable": true,  "art": ["CassettePlayerWidget.png"] },
     { "id": "vending",    "name": "Cassette vending", "key": "SUPER + V",             "callable": true,  "art": ["CassetteVending.png"] },
     { "id": "clock",      "name": "Clock",            "key": "SUPER + W",             "callable": true,  "art": ["ClockWidget.png"] },
-    { "id": "controls",   "name": "Control deck",     "key": "SUPER + S",             "callable": true,  "art": ["ControlDeck.png"] },
+    { "id": "controls",   "name": "Control deck",     "key": "SUPER + S",             "callable": true,  "placement": "taskbar", "art": ["ControlDeck.png"] },
     { "id": "power",      "name": "Power",            "key": "SUPER + SHIFT + Escape", "callable": true, "art": ["Power.png"] },
     { "id": "pager",      "name": "Notifications",    "key": "",                      "callable": false, "art": ["Notification.png"] }
   ]

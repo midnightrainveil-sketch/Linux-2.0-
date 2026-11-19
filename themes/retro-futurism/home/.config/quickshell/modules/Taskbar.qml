@@ -16,8 +16,8 @@ import qs.components
 //                  the one in view. Click to go, scroll to step through.
 //   the band       a red line, CASSETTE OS and the Arch logo (click: the
 //                  power menu)
-//   the readouts   Wi-Fi (click: nmtui), volume (scroll; click mutes),
-//                  battery and its % (click: the next power profile), the time
+//   the readouts   Wi-Fi, volume, battery and its % (click: the control
+//                  deck; the wheel: the volume), the time
 PanelWindow {
     id: bar
 
@@ -40,7 +40,7 @@ PanelWindow {
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
     property bool hovered: false
     readonly property bool shown: !hasWindows || hovered || linger.running
-        || Widgets.current === "launcher" || Widgets.current === "power"
+        || Widgets.current === "launcher" || Widgets.current === "power" || Widgets.current === "controls"
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
@@ -286,11 +286,6 @@ PanelWindow {
             c.globalAlpha = level > 0 ? 1 : 0.4;
             c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 3.0, 0, Math.PI * 2); c.fill();
         }
-        MouseArea {
-            anchors.fill: parent; anchors.margins: -8
-            cursorShape: Qt.PointingHandCursor
-            onClicked: Quickshell.execDetached([Settings.terminal, "-e", "nmtui"])
-        }
     }
     Sep { x: bar.rx(1737) }
     // volume: the speaker and as many waves as it is loud (x 1791)
@@ -314,12 +309,6 @@ PanelWindow {
                 c.beginPath(); c.arc(11, 10, 3.5 + i * 4, -Math.PI * 0.3, Math.PI * 0.3); c.stroke();
             }
         }
-        MouseArea {
-            anchors.fill: parent; anchors.margins: -8
-            cursorShape: Qt.PointingHandCursor
-            onClicked: Audio.toggleMute()
-            onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
-        }
     }
     Sep { x: bar.rx(1806) }
     // battery: one smooth bar, as full as the battery (x 1888); amber
@@ -342,14 +331,6 @@ PanelWindow {
             }
         }
         Rectangle { x: 35; y: 5.5; width: 3.4; height: 7; radius: 1.5; color: bar.ink }
-        MouseArea {
-            anchors.fill: parent; anchors.margins: -8
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                const p = Power.profiles, i = p.indexOf(Power.profile);
-                Power.setProfile(p[(i + 1) % p.length]);
-            }
-        }
     }
     // the battery's figure, beside it
     Text {
@@ -365,6 +346,15 @@ PanelWindow {
         font.features: { "tnum": 1 }
     }
     Sep { x: bar.rx(1954); visible: Power.present }
+    // Wi-Fi, volume and the battery: one place to click for the control
+    // deck (widgets/controls), the wheel for the volume
+    MouseArea {
+        x: bar.rx(1660); width: bar.rx(1950) - x
+        y: bar.my(330); height: bar.my(408) - y
+        cursorShape: Qt.PointingHandCursor
+        onClicked: Widgets.toggle("controls")
+        onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
+    }
     // the time, centred where the mock-up's was (x 2028)
     Text {
         x: bar.rx(2025) - width / 2

@@ -20,6 +20,9 @@ Singleton {
     readonly property int barTop: 0                   // (no bar at the top)
     readonly property real taskbarScale: 0.78          // the taskbar: the mock-up at this size
     readonly property int barBottom: 100              // ... and its height (128 x 0.78)
+    // the taskbar's tube: its top this far above the screen's bottom (the
+    // panel's height less the 8 px of air over the tube in the mock-up)
+    readonly property real taskbarReach: Math.ceil(128 * taskbarScale) - 8 * taskbarScale
     // ---- the window frames (assets/frame.png, art/WindowFrame.png). These
     // and Hyprland's gaps (hypr/theme/look.lua) go together:
     //   gaps_out = frameMargin + frameRim + frameGap   (22 + 17 + 6 = 45)

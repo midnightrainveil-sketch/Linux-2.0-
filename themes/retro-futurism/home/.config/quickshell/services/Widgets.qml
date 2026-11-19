@@ -25,6 +25,8 @@ Singleton {
 
     function find(id: string): var { return list.find(w => w.id === id) ?? null; }
     function source(id: string): string { return Quickshell.shellPath("widgets/" + id + "/Main.qml"); }
+    // where it comes up: "center" (blurred behind) or "taskbar" (over its right end)
+    function placement(id: string): string { return find(id)?.placement ?? "center"; }
 
     function open(id: string): void {
         const w = find(id);

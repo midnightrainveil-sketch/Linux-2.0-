@@ -26,6 +26,10 @@ FocusScope {
     required property string widgetId
     property real preferredWidth: 900
     property real preferredHeight: 600
+    // the clear margin (a shadow, air) round its body on the right and below,
+    // so the stage lines the body itself up (with the taskbar's end)
+    property real airRight: 0
+    property real airBottom: 0
     property bool shown: false
 
     signal opened()
