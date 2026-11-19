@@ -33,7 +33,7 @@ PanelWindow {
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one
     // from x 20 to 800, the right one from 900 to 2152.
-    readonly property real side: 14
+    readonly property real side: Math.round(width * 0.04)     // as in the reference: 4 % each side
     readonly property real s: Math.min(Theme.taskbarScale, (width - 2 * side) / 2032)
     readonly property real u: s / 0.6                      // for things sized by eye at 0.6
     readonly property real leftX: side - 15 * s            // (the piece has 15 px of air before the tube)
@@ -77,70 +77,39 @@ PanelWindow {
         color: "#3a352d"; opacity: 0.75
     }
 
-    // ======== the port: where the app cartridges go in (plate 52-195)
+    // ======== the port: where the app cartridges go in (plate 52-195). The
+    // slot itself is in the picture; here its lamp (the lens at 179,369)
+    // lights while the launcher is open, and a click opens it.
     Item {
         id: port
         x: bar.lx(52); y: bar.my(339)
         width: 143 * bar.s; height: 58 * bar.s
         readonly property bool lit: Panels.open === "launcher"
-
-        Item {
-            id: slotBox
-            anchors.centerIn: parent
-            anchors.horizontalCenterOffset: -8 * bar.u
-            width: 54; height: 24
-            scale: bar.u
-            // the insert mark over the slot, as on the Kasetto launcher
-            Canvas {
-                x: 22; y: 0; width: 10; height: 6
-                onPaint: {
-                    const c = getContext("2d"); c.reset();
-                    c.beginPath(); c.moveTo(0, 0); c.lineTo(10, 0); c.lineTo(5, 5); c.closePath();
-                    c.fillStyle = bar.rust; c.fill();
-                }
-            }
-            // the slot: a wide, shallow mouth, gold contacts along its floor
-            Rectangle {
-                y: 8; width: 54; height: 15; radius: 3
-                color: "#1b1916"
-                border.width: 1
-                border.color: portMouse.containsMouse ? "#9c8a63" : "#8f8270"
-                Rectangle {
-                    anchors.fill: parent; anchors.margins: 1.5; radius: 2
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#070706" }
-                        GradientStop { position: 1.0; color: "#2a2620" }
-                    }
-                }
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: parent.bottom; anchors.bottomMargin: 2.5
-                    spacing: 2.4
-                    Repeater {
-                        model: 10
-                        Rectangle {
-                            width: 2.6; height: 5; radius: 0.6
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: port.lit ? "#ffe2a0" : "#d8b45e" }
-                                GradientStop { position: 1.0; color: "#8a6a2a" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // the lamp: lit while the launcher is open
+        // the bezel catches a little light under the pointer
         Rectangle {
-            x: bar.lx(170) - port.x; y: bar.my(373) - port.y - height / 2
-            width: 6 * bar.u; height: width; radius: width / 2
-            color: port.lit ? bar.amber : (portMouse.containsMouse ? "#a57a3c" : "#6b5a40")
-            border.width: 1; border.color: "#3b2f20"
+            x: (63 - 52) * bar.s; y: (351 - 339) * bar.s
+            width: 100 * bar.s; height: 36 * bar.s; radius: 6 * bar.s
+            color: "transparent"
+            border.width: Math.max(1, 1.4 * bar.s); border.color: "#fff6dc"
+            opacity: portMouse.containsMouse && !port.lit ? 0.55 : 0
+            Behavior on opacity { NumberAnimation { duration: 140 } }
+        }
+        // the lamp, lit: an amber lens and its glow
+        Rectangle {
+            x: (179 - 52) * bar.s - width / 2; y: (369 - 339) * bar.s - height / 2
+            width: 9.2 * bar.s; height: width; radius: width / 2
+            color: bar.amber
+            opacity: port.lit ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 180 } }
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 2.6; height: width; radius: width / 2
-                color: bar.amber
-                opacity: port.lit ? 0.28 : 0
-                Behavior on opacity { NumberAnimation { duration: 180 } }
+                width: parent.width * 2.8; height: width; radius: width / 2
+                color: bar.amber; opacity: 0.25
+            }
+            Rectangle {   // the lens's glint
+                x: parent.width * 0.2; y: parent.height * 0.12
+                width: parent.width * 0.32; height: width * 0.8; radius: width / 2
+                color: "#fffbe8"; opacity: 0.85
             }
         }
         MouseArea {
@@ -330,43 +299,26 @@ PanelWindow {
         }
     }
     Sep { x: bar.rx(1833) }
-    // battery: four cells, a bolt while charging (x 1888)
+    // battery: one smooth bar, as full as the battery (x 1888); amber
+    // while charging, rust when low
     Item {
         id: batt
-        width: 36; height: 18; scale: bar.u
+        width: 38; height: 18; scale: bar.u
         x: bar.rx(1888) - width / 2; y: bar.my(368) - height / 2
         visible: Power.present
-        readonly property int cells: Math.max(Power.percent > 0 ? 1 : 0, Math.ceil(Power.percent / 25))
+        readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
         Rectangle {
-            width: 32; height: 18; radius: 3
-            color: "transparent"; border.width: 2; border.color: Power.low ? bar.rust : bar.ink
-            Row {
-                x: 4; y: 4; spacing: 2
-                Repeater {
-                    model: 4
-                    Rectangle {
-                        required property int index
-                        width: 4.6; height: 10; radius: 0.5
-                        color: Power.low ? bar.rust : bar.ink
-                        opacity: index < batt.cells ? 1 : 0.15
-                    }
-                }
+            width: 34; height: 18; radius: 5
+            color: "transparent"; border.width: 1.8; border.color: bar.ink
+            Rectangle {
+                x: 3.5; y: 3.5
+                height: parent.height - 7; radius: 2.5
+                width: Math.max(height, (parent.width - 7) * Power.percent / 100)
+                color: batt.tone
+                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
             }
         }
-        Rectangle { x: 32; y: 6; width: 3; height: 6; radius: 1; color: Power.low ? bar.rust : bar.ink }
-        Canvas {
-            // the charging bolt, amber, edged in ink
-            x: 6; y: -2; width: 20; height: 22
-            visible: Power.charging
-            onPaint: {
-                const c = getContext("2d"); c.reset();
-                c.beginPath();
-                c.moveTo(11.5, 1); c.lineTo(4, 12.5); c.lineTo(9.5, 12.5);
-                c.lineTo(8, 21); c.lineTo(16, 9); c.lineTo(10.5, 9); c.closePath();
-                c.fillStyle = bar.amber; c.fill();
-                c.lineWidth = 1.4; c.strokeStyle = bar.ink; c.stroke();
-            }
-        }
+        Rectangle { x: 35; y: 6; width: 2.6; height: 6; radius: 1.3; color: bar.ink }
         MouseArea {
             anchors.fill: parent; anchors.margins: -8
             cursorShape: Qt.PointingHandCursor
