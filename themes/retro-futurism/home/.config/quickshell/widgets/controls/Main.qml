@@ -25,7 +25,7 @@ Widget {
     id: self
     widgetId: "controls"
 
-    readonly property real k: 0.44                    // the mock-up at this size
+    readonly property real k: 0.52                    // the mock-up at this size
     preferredWidth: 1562 * k
     preferredHeight: 920 * k
     // deck.png's body ends at the mock-up's 1592 x 916; past it, its shadow

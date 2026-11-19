@@ -93,7 +93,8 @@ PanelWindow {
         // in the middle; or its right edge on the taskbar's, just over its tube
         readonly property real airR: loader.item ? loader.item.airRight : 0
         readonly property real airB: loader.item ? loader.item.airBottom : 0
-        x: stage.taskbar ? stage.width - Theme.frameMargin - width + airR : (stage.width - width) / 2
+        // (over the taskbar: set in from the bar's end, within its line and the frames')
+        x: stage.taskbar ? stage.width - Theme.frameMargin - 18 - width + airR : (stage.width - width) / 2
         y: (stage.taskbar ? stage.height - Theme.taskbarReach - 12 - height + airB : (stage.height - height) / 2)
            + (1 - stage.p) * (stage.taskbar ? 26 : 40)
         transformOrigin: stage.taskbar ? Item.BottomRight : Item.Center
