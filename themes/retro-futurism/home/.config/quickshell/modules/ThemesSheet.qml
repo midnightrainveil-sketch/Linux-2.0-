@@ -67,12 +67,12 @@ Sheet {
                     width: 330
                     height: 54
                     Rectangle { x: 10; width: parent.width - 10; height: parent.height; color: Theme.ink; opacity: row.on ? 0.82 : 0 }
-                    Label { x: 26; y: 9; width: parent.width - 36; text: row.modelData.name ?? row.modelData.id; color: row.on ? "#0b0a0b" : Theme.ink; font.pixelSize: 16 }
+                    Label { x: 26; y: 9; width: parent.width - 36; text: row.modelData.name ?? row.modelData.id; color: row.on ? Theme.paper : Theme.ink; font.pixelSize: 16 }
                     Label {
                         x: 26; y: 31
                         width: parent.width - 36
                         text: row.modelData.id === sheet.chosen ? "From the next log-in" : (row.modelData.by ?? "")
-                        color: row.on ? "#0b0a0b" : Theme.dim
+                        color: row.on ? Theme.paper : Theme.dim
                         font.pixelSize: 12
                     }
                     MouseArea { anchors.fill: parent; onClicked: sheet.selected = row.index; onDoubleClicked: sheet.use() }

@@ -106,8 +106,12 @@ on("window.active", function(w)
 end)
 
 -- Going to an empty workspace brings the small terminal there, at its
--- place (moved over, or opened again if it was closed), as at login.
+-- place (moved over, or opened again if it was closed), as at login: only
+-- with "deskTerminal" on in settings.json.
+local wants_desk = require("ultra.state").settings((os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config"))
+    .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", false)
 on("workspace.active", function(ws)
+    if not wants_desk then return end
     if ws == nil or ws.special then return end
     for _, w in ipairs(hl.get_workspace_windows(ws)) do
         if not is_desk(w) then return end

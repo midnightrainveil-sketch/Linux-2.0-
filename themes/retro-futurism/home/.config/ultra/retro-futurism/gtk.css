@@ -1,31 +1,31 @@
-/* Retro Futurism: programs in the theme's black and white (GTK 3 with adw-gtk3,
+/* Retro Futurism: programs in Cassette OS's warm charcoal, cream and rust (GTK 3 with adw-gtk3,
    GTK 4 / libadwaita). ultra-look copies this to ~/.config/gtk-3.0 and
    gtk-4.0 as the session starts. */
-@define-color window_bg_color #0b0a0b;
-@define-color window_fg_color #f2efed;
-@define-color view_bg_color #0b0a0b;
-@define-color view_fg_color #f2efed;
-@define-color headerbar_bg_color #0b0a0b;
-@define-color headerbar_fg_color #f2efed;
-@define-color headerbar_backdrop_color #0b0a0b;
-@define-color headerbar_border_color #f2efed;
-@define-color sidebar_bg_color #0b0a0b;
-@define-color sidebar_fg_color #f2efed;
-@define-color sidebar_backdrop_color #0b0a0b;
-@define-color secondary_sidebar_bg_color #0b0a0b;
-@define-color card_bg_color rgba(242, 239, 237, 0.05);
-@define-color card_fg_color #f2efed;
-@define-color popover_bg_color #131213;
-@define-color popover_fg_color #f2efed;
-@define-color dialog_bg_color #131213;
-@define-color dialog_fg_color #f2efed;
-@define-color accent_bg_color #e6e2df;
-@define-color accent_fg_color #0b0a0b;
-@define-color accent_color #f4abc0;
-@define-color destructive_bg_color #ee6a6a;
-@define-color destructive_color #f08a9b;
-@define-color theme_selected_bg_color #e6e2df;
-@define-color theme_selected_fg_color #0b0a0b;
+@define-color window_bg_color #24211d;
+@define-color window_fg_color #efe5d3;
+@define-color view_bg_color #24211d;
+@define-color view_fg_color #efe5d3;
+@define-color headerbar_bg_color #24211d;
+@define-color headerbar_fg_color #efe5d3;
+@define-color headerbar_backdrop_color #24211d;
+@define-color headerbar_border_color #efe5d3;
+@define-color sidebar_bg_color #24211d;
+@define-color sidebar_fg_color #efe5d3;
+@define-color sidebar_backdrop_color #24211d;
+@define-color secondary_sidebar_bg_color #24211d;
+@define-color card_bg_color rgba(239, 229, 211, 0.06);
+@define-color card_fg_color #efe5d3;
+@define-color popover_bg_color #2c2823;
+@define-color popover_fg_color #efe5d3;
+@define-color dialog_bg_color #2c2823;
+@define-color dialog_fg_color #efe5d3;
+@define-color accent_bg_color #c9583a;
+@define-color accent_fg_color #24211d;
+@define-color accent_color #f0b04c;
+@define-color destructive_bg_color #c4462a;
+@define-color destructive_color #e0734f;
+@define-color theme_selected_bg_color #c9583a;
+@define-color theme_selected_fg_color #24211d;
 
 /* square, like everything else here */
 window, button, entry, .card, popover > contents, menu, row, .navigation-sidebar row, headerbar, tooltip {

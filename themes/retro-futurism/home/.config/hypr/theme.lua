@@ -19,9 +19,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprctl setcursor Adwaita 24")
     hl.exec_cmd("ultra-shell")                      -- the shell (started again if it crashes)
     hl.exec_cmd("ultra-idle start")                 -- dim, lock, screen off (ultra-idle <minutes>)
-    -- the small terminal on the picture (settings.json "deskTerminal": false to skip)
+    -- a small terminal on the picture (settings.json "deskTerminal": true for it)
     if require("ultra.state").settings((os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config"))
-            .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", true) then
+            .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", false) then
         hl.exec_cmd("sh -c 'sleep 1; ultra-desk'")
     end
 end)

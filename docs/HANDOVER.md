@@ -70,9 +70,17 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
   - **Retro Futurism** (`themes/retro-futurism`, in the works): "Cassette
     OS", gadgets in steel, cream and sage with e-ink screens. The user's
     mock-ups are in its `art/` (see its README). Begun as a copy of
-    Viewfinder's box; only the wallpaper and the lock screen are its own so
-    far (the window of the wallpaper shows a sunset scrolling past, see the box README). On the lock screen only the clock is live (the user's choice: the
-    other gadgets in the picture stay still); see the box's README.
+    Viewfinder's box, now wholly its own: the moving wallpaper, the lock
+    screen with the access pass, the taskbar with the cartridge port, the
+    window frames, and the widget system (`themes/retro-futurism/docs/widgets.md`)
+    with the launcher, control deck, clock and power built. Not yet: the
+    typewriter, organizer, cassette player, vending machine and the pager
+    (notifications are plain cream cards). **Never run in Quickshell or
+    Hyprland yet**: only linted (pyside6-qmllint) and drawn in Python from
+    the code's own numbers. Least sure: the taskbar changing layer (Top to
+    Overlay) to stay over the launcher's blur, the Region mask with a child
+    Region, MultiEffect, and the lifter's hand-off positions. The user
+    installs with `ULTRA_BRANCH=claude/nice-pascal-1jgkki ultra-update`.
 - **In the first two** (each box has its own copy): ticket-stub workspaces, title-bar
   tickets (archivebars plugin, `home/.local/share/ultra/<id>/plugins/`),
   the train along the bar, inked file icons (`tools/inked_icons.py`), the

@@ -22,7 +22,6 @@ hl.bind(mod .. " + SHIFT + Escape", widget("power"), { description = "Power" })
 hl.bind(mod .. " + D", exec("ultra-desk"), { description = "The small terminal on the picture, back in its place" })
 hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Lock" })
 hl.bind(mod .. " + T", shell("shell", "themes"), { description = "Themes" })
-hl.bind(mod .. " + O", exec("ultra-notes"), { description = "Write the notes" })
 hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "Put every notification away" })
 hl.bind(mod .. " + ALT + N", shell("notifications", "dnd"), { description = "Do not disturb, on / off" })
 

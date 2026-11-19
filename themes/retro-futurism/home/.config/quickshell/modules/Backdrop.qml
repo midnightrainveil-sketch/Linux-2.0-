@@ -160,20 +160,6 @@ PanelWindow {
         }
     }
 
-    // ---- the right-hand column
-    Column {
-        id: column
-        x: win.width - Theme.edge - Theme.columnWidth
-        y: Theme.barTop + 108
-        width: Theme.columnWidth
-        spacing: 26
-        NowPlaying { width: parent.width }
-        NotesCard { width: parent.width }
-        // (where notifications are shown: Mail.qml, over the windows)
-        onHeightChanged: Panels.mailY = y + height + spacing
-        Component.onCompleted: Panels.mailY = y + height + spacing
-    }
-
     // ---- the window frames: one round each window on the workspace in view
     // (the mock-up's frame, its corners kept and its sides stretched), the
     // rim a few px out from the window, the space between shaded. The one in

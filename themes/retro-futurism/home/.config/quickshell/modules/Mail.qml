@@ -5,8 +5,9 @@ import qs.theme
 import qs.services
 import qs.components
 
-// Notifications: cards under the notes, over whatever is open. A click
-// opens what it is about; a right-click puts it away.
+// Notifications (until the pager widget is built): cream cards at the top
+// right, over whatever is open. A click opens what it is about; a
+// right-click puts it away.
 PanelWindow {
     id: win
 
@@ -36,7 +37,8 @@ PanelWindow {
                 width: stack.width
                 height: 68
                 color: Theme.panel
-                border.color: Theme.ink
+                radius: 12
+                border.color: "#c8b89e"
                 border.width: 1
 
                 Icon { x: 18; y: 11; name: "mail"; size: 22 }

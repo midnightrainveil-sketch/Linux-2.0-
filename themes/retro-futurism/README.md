@@ -2,7 +2,7 @@
 
 `ultra-theme set retro-futurism`
 
-*In the works.* Cassette OS: a Japanese future grown out of the 1980s.
+Cassette OS: a Japanese future grown out of the 1980s.
 Gadgets in steel, cream and sage with e-ink screens.
 
 ![The evening train](preview.jpg)
@@ -84,9 +84,13 @@ Gadgets in steel, cream and sage with e-ink screens.
   The rest are
   placeholders (their mock-up) until made.
 
-Everything else (panels, notifications) is still Viewfinder's,
-copied into this box, until each part gets its own design from the mock-ups
-in [`art/`](art/).
+Not built yet: the typewriter, the organizer, the cassette player and the
+cassette vending machine (their keys show their mock-ups), and the pager:
+notifications are plain cream cards at the top right until it is.
+
+(The theme was begun as a copy of Viewfinder's box; everything of Viewfinder's
+look is gone from it now.)
+
 
 ## How the lock screen's clock is made
 
