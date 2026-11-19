@@ -116,7 +116,8 @@ docs/                     the machine's notes, the handover and test harness
 
 - Typefaces: [Courier Prime](https://github.com/quoteunquoteapps/CourierPrime),
   [Pinyon Script](https://fonts.google.com/specimen/Pinyon+Script) and
-  [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), under the SIL
+  [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) and
+  [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono), under the SIL
   Open Font License (licences next to the fonts); [IBM Plex](https://github.com/IBM/plex)
   from the Arch repos.
 - [Hyprland](https://hypr.land), [hyprland-plugins](https://github.com/hyprwm/hyprland-plugins)

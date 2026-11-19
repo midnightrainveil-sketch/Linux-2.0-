@@ -78,9 +78,9 @@ PanelWindow {
     }
 
     // ======== the port: where the app cartridges go in (plate 52-195). The
-    // slot, its four contacts (as on the cartridges) and the grip are in the
-    // picture; here the indicator under the slot (111-137, 384-389) glows
-    // while the launcher is open, and a click opens it.
+    // port itself is in the picture (bezel 76-171 x 350-386, its mouth
+    // 87-160 x 355-381, four contacts along the back from x 94.3, y 358.6).
+    // While the launcher is open its contacts glow warm, as if live.
     Item {
         id: port
         x: bar.lx(52); y: bar.my(339)
@@ -88,29 +88,33 @@ PanelWindow {
         readonly property bool lit: Panels.open === "launcher"
         // the bezel catches a little light under the pointer
         Rectangle {
-            x: (79 - 52) * bar.s; y: (345 - 339) * bar.s
-            width: 90 * bar.s; height: 34 * bar.s; radius: 5 * bar.s
+            x: (76 - 52) * bar.s; y: (350 - 339) * bar.s
+            width: 95 * bar.s; height: 36 * bar.s; radius: 5.8 * bar.s
             color: "transparent"
-            border.width: Math.max(1, 1.4 * bar.s); border.color: "#fff6dc"
-            opacity: portMouse.containsMouse && !port.lit ? 0.55 : 0
+            border.width: Math.max(1, 1.2 * bar.s); border.color: "#fffaf0"
+            opacity: portMouse.containsMouse ? 0.5 : 0
             Behavior on opacity { NumberAnimation { duration: 140 } }
         }
-        // the indicator, lit: amber, with its glow
-        Rectangle {
-            x: (111 - 52) * bar.s; y: (384 - 339) * bar.s
-            width: 26 * bar.s; height: 5.5 * bar.s; radius: height / 2
-            color: bar.amber
+        // the contacts, live: a warm light on each, and on the floor below
+        Item {
             opacity: port.lit ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 180 } }
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width + 10 * bar.s; height: parent.height + 9 * bar.s; radius: height / 2
-                color: bar.amber; opacity: 0.25
+            Behavior on opacity { NumberAnimation { duration: 220 } }
+            Repeater {
+                model: 4
+                Rectangle {
+                    required property int index
+                    x: (94.3 + index * 16.2 - 52) * bar.s; y: (358.6 - 339) * bar.s
+                    width: 10.6 * bar.s; height: 9 * bar.s; radius: 1.3 * bar.s
+                    color: "#ffd27a"; opacity: 0.45
+                }
             }
             Rectangle {
-                x: parent.width * 0.12; y: parent.height * 0.18
-                width: parent.width * 0.76; height: parent.height * 0.28; radius: height / 2
-                color: "#fff3cf"; opacity: 0.8
+                x: (89 - 52) * bar.s; y: (369 - 339) * bar.s
+                width: 69 * bar.s; height: 11 * bar.s; radius: 2 * bar.s
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#55ffb04c" }
+                    GradientStop { position: 1.0; color: "#00ffb04c" }
+                }
             }
         }
         MouseArea {
@@ -335,10 +339,8 @@ PanelWindow {
         y: bar.my(368) - height / 2
         text: Clock.time
         color: bar.ink
-        font.family: bar.face
-        font.pixelSize: Math.round(31 * bar.s)
-        font.weight: Font.Medium
-        font.letterSpacing: 2 * bar.s
-        font.features: { "tnum": 1 }
+        font.family: "Share Tech Mono"
+        font.pixelSize: Math.round(36 * bar.s)
+        font.letterSpacing: 1.5 * bar.s
     }
 }
