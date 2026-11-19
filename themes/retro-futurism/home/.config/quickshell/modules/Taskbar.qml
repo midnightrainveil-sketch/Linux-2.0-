@@ -26,10 +26,14 @@ PanelWindow {
 
     anchors { bottom: true; left: true; right: true }
     implicitHeight: Math.ceil(128 * s)
-    // it lies over the windows, never pushing them: with windows open it
-    // hides below the screen's edge, and comes up when the pointer goes
-    // down to the edge (or a panel of its is open)
-    exclusionMode: ExclusionMode.Ignore
+    // with windows open it hides below the screen's edge, and comes up when
+    // the pointer goes down to the edge (or a panel of its is open). While
+    // it is up it keeps its room, so Hyprland lifts the windows: their
+    // frames end 10 px over the bar's tube, its ends under theirs. (The
+    // frames' bottom lies frameMargin above the room kept; the tube's top is
+    // 8 px of the mock-up below the panel's top.)
+    exclusiveZone: bar.shown && bar.hasWindows
+        ? Math.round(implicitHeight - 8 * s + 10 - Theme.frameMargin) : 0
     WlrLayershell.namespace: "retro-futurism-bar"
     color: "transparent"
 

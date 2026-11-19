@@ -55,9 +55,10 @@ Gadgets in steel, cream and sage with e-ink screens.
   inside it. The window in use has the bright frame, the others are
   dimmed. Hyprland draws no border of its own (`hypr/theme/look.lua`; its
   gaps go with the frame values in `theme/Theme.qml`).
-- The taskbar runs the frames' full width (its middle band stretches), lies
-  over the windows, and hides below the screen while any are open: take the
-  pointer down to the bottom edge and it slides up.
+- The taskbar runs the frames' full width (its middle band stretches) and
+  hides below the screen while windows are open: take the pointer down to
+  the bottom edge and it slides up, and the windows lift with it, their
+  frames ending just over it, its ends under theirs.
 
 Everything else (launcher, panels, power menu) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups
