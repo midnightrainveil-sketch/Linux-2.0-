@@ -18,7 +18,8 @@ Singleton {
     readonly property real hair: 1                     // line weight
 
     readonly property int barTop: 0                   // (no bar at the top)
-    readonly property int barBottom: 68               // the taskbar: its tube, and room under it
+    readonly property real taskbarScale: 0.6           // the taskbar: the mock-up at this size
+    readonly property int barBottom: 77               // ... and its height (128 x 0.6)
     readonly property int edge: 34                     // panels' distance from the screen edge
     readonly property int columnWidth: 364             // the right column
 

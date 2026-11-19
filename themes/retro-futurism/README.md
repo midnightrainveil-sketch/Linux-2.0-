@@ -29,8 +29,11 @@ Gadgets in steel, cream and sage with e-ink screens.
 
 ![The lock screen](preview-lock.jpg)
 
-- **Taskbar** (`modules/Taskbar.qml`): a chrome tube along the foot of the
-  screen, from `art/TaskbarEg.png`. On the left the cartridge port (the
+- **Taskbar** (`modules/Taskbar.qml`): the mock-up itself,
+  `art/TaskbarEg.png`, along the foot of the screen, with what it shows
+  drawn live where the mock-up has it (`tools/make_taskbar.py` cuts the bar
+  out, erases its contents and splits it in three: the ends, and a slice
+  of the band stretched to the screen's width). On the left the cartridge port (the
   slot the app cartridges go in; click it for the launcher, its lamp lit
   while the launcher is open); workspaces 1 to 9 (a dark dot where windows
   are, the red line under the one in view; click, or scroll to step); the
