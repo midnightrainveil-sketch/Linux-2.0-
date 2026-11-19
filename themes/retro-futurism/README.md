@@ -29,7 +29,16 @@ Gadgets in steel, cream and sage with e-ink screens.
 
 ![The lock screen](preview-lock.jpg)
 
-Everything else (bars, launcher, panels, power menu) is still Viewfinder's,
+- **Taskbar** (`modules/Taskbar.qml`): a chrome tube along the foot of the
+  screen, from `art/TaskbarEg.png`. On the left the cartridge port (the
+  slot the app cartridges go in; click it for the launcher, its lamp lit
+  while the launcher is open); workspaces 1 to 9 (a dark dot where windows
+  are, the red line under the one in view; click, or scroll to step); the
+  sage band with the window in use, CASSETTE OS and the Arch logo (click:
+  the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
+  battery (click: the next power profile) and the time.
+
+Everything else (launcher, panels, power menu) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups
 in [`art/`](art/).
 

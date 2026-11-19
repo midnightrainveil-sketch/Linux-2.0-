@@ -27,9 +27,7 @@ ShellRoot {
             id: perScreen
             required property var modelData
             Backdrop { modelData: perScreen.modelData }
-            TopBar { modelData: perScreen.modelData }
-            BottomBar { modelData: perScreen.modelData }
-            FilmStrip { modelData: perScreen.modelData }
+            Taskbar { modelData: perScreen.modelData }
         }
     }
 

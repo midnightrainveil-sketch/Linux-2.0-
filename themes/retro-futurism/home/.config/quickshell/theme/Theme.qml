@@ -17,10 +17,9 @@ Singleton {
     readonly property string mono: "JetBrains Mono"
     readonly property real hair: 1                     // line weight
 
-    readonly property int barTop: 46
-    readonly property int barBottom: 58
+    readonly property int barTop: 0                   // (no bar at the top)
+    readonly property int barBottom: 68               // the taskbar: its tube, and room under it
     readonly property int edge: 34                     // panels' distance from the screen edge
-    readonly property int stripWidth: 172
     readonly property int columnWidth: 364             // the right column
 
     readonly property int fade: 160

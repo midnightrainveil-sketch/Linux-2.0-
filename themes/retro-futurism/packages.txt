@@ -13,3 +13,5 @@ slurp
 # ---- look: GTK theme, icons
 adw-gtk-theme
 papirus-icon-theme
+# the taskbar's lettering
+inter-font
