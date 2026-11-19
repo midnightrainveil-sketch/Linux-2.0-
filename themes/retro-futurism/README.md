@@ -22,10 +22,16 @@ Gadgets in steel, cream and sage with e-ink screens.
   da-dum, a short jolt from each axle of the front bogie and then the back
   one. `"sway"` and `"bumps"` (true / false) in settings.json.
 - Her mole is a little clearer, on the wallpaper as on the lock screen.
-- **Lock screen**: her room at night. The Suisei clock on the night stand
-  is live: the time (the colon blinks each second) and the date in its
-  dot-matrix strip. The rest of the picture stays still. Type the password
-  (nothing shows) and press Enter.
+- **Lock screen** (`modules/Lock.qml`): her room at night, the Suisei clock
+  on the night stand live. Any key or click blurs the room and drops the
+  Personal Access Pass down (`art/Login1.png`; the device itself is
+  `art/Login0.png`, lifted off by `tools/make_pass.py`): your name, today,
+  a dot for each key, what it is doing (ready, checking, denied,
+  boarding). Let in, the pass shoots back up, the blur clears, the room
+  fades into the desk (the city outside the window where the desk has it)
+  and the taskbar comes up from below. The pass's buttons: ‖ sleep, POWER
+  shut down (twice), USER clear, SESSION put the pass away, ◀◀ one key
+  back, the roller and ▶▶ enter.
 
 ![The lock screen](preview-lock.jpg)
 

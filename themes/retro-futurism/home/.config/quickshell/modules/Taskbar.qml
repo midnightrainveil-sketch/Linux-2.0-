@@ -39,7 +39,11 @@ PanelWindow {
 
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
     property bool hovered: false
-    readonly property bool shown: !hasWindows || hovered || linger.running
+    // under the lock it waits below the screen; let in, it comes up and
+    // stays a moment before it hides for the windows
+    Timer { id: welcome; interval: 2600 }
+    Connections { target: Scene; function onUnlocked() { welcome.restart(); } }
+    readonly property bool shown: !Scene.locked && (!hasWindows || hovered || linger.running || welcome.running)
         || Widgets.current === "launcher" || Widgets.current === "power" || Widgets.current === "controls"
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
@@ -55,7 +59,7 @@ PanelWindow {
         id: body
         width: parent.width; height: parent.height
         y: bar.shown ? 0 : height + 4
-        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: bar.shown ? 420 : 260; easing.type: bar.shown ? Easing.OutBack : Easing.OutCubic; easing.overshoot: 0.8 } }
 
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one

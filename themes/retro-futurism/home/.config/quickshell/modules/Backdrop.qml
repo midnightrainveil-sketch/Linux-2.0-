@@ -125,6 +125,8 @@ PanelWindow {
                 Row {
                     id: view
                     y: (300 - 376 * 0.862) * scene.k
+                    // where the city has got to (the lock screen fades into it)
+                    onXChanged: Scene.viewShift = glass.loopW > 0 ? -x / glass.loopW : 0
                     Repeater {
                         model: 2
                         Image {
