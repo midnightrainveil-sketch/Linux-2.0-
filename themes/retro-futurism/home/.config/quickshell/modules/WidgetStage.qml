@@ -50,7 +50,8 @@ PanelWindow {
 
     onUpChanged: {
         if (up) {
-            leaving.stop();
+            // called again while it was going: a fresh one, not the one leaving
+            if (leaving.running) { leaving.stop(); loaded = ""; }
             if (loaded !== Widgets.current) { loaded = Widgets.current; p = 0; }
             coming.restart();
         } else if (loaded !== "") {

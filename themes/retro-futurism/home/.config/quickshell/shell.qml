@@ -40,6 +40,8 @@ ShellRoot {
     // over the blurred desk, or over the taskbar's right end
     WidgetStage { screen: shell.focusedScreen }
     WidgetStage { screen: shell.focusedScreen; taskbar: true }
+    // a launched app's cartridge on its way to the taskbar's port
+    Flight { screen: shell.focusedScreen }
 
     Lock { id: lockScreen }
     Connections { target: Scene; function onLockNow() { lockScreen.lock(); } }

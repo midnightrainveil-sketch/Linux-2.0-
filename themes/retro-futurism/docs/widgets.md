@@ -23,7 +23,7 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | id | name | key | mock-ups |
 | --- | --- | --- | --- |
 | `typewriter` | Typewriter | Super + R | Typewriter |
-| `launcher` | App launcher (**built**: choosing and launching; the eject into the port next) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
+| `launcher` | App launcher (**built**) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
 | `organizer` | Organizer | Super + C | Calendar |
 | `cassette` | Cassette player | Super + A | CassettePlayerWidget |
 | `vending` | Cassette vending | Super + V | CassetteVending |
@@ -96,6 +96,18 @@ turns with it), the arrow keys, ◀◀ / ▶▶, 1-5 or a click choose; Enter,
 Space, the roller or a click on the chosen line do it. ‖ POWER USER SESSION
 choose Suspend, Shut down, Log out, Lock. It opens on Suspend; Restart and
 Shut down light the red lamp.
+
+## The launcher, and the cartridge in the port
+
+On Enter the app starts, its cartridge rises out of the slot, and the
+launcher lets it go (`Cartridges.eject`, with its place and size on the
+screen); `modules/Flight.qml`, an overlay that takes no clicks, flies it in
+an arc down to the taskbar's port and drops it in (`Cartridges.land`). The
+taskbar stays up for it, and keeps a cartridge standing in the port (its
+panel is taller for it, its pointer area just the tube and the cartridge):
+the app of the window under the pointer (focus follows the pointer, so
+`Hypr.activeClass`), else the last one launched. It changes at once as the
+pointer goes from window to window; a click on it opens the launcher.
 
 ## Building one
 

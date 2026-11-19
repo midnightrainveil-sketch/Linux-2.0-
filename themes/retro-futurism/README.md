@@ -78,7 +78,9 @@ Gadgets in steel, cream and sage with e-ink screens.
   silver device as the pass, its roller turned by the wheel; and the
   **launcher** (Super + Space): the Kairo cartridge launcher, your apps as
   cartridges on its rail, the wheel or the arrows to choose, typing to
-  search, Enter to launch. The rest are
+  search, Enter to launch: the cartridge flies down into the taskbar's
+  port, where a cartridge stays, the app of the window under the pointer.
+  The rest are
   placeholders (their mock-up) until made.
 
 Everything else (panels, notifications) is still Viewfinder's,

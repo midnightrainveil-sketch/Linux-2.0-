@@ -13,8 +13,35 @@ import Quickshell
 //
 //   of(entry)        { art, icon, colour } for a desktop entry
 //   ofClass(cls)     the same for a window's class (the taskbar's port)
+//
+// And the cartridge's way from the launcher to the taskbar's port:
+//   eject(entry, x, y, s)   the launcher lets one go: its middle at x, y on the
+//                           screen, drawn at scale s (modules/Flight.qml flies it)
+//   portX, portY, portS     where one stands in the port (the taskbar sets
+//                           them): its middle x, the y of its foot, its scale
+//   lastLaunched            what last went in; landed() when it has
 Singleton {
     id: root
+
+    property var lastLaunched: null
+    property bool flying: false
+    property var flyEntry: null
+    property real fromX: 0
+    property real fromY: 0
+    property real fromS: 1
+    property real portX: 0
+    property real portY: 0
+    property real portS: 0.25
+    signal landed()
+    function eject(entry: var, x: real, y: real, s: real): void {
+        flyEntry = entry; fromX = x; fromY = y; fromS = s;
+        flying = true;
+    }
+    function land(): void {
+        lastLaunched = flyEntry;
+        flying = false;
+        landed();
+    }
 
     // an illustrated label: what ids, classes or categories it covers
     readonly property var illustrated: [

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import qs.theme
 import qs.services
 import qs.components
@@ -25,7 +26,8 @@ PanelWindow {
     screen: modelData
 
     anchors { bottom: true; left: true; right: true }
-    implicitHeight: Math.ceil(128 * s)
+    // (above the tube: room for the cartridge standing in the port)
+    implicitHeight: Math.ceil(128 * s + lift)
     // with windows open it hides below the screen's edge, and comes up when
     // the pointer goes down to the edge (or a panel of its is open). While
     // it is up it keeps its room, so Hyprland lifts the windows: their
@@ -33,7 +35,7 @@ PanelWindow {
     // frames' bottom lies frameMargin above the room kept; the tube's top is
     // 8 px of the mock-up below the panel's top.)
     exclusiveZone: bar.shown && bar.hasWindows
-        ? Math.round(implicitHeight - 8 * s + 10 - Theme.frameMargin) : 0
+        ? Math.round(128 * s - 8 * s + 10 - Theme.frameMargin) : 0
     WlrLayershell.namespace: "retro-futurism-bar"
     color: "transparent"
 
@@ -43,14 +45,20 @@ PanelWindow {
     // stays a moment before it hides for the windows
     Timer { id: welcome; interval: 2600 }
     Connections { target: Scene; function onUnlocked() { welcome.restart(); } }
+    // a cartridge just in: the bar stays up a moment, to see it
+    Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
     readonly property bool shown: !Scene.locked && (!hasWindows || hovered || linger.running || welcome.running)
+        || Cartridges.flying
         || Widgets.current === "launcher" || Widgets.current === "power" || Widgets.current === "controls"
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
-    // where the pointer counts: the whole bar while it is up, else a thin
-    // strip along the screen's bottom edge
-    mask: Region { item: bar.shown ? body : edgeStrip }
+    // where the pointer counts: the tube and the cartridge in the port while
+    // the bar is up, else a thin strip along the screen's bottom edge
+    mask: Region {
+        item: bar.shown ? tubeZone : edgeStrip
+        Region { item: portStand }
+    }
     Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
     HoverHandler { onHoveredChanged: bar.hovered = hovered }
 
@@ -74,7 +82,10 @@ PanelWindow {
     readonly property real rightX: leftX + 780 * s + fillW
     function lx(x) { return leftX + (x - 20) * s; }       // a point of the left piece
     function rx(x) { return rightX + (x - 900) * s; }     // ... of the right piece
-    function my(y) { return (y - 312) * s; }
+    function my(y) { return lift + (y - 312) * s; }
+    // the cartridge in the port: its contacts the port's mouth wide (87-160)
+    readonly property real portS: (160 - 87) * s / 178
+    readonly property real lift: Math.ceil(425 * portS - (378 - 312) * s + 6)
 
     // the look
     readonly property color rust: "#b2512f"
@@ -89,19 +100,19 @@ PanelWindow {
 
     // ---- the bar itself
     Image {
-        x: bar.leftX; width: 780 * bar.s; height: 128 * bar.s
+        x: bar.leftX; y: bar.lift; width: 780 * bar.s; height: 128 * bar.s
         source: Quickshell.shellPath("assets/taskbar/left.png")
         smooth: true; mipmap: true
     }
     Image {
-        x: bar.leftX + 780 * bar.s; width: bar.fillW + 0.5; height: 128 * bar.s
+        x: bar.leftX + 780 * bar.s; y: bar.lift; width: bar.fillW + 0.5; height: 128 * bar.s
         visible: bar.fillW > 0
         source: Quickshell.shellPath("assets/taskbar/fill.png")
         fillMode: Image.Stretch
         smooth: true
     }
     Image {
-        x: bar.rightX; width: 1252 * bar.s; height: 128 * bar.s
+        x: bar.rightX; y: bar.lift; width: 1252 * bar.s; height: 128 * bar.s
         source: Quickshell.shellPath("assets/taskbar/right.png")
         smooth: true; mipmap: true
     }
@@ -111,6 +122,41 @@ PanelWindow {
         y: bar.my(368) - height / 2
         color: "#3a352d"; opacity: 0.4
     }
+
+    // the tube itself (for the pointer)
+    Item { id: tubeZone; y: bar.lift; width: parent.width; height: 128 * bar.s }
+
+    // ======== the cartridge in the port: the window under the pointer's app
+    // (focus follows the pointer), else the last one launched. It stands in
+    // the slot, its contacts out of sight in it; a click: the launcher.
+    readonly property var portEntry: Cartridges.lastLaunched
+    readonly property string portClass: Hypr.activeClass
+    Item {
+        id: portStand
+        readonly property bool has: (bar.portClass !== "" || bar.portEntry !== null) && !Cartridges.flying
+        x: bar.lx(123.5) - 175 * bar.portS
+        width: has ? 350 * bar.portS : 0
+        height: has ? bar.my(374) : 0
+        clip: true
+        Cartridge {
+            windowClass: bar.portClass
+            entry: bar.portEntry
+            scale: bar.portS
+            transformOrigin: Item.TopLeft
+            y: bar.my(378) - 425 * bar.portS
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Widgets.toggle("launcher")
+        }
+    }
+    // where a cartridge stands in this bar's port, for one on its way there
+    // (the bar on the screen in use; the bar's place once it is up)
+    readonly property bool focusedScreen: Hyprland.focusedMonitor?.name === bar.screen?.name
+    Binding { target: Cartridges; property: "portX"; value: bar.lx(123.5); when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen }
 
     // ======== the port: where the app cartridges go in (plate 52-195). The
     // port itself is in the picture (bezel 76-171 x 350-386, its mouth

@@ -12,7 +12,9 @@ import qs.services
 //              (five at a time), Home / End, or a click on a cartridge
 //   searching  just type: the rail keeps the apps that match (Backspace,
 //              Esc clears; Esc again puts it away)
-//   launching  Enter, or a click on the cartridge in the slot
+//   launching  Enter, or a click on the cartridge in the slot: the app
+//              starts, its cartridge rises out of the slot and flies down
+//              into the taskbar's port (modules/Flight.qml)
 //
 // Everything is placed in the mock-up's own pixels (body.png starts at its
 // 24, 23; tools/make_launcher.py) and the whole launcher scaled once.
@@ -34,15 +36,45 @@ Widget {
     readonly property var current: results.length > 0 ? results[Math.max(0, Math.min(sel, results.length - 1))] : null
 
     function choose(i: int): void {
-        if (results.length === 0) return;
+        if (results.length === 0 || ejecting) return;
         sel = Math.max(0, Math.min(results.length - 1, i));
         pos = sel;
     }
     function move(d: int): void { choose(sel + d); }
+    // launching: the app starts at once; its cartridge rises out of the
+    // slot, then is let go (Cartridges.eject: modules/Flight.qml takes it to
+    // the taskbar's port) and the launcher is put away
+    property bool ejecting: false
+    property real rise: 0                               // the slot's cartridge, up (mock-up px)
+    property var ejected: null
     function launch(): void {
-        if (!current) return;
+        if (!current || ejecting) return;
+        ejecting = true;
+        ejected = current;
         Apps.launch(current);
+        ejectAnim.restart();
+    }
+    SequentialAnimation {
+        id: ejectAnim
+        NumberAnimation { target: self; property: "rise"; to: 95; duration: 230; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
+        ScriptAction { script: self.letGo() }
+    }
+    function letGo(): void {
+        const c = slotCartridge();
+        if (c) {
+            const a = c.mapToItem(null, 0, 0), b = c.mapToItem(null, c.width, c.height);
+            Cartridges.eject(ejected, (a.x + b.x) / 2, (a.y + b.y) / 2, (b.x - a.x) / 350);
+        }
+        letGoDone = true;
         close();
+    }
+    property bool letGoDone: false
+    function slotCartridge(): var {
+        for (let i = 0; i < rail.count; i++) {
+            const p = rail.itemAt(i);
+            if (p && p.ao < 0.5 && p.app !== null) return p.cartridge;
+        }
+        return null;
     }
     onQueryChanged: { slide.enabled = false; sel = 0; pos = 0; slide.enabled = true; }
 
@@ -56,10 +88,10 @@ Widget {
         case Qt.Key_Home: choose(0); break;
         case Qt.Key_End: choose(results.length - 1); break;
         case Qt.Key_Return: case Qt.Key_Enter: launch(); break;
-        case Qt.Key_Backspace: query = query.slice(0, -1); break;
+        case Qt.Key_Backspace: if (!ejecting) query = query.slice(0, -1); break;
         default:
             // anything printable searches
-            if (e.text !== "" && e.text.charCodeAt(0) >= 32 && !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+            if (!ejecting && e.text !== "" && e.text.charCodeAt(0) >= 32 && !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
                 if (query.length < 24) query += e.text;
                 break;
             }
@@ -101,9 +133,11 @@ Widget {
         // bays' middles 280, 510 | 1090, 1310; the slot's 784), a little
         // larger in the slot
         Repeater {
+            id: rail
             model: 7
             Item {
                 id: place
+                property alias cartridge: cart
                 required property int index
                 readonly property int idx: Math.round(self.pos) + index - 3
                 readonly property real o: idx - self.pos                    // its offset from the slot
@@ -121,13 +155,16 @@ Widget {
                 opacity: Math.max(0, Math.min(1, (2.7 - ao) / 0.6))
 
                 Cartridge {
+                    id: cart
                     entry: place.app
+                    // the slot's: rising when launched; gone once let go
+                    opacity: place.ao < 0.5 && self.letGoDone ? 0 : 1
                     number: place.idx + 1
                     lit: place.ao < 0.5
                     scale: place.s
                     transformOrigin: Item.Center
                     x: unit.X(place.cx) - width / 2
-                    y: unit.Y(place.cy) - height / 2
+                    y: unit.Y(place.cy) - height / 2 - (place.ao < 0.5 ? self.rise : 0)
                 }
                 MouseArea {
                     x: unit.X(place.cx) - 350 * place.s / 2; y: unit.Y(place.cy) - 445 * place.s / 2
