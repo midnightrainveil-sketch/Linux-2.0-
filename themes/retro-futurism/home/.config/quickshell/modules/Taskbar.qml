@@ -153,7 +153,7 @@ PanelWindow {
                     opacity: cell.active || cellMouse.containsMouse ? 1 : 0.7
                     font.family: bar.figures
                     font.pixelSize: Math.round(21 * bar.s)
-                    font.weight: cell.active ? Font.Bold : Font.DemiBold
+                    font.weight: cell.active ? Font.ExtraBold : Font.Bold
                 }
                 // the mark under it: the red line for the one in view, else a
                 // dot (dark where windows are)
@@ -248,14 +248,14 @@ PanelWindow {
         onPaint: {
             const c = getContext("2d"); c.reset();
             const cx = width / 2, cy = height - 2;
-            c.lineCap = "round"; c.lineWidth = 2.6;
+            c.lineCap = "round"; c.lineWidth = 3.4;
             for (let i = 1; i <= 3; i++) {
                 c.strokeStyle = bar.ink;
                 c.globalAlpha = i <= level ? 1 : 0.22;
                 c.beginPath(); c.arc(cx, cy, 4 + i * 4.6, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
             }
             c.globalAlpha = level > 0 ? 1 : 0.4;
-            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 2.5, 0, Math.PI * 2); c.fill();
+            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 3.0, 0, Math.PI * 2); c.fill();
         }
         MouseArea {
             anchors.fill: parent; anchors.margins: -8
@@ -277,7 +277,7 @@ PanelWindow {
             c.beginPath();
             c.moveTo(2, 7); c.lineTo(6, 7); c.lineTo(11, 2.5); c.lineTo(11, 17.5); c.lineTo(6, 13); c.lineTo(2, 13);
             c.closePath(); c.fill();
-            c.lineWidth = 2.6; c.lineCap = "round";
+            c.lineWidth = 3.4; c.lineCap = "round";
             if (waves < 0) {
                 c.beginPath(); c.moveTo(15, 6.5); c.lineTo(22, 13.5); c.moveTo(22, 6.5); c.lineTo(15, 13.5); c.stroke();
             }
@@ -303,16 +303,16 @@ PanelWindow {
         readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
         Rectangle {
             width: 34; height: 18; radius: 5
-            color: "transparent"; border.width: 2.1; border.color: bar.ink
+            color: "transparent"; border.width: 2.8; border.color: bar.ink
             Rectangle {
-                x: 3; y: 3
-                height: parent.height - 6; radius: 2.5
-                width: Math.max(height, (parent.width - 6) * Power.percent / 100)
+                x: 4; y: 4
+                height: parent.height - 8; radius: 2
+                width: Math.max(height, (parent.width - 8) * Power.percent / 100)
                 color: batt.tone
                 Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
             }
         }
-        Rectangle { x: 35; y: 6; width: 2.6; height: 6; radius: 1.3; color: bar.ink }
+        Rectangle { x: 35; y: 5.5; width: 3.4; height: 7; radius: 1.5; color: bar.ink }
         MouseArea {
             anchors.fill: parent; anchors.margins: -8
             cursorShape: Qt.PointingHandCursor
@@ -332,7 +332,7 @@ PanelWindow {
         opacity: 0.85
         font.family: bar.figures
         font.pixelSize: Math.round(18 * bar.s)
-        font.weight: Font.DemiBold
+        font.weight: Font.Bold
         font.features: { "tnum": 1 }
     }
     Sep { x: bar.rx(1954); visible: Power.present }
@@ -344,7 +344,7 @@ PanelWindow {
         color: bar.ink
         font.family: bar.figures
         font.pixelSize: Math.round(24 * bar.s)
-        font.weight: Font.DemiBold
+        font.weight: Font.Bold
         font.letterSpacing: 1 * bar.s
         font.features: { "tnum": 1 }
     }
