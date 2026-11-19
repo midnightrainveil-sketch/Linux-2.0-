@@ -12,6 +12,12 @@ import numpy as np
 from collections import deque
 src, outFront, outCheck = sys.argv[1:4]   # front (with the reflections), a check picture
 im = Image.open(src).convert('RGB'); full = np.asarray(im).astype(float)
+# her mole, a little clearer (as on the lock screen): a soft dark-brown dot
+def mole(img, cx, cy, r=2.1, strength=0.85, colour=(82, 40, 27)):
+    yy, xx = np.mgrid[0:img.shape[0], 0:img.shape[1]]
+    a = np.clip((r + 0.8 - np.hypot(xx - cx, yy - cy)) / 1.6, 0, 1) * strength
+    img[:] = img * (1 - a[..., None]) + np.array(colour, float) * a[..., None]
+mole(full, 1136.4, 161.2)
 X0, Y0, X1, Y1 = 560, 0, 1440, 440                 # the window, and a margin
 I = full[Y0:Y1, X0:X1]; H, W, _ = I.shape
 R, G, B = I[..., 0], I[..., 1], I[..., 2]

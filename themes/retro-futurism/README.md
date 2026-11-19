@@ -16,6 +16,12 @@ Gadgets in steel, cream and sage with e-ink screens.
   (`"windowSeconds"` in `~/.config/ultra/retro-futurism/settings.json`;
   0 holds it still) and stops while a window is fullscreen or covers the
   whole glass.
+- **The ride**: the car sways very slightly all the time (slow waves that
+  never fall into a beat; the city outside, being far off, moves less than
+  the car), and every 18 to 45 seconds it runs over a rail joint: da-dum,
+  da-dum, a short jolt from each axle of the front bogie and then the back
+  one. `"sway"` and `"bumps"` (true / false) in settings.json.
+- Her mole is a little clearer, on the wallpaper as on the lock screen.
 - **Lock screen**: her room at night. The Suisei clock on the night stand
   is live: the time (the colon blinks each second) and the date in its
   dot-matrix strip. The rest of the picture stays still. Type the password

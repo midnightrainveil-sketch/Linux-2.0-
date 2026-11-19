@@ -35,10 +35,67 @@ PanelWindow {
         smooth: true
         cache: false
     }
+    // ---- the ride: the car sways a little, always, and now and then runs
+    // over a rail joint. Seconds of the ride so far, counted only while it
+    // can be seen.
+    QtObject {
+        id: ride
+        property real t: 0
+        property real bumpAt: -100          // when the car last met a joint
+        readonly property bool on: !win.ownPicture && !scene.hidden
+
+        // the sway: slow waves of different lengths, so it never falls
+        // into a beat (screen pixels; degrees)
+        readonly property real swayX: !Settings.sway ? 0
+            : 1.6 * Math.sin(t * 0.722) + 0.7 * Math.sin(t * 1.611 + 1.3)
+        readonly property real swayY: !Settings.sway ? 0
+            : 1.1 * Math.sin(t * 0.997 + 0.4) + 0.5 * Math.sin(t * 2.327 + 2.1)
+        readonly property real swayR: !Settings.sway ? 0 : 0.08 * Math.sin(t * 0.576 + 0.8)
+
+        // a joint: each axle gives a short jolt that dies away in a moment;
+        // two axles on the front bogie, then two on the back one
+        function jolt(s) {
+            if (s < 0 || s > 0.6) return 0;
+            return Math.exp(-s / 0.11) * Math.sin(2 * Math.PI * 9 * s);
+        }
+        readonly property real bump: {
+            const s = t - bumpAt;
+            if (s > 2) return 0;
+            return 4.0 * jolt(s) + 3.2 * jolt(s - 0.15) + 3.5 * jolt(s - 0.84) + 2.7 * jolt(s - 0.99);
+        }
+    }
+    FrameAnimation {
+        running: ride.on
+        onTriggered: ride.t += Math.min(frameTime, 0.1)
+    }
+    Timer {
+        // the next joint: somewhere between 18 and 45 seconds on
+        running: ride.on && Settings.bumps
+        repeat: true
+        interval: 30000
+        onTriggered: {
+            ride.bumpAt = ride.t;
+            interval = 18000 + Math.random() * 27000;
+        }
+    }
+
     Item {
         id: scene
         anchors.fill: parent
         visible: !win.ownPicture
+
+        // nothing of it to see: a fullscreen window, or one over the whole glass
+        readonly property bool hidden: Hypr.fullscreen
+            || Hypr.windows.some(w => w.x <= glass.x && w.y <= glass.y
+                                   && w.x + w.w >= glass.x + glass.width
+                                   && w.y + w.h >= glass.y + glass.height)
+
+        // the car moves; a touch larger than the screen, so no edge shows
+        scale: 1.012
+        transform: [
+            Translate { x: ride.swayX + ride.bump * 0.25; y: ride.swayY + ride.bump },
+            Rotation { origin.x: scene.width / 2; origin.y: scene.height / 2; angle: ride.swayR + ride.bump * 0.02 }
+        ]
 
         // the picture's own pixels (1585 x 992) to the screen, as
         // PreserveAspectCrop lays it
@@ -60,31 +117,31 @@ PanelWindow {
             // its viaduct level with the old one, at y 300)
             readonly property real loopW: 1580 * 0.862 * scene.k
             readonly property real loopH: 603 * 0.862 * scene.k
-            readonly property bool still: Settings.windowSeconds <= 0
-                // nothing to see: a fullscreen window, or one over the whole glass
-                || Hypr.fullscreen
-                || Hypr.windows.some(w => w.x <= glass.x && w.y <= glass.y
-                                       && w.x + w.w >= glass.x + glass.width
-                                       && w.y + w.h >= glass.y + glass.height)
-            Row {
-                id: view
-                y: (300 - 376 * 0.862) * scene.k
-                Repeater {
-                    model: 2
-                    Image {
-                        width: glass.loopW; height: glass.loopH
-                        source: Settings.art + "/window-view.jpg"
-                        fillMode: Image.Stretch
-                        asynchronous: true
-                        smooth: true
+            Item {
+                // the city is far off: it moves less than the car round it
+                x: -0.65 * (ride.swayX + ride.bump * 0.25)
+                y: -0.65 * (ride.swayY + ride.bump)
+                width: glass.width; height: glass.height
+                Row {
+                    id: view
+                    y: (300 - 376 * 0.862) * scene.k
+                    Repeater {
+                        model: 2
+                        Image {
+                            width: glass.loopW; height: glass.loopH
+                            source: Settings.art + "/window-view.jpg"
+                            fillMode: Image.Stretch
+                            asynchronous: true
+                            smooth: true
+                        }
                     }
-                }
-                NumberAnimation on x {
-                    from: 0; to: -glass.loopW
-                    duration: Math.max(1, Settings.windowSeconds) * 1000
-                    loops: Animation.Infinite
-                    running: !win.ownPicture
-                    paused: running && glass.still
+                    NumberAnimation on x {
+                        from: 0; to: -glass.loopW
+                        duration: Math.max(1, Settings.windowSeconds) * 1000
+                        loops: Animation.Infinite
+                        running: !win.ownPicture
+                        paused: running && (Settings.windowSeconds <= 0 || scene.hidden)
+                    }
                 }
             }
             // the glass itself: a faint cool cast over what lies outside
