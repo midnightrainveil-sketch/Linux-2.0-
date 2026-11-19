@@ -47,6 +47,18 @@ Gadgets in steel, cream and sage with e-ink screens.
   figures (workspaces, battery, time) are in Barlow (SIL Open Font License,
   shipped with the theme).
 
+- **Window frames** (`modules/Backdrop.qml`, `tools/make_frame.py`): every
+  window sits in the mock-up's sage-and-chrome frame (`art/WindowFrame.png`,
+  its corners kept and its sides stretched, so it fits any size and follows
+  the window as it opens, moves and resizes). Windows fill nearly the whole
+  screen, 45 px in; the frame lies in that margin with a small shaded gap
+  inside it. The window in use has the bright frame, the others are
+  dimmed. Hyprland draws no border of its own (`hypr/theme/look.lua`; its
+  gaps go with the frame values in `theme/Theme.qml`).
+- The taskbar runs the frames' full width (its middle band stretches), lies
+  over the windows, and hides below the screen while any are open: take the
+  pointer down to the bottom edge and it slides up.
+
 Everything else (launcher, panels, power menu) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups
 in [`art/`](art/).

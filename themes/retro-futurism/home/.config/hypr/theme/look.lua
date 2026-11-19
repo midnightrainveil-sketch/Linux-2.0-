@@ -1,15 +1,16 @@
--- Windows as prints laid on the picture: a hairline white frame, square
--- corners, no shadow, room under each for its caption (the shell writes
--- it: "#11 TERMINAL"). The one in use has the brighter frame, and the
--- shell puts focus marks round it.
+-- Windows in frames: the shell draws the mock-up's sage-and-chrome frame
+-- round each one (modules/Backdrop.qml), so Hyprland draws no border and
+-- leaves room for the frame. These gaps go with Theme.qml's frame values:
+--   gaps_out 45 = 22 (screen edge to frame) + 17 (the rim) + 6 (inside it)
+--   gaps_in  29 = 17 + 6 + 6, so 12 px lie between two frames
 local ink, grey = "f2efed", "6b6766"
 
 hl.config({
     general = {
-        border_size = 1,
-        gaps_in = 15,               -- 30 px between windows: the caption's line
-        gaps_out = 30,
-        float_gaps = 30,
+        border_size = 0,
+        gaps_in = 29,
+        gaps_out = 45,              -- nearly fullscreen, the frame in the margin
+        float_gaps = 45,
         layout = "dwindle",
         resize_on_border = true,
         col = {
@@ -19,7 +20,7 @@ hl.config({
     },
 
     decoration = {
-        rounding = 0,
+        rounding = 6,               -- inside the frame's rounded rim
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         dim_inactive = false,

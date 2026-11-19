@@ -158,26 +158,6 @@ PanelWindow {
         }
     }
 
-    // ---- the frame lines
-    Corners {
-        x: 27; y: Theme.barTop + 27
-        width: win.width - 54
-        height: win.height - Theme.barTop - Theme.barBottom - 54
-        arm: 34; weight: 3
-    }
-
-    // ---- the focusing mark, where no window lies over it
-    Item {
-        id: focusMark
-        width: 132; height: 108
-        x: Math.round((win.width - width) / 2)
-        y: Math.round((win.height - height) / 2)
-        visible: !Hypr.windows.some(w => w.x < x + width && w.x + w.w > x && w.y < y + height && w.y + w.h > y)
-        Corners { anchors.fill: parent; arm: 26; weight: 3 }
-        Rectangle { anchors.centerIn: parent; width: 20; height: 2; color: Theme.ink }
-        Rectangle { anchors.centerIn: parent; width: 2; height: 20; color: Theme.ink }
-    }
-
     // ---- the right-hand column
     Column {
         id: column
@@ -192,33 +172,50 @@ PanelWindow {
         Component.onCompleted: Panels.mailY = y + height + spacing
     }
 
-    // ---- captions and focus marks
+    // ---- the window frames: one round each window on the workspace in view
+    // (the mock-up's frame, its corners kept and its sides stretched), the
+    // rim a few px out from the window, the space between shaded. The one in
+    // use is bright; the others are dimmed. They follow the windows as
+    // Hyprland reports them (services/Hypr.qml), and step aside for a
+    // fullscreen window.
     Item {
+        id: frames
         anchors.fill: parent
         visible: !Hypr.fullscreen
         Repeater {
             model: Hypr.windows
             Item {
-                id: mark
+                id: framed
                 required property var modelData
-                required property int index
-                x: modelData.x; y: modelData.y
-                width: modelData.w; height: modelData.h
-                Label {
-                    x: 8
-                    y: parent.height + 8
-                    width: parent.width - 16
-                    font.pixelSize: 15
-                    tracking: 1.4
-                    color: mark.modelData.active ? Theme.ink : Theme.dim
-                    text: "#" + Hypr.activeId + (mark.index + 1) + "   " + Apps.label(mark.modelData.cls)
+                readonly property real out: Theme.frameRim + Theme.frameGap      // window edge to the frame's outer edge
+                x: modelData.x - out; y: modelData.y - out
+                width: modelData.w + 2 * out; height: modelData.h + 2 * out
+                Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+                // the gap between rim and window: a soft dark bed
+                Rectangle {
+                    x: Theme.frameRim - 2; y: x
+                    width: parent.width - 2 * x; height: parent.height - 2 * x
+                    radius: 10
+                    color: "#000000"
+                    opacity: 0.32
                 }
-                Corners {
-                    visible: mark.modelData.active && Hypr.windows.length > 1
-                    x: -7; y: -7
-                    width: parent.width + 14; height: parent.height + 14
-                    arm: 16; weight: 2
-                    color: Theme.accent
+                // the frame; drawn at the picture's own size, then scaled
+                BorderImage {
+                    readonly property real k: Theme.frameScale
+                    x: -2 * k; y: -2 * k                   // (2 px of air round the rim in the picture)
+                    width: (framed.width + 4 * k) / k; height: (framed.height + 4 * k) / k
+                    scale: k; transformOrigin: Item.TopLeft
+                    source: Quickshell.shellPath("assets/frame.png")
+                    border { left: 56; top: 56; right: 56; bottom: 56 }
+                    horizontalTileMode: BorderImage.Stretch
+                    verticalTileMode: BorderImage.Stretch
+                    smooth: true
+                    opacity: framed.modelData.active ? 1 : 0.62
+                    Behavior on opacity { NumberAnimation { duration: 180 } }
                 }
             }
         }

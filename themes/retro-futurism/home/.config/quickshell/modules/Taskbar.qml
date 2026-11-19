@@ -26,14 +26,37 @@ PanelWindow {
 
     anchors { bottom: true; left: true; right: true }
     implicitHeight: Math.ceil(128 * s)
-    exclusiveZone: Math.ceil((128 - 8) * s)
+    // it lies over the windows, never pushing them: with windows open it
+    // hides below the screen's edge, and comes up when the pointer goes
+    // down to the edge (or a panel of its is open)
+    exclusionMode: ExclusionMode.Ignore
     WlrLayershell.namespace: "retro-futurism-bar"
     color: "transparent"
+
+    readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
+    property bool hovered: false
+    readonly property bool shown: !hasWindows || hovered || linger.running
+        || Panels.open === "launcher" || Panels.open === "power"
+    Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
+    onHoveredChanged: if (!hovered) linger.restart()
+
+    // where the pointer counts: the whole bar while it is up, else a thin
+    // strip along the screen's bottom edge
+    mask: Region { item: bar.shown ? body : edgeStrip }
+    Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
+    HoverHandler { onHoveredChanged: bar.hovered = hovered }
+
+    // everything below slides as one
+    Item {
+        id: body
+        width: parent.width; height: parent.height
+        y: bar.shown ? 0 : height + 4
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one
     // from x 20 to 800, the right one from 900 to 2152.
-    readonly property real side: Math.round(width * 0.04)     // as in the reference: 4 % each side
+    readonly property real side: Theme.frameMargin         // its ends line up with a window's frame
     readonly property real s: Math.min(Theme.taskbarScale, (width - 2 * side) / 2032)
     readonly property real u: s / 0.6                      // for things sized by eye at 0.6
     readonly property real leftX: side - 15 * s            // (the piece has 15 px of air before the tube)
@@ -347,5 +370,6 @@ PanelWindow {
         font.weight: Font.Bold
         font.letterSpacing: 1 * bar.s
         font.features: { "tnum": 1 }
+    }
     }
 }
