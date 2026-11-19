@@ -75,7 +75,10 @@ Gadgets in steel, cream and sage with e-ink screens.
   state of each; and the **clock** (click the taskbar's time): the time and
   date, an alarm and a timer that ring even with the clock put away. The
   **power** menu (the laptop's power button, or the Arch logo): the same
-  silver device as the pass, its roller turned by the wheel. The rest are
+  silver device as the pass, its roller turned by the wheel; and the
+  **launcher** (Super + Space): the Kairo cartridge launcher, your apps as
+  cartridges on its rail, the wheel or the arrows to choose, typing to
+  search, Enter to launch. The rest are
   placeholders (their mock-up) until made.
 
 Everything else (panels, notifications) is still Viewfinder's,

@@ -23,7 +23,7 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | id | name | key | mock-ups |
 | --- | --- | --- | --- |
 | `typewriter` | Typewriter | Super + R | Typewriter |
-| `launcher` | App launcher | Super + Space (and the taskbar's port) | AppLauncher, AppLauncherEmpty, Cartridges |
+| `launcher` | App launcher (**built**: choosing and launching; the eject into the port next) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
 | `organizer` | Organizer | Super + C | Calendar |
 | `cassette` | Cassette player | Super + A | CassettePlayerWidget |
 | `vending` | Cassette vending | Super + V | CassetteVending |
@@ -32,7 +32,7 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `power` | Power (**built**) | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |
 | `pager` | Notifications | none: the shell brings it up | Notification |
 
-Built: the control deck, the clock and power. The rest are placeholders: their mock-up, and a tag
+Built: the control deck, the clock, power and the launcher. The rest are placeholders: their mock-up, and a tag
 that shows the last key or click they were given.
 
 ## Where they come up
