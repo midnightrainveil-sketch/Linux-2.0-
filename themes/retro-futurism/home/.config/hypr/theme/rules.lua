@@ -187,3 +187,5 @@ hl.window_rule({ name = "ultra-idle", match = { fullscreen_state_internal = 2 },
 ------------------------------------------------------------------ the shell's own surfaces
 -- the shell fades its own surfaces; no second animation
 hl.layer_rule({ name = "retro-futurism-layers", match = { namespace = "^retro-futurism-" }, no_anim = true })
+-- the widget stage: what lies behind it blurred (its dimming is half clear)
+hl.layer_rule({ name = "retro-futurism-stage", match = { namespace = "^retro-futurism-stage$" }, blur = true, ignore_alpha = 0 })

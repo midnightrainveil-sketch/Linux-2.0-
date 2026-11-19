@@ -34,19 +34,28 @@ ShellRoot {
     Mail { screen: shell.focusedScreen }
 
     // built only while open
-    LazyLoader { active: Panels.open === "launcher"; Launcher { screen: shell.focusedScreen } }
-    LazyLoader { active: Panels.open === "power"; PowerMenu { screen: shell.focusedScreen } }
     LazyLoader { active: Panels.open === "themes"; ThemesSheet { screen: shell.focusedScreen } }
+
+    // the widgets (widgets/index.json), on the screen in use
+    WidgetStage { screen: shell.focusedScreen }
 
     Lock { id: lockScreen }
 
     // ---- IPC, used by Hyprland's binds, the idle timer and scripts
     IpcHandler {
         target: "shell"
-        function launcher(): void { Panels.toggle("launcher"); }
-        function power(): void { Panels.toggle("power"); }
+        function launcher(): void { Widgets.toggle("launcher"); }
+        function power(): void { Widgets.toggle("power"); }
         function themes(): void { Panels.toggle("themes"); }
-        function close(): void { Panels.close(); }
+        function close(): void { Panels.close(); Widgets.close(); }
+    }
+    // the widgets: qs ipc call widget toggle typewriter (open, close, list)
+    IpcHandler {
+        target: "widget"
+        function toggle(id: string): void { Widgets.toggle(id); }
+        function open(id: string): void { Widgets.open(id); }
+        function close(): void { Widgets.close(); }
+        function list(): string { return Widgets.list.map(w => w.id + (w.callable === false ? " (shell only)" : "") + "\t" + w.key).join("\n"); }
     }
     IpcHandler {
         target: "lock"

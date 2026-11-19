@@ -60,7 +60,13 @@ Gadgets in steel, cream and sage with e-ink screens.
   the bottom edge and it slides up, and the windows lift with it, their
   frames ending just over it, its ends under theirs.
 
-Everything else (launcher, panels, power menu) is still Viewfinder's,
+- **Widgets** ([docs/widgets.md](docs/widgets.md)): the gadgets, called up
+  over the blurred desk (Super + R the typewriter, Super + Space the
+  launcher, Super + C the organizer ...) and worked with keys and clicks.
+  The system is built; each widget is a placeholder (its mock-up) until it
+  is made.
+
+Everything else (panels, notifications) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups
 in [`art/`](art/).
 

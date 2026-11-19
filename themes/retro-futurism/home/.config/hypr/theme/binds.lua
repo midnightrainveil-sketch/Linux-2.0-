@@ -9,10 +9,18 @@ local function exec(cmd) return hl.dsp.exec_cmd(cmd) end
 local function shell(target, fn) return exec("qs ipc call " .. target .. " " .. fn) end
 
 ------------------------------------------------------------------ the shell
-hl.bind(mod .. " + Space", shell("shell", "launcher"), { description = "Launcher" })
+-- the widgets (quickshell/widgets/index.json lists them, with these keys)
+local function widget(id) return exec("qs ipc call widget toggle " .. id) end
+hl.bind(mod .. " + R", widget("typewriter"), { description = "Typewriter" })
+hl.bind(mod .. " + Space", widget("launcher"), { description = "App launcher" })
+hl.bind(mod .. " + C", widget("organizer"), { description = "Organizer: calendar, agenda, tasks, notes" })
+hl.bind(mod .. " + A", widget("cassette"), { description = "Cassette player" })
+hl.bind(mod .. " + V", widget("vending"), { description = "Cassette vending: the music" })
+hl.bind(mod .. " + W", widget("clock"), { description = "Clock: time, alarm, timer" })
+hl.bind(mod .. " + S", widget("controls"), { description = "Control deck" })
+hl.bind(mod .. " + SHIFT + Escape", widget("power"), { description = "Power" })
 hl.bind(mod .. " + D", exec("ultra-desk"), { description = "The small terminal on the picture, back in its place" })
 hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Lock" })
-hl.bind(mod .. " + SHIFT + Escape", shell("shell", "power"), { description = "Power menu" })
 hl.bind(mod .. " + T", shell("shell", "themes"), { description = "Themes" })
 hl.bind(mod .. " + O", exec("ultra-notes"), { description = "Write the notes" })
 hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "Put every notification away" })

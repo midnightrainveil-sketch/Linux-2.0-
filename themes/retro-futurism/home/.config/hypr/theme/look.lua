@@ -24,7 +24,8 @@ hl.config({
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         dim_inactive = false,
-        blur = { enabled = false },
+        -- blur only where the shell asks for it (the widget stage)
+        blur = { enabled = true, size = 7, passes = 3, noise = 0.02, vibrancy = 0.12 },
         shadow = { enabled = false },
     },
 

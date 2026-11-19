@@ -40,7 +40,7 @@ PanelWindow {
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
     property bool hovered: false
     readonly property bool shown: !hasWindows || hovered || linger.running
-        || Panels.open === "launcher" || Panels.open === "power"
+        || Widgets.current === "launcher" || Widgets.current === "power"
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
@@ -116,7 +116,7 @@ PanelWindow {
         id: port
         x: bar.lx(52); y: bar.my(339)
         width: 143 * bar.s; height: 58 * bar.s
-        readonly property bool lit: Panels.open === "launcher"
+        readonly property bool lit: Widgets.current === "launcher"
         // the bezel catches a little light under the pointer
         Rectangle {
             x: (76 - 52) * bar.s; y: (350 - 339) * bar.s
@@ -153,7 +153,7 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: Panels.toggle("launcher")
+            onClicked: Widgets.toggle("launcher")
         }
     }
 
@@ -247,13 +247,13 @@ PanelWindow {
         ArchLogo {
             anchors.verticalCenter: parent.verticalCenter
             width: 36 * bar.s; height: 36 * bar.s
-            color: archMouse.containsMouse || Panels.open === "power" ? bar.amber : bar.paper
+            color: archMouse.containsMouse || Widgets.current === "power" ? bar.amber : bar.paper
             MouseArea {
                 id: archMouse
                 anchors.fill: parent; anchors.margins: -8
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Panels.toggle("power")
+                onClicked: Widgets.toggle("power")
             }
         }
     }
