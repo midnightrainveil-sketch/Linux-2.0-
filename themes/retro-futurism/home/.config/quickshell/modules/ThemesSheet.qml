@@ -11,7 +11,7 @@ import qs.components
 Sheet {
     id: sheet
     name: "themes"
-    title: "Themes"
+    heading: "Themes"
     panelWidth: 1040
 
     property var themes: []

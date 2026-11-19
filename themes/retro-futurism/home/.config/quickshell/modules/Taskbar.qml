@@ -72,15 +72,6 @@ PanelWindow {
     Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
     HoverHandler { onHoveredChanged: bar.hovered = hovered }
 
-    // everything below slides as one
-    Item {
-        id: body
-        width: parent.width; height: parent.height
-        y: bar.shown ? 0 : height + 4
-        x: bar.shift
-        Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.InOutCubic } }
-        Behavior on y { NumberAnimation { duration: bar.shown ? 420 : 260; easing.type: bar.shown ? Easing.OutBack : Easing.OutCubic; easing.overshoot: 0.8 } }
-
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one
     // from x 20 to 800, the right one from 900 to 2152.
@@ -111,6 +102,16 @@ PanelWindow {
     readonly property string face: "Inter"
     readonly property string figures: "Barlow"     // the numbers: workspaces, battery, time
     readonly property real icon: s / 0.78 * 0.74   // the readouts' icons: small and fine
+
+    // everything below slides as one
+    Item {
+        id: body
+        width: parent.width; height: parent.height
+        y: bar.shown ? 0 : height + 4
+        x: bar.shift
+        Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.InOutCubic } }
+        Behavior on y { NumberAnimation { duration: bar.shown ? 420 : 260; easing.type: bar.shown ? Easing.OutBack : Easing.OutCubic; easing.overshoot: 0.8 } }
+
 
     // ---- the arm the bar rides out on (seen when it is shifted): a mount
     // behind the bar's home place, a chrome sleeve, a rod running into the bar's

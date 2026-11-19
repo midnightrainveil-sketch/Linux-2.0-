@@ -16,9 +16,9 @@ Singleton {
     readonly property string art: dataHome + "/ultra/retro-futurism"
     readonly property string user: Quickshell.env("USER") || "user"
 
-    property var data: ({})
+    property var values: ({})
     function get(key: string, fallback: var): var {
-        const v = root.data[key];
+        const v = root.values[key];
         return v === undefined || v === null ? fallback : v;
     }
 
@@ -43,7 +43,7 @@ Singleton {
         printErrors: false
         onFileChanged: reload()
         onLoaded: {
-            try { root.data = JSON.parse(file.text()); }
+            try { root.values = JSON.parse(file.text()); }
             catch (e) { console.warn("retro-futurism: settings.json is not valid JSON:", e); }
         }
     }

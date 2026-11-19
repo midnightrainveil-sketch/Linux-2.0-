@@ -12,7 +12,7 @@ PanelWindow {
     id: win
 
     property string name: ""
-    property string title: ""
+    property string heading: ""
     property int panelWidth: 720
     readonly property bool shown: Panels.open === name
     default property alias content: holder.data
@@ -35,7 +35,7 @@ PanelWindow {
 
     Box {
         id: box
-        title: win.title
+        title: win.heading
         width: win.panelWidth
         height: headHeight + holder.childrenRect.height
         anchors.horizontalCenter: parent.horizontalCenter
