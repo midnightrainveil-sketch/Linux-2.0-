@@ -125,9 +125,9 @@ PanelWindow {
         id: arm
         visible: body.x > 1
         // its mount sits where the bar's left end is at home (behind it then)
-        readonly property real left: -body.x + bar.lx(70)
+        readonly property real mount: -body.x + bar.lx(70)
         readonly property real cy: bar.my(369)                  // the tube's middle
-        readonly property real sleeveLen: Math.min(420 * bar.s / 0.78, Math.max(0, (bar.lx(60) - left) * 0.55))
+        readonly property real sleeveLen: Math.min(420 * bar.s / 0.78, Math.max(0, (bar.lx(60) - mount) * 0.55))
         component Chrome: Rectangle {
             gradient: Gradient {
                 GradientStop { position: 0.00; color: "#6c6862" }
@@ -140,20 +140,20 @@ PanelWindow {
         }
         // the rod (thinner), from the sleeve into the bar's end
         Chrome {
-            x: arm.left + 18 + arm.sleeveLen - 12; width: bar.lx(60) - x
+            x: arm.mount + 18 + arm.sleeveLen - 12; width: bar.lx(60) - x
             y: arm.cy - height / 2; height: 17 * bar.s / 0.78
             radius: height / 2
         }
         // the sleeve
         Chrome {
-            x: arm.left + 14; width: arm.sleeveLen
+            x: arm.mount + 14; width: arm.sleeveLen
             y: arm.cy - height / 2; height: 30 * bar.s / 0.78
             radius: 5
             Rectangle { anchors.fill: parent; radius: parent.radius; color: "transparent"; border.width: 1; border.color: "#4e4a44" }
         }
         // a collar where the rod comes out
         Rectangle {
-            x: arm.left + 14 + arm.sleeveLen - 10; width: 16 * bar.s / 0.78
+            x: arm.mount + 14 + arm.sleeveLen - 10; width: 16 * bar.s / 0.78
             y: arm.cy - height / 2; height: 40 * bar.s / 0.78
             radius: 4
             gradient: Gradient {
@@ -165,7 +165,7 @@ PanelWindow {
         }
         // the mount on the screen's edge: a cream plate, a rust corner, two bolts
         Rectangle {
-            x: arm.left - 8; width: 30 * bar.s / 0.78
+            x: arm.mount - 8; width: 30 * bar.s / 0.78
             y: arm.cy - height / 2; height: 74 * bar.s / 0.78
             radius: 6
             gradient: Gradient {
@@ -310,7 +310,7 @@ PanelWindow {
                 required property int modelData
                 required property int index
                 readonly property bool active: modelData === Hypr.activeId
-                readonly property var st: Hypr.state[modelData] ?? ({ occupied: false, urgent: false })
+                readonly property var st: Hypr.spaces[modelData] ?? ({ occupied: false, urgent: false })
                 x: (380 - 304) * bar.s + index * spaces.step - width / 2
                 width: spaces.step; height: spaces.height
                 Text {

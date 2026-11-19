@@ -29,7 +29,7 @@ Singleton {
         return out;
     }
     // plain values, read afresh on each change (no workspace object is kept)
-    readonly property var state: {
+    readonly property var spaces: {
         const out = {};
         for (const w of Hyprland.workspaces.values) {
             if (!w || w.id < 1 || w.id > 9) continue;
