@@ -4,7 +4,7 @@
     python3 tools/make_clock.py art/ClockWidget.png home/.config/quickshell/widgets/clock
 
 Makes, in the widget's folder:
-    clock.png       the clock lifted off its white ground (its shadow kept),
+    clock.png       the clock lifted off its white ground (no shadow),
                     what the widget draws erased: the digits and their glow,
                     the date's dots, the lit lamp (made like the others);
                     the brand made SUISEI (as the lock screen's clock)
@@ -132,24 +132,31 @@ ox, oy = 572 - layer.width, 192
 reg = img[oy:oy + h, ox:ox + layer.width]
 reg[:] = reg * (1 - ink[..., None]) + np.array([70, 64, 56]) * ink[..., None]
 
-# ---- off the white: flood the ground in from the corners; the shadow kept
+# ---- off the white: the ground, every patch of it (also inside the
+# handles' loops, which the corners cannot reach), and no shadow kept
 lum0 = src0.mean(2); sat0 = src0.max(2) - src0.min(2)
-ground = (lum0 > 226) & (sat0 < 22)
+ground = (lum0 > 222) & (sat0 < 24)
 bg = np.zeros((H, W), bool)
-q = deque([(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)])
-for px, py in q: bg[py, px] = True
-while q:
-    px, py = q.popleft()
-    for nx, ny in ((px + 1, py), (px - 1, py), (px, py + 1), (px, py - 1)):
-        if 0 <= nx < W and 0 <= ny < H and ground[ny, nx] and not bg[ny, nx]:
-            bg[ny, nx] = True; q.append((nx, ny))
-# soft edge: pixels of the clock touching the ground, eased against it
+seen = np.zeros((H, W), bool)
+for sy in range(0, H, 2):
+    for sx in np.nonzero(ground[sy] & ~seen[sy])[0]:
+        comp = [(sx, sy)]; seen[sy, sx] = True; q = deque(comp)
+        while q:
+            px, py = q.popleft()
+            for nx, ny in ((px + 1, py), (px - 1, py), (px, py + 1), (px, py - 1)):
+                if 0 <= nx < W and 0 <= ny < H and ground[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True; q.append((nx, ny)); comp.append((nx, ny))
+        if len(comp) > 300:                     # a glint on the metal is far smaller
+            xs_, ys_ = zip(*comp); bg[list(ys_), list(xs_)] = True
+# the shadow under the clock (soft grey on the ground) goes too: whatever
+# below its foot is lighter than its darkest metal
+foot = np.zeros((H, W), bool); foot[800:, :] = True
+bg |= foot & (lum0 > 150) & (sat0 < 30)
 edge = ~bg & grow(bg, 1)
-shadow = np.clip((250 - lum0) / 250 * 1.5, 0, 0.55)
-alpha = np.where(bg, shadow, 1.0)
+alpha = np.where(bg, 0.0, 1.0)
 alpha = np.where(edge, np.clip((255 - lum0) / 70, 0.35, 1), alpha)
 rgb = np.where(bg[..., None], 0, img)
-ys, xs = np.nonzero(~bg | (alpha > 0.03))
+ys, xs = np.nonzero(alpha > 0.03)
 X0, Y0 = int(xs.min()) - 2, int(ys.min()) - 2
 X1, Y1 = int(xs.max()) + 3, int(ys.max()) + 3
 Image.fromarray(np.dstack([np.clip(rgb, 0, 255), alpha * 255])[Y0:Y1, X0:X1].astype('uint8'), 'RGBA') \

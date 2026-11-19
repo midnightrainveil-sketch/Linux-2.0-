@@ -180,11 +180,12 @@ Widget {
             width: 800; height: 270
             cellW: 800; cellH: 270
             digitX: [30, 194, 446, 608]
-            top: 23; dw: 140; dh: 221; t: 28; gap: 4; lean: 0.05
-            colonX: 394.25; colonX2: 392.4; dotR: 14
-            glowWide: 26; glowNear: 8
-            lit: "#ffad38"; glow: "#ff8a1e"
-            unlit: Qt.rgba(1, 0.6, 0.2, 0.055)
+            digitTop: 23; dw: 140; dh: 221; t: 25; tv: 32; miter: true; gap: 8; lean: 0.05
+            colonX: 394.25; colonX2: 392.4; dotR: 14.5; dotSquare: true
+            glowWide: 18; glowNear: 5
+            lit: "#f7a030"; glow: "#ff8a1e"
+            unlit: Qt.rgba(1, 0.6, 0.2, 0.035)
+            relief: true
             text: self.pairs.slice(0, 2) + ":" + self.pairs.slice(2)
             colon: self.mode === 0 && self.ringing === "" ? clock.date.getSeconds() % 2 === 0
                  : self.ringing !== "" ? self.blink : true
