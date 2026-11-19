@@ -24,7 +24,7 @@ is portable.
 | [![Archive](themes/archive/preview-day.jpg)](themes/archive/) | **[Archive](themes/archive/)** · `archive`<br>A botanical herbarium on paper. Windows are typed index cards on the sheet, the wallpaper is the month's pressed specimen, the bar is the printed footer of the page. Grey paper and graphite by day, cyanotype blue at night. |
 | [![Compartment 19](themes/night-service/preview-day.jpg)](themes/night-service/) | **[Compartment 19](themes/night-service/)** · `night-service`<br>A night in compartment 19 of the Vienna to Venice sleeper, 1930s. Keepsakes from the journey on the sheet, a postcard and a luggage label, the brass key on a timetable, a music box, a little train along the bar. |
 | [![Viewfinder](themes/viewfinder/preview.jpg)](themes/viewfinder/) | **[Viewfinder](themes/viewfinder/)** · `viewfinder`<br>The desktop seen through a camera on a rainy night under the blossom: black and white with a little pink. Workspaces are frames of a film strip, windows are prints with a caption under each. |
-| *in the works* | **Retro Futurism**<br>The next theme, now being designed: tomorrow as it was imagined yesterday. Mock-ups first; it will arrive as its own box in `themes/`. |
+| *in the works* | **[Retro Futurism](themes/retro-futurism/)** · `retro-futurism`<br>The next theme, now being designed: tomorrow as it was imagined yesterday. Mock-ups first; it will arrive as its own box in `themes/`. |
 
 <sub>Previews are rendered from each shell's own QML.</sub>
 
@@ -94,6 +94,7 @@ themes/                   THE THEMES, one self-contained box each
   archive/                  the herbarium
   night-service/            Compartment 19
   viewfinder/               the camera
+  retro-futurism/           in the works: art/ for its mock-ups
     theme.json, preview*.jpg, packages.txt
     home/                   linked into $HOME while the theme is on
     system/plymouth/        its start-up and shut-down page
