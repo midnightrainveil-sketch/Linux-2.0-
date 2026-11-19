@@ -82,7 +82,7 @@ Widget {
         ScriptAction { script: { Cartridges.lifting = false; self.close(); } }
     }
     // where the slot is across the screen, for the bar to slide its port under
-    onOpened: Cartridges.slotX = unit.mapToItem(null, unit.X(784), 0).x
+    onOpened: Cartridges.slotX = unit.mapToItem(null, unit.X(791), 0).x
     onClosing: if (!ejecting) Cartridges.slotX = 0
     function slotCartridge(): var {
         for (let i = 0; i < rail.count; i++) {
@@ -145,7 +145,7 @@ Widget {
 
         // ---- the rail: seven places, each showing the app at its offset from
         // the slot; as the rail slides they move between the bays (the side
-        // bays' middles 280, 510 | 1090, 1310; the slot's 784), a little
+        // bays' middles 280, 510 | 1090, 1310; the slot's 791, between its rods), a little
         // larger in the slot
         Repeater {
             id: rail
@@ -159,7 +159,7 @@ Widget {
                 readonly property var app: idx >= 0 && idx < self.results.length ? self.results[idx] : null
                 readonly property real ao: Math.abs(o)
                 readonly property real cx: {
-                    const P = [50, 280, 510, 784, 1090, 1310, 1540];       // offsets -3 .. 3
+                    const P = [50, 280, 510, 791, 1090, 1310, 1540];       // offsets -3 .. 3
                     const f = Math.max(-3, Math.min(3, o)) + 3, i = Math.min(5, Math.floor(f));
                     return P[i] + (P[i + 1] - P[i]) * (f - i);
                 }

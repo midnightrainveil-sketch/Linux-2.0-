@@ -40,7 +40,7 @@ PanelWindow {
         width: 36 * lifter.k; height: (160 + Cartridges.drop) * lifter.k
         source: lifter.dir + "rod-right.png"; fillMode: Image.Stretch; smooth: true
     }
-    // the cartridge (the slot's: middle 784, 304; scale 0.68), into the port
+    // the cartridge (the slot's: middle 791, 304, between the rods; scale 0.68), into the port
     Item {
         visible: Cartridges.flying
         x: 0; y: 0
@@ -51,7 +51,7 @@ PanelWindow {
             entry: Cartridges.flyEntry
             scale: Cartridges.slotScale * lifter.k
             transformOrigin: Item.Center
-            x: lifter.X(784) - width / 2
+            x: lifter.X(791) - width / 2
             y: lifter.Y(304) - height / 2
         }
     }
