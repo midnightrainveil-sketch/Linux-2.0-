@@ -43,9 +43,9 @@ Gadgets in steel, cream and sage with e-ink screens.
   profile) and the time.
   The cartridge port is painted into the picture by the tool (a slot in a
   chamfered steel bezel with two screws, the cartridges' four gold contacts
-  on its back wall); its contacts glow warm while the launcher is open.
-  The clock is in Share Tech Mono (SIL Open Font License, shipped with the
-  theme).
+  on its floor); its contacts glow warm while the launcher is open. The
+  figures (workspaces, battery, time) are in Barlow (SIL Open Font License,
+  shipped with the theme).
 
 Everything else (launcher, panels, power menu) is still Viewfinder's,
 copied into this box, until each part gets its own design from the mock-ups

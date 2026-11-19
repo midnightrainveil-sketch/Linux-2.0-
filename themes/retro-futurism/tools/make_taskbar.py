@@ -36,7 +36,7 @@ erase(1682, 344, 2078, 392)       # Wi-Fi, volume, battery, the time
 # ---- the cartridge port, painted into the left plate (x 52-195, y 339-397):
 # a slot let into the plate, a chamfered steel bezel with two small screws,
 # and inside, seen a little from above, its floor and the four gold contacts
-# of the cartridges at the back
+# of the cartridges down on its floor
 from PIL import ImageFilter
 def paint_port():
     X0, Y0, X1, Y1 = 52, 339, 195, 397
@@ -104,11 +104,10 @@ def paint_port():
     # the side walls, each in its own light
     base.alpha_composite(clip(grad((mx0, my0, mx0 + 3.2, my1), [(0, (70, 67, 62, 200)), (1, (20, 19, 18, 0))], 0, True), inside))
     base.alpha_composite(clip(grad((mx1 - 3.2, my0, mx1, my1), [(0, (10, 10, 10, 0)), (1, (34, 32, 30, 200))], 0, True), inside))
-    # 4. the four contacts on the back wall: gold pads like the cartridges',
-    # each in a dark seat, with a bright edge, a soft glint and a reflection
-    # on the floor below
+    # 4. the four contacts on the floor: gold pads like the cartridges',
+    # each in a dark seat, with a bright edge and a soft glint
     cw, ch, cg = 10.6, 9.0, 5.6
-    tot = 4 * cw + 3 * cg; cx0 = (mx0 + mx1) / 2 - tot / 2; cy0 = my0 + 3.6
+    tot = 4 * cw + 3 * cg; cx0 = (mx0 + mx1) / 2 - tot / 2; cy0 = my1 - 2.2 - ch   # down on the floor
     for i in range(4):
         x = cx0 + i * (cw + cg)
         base.alpha_composite(shape((x - 0.7, cy0 - 0.6, x + cw + 0.7, cy0 + ch + 0.9), 1.6, (2, 2, 2, 255)))
@@ -122,8 +121,8 @@ def paint_port():
         # pressed spring line down each pad
         ln = L(); ImageDraw.Draw(ln).line([P(x + cw / 2, cy0 + 2.4), P(x + cw / 2, cy0 + ch - 1.6)], fill=(120, 84, 30, 150), width=max(1, round(0.45 * Z)))
         base.alpha_composite(clip(ln, pad))
-        rf = grad((x + 0.6, cy0 + ch + 1.6, x + cw - 0.6, my1 - 0.8), [(0, (200, 158, 80, 70)), (1, (200, 158, 80, 0))], 0.8)
-        base.alpha_composite(clip(rf.filter(ImageFilter.GaussianBlur(0.5 * Z)), inside))
+        rf = grad((x + 0.6, cy0 - 5.5, x + cw - 0.6, cy0 - 0.8), [(0, (200, 158, 80, 0)), (1, (200, 158, 80, 55))], 0.8)
+        base.alpha_composite(clip(rf.filter(ImageFilter.GaussianBlur(0.5 * Z)), inside))   # their glow on the back wall
     # 5. ambient occlusion in the mouth's corners, and the lip's light
     ao = L(); ImageDraw.Draw(ao).rounded_rectangle([*P(mx0, my0), *P(mx1, my1)], round(2.4 * Z), outline=(0, 0, 0, 150), width=round(1.0 * Z))
     base.alpha_composite(clip(ao.filter(ImageFilter.GaussianBlur(0.8 * Z)), inside))

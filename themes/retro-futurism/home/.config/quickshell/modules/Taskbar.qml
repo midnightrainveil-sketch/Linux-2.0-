@@ -51,6 +51,8 @@ PanelWindow {
     readonly property color paper: "#f6efdf"      // light lettering on the band
     readonly property color amber: "#ffb04c"
     readonly property string face: "Inter"
+    readonly property string figures: "Barlow"     // the numbers: workspaces, battery, time
+    readonly property real icon: s / 0.78 * 0.82   // the readouts' icons: small and fine
 
     // ---- the bar itself
     Image {
@@ -72,14 +74,14 @@ PanelWindow {
     }
 
     component Sep: Rectangle {
-        width: Math.max(1, 2.4 * bar.s); height: 38 * bar.s
+        width: Math.max(1, 1.6 * bar.s); height: 28 * bar.s
         y: bar.my(368) - height / 2
-        color: "#3a352d"; opacity: 0.75
+        color: "#3a352d"; opacity: 0.4
     }
 
     // ======== the port: where the app cartridges go in (plate 52-195). The
     // port itself is in the picture (bezel 76-171 x 350-386, its mouth
-    // 87-160 x 355-381, four contacts along the back from x 94.3, y 358.6).
+    // 87-160 x 355-381, four contacts on its floor from x 94.3, y 369.8).
     // While the launcher is open its contacts glow warm, as if live.
     Item {
         id: port
@@ -103,17 +105,17 @@ PanelWindow {
                 model: 4
                 Rectangle {
                     required property int index
-                    x: (94.3 + index * 16.2 - 52) * bar.s; y: (358.6 - 339) * bar.s
+                    x: (94.3 + index * 16.2 - 52) * bar.s; y: (369.8 - 339) * bar.s
                     width: 10.6 * bar.s; height: 9 * bar.s; radius: 1.3 * bar.s
                     color: "#ffd27a"; opacity: 0.45
                 }
             }
             Rectangle {
-                x: (89 - 52) * bar.s; y: (369 - 339) * bar.s
-                width: 69 * bar.s; height: 11 * bar.s; radius: 2 * bar.s
+                x: (89 - 52) * bar.s; y: (358 - 339) * bar.s
+                width: 69 * bar.s; height: 12 * bar.s; radius: 2 * bar.s
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#55ffb04c" }
-                    GradientStop { position: 1.0; color: "#00ffb04c" }
+                    GradientStop { position: 0.0; color: "#00ffb04c" }
+                    GradientStop { position: 1.0; color: "#55ffb04c" }
                 }
             }
         }
@@ -148,9 +150,9 @@ PanelWindow {
                     anchors.verticalCenterOffset: (362 - 339) * bar.s
                     text: cell.modelData
                     color: bar.ink
-                    opacity: cell.active || cellMouse.containsMouse ? 1 : 0.85
-                    font.family: bar.face
-                    font.pixelSize: Math.round(25 * bar.s)
+                    opacity: cell.active || cellMouse.containsMouse ? 1 : 0.7
+                    font.family: bar.figures
+                    font.pixelSize: Math.round(23 * bar.s)
                     font.weight: cell.active ? Font.DemiBold : Font.Medium
                 }
                 // the mark under it: the red line for the one in view, else a
@@ -239,21 +241,21 @@ PanelWindow {
     // Wi-Fi: three arcs and a dot, lit to the signal (mock-up x 1711)
     Canvas {
         id: wifi
-        width: 24; height: 20; scale: bar.u
+        width: 24; height: 20; scale: bar.icon
         x: bar.rx(1703) - width / 2; y: bar.my(368) - height / 2
         readonly property int level: !Net.online ? 0 : Net.wired ? 3 : Math.max(1, Math.ceil(Net.signal * 3))
         onLevelChanged: requestPaint()
         onPaint: {
             const c = getContext("2d"); c.reset();
             const cx = width / 2, cy = height - 2;
-            c.lineCap = "round"; c.lineWidth = 2.6;
+            c.lineCap = "round"; c.lineWidth = 1.9;
             for (let i = 1; i <= 3; i++) {
                 c.strokeStyle = bar.ink;
                 c.globalAlpha = i <= level ? 1 : 0.22;
                 c.beginPath(); c.arc(cx, cy, 4 + i * 4.6, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
             }
             c.globalAlpha = level > 0 ? 1 : 0.4;
-            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 2.4, 0, Math.PI * 2); c.fill();
+            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 2.1, 0, Math.PI * 2); c.fill();
         }
         MouseArea {
             anchors.fill: parent; anchors.margins: -8
@@ -265,7 +267,7 @@ PanelWindow {
     // volume: the speaker and as many waves as it is loud (x 1791)
     Canvas {
         id: vol
-        width: 26; height: 20; scale: bar.u
+        width: 26; height: 20; scale: bar.icon
         x: bar.rx(1771) - width / 2; y: bar.my(368) - height / 2
         readonly property int waves: Audio.muted ? -1 : Audio.volume <= 0.01 ? 0 : Audio.volume < 0.4 ? 1 : 2
         onWavesChanged: requestPaint()
@@ -275,7 +277,7 @@ PanelWindow {
             c.beginPath();
             c.moveTo(2, 7); c.lineTo(6, 7); c.lineTo(11, 2.5); c.lineTo(11, 17.5); c.lineTo(6, 13); c.lineTo(2, 13);
             c.closePath(); c.fill();
-            c.lineWidth = 2.4; c.lineCap = "round";
+            c.lineWidth = 1.9; c.lineCap = "round";
             if (waves < 0) {
                 c.beginPath(); c.moveTo(15, 6.5); c.lineTo(22, 13.5); c.moveTo(22, 6.5); c.lineTo(15, 13.5); c.stroke();
             }
@@ -295,17 +297,17 @@ PanelWindow {
     // while charging, rust when low
     Item {
         id: batt
-        width: 38; height: 18; scale: bar.u
+        width: 38; height: 18; scale: bar.icon
         x: bar.rx(1851) - width / 2; y: bar.my(368) - height / 2
         visible: Power.present
         readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
         Rectangle {
             width: 34; height: 18; radius: 5
-            color: "transparent"; border.width: 1.8; border.color: bar.ink
+            color: "transparent"; border.width: 1.5; border.color: bar.ink
             Rectangle {
-                x: 3.5; y: 3.5
-                height: parent.height - 7; radius: 2.5
-                width: Math.max(height, (parent.width - 7) * Power.percent / 100)
+                x: 3; y: 3
+                height: parent.height - 6; radius: 2.5
+                width: Math.max(height, (parent.width - 6) * Power.percent / 100)
                 color: batt.tone
                 Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
             }
@@ -327,8 +329,9 @@ PanelWindow {
         y: bar.my(368) - height / 2
         text: Power.percent + "%"
         color: Power.low ? bar.rust : bar.ink
-        font.family: bar.face
-        font.pixelSize: Math.round(22 * bar.s)
+        opacity: 0.85
+        font.family: bar.figures
+        font.pixelSize: Math.round(20 * bar.s)
         font.weight: Font.Medium
         font.features: { "tnum": 1 }
     }
@@ -339,8 +342,10 @@ PanelWindow {
         y: bar.my(368) - height / 2
         text: Clock.time
         color: bar.ink
-        font.family: "Share Tech Mono"
-        font.pixelSize: Math.round(36 * bar.s)
-        font.letterSpacing: 1.5 * bar.s
+        font.family: bar.figures
+        font.pixelSize: Math.round(27 * bar.s)
+        font.weight: Font.Medium
+        font.letterSpacing: 1 * bar.s
+        font.features: { "tnum": 1 }
     }
 }
