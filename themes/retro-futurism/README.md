@@ -44,7 +44,8 @@ places the live parts in the picture's own pixels (1671 x 941):
   most alike (it follows a tower's edge), so the strip repeats without a seam.
 - `tools/make_wallpaper_front.py` makes `wallpaper-front.png`: the
   wallpaper with the glass see-through, except where she is in front of it
-  (her hair is warm, the city cool: the warm region joined to her face), and
+  (her hair is warm, the city cool: the warm region joined to her face; along
+  her outline a soft matte, with the old view's colour taken back out), and
   the reflected ceiling lights kept over the glass.
 - `modules/Backdrop.qml` lays the view in the glass (592,0 to 1400,403 in
   the 1585 x 992 picture) and the front over it.
