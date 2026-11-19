@@ -99,15 +99,22 @@ Shut down light the red lamp.
 
 ## The launcher, and the cartridge in the port
 
-On Enter the app starts, its cartridge rises out of the slot, and the
-launcher lets it go (`Cartridges.eject`, with its place and size on the
-screen); `modules/Flight.qml`, an overlay that takes no clicks, flies it in
-an arc down to the taskbar's port and drops it in (`Cartridges.land`). The
-taskbar stays up for it, and keeps a cartridge standing in the port (its
-panel is taller for it, its pointer area just the tube and the cartridge):
-the app of the window under the pointer (focus follows the pointer, so
-`Hypr.activeClass`), else the last one launched. It changes at once as the
-pointer goes from window to window; a click on it opens the launcher.
+With the launcher up, the taskbar moves over its stage (out of the blur) and
+slides right on its arm (drawn in `modules/Taskbar.qml`, mounted at the
+screen's left edge) until its port is under the launcher's slot. On Enter
+the app starts and the launcher hands its cartridge to the lifter
+(`Cartridges.eject`: its place and size, and where the rods start, under the
+clamp); `modules/Flight.qml`, an overlay that takes no clicks, runs two rods
+and a yoke down from the clamp, lowers the cartridge straight into the port
+(a click as it seats), lets go (`Cartridges.land`) and snaps the rods back
+up. The launcher is then put away and the bar slides home.
+
+The bar keeps a cartridge standing in the port (its panel is taller for it,
+its pointer area just the tube and the cartridge): the app of the window
+under the pointer (focus follows the pointer, so `Hypr.activeClass`), else
+the last one launched; a click on it opens the launcher. The bar up for a
+widget lies over the windows; only the pointer at the screen's foot makes
+room for it.
 
 ## Building one
 

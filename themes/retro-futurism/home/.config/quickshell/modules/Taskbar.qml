@@ -34,9 +34,13 @@ PanelWindow {
     // frames end 10 px over the bar's tube, its ends under theirs. (The
     // frames' bottom lies frameMargin above the room kept; the tube's top is
     // 8 px of the mock-up below the panel's top.)
-    exclusiveZone: bar.shown && bar.hasWindows
+    // (only when it comes up for the pointer: up for a widget, it lies over
+    // the windows and leaves them be)
+    exclusiveZone: bar.reserve && bar.hasWindows
         ? Math.round(128 * s - 8 * s + 10 - Theme.frameMargin) : 0
     WlrLayershell.namespace: "retro-futurism-bar"
+    // with the launcher up the bar sits over its stage, out of the blur
+    WlrLayershell.layer: bar.docking ? WlrLayer.Overlay : WlrLayer.Top
     color: "transparent"
 
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
@@ -47,9 +51,14 @@ PanelWindow {
     Connections { target: Scene; function onUnlocked() { welcome.restart(); } }
     // a cartridge just in: the bar stays up a moment, to see it
     Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
-    readonly property bool shown: !Scene.locked && (!hasWindows || hovered || linger.running || welcome.running)
-        || Cartridges.flying
-        || Widgets.current === "launcher" || Widgets.current === "power" || Widgets.current === "controls"
+    readonly property bool reserve: !Scene.locked && (hovered || linger.running || welcome.running)
+    readonly property bool shown: !Scene.locked && (!hasWindows || reserve)
+        || docking
+        || Widgets.current === "power" || Widgets.current === "controls"
+    // the launcher: the bar slides right on its arm until its port is under
+    // the launcher's slot, and stays there until the cartridge is in
+    readonly property bool docking: Widgets.current === "launcher" || Cartridges.flying
+    readonly property real shift: docking ? Math.max(0, width / 2 - lx(123.5)) : 0
     Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
 
@@ -67,6 +76,8 @@ PanelWindow {
         id: body
         width: parent.width; height: parent.height
         y: bar.shown ? 0 : height + 4
+        x: bar.shift
+        Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.InOutCubic } }
         Behavior on y { NumberAnimation { duration: bar.shown ? 420 : 260; easing.type: bar.shown ? Easing.OutBack : Easing.OutCubic; easing.overshoot: 0.8 } }
 
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
@@ -97,6 +108,75 @@ PanelWindow {
     readonly property string face: "Inter"
     readonly property string figures: "Barlow"     // the numbers: workspaces, battery, time
     readonly property real icon: s / 0.78 * 0.74   // the readouts' icons: small and fine
+
+    // ---- the arm the bar rides out on (seen when it is shifted): a mount at
+    // the screen's left edge, a chrome sleeve, a rod running into the bar's
+    // left end. Behind the bar's pieces; in the bar's own coordinates, so
+    // the screen's edge is at -x.
+    Item {
+        id: arm
+        visible: body.x > 1
+        readonly property real left: -body.x
+        readonly property real cy: bar.my(369)                  // the tube's middle
+        readonly property real sleeveLen: Math.min(420 * bar.s / 0.78, Math.max(0, (bar.lx(40) - left) * 0.55))
+        component Chrome: Rectangle {
+            gradient: Gradient {
+                GradientStop { position: 0.00; color: "#6c6862" }
+                GradientStop { position: 0.16; color: "#d9d5ce" }
+                GradientStop { position: 0.38; color: "#fbfaf7" }
+                GradientStop { position: 0.62; color: "#c9c4bb" }
+                GradientStop { position: 0.86; color: "#8f8a82" }
+                GradientStop { position: 1.00; color: "#55514b" }
+            }
+        }
+        // the rod (thinner), from the sleeve into the bar's end
+        Chrome {
+            x: arm.left + 18 + arm.sleeveLen - 12; width: bar.lx(60) - x
+            y: arm.cy - height / 2; height: 17 * bar.s / 0.78
+            radius: height / 2
+        }
+        // the sleeve
+        Chrome {
+            x: arm.left + 14; width: arm.sleeveLen
+            y: arm.cy - height / 2; height: 30 * bar.s / 0.78
+            radius: 5
+            Rectangle { anchors.fill: parent; radius: parent.radius; color: "transparent"; border.width: 1; border.color: "#4e4a44" }
+        }
+        // a collar where the rod comes out
+        Rectangle {
+            x: arm.left + 14 + arm.sleeveLen - 10; width: 16 * bar.s / 0.78
+            y: arm.cy - height / 2; height: 40 * bar.s / 0.78
+            radius: 4
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#f4ebdc" }
+                GradientStop { position: 0.6; color: "#e3d5bf" }
+                GradientStop { position: 1.0; color: "#b8a88e" }
+            }
+            border.width: 1; border.color: "#8d7f68"
+        }
+        // the mount on the screen's edge: a cream plate, a rust corner, two bolts
+        Rectangle {
+            x: arm.left - 8; width: 30 * bar.s / 0.78
+            y: arm.cy - height / 2; height: 74 * bar.s / 0.78
+            radius: 6
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#f4ebdc" }
+                GradientStop { position: 0.55; color: "#e6d9c4" }
+                GradientStop { position: 1.0; color: "#c9b99e" }
+            }
+            border.width: 1; border.color: "#9a8a70"
+            Rectangle { anchors.right: parent.right; anchors.rightMargin: 3; y: 4; width: 6; height: parent.height - 8; radius: 2; color: "#b2512f" }
+            Repeater {
+                model: 2
+                Rectangle {
+                    required property int index
+                    x: parent.width * 0.42 - width / 2; y: index === 0 ? 9 : parent.height - 9 - height
+                    width: 9 * bar.s / 0.78; height: width; radius: width / 2
+                    color: "#a39886"; border.width: 1; border.color: "#5d5547"
+                }
+            }
+        }
+    }
 
     // ---- the bar itself
     Image {
@@ -154,7 +234,7 @@ PanelWindow {
     // where a cartridge stands in this bar's port, for one on its way there
     // (the bar on the screen in use; the bar's place once it is up)
     readonly property bool focusedScreen: Hyprland.focusedMonitor?.name === bar.screen?.name
-    Binding { target: Cartridges; property: "portX"; value: bar.lx(123.5); when: bar.focusedScreen }
+    Binding { target: Cartridges; property: "portX"; value: bar.lx(123.5) + bar.shift; when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portY"; value: (bar.screen ? bar.screen.height : 0) - bar.implicitHeight + bar.my(378); when: bar.focusedScreen }
     Binding { target: Cartridges; property: "portS"; value: bar.portS; when: bar.focusedScreen }
 

@@ -13,8 +13,8 @@ import qs.services
 //   searching  just type: the rail keeps the apps that match (Backspace,
 //              Esc clears; Esc again puts it away)
 //   launching  Enter, or a click on the cartridge in the slot: the app
-//              starts, its cartridge rises out of the slot and flies down
-//              into the taskbar's port (modules/Flight.qml)
+//              starts, and the lifter lowers its cartridge into the taskbar's
+//              port, slid across under the slot (modules/Flight.qml)
 //
 // Everything is placed in the mock-up's own pixels (body.png starts at its
 // 24, 23; tools/make_launcher.py) and the whole launcher scaled once.
@@ -41,34 +41,27 @@ Widget {
         pos = sel;
     }
     function move(d: int): void { choose(sel + d); }
-    // launching: the app starts at once; its cartridge rises out of the
-    // slot, then is let go (Cartridges.eject: modules/Flight.qml takes it to
-    // the taskbar's port) and the launcher is put away
+    // launching: the app starts at once; the lifter lowers its cartridge out
+    // of the slot into the taskbar's port, which has slid across under the
+    // slot (Cartridges.eject; modules/Flight.qml), and once it is in the
+    // launcher is put away
     property bool ejecting: false
-    property real rise: 0                               // the slot's cartridge, up (mock-up px)
-    property var ejected: null
+    property bool letGoDone: false
     function launch(): void {
         if (!current || ejecting) return;
-        ejecting = true;
-        ejected = current;
-        Apps.launch(current);
-        ejectAnim.restart();
-    }
-    SequentialAnimation {
-        id: ejectAnim
-        NumberAnimation { target: self; property: "rise"; to: 95; duration: 230; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
-        ScriptAction { script: self.letGo() }
-    }
-    function letGo(): void {
         const c = slotCartridge();
-        if (c) {
-            const a = c.mapToItem(null, 0, 0), b = c.mapToItem(null, c.width, c.height);
-            Cartridges.eject(ejected, (a.x + b.x) / 2, (a.y + b.y) / 2, (b.x - a.x) / 350);
-        }
+        ejecting = true;
+        Apps.launch(current);
+        if (!c) { close(); return; }
+        const a = c.mapToItem(null, 0, 0), b = c.mapToItem(null, c.width, c.height);
+        const top = unit.mapToItem(null, 0, unit.Y(470)).y;            // under the clamp's bracket
+        Cartridges.eject(current, (a.x + b.x) / 2, (a.y + b.y) / 2, (b.x - a.x) / 350, top);
         letGoDone = true;
-        close();
     }
-    property bool letGoDone: false
+    Connections {
+        target: Cartridges
+        function onLanded() { if (self.ejecting) self.close(); }
+    }
     function slotCartridge(): var {
         for (let i = 0; i < rail.count; i++) {
             const p = rail.itemAt(i);
@@ -164,7 +157,7 @@ Widget {
                     scale: place.s
                     transformOrigin: Item.Center
                     x: unit.X(place.cx) - width / 2
-                    y: unit.Y(place.cy) - height / 2 - (place.ao < 0.5 ? self.rise : 0)
+                    y: unit.Y(place.cy) - height / 2
                 }
                 MouseArea {
                     x: unit.X(place.cx) - 350 * place.s / 2; y: unit.Y(place.cy) - 445 * place.s / 2
