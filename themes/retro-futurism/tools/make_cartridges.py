@@ -15,8 +15,7 @@ Makes, all 350 x 445, the same frame (the clear case, the gold contacts):
 Every cartridge is lifted off the white, without its shadow.
 
 In each, in its own pixels: the plate's free middle is about 62-292 x
-108-322 (its centre 177, 215); the number sits on the tab at 244-300 x
-66-102.
+108-322 (its centre 177, 215); the number sits on the tab, centred at 277, 88.
 """
 import os, sys
 from collections import deque
@@ -40,7 +39,7 @@ def crop(c, r):
     return A[y:y + H, x:x + W].copy()
 
 
-def fit(part, box, ring=7, deg=2, grain=1.4, radius=8, feather=3):
+def fit(part, box, ring=7, deg=2, grain=1.4, radius=8, feather=3, keep=None):
     """make a box of a plate anew: a smooth fit of the plate's colour taken
     only from a ring just round the box (clean plate, never the art), a fine
     grain; its edge eased in"""
@@ -66,34 +65,22 @@ def fit(part, box, ring=7, deg=2, grain=1.4, radius=8, feather=3):
     f += rng.normal(0, grain, (hh, ww, 1))
     m = Image.new('L', (ww * 4, hh * 4), 0)
     ImageDraw.Draw(m).rounded_rectangle([ring * 4, ring * 4, (ww - ring) * 4 - 1, (hh - ring) * 4 - 1], radius * 4, fill=255)
+    if keep:
+        ImageDraw.Draw(m).polygon([((x - X0) * 4, (y - Y0) * 4) for x, y in keep], fill=0)
     m = np.asarray(m.resize((ww, hh), Image.LANCZOS).filter(ImageFilter.GaussianBlur(feather))).astype(float)[..., None] / 255
     p[:] = f * m + p * (1 - m)
 
 
 def number_off(part):
-    """the tab's number: its dark strokes refilled from the tab round them"""
-    x0, y0, x1, y1 = 244, 66, 300, 102
-    p = part[y0:y1, x0:x1]
-    lum = p.mean(2)
-    tab = lum > np.percentile(lum, 40)
-    mask = ~tab
-    mask = np.asarray(Image.fromarray((mask * 255).astype('uint8')).filter(ImageFilter.MaxFilter(5))) > 0
-    known = (~mask).astype(float)
-    for r in (3, 6, 10, 16):
-        k = np.ones(2 * r + 1) / (2 * r + 1)
-        def bl(a):
-            a = np.apply_along_axis(lambda q: np.convolve(q, k, 'same'), 0, a)
-            return np.apply_along_axis(lambda q: np.convolve(q, k, 'same'), 1, a)
-        wsum = bl(known)
-        est = np.dstack([bl(p[..., c] * known) for c in range(3)]) / np.maximum(wsum, 1e-6)[..., None]
-        fillnow = mask & (wsum > 0.05)
-        p[fillnow] = est[fillnow] + rng.normal(0, 1.0, (fillnow.sum(), 1))
-        known = np.maximum(known, fillnow.astype(float))
-        mask = mask & ~fillnow
-        if not mask.any():
-            break
-    if mask.any():                                  # (whatever is left: the tab's own colour)
-        p[mask] = np.median(p[~mask], axis=0)
+    """the tab's number (its digits at 262-293 x 76-101): each column of
+    that box blended from the plain tab just above it to just below it,
+    those two rows smoothed first so no streak runs down"""
+    x0, y0, x1, y1 = 261, 75, 294, 102
+    k = np.ones(7) / 7
+    sm = lambda row: np.stack([np.convolve(np.pad(row[:, c], 3, mode='edge'), k, 'valid') for c in range(3)], 1)
+    top, bot = sm(part[y0 - 2:y0, x0:x1].mean(0)), sm(part[y1:y1 + 2, x0:x1].mean(0))
+    t = np.linspace(0, 1, y1 - y0 + 2)[1:-1][:, None, None]
+    part[y0:y1, x0:x1] = top[None] * (1 - t) + bot[None] * t + rng.normal(0, 1.3, (y1 - y0, x1 - x0, 1))
 
 
 def lift(part):
@@ -127,7 +114,8 @@ for name, (c, r) in ART.items():
 
 for name, base in BLANKS.items():
     p = parts[base].copy()
-    fit(p, (62, 106, 296, 316))
+    # the plate, the tab and its foot left as they are
+    fit(p, (62, 106, 296, 316), keep=[(196, 60), (306, 60), (306, 121), (252, 121), (246, 116), (196, 66)])
     fit(p, (62, 296, 228, 337), radius=4)         # the art's foot, short of the screw tab and the lines
     fit(p, (198, 296, 250, 317), radius=3)        # and up to the tab's slope
     fit(p, (150, 326, 216, 341), radius=3, feather=1.5)   # the art's soft shadow, over the lines

@@ -79,7 +79,7 @@ Item {
     // the number on its tab
     Text {
         visible: cart.number > 0
-        x: 272 - width / 2; y: 84 - height / 2
+        x: 277 - width / 2; y: 88 - height / 2
         text: (cart.number < 10 ? "0" : "") + cart.number
         color: "#464038"
         font.family: "Barlow"; font.weight: Font.Bold; font.pixelSize: 26
