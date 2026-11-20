@@ -37,13 +37,13 @@ PanelWindow {
     property real p: 0
     NumberAnimation on p {
         id: coming; to: 1; running: false
-        duration: stage.taskbar ? 230 : 340
-        easing.type: stage.taskbar ? Easing.OutCubic : Easing.OutBack
-        easing.overshoot: 0.9
+        duration: stage.taskbar ? 300 : 380
+        easing.type: Easing.OutBack
+        easing.overshoot: 0.6
     }
     NumberAnimation on p {
         id: leaving; to: 0; running: false
-        duration: stage.taskbar ? 160 : 200
+        duration: stage.taskbar ? 200 : 240
         easing.type: Easing.InCubic
         onFinished: if (!stage.up) stage.loaded = ""
     }
@@ -95,12 +95,14 @@ PanelWindow {
         readonly property real airR: loader.item ? loader.item.airRight : 0
         readonly property real airB: loader.item ? loader.item.airBottom : 0
         // (over the taskbar: set in from the bar's end, within its line and the frames')
-        x: stage.taskbar ? stage.width - Theme.frameMargin - 18 - width + airR : (stage.width - width) / 2
+        // they slide in: one over the taskbar from the right edge of the
+        // screen, the others up from below it; and back out the same way
+        x: (stage.taskbar ? stage.width - Theme.frameMargin - 18 - width + airR : (stage.width - width) / 2)
+           + (stage.taskbar ? (1 - stage.p) * (Theme.frameMargin + 18 + width * fit + 40) : 0)
         y: (stage.taskbar ? stage.height - Theme.taskbarReach - 12 - height + airB : (stage.height - height) / 2)
-           + (1 - stage.p) * (stage.taskbar ? 26 : 40)
+           + (stage.taskbar ? 0 : (1 - stage.p) * (stage.height / 2 + height * fit / 2 + 40))
         transformOrigin: stage.taskbar ? Item.BottomRight : Item.Center
-        scale: fit * (stage.taskbar ? 0.97 + 0.03 * stage.p : 0.94 + 0.06 * stage.p)
-        opacity: Math.min(1, stage.p * 1.4)
+        scale: fit
 
         // clicks on the widget stay with it
         MouseArea { anchors.fill: parent; onClicked: {} }

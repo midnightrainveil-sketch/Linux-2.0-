@@ -65,18 +65,19 @@ hl.config({
 })
 
 ------------------------------------------------------------------ motion
--- quick and plain: a window comes into focus, it does not bounce
+-- quick and plain: windows slide in from their nearest edge and out the
+-- same way (no fading); workspaces slide left and right
 hl.curve("settle", { type = "bezier", points = { { 0.22, 1 }, { 0.36, 1 } } })
 hl.curve("leave", { type = "bezier", points = { { 0.4, 0 }, { 1, 1 } } })
 
 hl.animation({ leaf = "global", enabled = true, speed = 2, bezier = "settle" })
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 2, bezier = "settle", style = "popin 96%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.2, bezier = "leave", style = "popin 97%" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 2.6, bezier = "settle", style = "slide" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 2.2, bezier = "leave", style = "slide" })
 hl.animation({ leaf = "windowsMove", enabled = true, speed = 2, bezier = "settle" })
-hl.animation({ leaf = "fadeIn", enabled = true, speed = 2, bezier = "settle" })
-hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.2, bezier = "leave" })
+hl.animation({ leaf = "fadeIn", enabled = false })
+hl.animation({ leaf = "fadeOut", enabled = false })
 hl.animation({ leaf = "border", enabled = true, speed = 1.5, bezier = "settle" })
-hl.animation({ leaf = "workspaces", enabled = true, speed = 2.4, bezier = "settle", style = "slidevert" })
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2, bezier = "settle", style = "slidefadevert 8%" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 2.4, bezier = "settle", style = "slide" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2, bezier = "settle", style = "slidefade 8%" })
 -- the shell draws its own surfaces; Hyprland just shows them
 hl.animation({ leaf = "layers", enabled = false })
