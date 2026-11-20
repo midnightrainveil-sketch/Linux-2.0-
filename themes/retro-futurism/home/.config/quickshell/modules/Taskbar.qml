@@ -15,7 +15,7 @@ import qs.components
 //   the port       the slot the app cartridges go in: click for the launcher
 //   workspaces     1 to 6; a dark dot where windows are, the red line under
 //                  the one in view. Click to go, scroll to step through.
-//   the band       a red line, CASSETTE OS and the Arch logo (click: the
+//   the band       a red line, MAGNETIC 88 and the Arch logo (click: the
 //                  power menu)
 //   the readouts   Wi-Fi, volume, battery and its % (click: the control
 //                  deck; the wheel: the volume), the time
@@ -366,7 +366,7 @@ PanelWindow {
     }
 
     // ======== the band: the window in use, then the red line; at its right
-    // end /// CASSETTE OS | Arch, ending where the mock-up's A did (x 1615)
+    // end /// MAGNETIC 88 | Arch, ending where the mock-up's A did (x 1615)
     Row {
         id: brand
         x: bar.rx(1618) - width
@@ -390,7 +390,7 @@ PanelWindow {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: "CASSETTE OS"
+            text: "MAGNETIC 88"
             color: bar.paper
             font.family: bar.face
             font.pixelSize: Math.round(23 * bar.s)

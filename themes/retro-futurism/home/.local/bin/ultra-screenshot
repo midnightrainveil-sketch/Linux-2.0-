@@ -37,5 +37,5 @@ esac
 
 wl-copy --type image/png <"$file" &
 qs ipc call shots refresh >/dev/null 2>&1 || true
-notify-send --app-name "Cassette OS" "Screenshot saved" "${file/#$HOME/\~}" || true
+notify-send --app-name "Magnetic 88" "Screenshot saved" "${file/#$HOME/\~}" || true
 wait

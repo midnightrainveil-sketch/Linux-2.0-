@@ -2,7 +2,7 @@
 
 `ultra-theme set retro-futurism`
 
-Cassette OS: a Japanese future grown out of the 1980s.
+Magnetic 88: a Japanese future grown out of the 1980s.
 Gadgets in steel, cream and sage with e-ink screens.
 
 ![The evening train](preview.jpg)
@@ -43,7 +43,7 @@ Gadgets in steel, cream and sage with e-ink screens.
   slot the app cartridges go in; click it for the launcher, its lamp lit
   while the launcher is open); workspaces 1 to 6 (a dark dot where windows
   are, the red line under the one in view; click, or scroll to step); the
-  sage band with its red line, CASSETTE OS and the Arch logo (click:
+  sage band with its red line, MAGNETIC 88 and the Arch logo (click:
   the power menu); and Wi-Fi (click: nmtui), volume (scroll; click mutes),
   battery (one smooth bar and its percentage): click any of the three for
   the control deck, scroll for the volume; and the time.

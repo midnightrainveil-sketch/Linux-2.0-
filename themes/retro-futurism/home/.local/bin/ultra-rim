@@ -99,7 +99,7 @@ activate() {
     [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${ULTRA_NO_RELOAD:-} ]] || return 0
     [[ $(hyprctl version -j 2>/dev/null | jq -r '.commit // empty') == "$(hypr_commit)" ]] || return 0
     if hyprctl plugin list 2>/dev/null | grep -q chromerim; then
-        notify-send --app-name "Cassette OS" "Window rims updated." "They change at your next login." >/dev/null 2>&1 || true
+        notify-send --app-name "Magnetic 88" "Window rims updated." "They change at your next login." >/dev/null 2>&1 || true
         return 0
     fi
     hyprctl reload >/dev/null 2>&1 || true
@@ -142,7 +142,7 @@ case ${1:-build} in
         if build >"$log" 2>&1; then
             activate
         else
-            notify-send --app-name "Cassette OS" "Window rim plugin not built." "The shell draws the rims. See $log" || true
+            notify-send --app-name "Magnetic 88" "Window rim plugin not built." "The shell draws the rims. See $log" || true
         fi
         ;;
     crashed) crashed ;;

@@ -96,7 +96,7 @@ local rim_so = data .. "/ultra/retro-futurism/plugins/chromerim.so"
 if require("ultra.state").exists(rim_so) then
     if os.execute((os.getenv("HOME") or "") .. "/.local/bin/ultra-rim crashed") == true then
         hl.on("hyprland.start", function()
-            hl.exec_cmd([[notify-send --app-name "Cassette OS" "Window rims drawn by the shell." "Hyprland crashed in the rim plugin last time. Run: ultra-rim retry"]])
+            hl.exec_cmd([[notify-send --app-name "Magnetic 88" "Window rims drawn by the shell." "Hyprland crashed in the rim plugin last time. Run: ultra-rim retry"]])
         end)
     else
         hl.plugin.load(rim_so)

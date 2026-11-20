@@ -1,6 +1,6 @@
 # Widgets
 
-The gadgets of Cassette OS (the typewriter, the organizer, the cassette
+The gadgets of Magnetic 88 (the typewriter, the organizer, the cassette
 player ...) are widgets: called up over the desk, blurred and dimmed behind
 them, and worked with the keyboard and the mouse until put away (Esc, a
 click outside, or the same key again).

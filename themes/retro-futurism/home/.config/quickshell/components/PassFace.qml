@@ -31,7 +31,7 @@ Item {
     }
     component Rule: Rectangle { height: 3; color: "#f2f8ff"; opacity: 0.92 }
 
-    // header: the mark, カセットOS
+    // header: the mark, マグネティック88
     Canvas {
         x: face.dev.ax(193); y: face.dev.ay(188); width: 154; height: 48
         onPaint: {
@@ -44,7 +44,7 @@ Item {
         }
     }
     Rectangle { x: face.dev.ax(375); y: face.dev.ay(194); width: 3; height: 40; color: face.dev.ink }
-    Glow { x: face.dev.ax(410); y: face.dev.ay(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
+    Glow { x: face.dev.ax(410); y: face.dev.ay(192); text: "マグネティック88"; font.pixelSize: 34; font.letterSpacing: 6 }
 
     Glow { x: face.dev.ax(184); y: face.dev.ay(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
     Glow { x: face.dev.ax(186); y: face.dev.ay(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
@@ -181,7 +181,7 @@ Item {
         text: {
             let h = 7;
             for (const ch of face.user) h = (h * 31 + ch.charCodeAt(0)) % 1000000;
-            return "KST-" + String(h).padStart(6, "0");
+            return "M88-" + String(h).padStart(6, "0");
         }
         font.pixelSize: 26; font.letterSpacing: 3
     }
