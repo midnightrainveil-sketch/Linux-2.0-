@@ -9,6 +9,9 @@ where the real one cannot be built (docs/harness/build.sh).
         ipc:<target>.<function>=<arg>   ... with one argument
         notify:<summary>|<body>     a notification arrives (_ for a space)
         key:<text>                  typed into the focused field
+        press:<Key>                 a key pressed and let go (Right, Return, Escape, ...)
+        frames:<n>:<ms>             n pictures, one every ms (out-000.png ...), for
+                                    an animation; the run goes on after them
         nowindows | idle | notes    no windows open / nothing playing / three sample notes
         onewindow                   one window filling the screen, as tiled
         wait:<ms>
@@ -75,6 +78,17 @@ def prepare(theme, work, flags=()):
         own = home / ".config/ultra" / theme
         own.mkdir(parents=True, exist_ok=True)
         (own / "notes.txt").write_text("[x] Edit rain roll\n[ ] Backup photos\n[ ] Plan next shoot\n")
+    # PREVIEW_SLOW=<n>: every animation n times slower (its durations, and
+    # what runs on frame time), so that frames taken a second apart catch an
+    # animation of a few hundred milliseconds step by step; the frames' own
+    # times are written next to them, to play it back at its real speed
+    slow = int(os.environ.get("PREVIEW_SLOW", "1") or 1)
+    if slow > 1:
+        for f in shell.rglob("*.qml"):
+            t = f.read_text()
+            t = re.sub(r"(\bduration:\s*)([^\n;}]+)", lambda m: "%s(%s) * %d" % (m.group(1), m.group(2).strip(), slow), t)
+            t = re.sub(r"\bframeTime\b", "(frameTime / %d)" % slow, t)
+            f.write_text(t)
     return home, shell
 
 
@@ -210,6 +224,37 @@ def main():
                 w.contentItem().setSize(QSizeF(w.width(), w.height()))
         QTimer.singleShot(ms, app.quit); app.exec()
 
+    def settle():
+        # (a window never shown lays its content out only when drawn: draw the
+        # small ones first, so that a surface sized by its content has its size)
+        for _ in range(2):
+            for w in app.allWindows():
+                if w.objectName() == "panel" and w.property("_visible") and w.width() * w.height() < 600000:
+                    w.grabWindow()
+                    size(w)
+                    w.contentItem().setSize(QSizeF(w.width(), w.height()))
+            app.processEvents()
+
+    def compose(path):
+        canvas = QImage(W, H, QImage.Format_ARGB32_Premultiplied)
+        canvas.fill(QColor("#000000"))
+        p = QPainter(canvas)
+        panels = [w for w in app.allWindows() if w.property("_visible") and w.objectName() == "panel"]
+        for layer in LAYERS:
+            if layer == "Windows":
+                for w in harness.windows:      # stand-ins for the open programs
+                    x, y = w["at"]; ww, hh = w["size"]
+                    p.fillRect(x, y, ww, hh, QColor(12, 11, 12, 236))
+                    p.setPen(QColor("#f2efed")); p.drawRect(x, y, ww - 1, hh - 1)
+                continue
+            for w in panels:
+                if (w.property("_layer") or "Top") != layer:
+                    continue
+                x, y = place(w)
+                p.drawImage(x, y, w.grabWindow())
+        p.end()
+        canvas.save(path)
+
     spin(300)
     spin(2500)
     for s in steps:
@@ -235,42 +280,40 @@ def main():
                 if item is not None and w.property("_visible") and w.property("_layer") in ("Overlay", "Lock"):
                     for ch in arg:
                         app.sendEvent(w, QKeyEvent(QEvent.KeyPress, 0, Qt.NoModifier, ch))
+        elif kind == "press":
+            from PySide6.QtGui import QKeyEvent
+            from PySide6.QtCore import QEvent
+            key = getattr(Qt, "Key_" + arg)
+            for w in app.allWindows():
+                item = w.activeFocusItem() if hasattr(w, "activeFocusItem") else None
+                if item is not None and w.property("_visible") and w.property("_layer") in ("Overlay", "Lock", "Top"):
+                    app.sendEvent(w, QKeyEvent(QEvent.KeyPress, key, Qt.NoModifier))
+                    app.sendEvent(w, QKeyEvent(QEvent.KeyRelease, key, Qt.NoModifier))
+            continue          # (no pause after it: frames can follow what it starts)
+        elif kind == "frames":
+            n, _, ms = arg.partition(":")
+            stem = out[:-4] if out.endswith(".png") else out
+            settle()
+            import time as _t
+            times = json.loads(Path(stem + "-times.json").read_text()) if Path(stem + "-times.json").exists() else []
+            first = len(times)
+            for i in range(int(n)):
+                times.append(_t.monotonic())
+                compose("%s-%03d.png" % (stem, first + i))
+                spin(int(ms or 1))
+            Path(stem + "-times.json").write_text(json.dumps(times))
+            print("frames: %s-%03d.png ... (%s)" % (stem, first, n))
+            continue
         elif kind == "wait":
             spin(int(arg))
         spin(200)
         spin(400)
     spin(600)
-    # (a window never shown lays its content out only when drawn: draw the
-    # small ones first, so that a surface sized by its content has its size)
-    for _ in range(2):
-        for w in app.allWindows():
-            if w.objectName() == "panel" and w.property("_visible") and w.width() * w.height() < 600000:
-                w.grabWindow()
-                size(w)
-                w.contentItem().setSize(QSizeF(w.width(), w.height()))
-        app.processEvents()
-
-    canvas = QImage(W, H, QImage.Format_ARGB32_Premultiplied)
-    canvas.fill(QColor("#000000"))
-    p = QPainter(canvas)
-    panels = [w for w in app.allWindows() if w.property("_visible") and w.objectName() == "panel"]
+    settle()
     if os.environ.get("PREVIEW_DEBUG"):
         for w in app.allWindows():
             print("   window", w.property("implicitWidth"), w.property("implicitHeight"), w.objectName(), w.property("_visible"), w.width(), w.height(), w.property("_layer"), w.property("_namespace"))
-    for layer in LAYERS:
-        if layer == "Windows":
-            for w in harness.windows:      # stand-ins for the open programs
-                x, y = w["at"]; ww, hh = w["size"]
-                p.fillRect(x, y, ww, hh, QColor(12, 11, 12, 236))
-                p.setPen(QColor("#f2efed")); p.drawRect(x, y, ww - 1, hh - 1)
-            continue
-        for w in panels:
-            if (w.property("_layer") or "Top") != layer:
-                continue
-            x, y = place(w)
-            p.drawImage(x, y, w.grabWindow())
-    p.end()
-    canvas.save(out)
+    compose(out)
     print("picture:", out)
     seen = sorted(set(problems))
     print("QML warnings: %d" % len(seen))

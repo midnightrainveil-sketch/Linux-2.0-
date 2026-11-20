@@ -142,6 +142,11 @@ run under a headless sway, which catches QML errors and shows the desk:
   `preview.py` under `xvfb-run -a -s "-screen 0 1920x1200x24"` with
   `QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1`
   (and without the libEGL stand-in).
+  To film an animation: `press:<Key>` presses a key, `frames:<n>:<ms>` takes
+  n pictures (out-000.png ..., their times in out-times.json), and
+  `PREVIEW_SLOW=<n>` makes every animation n times slower (each frame takes
+  about a second to draw in software), so that the frames catch it step by
+  step; play them back with each frame's own time divided by n.
 - Quickshell's LazyLoader does not load until some other window exists: never
   put every window in one (the desk went blank). The harness's stand-in
   loads at once, so it cannot catch this. To make windows afresh, empty and
