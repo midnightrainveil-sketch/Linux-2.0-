@@ -47,27 +47,42 @@ ShellRoot {
         }
     }
 
+    // (Variants, not LazyLoader: a LazyLoader only loads once some window
+    // already exists, and these are all the windows there are. A model
+    // emptied and filled again makes them afresh.)
     Variants {
-        model: Quickshell.screens
-        Scope {
-            id: perScreen
-            required property var modelData
-            LazyLoader { active: shell.pictureAlive; Backdrop { modelData: perScreen.modelData } }
-            LazyLoader { active: shell.deskAlive; Taskbar { modelData: perScreen.modelData } }
-        }
+        model: shell.pictureAlive ? Quickshell.screens : []
+        Backdrop {}
     }
-
-    LazyLoader { active: shell.deskAlive; Mail { screen: shell.focusedScreen } }
+    Variants {
+        model: shell.deskAlive ? Quickshell.screens : []
+        Taskbar {}
+    }
+    // the ones on the screen in use
+    readonly property var deskScreens: shell.deskAlive && shell.focusedScreen ? [shell.focusedScreen] : []
+    Variants {
+        model: shell.deskScreens
+        Mail { required property var modelData; screen: modelData }
+    }
 
     // built only while open
     LazyLoader { active: Panels.open === "themes"; ThemesSheet { screen: shell.focusedScreen } }
 
     // the widgets (widgets/index.json), on the screen in use: in the middle
     // over the blurred desk, or over the taskbar's right end
-    LazyLoader { active: shell.deskAlive; WidgetStage { screen: shell.focusedScreen } }
-    LazyLoader { active: shell.deskAlive; WidgetStage { screen: shell.focusedScreen; taskbar: true } }
+    Variants {
+        model: shell.deskScreens
+        WidgetStage { required property var modelData; screen: modelData }
+    }
+    Variants {
+        model: shell.deskScreens
+        WidgetStage { required property var modelData; screen: modelData; taskbar: true }
+    }
     // the launcher's lifter, over the taskbar while it lowers a cartridge in
-    LazyLoader { active: shell.deskAlive; Lifter { screen: shell.focusedScreen } }
+    Variants {
+        model: shell.deskScreens
+        Lifter { required property var modelData; screen: modelData }
+    }
 
     // ULTRA_CHECK=1: compile and make every widget once, and say how it went
     LazyLoader { active: Quickshell.env("ULTRA_CHECK") === "1"; SelfCheck {} }

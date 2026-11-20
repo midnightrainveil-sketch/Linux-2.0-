@@ -142,6 +142,10 @@ run under a headless sway, which catches QML errors and shows the desk:
   `preview.py` under `xvfb-run -a -s "-screen 0 1920x1200x24"` with
   `QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1`
   (and without the libEGL stand-in).
+- Quickshell's LazyLoader does not load until some other window exists: never
+  put every window in one (the desk went blank). The harness's stand-in
+  loads at once, so it cannot catch this. To make windows afresh, empty and
+  refill a Variants model instead (shell.qml: deskAlive).
 - Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
   compile-checked here without Hyprland installed: clone Hyprland and
   hyprutils, aquamarine, hyprlang, hyprgraphics, hyprcursor,
