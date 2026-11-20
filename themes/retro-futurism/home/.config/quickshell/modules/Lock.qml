@@ -301,24 +301,30 @@ Scope {
                     color: "#0d0907"
                     opacity: Hypr.windows.length > 0 ? 0.5 : 0
                 }
-                readonly property real iw: 1585
-                readonly property real ih: 992
+                readonly property real iw: 3840
+                readonly property real ih: 2160
                 readonly property real k: Math.max(width / iw, height / ih)
                 readonly property real ox: (width - iw * k) / 2
                 readonly property real oy: (height - ih * k) / 2
+                Image {
+                    x: home.ox; y: home.oy
+                    width: home.iw * home.k; height: home.ih * home.k
+                    source: Settings.art + "/wallpaper.jpg"
+                    smooth: true
+                }
                 Item {
-                    // the glass: 592,0 to 1400,403; the city where the desk has it
-                    x: home.ox + 592 * home.k; y: home.oy
-                    width: 808 * home.k; height: 403 * home.k
+                    // the glass: 1566,76 to 2982,922; the city where the desk has it
+                    x: home.ox + 1566 * home.k; y: home.oy + 76 * home.k
+                    width: 1416 * home.k; height: 846 * home.k
                     clip: true
-                    readonly property real loopW: 1580 * 0.862 * home.k
+                    readonly property real loopW: 1580 * 1.5016 * home.k
                     Row {
-                        x: -Scene.viewShift * parent.loopW
-                        y: (300 - 376 * 0.862) * home.k
+                        x: -Scene.viewShift * parent.loopW - 32
+                        y: (-36.4 - 76) * home.k
                         Repeater {
                             model: 2
                             Image {
-                                width: 1580 * 0.862 * home.k; height: 603 * 0.862 * home.k
+                                width: 1580 * 1.5016 * home.k; height: 743 * 1.5016 * home.k
                                 source: Settings.art + "/window-view.jpg"
                                 smooth: true
                             }
@@ -327,9 +333,9 @@ Scope {
                     Rectangle { anchors.fill: parent; color: "#465578"; opacity: 0.10 }
                 }
                 Image {
-                    anchors.fill: parent
+                    x: home.ox + 1540 * home.k; y: home.oy + 60 * home.k
+                    width: 1470 * home.k; height: 890 * home.k
                     source: Settings.art + "/wallpaper-front.png"
-                    fillMode: Image.PreserveAspectCrop
                     smooth: true
                 }
             }

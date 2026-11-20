@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# python3 tools/make_window_loop.py art/WindowView.png window-view.jpg 420
+# python3 tools/make_window_loop.py art/WindowView.png window-view.jpg 420 140
 # Make the panorama loop: level the viaduct, then join the right end to
-# the left along the cut where they look most alike.
+# the left along the cut where they look most alike; then (the last number)
+# that many rows more of sky on top, for the wallpaper's tall window: the
+# evening sky going on up, a little deeper, its colour along the loop
+# carried on (and still a loop).
 import sys
 from PIL import Image
 import numpy as np
 src, out, O = sys.argv[1], sys.argv[2], int(sys.argv[3])
+SKY = int(sys.argv[4]) if len(sys.argv) > 4 else 0
 p = np.asarray(Image.open(src).convert('RGB')).astype(float)
 H, W, _ = p.shape
 # 1. level: each column moved so the deck's top is at y 408
@@ -46,5 +50,24 @@ mix = A * (1 - t) + B * t
 # the loop: start's columns after the overlap, then the end up to the overlap, then the blend
 loop = np.concatenate([lev[:, O:W - O], mix], axis=1)
 # (the blend's right side is the start's columns 0..O, which follow lev[:, O] seamlessly)
-Image.fromarray(np.clip(loop, 0, 255).astype('uint8')).save(out)
+if SKY > 0:
+    def blur_x(a, sig):                         # along the loop, round its ends
+        r = int(3 * sig); k = np.exp(-np.arange(-r, r + 1) ** 2 / (2 * sig * sig)); k /= k.sum()
+        pad = np.concatenate([a[:, -r:], a, a[:, :r]], axis=1)
+        return np.stack([np.apply_along_axis(lambda v: np.convolve(v, k, 'valid'), 1, pad[..., c])
+                         for c in range(3)], -1)
+    band = loop[:24]
+    base = blur_x(band.mean(0, keepdims=True), 90)[0]          # the sky's colour along the loop, smooth
+    deep = np.array([52.0, 58.0, 84.0])                        # higher up: a deeper evening blue
+    t = (np.arange(SKY)[::-1] / SKY)[:, None, None]            # 1 at the top, 0 next to the old sky
+    sky = base[None] * (1 - 0.45 * t ** 1.3) + deep[None, None] * (0.45 * t ** 1.3)
+    # the old sky's own grain, and next to it the old sky mirrored, fading out
+    rng = np.random.default_rng(88)
+    hp = band - blur_x(band, 3)
+    sky += rng.normal(0, float(hp.std()) * 0.8, sky.shape[:2])[..., None]
+    m = min(28, SKY)
+    w = np.linspace(1, 0, m)[:, None, None] ** 1.5
+    sky[SKY - m:] = sky[SKY - m:] * (1 - w[::-1]) + loop[:m][::-1] * w[::-1]
+    loop = np.concatenate([sky, loop], axis=0)
+Image.fromarray(np.clip(loop, 0, 255).astype('uint8')).save(out, quality=92)
 print('loop width', loop.shape[1], 'height', loop.shape[0], 'seam x range', seam.min(), seam.max())

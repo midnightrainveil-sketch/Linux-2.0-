@@ -4,7 +4,7 @@ Mock-ups and references for Retro Futurism: the pictures to match.
 
 | Part | Pictures |
 | --- | --- |
-| Wallpaper | [Retro-Futuristic-Wallpaper](Retro-Futuristic-Wallpaper.png); the view from its window, [WindowView](WindowView.png) (scrolls past behind the glass) |
+| Wallpaper | **[Wallpaper-Extended](Wallpaper-Extended.jpg)** (the one in use: 4K, zoomed out); the original [Retro-Futuristic-Wallpaper](Retro-Futuristic-Wallpaper.png); the view from its window, [WindowView](WindowView.png) (scrolls past behind the glass) |
 | Bar | [TaskbarEg](TaskbarEg.png) |
 | Windows | [WindowFrame](WindowFrame.png) |
 | Terminal | [Terminal1](Terminal1.png), [Terminal2](Terminal2.png) |

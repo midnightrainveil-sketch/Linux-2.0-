@@ -22,8 +22,9 @@ PanelWindow {
 
     // ---- the picture: the girl on the evening train. The city outside her
     // window goes by: a long sunset (window-view.jpg, made to loop) slides
-    // behind the glass, and the train, she and the lights reflected in the
-    // glass lie over it (wallpaper-front.png, the glass cut out). A picture
+    // behind the glass, and the window, she and the lights reflected in the
+    // glass lie over it (wallpaper-front.png, the glass cut out), on the
+    // rest of the car (wallpaper.jpg). A picture
     // of your own (settings.json "wallpaper") is shown still, as it is.
     readonly property bool ownPicture: Settings.wallpaper !== ""
     Image {
@@ -97,26 +98,39 @@ PanelWindow {
         scale: 1.02
         transform: Translate { x: ride.bump * 0.12; y: ride.bump * 0.45 }
 
-        // the picture's own pixels (1585 x 992) to the screen, as
+        // the picture's own pixels (3840 x 2160) to the screen, as
         // PreserveAspectCrop lays it
-        readonly property real iw: 1585
-        readonly property real ih: 992
+        readonly property real iw: 3840
+        readonly property real ih: 2160
         readonly property real k: Math.max(width / iw, height / ih)
         readonly property real ox: (width - iw * k) / 2
         readonly property real oy: (height - ih * k) / 2
 
-        // the glass: 592,0 to 1400,403 in the picture
+        // the whole picture (its glass is covered: by the view, then the front)
+        Image {
+            x: scene.ox; y: scene.oy
+            width: scene.iw * scene.k; height: scene.ih * scene.k
+            source: Settings.art + "/wallpaper.jpg"
+            fillMode: Image.Stretch
+            asynchronous: true
+            smooth: true
+            cache: false
+        }
+
+        // the glass: 1566,76 to 2982,922 in the picture (its edge is in
+        // wallpaper-front.png; this only has to reach under it)
         Item {
             id: glass
-            x: scene.ox + 592 * scene.k; y: scene.oy
-            width: 808 * scene.k; height: 403 * scene.k
+            x: scene.ox + 1566 * scene.k; y: scene.oy + 76 * scene.k
+            width: 1416 * scene.k; height: 846 * scene.k
             clip: true
 
             // the view, two copies end to end, sliding left as the train goes
-            // (the loop is 1580 x 603; shown at 0.862 of the picture's scale,
-            // its viaduct level with the old one, at y 300)
-            readonly property real loopW: 1580 * 0.862 * scene.k
-            readonly property real loopH: 603 * 0.862 * scene.k
+            // (the loop is 1580 x 743; shown at 1.5016 of the picture's scale,
+            // its viaduct (row 516) level with the old one, at y 738 of the
+            // picture: its top at -36, a good way above the glass and below)
+            readonly property real loopW: 1580 * 1.5016 * scene.k
+            readonly property real loopH: 743 * 1.5016 * scene.k
             Item {
                 // the world outside, as seen from the swaying car: it bobs
                 // and drifts past the window frame and rolls a little as the
@@ -128,7 +142,7 @@ PanelWindow {
                 transform: Rotation { origin.x: glass.width / 2; origin.y: glass.height / 2; angle: 0.8 * ride.swayR }
                 Row {
                     id: view
-                    y: (300 - 376 * 0.862) * scene.k
+                    y: (-36.4 - 76) * scene.k
                     // how far round the city has come, 0..1 (the animation runs on
                     // this, not on x: x then follows the screen's size, whatever it
                     // is when the animation starts)
@@ -164,10 +178,13 @@ PanelWindow {
             Rectangle { anchors.fill: parent; color: "#465578"; opacity: 0.10 }
         }
 
+        // the window over it: she, the frame, the lights reflected in the
+        // glass (1540,60 to 3010,950 of the picture, the glass see-through)
         Image {
-            anchors.fill: parent
+            x: scene.ox + 1540 * scene.k; y: scene.oy + 60 * scene.k
+            width: 1470 * scene.k; height: 890 * scene.k
             source: Settings.art + "/wallpaper-front.png"
-            fillMode: Image.PreserveAspectCrop
+            fillMode: Image.Stretch
             asynchronous: true
             smooth: true
             cache: false

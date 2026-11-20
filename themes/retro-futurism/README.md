@@ -111,14 +111,26 @@ places the live parts in the picture's own pixels (1671 x 941):
 
 ## How the window's view is made
 
+- The wallpaper is `art/Wallpaper-Extended.jpg` (3840 x 2160): the old
+  `art/Retro-Futuristic-Wallpaper.png` zoomed out, the car round it painted
+  on (that picture is this one's 539,216 to 3300,1944, scaled 1.742).
+- `tools/make_poster.py` prints the second poster again (the zooming out
+  had copied the first into it): Mt. Fuji under a striped sun, a bullet
+  train below, in the first poster's own inks, on its paper as it hangs
+  there (its light, the frame's shadow and its grain kept).
 - `tools/make_window_loop.py` turns `art/WindowView.png` into
   `window-view.jpg`: each column moved up or down so the viaduct runs level,
   then the right end joined to the left along the cut where the two look
-  most alike (it follows a tower's edge), so the strip repeats without a seam.
-- `tools/make_wallpaper_front.py` makes `wallpaper-front.png`: the
-  wallpaper with the glass see-through, except where she is in front of it
-  (her hair is warm, the city cool: the warm region joined to her face; along
-  her outline a soft matte, with the old view's colour taken back out), and
-  the reflected ceiling lights kept over the glass.
-- `modules/Backdrop.qml` lays the view in the glass (592,0 to 1400,403 in
-  the 1585 x 992 picture) and the front over it.
+  most alike (it follows a tower's edge), so the strip repeats without a
+  seam; and 140 rows of evening sky on top, for the tall window.
+- `tools/make_wallpaper_front.py` makes `wallpaper.jpg` (the whole picture)
+  and `wallpaper-front.png`, only the window (1540,60 to 3010,950): its glass
+  see-through, measured on the picture (the edges where the dark seal meets
+  the glass, the corners' own radii), except where she is in front of it.
+  Her edge is a closed-form matte (pymatting) between what is surely her,
+  surely the view (its cool sky, its lit windows) and the band between,
+  wide where her hair is; her loose strands kept for the matte to weigh;
+  her colour there with the view behind taken back out; bits of the old
+  view that are not her taken out; the reflected ceiling lights kept.
+- `modules/Backdrop.qml` lays the whole picture, the view in the glass
+  (1566,76 to 2982,922 of the picture) and the window over it.
