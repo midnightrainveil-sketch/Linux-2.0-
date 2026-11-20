@@ -11,6 +11,8 @@ import Quickshell.Io
 //   colour        the colour profile in use on this screen, or "none"
 //                 (ultra-icc; Hyprland applies it from ~/.config/ultra/icc,
 //                 hypr/ultra/machine.lua, whatever the theme)
+//   gpu           the graphics mode: "hybrid", "integrated", "ultimate", or
+//                 "none" (no switches on this kernel)   (ultra-gpu)
 Singleton {
     id: root
 
@@ -63,5 +65,20 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: root.colour = text.trim() || "none" }
     }
     Timer { interval: 60000; running: true; repeat: true; onTriggered: root.readColour() }
-    Component.onCompleted: readColour()
+
+    // ---- graphics mode (a switch is finished by logging out and in)
+    property string gpu: "none"
+    function readGpu(): void { if (!gpuReader.running) gpuReader.running = true; }
+    function toggleGpu(): void {
+        Quickshell.execDetached(["ultra-gpu", "toggle"]);
+        gpuSoon.restart();
+    }
+    Process {
+        id: gpuReader
+        command: ["ultra-gpu"]
+        stdout: StdioCollector { onStreamFinished: { const v = text.trim(); if (v !== "") root.gpu = v; } }
+    }
+    Timer { id: gpuSoon; interval: 2500; onTriggered: root.readGpu() }
+
+    Component.onCompleted: { readColour(); readGpu(); }
 }

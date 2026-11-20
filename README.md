@@ -67,6 +67,7 @@ chosen theme.
 | `ultra-rog` | The G14's graphics and power: NVIDIA driver, Hybrid mode, the dGPU off when unused |
 | `ultra-profile` | Step through the power profiles (the fan key) |
 | `ultra-refresh` | The panel's refresh rate: 60, 120, or Auto (follows the charger) |
+| `ultra-gpu` | The graphics mode (Hybrid or Integrated on the G14): read, or toggle (supergfxctl, else ROG Control's GPU page); a switch finishes at your next login |
 | `ultra-brightness` | The screen's brightness |
 | `ultra-icc` | A colour profile for a screen |
 | `ultra-mic` | The laptop microphone, made clear |

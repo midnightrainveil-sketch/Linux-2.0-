@@ -177,7 +177,15 @@ across(1226, 326, 1384, 369, 'v')
 across(152, 597, 674, 686, 'v')
 across(162, 561, 542, 603, 'v')
 # the lock's thumb (along its track), and its label
-across(1111, 600, 1172, 654, 'h')
+# (its groove there made anew from a clean stretch of it, and the 10m mark,
+# which went with the thumb, put back: the 30m one's, moved over)
+LOCK_Y0, LOCK_Y1 = 600, 652                                      # the groove and its marks, above the words
+prof = img[LOCK_Y0:LOCK_Y1, 1200:1260].mean(1)
+TICK_LOCK = img[LOCK_Y0:LOCK_Y1, 1288:1298] - img[LOCK_Y0:LOCK_Y1, np.r_[1274:1286, 1300:1312]].mean(1)[:, None]
+img[LOCK_Y0:LOCK_Y1, 1108:1176] = prof[:, None]
+img[LOCK_Y0:LOCK_Y1, 1108:1176] += rng.normal(0, 0.6, (LOCK_Y1 - LOCK_Y0, 68, 1))
+img[LOCK_Y0:LOCK_Y1, 1139:1149] += TICK_LOCK
+across(1111, 652, 1172, 654, 'h')
 across(832, 561, 1100, 603, 'v')
 # the faders' thumbs, along their tracks (volume at 485, light at 1177)
 across(442, 756, 529, 858, 'h')

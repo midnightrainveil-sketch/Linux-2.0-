@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# ultra-gpu: the G14's graphics mode, for the themes' control panels.
+#
+#   ultra-gpu            the mode now: hybrid, integrated, ultimate, or none
+#                          (no switches on this kernel or machine)
+#   ultra-gpu set hybrid|integrated
+#   ultra-gpu toggle     hybrid <-> integrated
+#
+# Reading needs nothing: the firmware's switches are in sysfs (asus-armoury,
+# Linux 6.19+, else the older asus-nb-wmi files). Switching is left to what
+# owns it: supergfxctl where its daemon still runs, else ROG Control's GPU
+# page (asusd switches the GPU itself since asusctl 6.3.9; see ultra-rog).
+# Every switch takes effect after you log out and back in.
+set -euo pipefail
+
+attr() {   # attr <name>: a firmware switch's value, or nothing
+    local a=/sys/class/firmware-attributes/asus-armoury/attributes/$1/current_value
+    local w=/sys/devices/platform/asus-nb-wmi/$1
+    if [[ -r $a ]]; then cat "$a"
+    elif [[ -r $w ]]; then cat "$w"
+    fi
+}
+
+mode() {
+    local mux dis
+    mux=$(attr gpu_mux_mode 2>/dev/null || true)
+    dis=$(attr dgpu_disable 2>/dev/null || true)
+    if [[ -z $mux && -z $dis ]]; then echo none
+    elif [[ $mux == 0 ]]; then echo ultimate       # the MUX on the dGPU
+    elif [[ $dis == 1 ]]; then echo integrated
+    else echo hybrid
+    fi
+}
+
+note() { notify-send --app-name "Graphics" "$@" >/dev/null 2>&1 || true; }
+
+set_mode() {
+    local want=$1
+    [[ $want == hybrid || $want == integrated ]] || { echo "ultra-gpu: hybrid or integrated" >&2; exit 2; }
+    [[ $(mode) == none ]] && { note "No GPU switches on this kernel." "They need Linux 6.19 or newer: ultra-rog status"; exit 1; }
+    [[ $(mode) == "$want" ]] && exit 0
+    if command -v supergfxctl >/dev/null 2>&1 && systemctl is-active --quiet supergfxd.service; then
+        local m; [[ $want == hybrid ]] && m=Hybrid || m=Integrated
+        if supergfxctl -m "$m"; then
+            note "Graphics: ${want^}" "Log out and back in to finish switching."
+            exit 0
+        fi
+    fi
+    # asusd's own switch: ROG Control's GPU page
+    if command -v rog-control-center >/dev/null 2>&1; then
+        setsid -f rog-control-center >/dev/null 2>&1
+        note "Switch to ${want^} on ROG Control's GPU page" "Then log out and back in."
+        exit 0
+    fi
+    note "Cannot switch the GPU here." "Install ROG Control: ultra-rog switch"
+    exit 1
+}
+
+case ${1:-get} in
+    get) mode ;;
+    set) set_mode "${2:-}" ;;
+    toggle) [[ $(mode) == integrated ]] && set_mode hybrid || set_mode integrated ;;
+    *) echo "usage: ultra-gpu [get|set hybrid|integrated|toggle]" >&2; exit 2 ;;
+esac

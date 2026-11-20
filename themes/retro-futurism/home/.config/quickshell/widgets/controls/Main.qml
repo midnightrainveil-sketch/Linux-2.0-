@@ -8,7 +8,9 @@ import qs.services
 // battery there; Super + S), stays over the windows, nothing behind blurred.
 //
 //   screen        the battery (its charge, watts in or out, time left) and
-//                 Wi-Fi, Bluetooth, power mode, refresh rate, colour profile:
+//                 Wi-Fi, Bluetooth, power mode, refresh rate, graphics mode
+//                 (Hybrid / Integrated: switched by logging out and in),
+//                 colour profile:
 //                 each row lights up under the pointer; a click toggles or
 //                 steps it on
 //   WI-FI, BT     switches: click or drag
@@ -17,7 +19,8 @@ import qs.services
 //   LOCK AFTER    2, 5, 10, 30 min or never: click a mark or drag the tab
 //   VOLUME, BRIGHTNESS   faders: drag, click the track, or the wheel
 //
-// Keys: W and B the switches, 1 2 3 the power mode, R the refresh rate, L the
+// Keys: W and B the switches, 1 2 3 the power mode, R the refresh rate, G the
+// graphics mode, L the
 // lock time, Up / Down the volume, Left / Right the brightness, M mute, Esc.
 //
 // Its pictures (deck.png and the parts that move) are made from the mock-up
@@ -80,6 +83,7 @@ Widget {
             const i = rates.findIndex(r => r.id === Machine.refresh);
             Machine.setRefresh(rates[(i + 1) % rates.length].id); break;
         }
+        case Qt.Key_G: if (Machine.gpu === "hybrid" || Machine.gpu === "integrated") Machine.toggleGpu(); break;
         case Qt.Key_L: Machine.setLockAfter(locks[(lockIndex() + 1) % locks.length].id); break;
         case Qt.Key_Up: Audio.setVolume(Math.min(1, Audio.volume + 0.05)); break;
         case Qt.Key_Down: Audio.setVolume(Math.max(0, Audio.volume - 0.05)); break;
@@ -91,7 +95,7 @@ Widget {
         e.accepted = true;
     }
 
-    onOpened: { Machine.readColour(); Brightness.refresh(); Machine.readHz(); }
+    onOpened: { Machine.readColour(); Brightness.refresh(); Machine.readHz(); Machine.readGpu(); }
     // (the rate follows the charger when auto: read again while it is up)
     Timer { interval: 3000; running: self.shown; repeat: true; onTriggered: Machine.readHz() }
 
@@ -224,7 +228,7 @@ Widget {
                              + (Power.rate < 10 ? Power.rate.toFixed(1) : Math.round(Power.rate)) + "W" : "")
                     font.pixelSize: 40
                 }
-                Item { width: 1; height: 8 }
+                Item { width: 1; height: 4 }
                 Repeater {
                     model: [
                         { label: "WI-FI",
@@ -244,13 +248,16 @@ Widget {
                               const i = self.rates.findIndex(r => r.id === Machine.refresh);
                               Machine.setRefresh(self.rates[(i + 1) % self.rates.length].id);
                           } },
+                        { label: "GPU",
+                          value: ({ hybrid: "HYBRID", integrated: "INTEGRATED", ultimate: "ULTIMATE" })[Machine.gpu] ?? "NONE",
+                          act: Machine.gpu === "hybrid" || Machine.gpu === "integrated" ? () => Machine.toggleGpu() : null },
                         { label: "COLOUR", value: Machine.colourName.toUpperCase(), act: null }
                     ]
                     Item {
                         id: row
                         required property var modelData
                         readonly property bool lit: rowArea.containsMouse
-                        width: 400; height: 38
+                        width: 400; height: 34
                         Rectangle {
                             // the inverted bar
                             anchors.fill: parent; anchors.topMargin: 1; anchors.bottomMargin: 1
@@ -259,12 +266,12 @@ Widget {
                             Behavior on opacity { NumberAnimation { duration: 90 } }
                         }
                         Lcd {
-                            x: 10; text: row.modelData.label; font.pixelSize: 36
+                            x: 10; text: row.modelData.label; font.pixelSize: 34
                             color: row.lit ? self.glass : self.lcdInk
                         }
                         Lcd {
                             x: 206; width: 186; elide: Text.ElideRight
-                            text: row.modelData.value; font.pixelSize: 36
+                            text: row.modelData.value; font.pixelSize: 34
                             color: row.lit ? self.glass : self.lcdInk
                         }
                         MouseArea {
