@@ -117,6 +117,18 @@ PanelWindow {
             cache: false
         }
 
+        // her cassette player, playing while music plays: the reels turn,
+        // the meter lights (tools/make_cassette.py)
+        CassettePlay {
+            anchors.fill: parent
+            which: "home"
+            ox: scene.ox; oy: scene.oy; k: scene.k
+            reels: [[2404, 1517.5], [2501.5, 1523]]
+            reelSize: 50
+            meter: Qt.rect(2596, 1468, 80, 54)
+            bars: 5; barX: 2608.5; barStep: 10.9; barW: 8; barFoot: 1510.5; barMax: 24
+        }
+
         // the glass: 1566,76 to 2982,922 in the picture (its edge is in
         // wallpaper-front.png; this only has to reach under it)
         Item {

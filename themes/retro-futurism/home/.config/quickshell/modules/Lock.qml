@@ -274,6 +274,17 @@ Scope {
                     visible: picture.status === Image.Ready
                     text: roomPicture.days[tick.date.getDay()] + " " + tick.date.getDate() + " " + roomPicture.months[tick.date.getMonth()]
                 }
+                // the cassette player on the bed, playing while music plays
+                CassettePlay {
+                    anchors.fill: parent
+                    visible: picture.status === Image.Ready
+                    which: "lock"
+                    ox: roomPicture.ox; oy: roomPicture.oy; k: roomPicture.k
+                    reels: [[880, 761.25], [949, 759.5]]
+                    reelSize: 34
+                    meter: Qt.rect(1009, 723, 51, 34)
+                    bars: 6; barX: 1017; barStep: 6; barW: 5; barFoot: 748.5; barMax: 15
+                }
             }
             MultiEffect {
                 anchors.fill: parent

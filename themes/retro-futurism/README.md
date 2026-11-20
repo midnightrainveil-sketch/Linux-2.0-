@@ -132,5 +132,13 @@ places the live parts in the picture's own pixels (1671 x 941):
   wide where her hair is; her loose strands kept for the matte to weigh;
   her colour there with the view behind taken back out; bits of the old
   view that are not her taken out; the reflected ceiling lights kept.
+- `tools/make_cassette.py` cuts the cassette players' moving parts from
+  `wallpaper.jpg` and `lock.jpg` (`cassette/`): each reel as a disc,
+  centred where it looks most alike turned a quarter (so it spins without
+  a wobble), and each level meter's window with its painted bars taken out.
+  While music plays, `components/CassettePlay.qml` turns the reels and
+  lights the meter's bars to the music (`services/Spectrum.qml`: six bands
+  from `cava`, with a stand-in if cava is missing), on the desk and on the
+  lock screen alike.
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.

@@ -20,3 +20,5 @@ papirus-icon-theme
 inter-font
 # the clock's alarm and timer sound
 sound-theme-freedesktop
+# ---- the cassette players' level meters (the music's levels)
+cava
