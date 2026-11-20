@@ -119,6 +119,15 @@ class Harness(QObject):
             return "50"
         if name == "ultra-screenshot":
             return "11"
+        if name == "sh" and "nmcli" in cmd[-1]:                  # the Wi-Fi picker's look round
+            return ("*:BOTSYNC_PILOT:82:WPA2\n:BOTSYNC_PILOT:61:WPA2\n:Cafe Kissa:64:\n:HOME-5G:48:WPA2 WPA3\n"
+                    ":Train\\:Free:30:\n:DIRECT-LaserJet:22:WPA2\n\n--\nBOTSYNC_PILOT:802-11-wireless\nHOME-5G:802-11-wireless\nWired:802-3-ethernet")
+        if name == "sh" and "bluetoothctl devices" in cmd[-1]:   # the Bluetooth picker's
+            return ("Device AA:BB:CC:00:11:22 WH-1000XM4\nDevice AA:BB:CC:00:11:33 MX Master 3\nDevice AA:BB:CC:00:11:44 Galaxy Buds\n"
+                    "Device AA:BB:CC:00:11:55 AA-BB-CC-00-11-55\n--\nDevice AA:BB:CC:00:11:22 WH-1000XM4\nDevice AA:BB:CC:00:11:33 MX Master 3\n"
+                    "--\nDevice AA:BB:CC:00:11:22 WH-1000XM4")
+        if name == "sh" and "refreshRate" in cmd[-1]:
+            return "120.00000"
         if name == "sh" and "ultra-theme list" in cmd[-1]:
             tool = [sys.executable, str(REPO / "core/home/.local/bin/ultra-theme")]
             return subprocess.run(tool + ["list"], capture_output=True, text=True).stdout.strip() + "\nviewfinder\n"

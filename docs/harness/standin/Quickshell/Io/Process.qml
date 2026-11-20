@@ -4,6 +4,7 @@ QtObject {
     property var command: []
     property bool running: false
     property var stdout
+    property var stderr
     signal exited(int code)
     onRunningChanged: if (running) Qt.callLater(run)
     Component.onCompleted: if (running) Qt.callLater(run)

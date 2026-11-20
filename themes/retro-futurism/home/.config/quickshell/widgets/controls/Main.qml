@@ -91,7 +91,9 @@ Widget {
         e.accepted = true;
     }
 
-    onOpened: { Machine.readColour(); Brightness.refresh(); }
+    onOpened: { Machine.readColour(); Brightness.refresh(); Machine.readHz(); }
+    // (the rate follows the charger when auto: read again while it is up)
+    Timer { interval: 3000; running: self.shown; repeat: true; onTriggered: Machine.readHz() }
 
     // ======================================================================
     // the deck, in the mock-up's pixels
@@ -227,16 +229,17 @@ Widget {
                     model: [
                         { label: "WI-FI",
                           value: !Net.wifiOn ? "OFF" : Net.wired ? "WIRED" : Net.ssid !== "" ? Net.ssid.toUpperCase() : "ON",
-                          act: () => Net.setWifi(!Net.wifiOn) },
+                          act: () => Widgets.open("wifi") },          // the networks (widgets/wifi)
                         { label: "BLUETOOTH",
                           value: !Net.bluetoothAvailable ? "NONE" : !Net.bluetoothOn ? "OFF"
                               : Net.bluetoothConnected > 0 ? Net.bluetoothConnected + " ON" : "ON",
-                          act: Net.bluetoothAvailable ? () => Net.setBluetooth(!Net.bluetoothOn) : null },
+                          act: Net.bluetoothAvailable ? () => Widgets.open("bluetooth") : null },   // the devices
                         { label: "POWER",
                           value: (self.modes.find(m => m.id === Power.profile) ?? { word: "-" }).word.slice(0, 8),
                           act: () => self.nextMode(1) },
                         { label: "DISPLAY",
-                          value: Machine.refresh === "auto" ? "AUTO" : Machine.refresh + "HZ",
+                          // the rate the screen is running at now (auto or not)
+                          value: Machine.hz > 0 ? Machine.hz + " HZ" : Machine.refresh === "auto" ? "AUTO" : Machine.refresh + " HZ",
                           act: () => {
                               const i = self.rates.findIndex(r => r.id === Machine.refresh);
                               Machine.setRefresh(self.rates[(i + 1) % self.rates.length].id);

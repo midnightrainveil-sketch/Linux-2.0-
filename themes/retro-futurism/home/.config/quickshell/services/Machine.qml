@@ -21,7 +21,17 @@ Singleton {
     function setRefresh(v: string): void {
         refresh = v;                                    // at once; the file follows
         Quickshell.execDetached(["ultra-refresh", v]);
+        hzSoon.restart();
     }
+    // the rate the screen in use is running at now, in Hz (0: not known yet)
+    property int hz: 0
+    function readHz(): void { if (!hzReader.running) hzReader.running = true; }
+    Process {
+        id: hzReader
+        command: ["sh", "-c", "hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.focused)][0].refreshRate // empty'"]
+        stdout: StdioCollector { onStreamFinished: { const v = parseFloat(text); if (!isNaN(v) && v > 0) root.hz = Math.round(v); } }
+    }
+    Timer { id: hzSoon; interval: 1500; onTriggered: root.readHz() }
     FileView {
         path: root.stateHome + "/ultra/refresh"
         watchChanges: true; printErrors: false

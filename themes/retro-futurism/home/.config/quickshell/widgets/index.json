@@ -9,6 +9,8 @@
     { "id": "clock",      "name": "Clock",            "key": "SUPER + W",             "callable": true,  "art": ["ClockWidget.png"] },
     { "id": "controls",   "name": "Control deck",     "key": "SUPER + S",             "callable": true,  "placement": "taskbar", "art": ["ControlDeck.png"] },
     { "id": "power",      "name": "Power",            "key": "SUPER + SHIFT + Escape", "callable": true, "art": ["Power.png"] },
+    { "id": "wifi",       "name": "Wi-Fi",            "key": "",                      "callable": true,  "art": [] },
+    { "id": "bluetooth",  "name": "Bluetooth",        "key": "",                      "callable": true,  "art": [] },
     { "id": "pager",      "name": "Notifications",    "key": "",                      "callable": false, "art": ["Notification.png"] }
   ]
 }

@@ -183,6 +183,38 @@ across(832, 561, 1100, 603, 'v')
 across(442, 756, 529, 858, 'h')
 across(1134, 756, 1221, 858, 'h')
 across(1094, 714, 1312, 758, 'v')                              # LIGHT (and room for BRIGHTNESS)
+
+
+# the ticks, from the volume track's clean right-hand stretch (one with its
+# short mark above, for the middle; one without, for the ends); both tracks
+# get the same
+TY0, TY1 = 771, 827                                              # a track's inside, within its border
+
+
+def tick_at(x, clean):
+    prof = img[TY0:TY1, clean].mean(1)
+    return img[TY0:TY1, x - 4:x + 5] - prof[:, None]
+
+
+TICK_FULL = tick_at(610, np.r_[585:600, 620:635])
+TICK_END = tick_at(646, np.r_[620:635, 655:668])
+
+
+def rebuild_track(x0, x1, first, last, clean):
+    """a fader's track made anew, evenly: its plain inside (the mean of a
+    clean stretch between two ticks) along its whole straight, and 13 ticks
+    at even steps from the first to the last. The thumb's place had been
+    smeared over, and the art's ticks were unevenly spaced to begin with."""
+    prof = img[TY0:TY1, clean].mean(1)
+    img[TY0:TY1, x0:x1] = prof[:, None]
+    for i in range(13):
+        x = int(round(first + i * (last - first) / 12))
+        img[TY0:TY1, x - 4:x + 5] += TICK_END if i in (0, 12) else TICK_FULL
+    img[TY0:TY1, x0:x1] += rng.normal(0, 0.6, (TY1 - TY0, x1 - x0, 1))
+
+
+rebuild_track(241, 673, 253, 646, np.r_[585:600, 620:635])                      # VOLUME
+rebuild_track(963, 1383, 977, 1364, np.r_[1298:1314, 1336:1352])                # BRIGHTNESS
 for bx0, bx1 in ((702, 790), (1433, 1523)):                    # the read-outs
     across(bx0 + 7, 775, bx1 - 7, 821, 'h', grain=0.5)
 

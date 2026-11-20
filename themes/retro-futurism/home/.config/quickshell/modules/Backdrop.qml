@@ -90,12 +90,12 @@ PanelWindow {
                                    && w.x + w.w >= glass.x + glass.width
                                    && w.y + w.h >= glass.y + glass.height)
 
-        // the car moves; a touch larger than the screen, so no edge shows
-        scale: 1.075                   // room for the sway: no edge ever shows
-        transform: [
-            Translate { x: ride.swayX + ride.bump * 0.25; y: ride.swayY + ride.bump },
-            Rotation { origin.x: scene.width / 2; origin.y: scene.height / 2; angle: ride.swayR + ride.bump * 0.02 }
-        ]
+        // We ride in the car: it holds still round us (we sway with it), and
+        // only a rail joint jolts it, a touch. What moves is the world
+        // outside its window, below. (A touch larger than the screen, so the
+        // jolt shows no edge.)
+        scale: 1.02
+        transform: Translate { x: ride.bump * 0.12; y: ride.bump * 0.45 }
 
         // the picture's own pixels (1585 x 992) to the screen, as
         // PreserveAspectCrop lays it
@@ -118,10 +118,14 @@ PanelWindow {
             readonly property real loopW: 1580 * 0.862 * scene.k
             readonly property real loopH: 603 * 0.862 * scene.k
             Item {
-                // the city is far off: it moves less than the car round it
-                x: -0.65 * (ride.swayX + ride.bump * 0.25)
-                y: -0.65 * (ride.swayY + ride.bump)
+                // the world outside, as seen from the swaying car: it bobs
+                // and drifts past the window frame and rolls a little as the
+                // car leans on its springs; a rail joint jumps it more than
+                // the car (the springs pass the jolt on, the eye is jolted)
+                x: 0.7 * ride.swayX + ride.bump * 0.3
+                y: ride.swayY + ride.bump * 1.3
                 width: glass.width; height: glass.height
+                transform: Rotation { origin.x: glass.width / 2; origin.y: glass.height / 2; angle: 0.8 * ride.swayR }
                 Row {
                     id: view
                     y: (300 - 376 * 0.862) * scene.k

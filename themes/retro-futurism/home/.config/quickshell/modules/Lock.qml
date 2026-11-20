@@ -271,7 +271,7 @@ Scope {
                 anchors.fill: parent
                 opacity: room.homeLevel
                 visible: opacity > 0
-                scale: 1.075                         // as the desk draws it (room to sway)
+                scale: 1.02                          // as the desk draws it
                 // dimmed as the desk is while windows are open (Backdrop.qml)
                 Rectangle {
                     z: 10
