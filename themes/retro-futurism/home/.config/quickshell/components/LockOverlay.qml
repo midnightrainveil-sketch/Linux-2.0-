@@ -39,7 +39,11 @@ Item {
         }
     }
 
-    // ---- the date and the time
+    // ---- the date and the time: the time cut by the slices of a retro
+    // sunset through its lower half (as the poster's sun), the theme's ///
+    // either side of the date, a tape's three stripes under it all
+    readonly property color rust: "#d9703f"
+    readonly property color amber: "#e9a95b"
     Item {
         id: top
         anchors.fill: parent
@@ -50,22 +54,85 @@ Item {
             shadowBlur: 0.6
             shadowVerticalOffset: 2 * hud.s
         }
-        Text {
+        Row {
             id: date
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 70 * hud.s
-            text: hud.days[hud.now.getDay()] + "   " + hud.now.getDate() + " " + hud.months[hud.now.getMonth()]
-            color: hud.dim
-            font.family: hud.face; font.weight: Font.DemiBold
-            font.pixelSize: 26 * hud.s; font.letterSpacing: 7 * hud.s
+            y: 64 * hud.s
+            spacing: 16 * hud.s
+            component Slashes: Text {
+                text: "///"; color: hud.rust
+                font.family: hud.face; font.weight: Font.ExtraBold; font.italic: true
+                font.pixelSize: 22 * hud.s; font.letterSpacing: -1 * hud.s
+            }
+            Slashes { anchors.verticalCenter: parent.verticalCenter }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: hud.days[hud.now.getDay()] + "  \u00b7  " + hud.now.getDate() + " " + hud.months[hud.now.getMonth()]
+                color: hud.dim
+                font.family: hud.face; font.weight: Font.DemiBold
+                font.pixelSize: 22 * hud.s; font.letterSpacing: 6 * hud.s
+            }
+            Slashes { anchors.verticalCenter: parent.verticalCenter }
         }
-        Text {
+        Item {
+            id: clock
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: date.bottom; anchors.topMargin: -18 * hud.s
-            text: Qt.formatTime(hud.now, "hh:mm")
-            color: hud.ink; opacity: 0.88
-            font.family: hud.face; font.weight: Font.Medium
-            font.pixelSize: 230 * hud.s; font.letterSpacing: -4 * hud.s
+            anchors.top: date.bottom; anchors.topMargin: -12 * hud.s
+            width: time.implicitWidth; height: time.implicitHeight
+            Text {
+                id: time
+                visible: false
+                layer.enabled: true
+                text: Qt.formatTime(hud.now, "hh:mm")
+                color: hud.ink
+                font.family: hud.face; font.weight: Font.Medium; font.italic: true
+                font.pixelSize: 168 * hud.s; font.letterSpacing: -2 * hud.s
+            }
+            // the slices: gaps through the figures' lower half, wider lower down
+            Item {
+                id: slices
+                anchors.fill: parent
+                visible: false
+                layer.enabled: true
+                readonly property real fig: time.font.pixelSize * 0.7     // the figures' height
+                readonly property real top0: time.baselineOffset - fig
+                readonly property var gaps: [[0.56, 0.022], [0.70, 0.032], [0.84, 0.045]]
+                Repeater {
+                    model: 4
+                    Rectangle {
+                        required property int index
+                        readonly property real from: index === 0 ? 0
+                            : slices.top0 + slices.fig * (slices.gaps[index - 1][0] + slices.gaps[index - 1][1])
+                        readonly property real to: index === 3 ? slices.height
+                            : slices.top0 + slices.fig * slices.gaps[index][0]
+                        y: from; width: slices.width; height: Math.max(0, to - from)
+                        color: "white"
+                    }
+                }
+            }
+            MultiEffect {
+                anchors.fill: parent
+                source: time
+                maskEnabled: true
+                maskSource: slices
+                opacity: 0.9
+            }
+        }
+        // a tape's three stripes
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: clock.bottom; anchors.topMargin: -6 * hud.s
+            spacing: 3 * hud.s
+            Repeater {
+                model: [hud.rust, hud.amber, hud.ink]
+                Rectangle {
+                    required property var modelData
+                    required property int index
+                    x: index * 6 * hud.s
+                    width: 150 * hud.s; height: 3.5 * hud.s; radius: height / 2
+                    color: modelData; opacity: 0.85
+                }
+            }
         }
     }
 
@@ -75,15 +142,38 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom; anchors.bottomMargin: 48 * hud.s
         width: Math.min(parent.width - 96 * hud.s, row.implicitWidth + 64 * hud.s)
-        height: 64 * hud.s
-        radius: height / 2
-        color: Qt.rgba(0.08, 0.05, 0.035, 0.38)
-        border.color: Qt.rgba(1, 0.96, 0.9, 0.16); border.width: 1
+        height: 60 * hud.s
+        radius: 10 * hud.s
+        color: Qt.rgba(0.08, 0.05, 0.035, 0.42)
+        border.color: Qt.rgba(1, 0.96, 0.9, 0.18); border.width: 1
+        // an inner line, as a tape deck's panel has
+        Rectangle {
+            anchors.fill: parent; anchors.margins: 4 * hud.s
+            radius: 7 * hud.s
+            color: "transparent"
+            border.color: Qt.rgba(1, 0.96, 0.9, 0.09); border.width: 1
+        }
 
         Row {
             id: row
             anchors.centerIn: parent
             spacing: 26 * hud.s
+
+            // the brand, as on the taskbar
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8 * hud.s
+                Text {
+                    text: "///"; color: hud.rust
+                    font.family: hud.face; font.weight: Font.ExtraBold; font.italic: true; font.pixelSize: 20 * hud.s
+                }
+                Text {
+                    text: "MAGNETIC 88"; color: hud.ink
+                    font.family: hud.face; font.weight: Font.ExtraBold; font.italic: true
+                    font.pixelSize: 19 * hud.s; font.letterSpacing: 3 * hud.s
+                }
+            }
+            Sep {}
 
             // how to get in
             Row {
