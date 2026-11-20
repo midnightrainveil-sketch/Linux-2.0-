@@ -123,9 +123,11 @@ Widget {
         mode = store && store.ready ? store.get("mode", 0) : 0;
         if (ringing !== "") mode = ringing === "alarm" ? 1 : 2;
     }
+    // its saved mode, once read (the store is the clock's own: it reads it
+    // straight from 'store', which goes with the clock)
     Connections {
-        target: self.store
-        function onReadyChanged() { if (self.store && self.store.ready && self.ringing === "") self.mode = self.store.get("mode", 0); }
+        target: store
+        function onReadyChanged() { if (store && store.ready && ringing === "") mode = store.get("mode", 0); }
     }
     Connections {
         target: Alarms
