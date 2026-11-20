@@ -52,7 +52,9 @@ Item {
                 from: 360; to: 0
                 duration: reel.index === 0 ? 2300 : 1700
                 loops: Animation.Infinite
-                running: deck.playing && deck.visible
+                // (paused, not stopped, between songs: a restart would jump
+                // the reel back to where it began)
+                running: deck.visible
                 paused: running && !deck.playing
             }
         }
