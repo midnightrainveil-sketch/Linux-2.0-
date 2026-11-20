@@ -57,7 +57,7 @@ PanelWindow {
         function onLockedChanged() { if (Scene.locked) linger.stop(); }
     }
     // a cartridge just in: the bar stays up a moment, to see it
-    Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
+    Connections { target: Cartridges; function onLanded() { welcome.restart(); justIn.restart(); } }
     readonly property bool called: !Scene.locked && (hovered || linger.running || welcome.running)
     readonly property bool shown: !Scene.locked && (!hasWindows || called)
         || docking
@@ -69,7 +69,11 @@ PanelWindow {
     readonly property real shift: docking ? Math.max(0, (Cartridges.slotX > 0 ? Cartridges.slotX : width / 2) - lx(171)) : 0
     // the cartridge in the port: the window under the pointer's app, else the
     // last launched; and whether this is the bar on the screen in use
-    readonly property var portEntry: Cartridges.lastLaunched
+    // (only the app of a window on the workspace in view: an empty one, an
+    // empty port. Just after a launch the cartridge put in stays a moment,
+    // while its window is on its way.)
+    Timer { id: justIn; interval: 6000 }
+    readonly property var portEntry: justIn.running ? Cartridges.lastLaunched : null
     readonly property string portClass: Hypr.activeClass ?? ""
     readonly property bool focusedScreen: (Hyprland.focusedMonitor?.name ?? "") === (bar.screen?.name ?? "")
     Timer { id: linger; interval: 900 }               // a moment after the pointer leaves
@@ -225,9 +229,10 @@ PanelWindow {
 
     // the tube itself (for the pointer)
 
-    // ======== the cartridge in the port: the window under the pointer's app
-    // (focus follows the pointer), else the last one launched. It stands in
-    // the slot, its contacts out of sight in it; a click: the launcher.
+    // ======== the cartridge in the port: the app of the window in use on the
+    // workspace in view (focus follows the pointer); nothing on an empty
+    // workspace. It stands in the slot, its contacts out of sight in it; a
+    // click: the launcher.
     Item {
         id: portStand
         readonly property bool has: (bar.portClass !== "" || bar.portEntry !== null) && !Cartridges.flying
@@ -417,21 +422,23 @@ PanelWindow {
     // Wi-Fi: three arcs and a dot, lit to the signal (mock-up x 1711)
     Canvas {
         id: wifi
-        width: 24; height: 20; scale: bar.icon
+        width: 26; height: 20; scale: bar.icon
         x: bar.rx(1703) - width / 2; y: bar.my(368) - height / 2
         readonly property int level: !Net.online ? 0 : Net.wired ? 3 : Math.max(1, Math.ceil(Net.signal * 3))
         onLevelChanged: requestPaint()
         onPaint: {
             const c = getContext("2d"); c.reset();
-            const cx = width / 2, cy = height - 2;
-            c.lineCap = "round"; c.lineWidth = 3.4;
+            // (every arc inside the canvas, strokes and all: the widest
+            // reaches 14.5 * 0.71 + 1.6 to either side, 16.1 above the dot)
+            const cx = width / 2, cy = 17.6;
+            c.lineCap = "round"; c.lineWidth = 3.2;
+            c.strokeStyle = bar.ink;
             for (let i = 1; i <= 3; i++) {
-                c.strokeStyle = bar.ink;
                 c.globalAlpha = i <= level ? 1 : 0.22;
-                c.beginPath(); c.arc(cx, cy, 4 + i * 4.6, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
+                c.beginPath(); c.arc(cx, cy, 1 + i * 4.5, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
             }
             c.globalAlpha = level > 0 ? 1 : 0.4;
-            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 1, 3.0, 0, Math.PI * 2); c.fill();
+            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 0.4, 2.5, 0, Math.PI * 2); c.fill();
         }
     }
     Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1737) }
@@ -458,14 +465,14 @@ PanelWindow {
         }
     }
     Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1806) }
-    // battery: one smooth bar, as full as the battery (x 1888); amber
+    // battery: one smooth bar, as full as the battery (x 1888); green
     // while charging, rust when low
     Item {
         id: batt
         width: 38; height: 18; scale: bar.icon
         x: bar.rx(1851) - width / 2; y: bar.my(368) - height / 2
         visible: Power.present
-        readonly property color tone: Power.low ? bar.rust : Power.charging ? "#c98a2c" : bar.ink
+        readonly property color tone: Power.charging ? "#4f9b45" : Power.low ? bar.rust : bar.ink
         Rectangle {
             width: 34; height: 18; radius: 5
             color: "transparent"; border.width: 2.8; border.color: bar.ink

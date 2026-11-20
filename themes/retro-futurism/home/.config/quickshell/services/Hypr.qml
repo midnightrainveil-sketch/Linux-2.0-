@@ -42,7 +42,9 @@ Singleton {
     readonly property string activeTitle: Hyprland.activeToplevel?.title ?? ""
     // the class of the window in use on the workspace in view (focus follows
     // the pointer, so: the window under it); "" when none
-    readonly property string activeClass: (windows.find(w => w.active) ?? { cls: "" }).cls ?? ""
+    // (none in use there, the pointer between them: the first one; an
+    // empty workspace: none)
+    readonly property string activeClass: (windows.find(w => w.active) ?? windows[0] ?? { cls: "" }).cls ?? ""
 
     // ---- the windows in view: [{ key, x, y, w, h, cls, active, x11 }]
     property var windows: []
