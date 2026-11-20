@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -388,15 +389,21 @@ PanelWindow {
                 }
             }
         }
-        Text {
+        // (in an Item as wide as the letters without the spacing after the
+        // last one: so the gaps either side of the name are the same)
+        Item {
             anchors.verticalCenter: parent.verticalCenter
-            text: "MAGNETIC 88"
-            color: bar.paper
-            font.family: bar.face
-            font.pixelSize: Math.round(23 * bar.s)
-            font.weight: Font.Bold
-            font.letterSpacing: 7 * bar.s
-            style: Text.Raised; styleColor: "#55563f"
+            width: brandName.implicitWidth - brandName.font.letterSpacing; height: brandName.implicitHeight
+            Text {
+                id: brandName
+                text: "MAGNETIC 88"
+                color: bar.paper
+                font.family: bar.face
+                font.pixelSize: Math.round(23 * bar.s)
+                font.weight: Font.Bold
+                font.letterSpacing: 7 * bar.s
+                style: Text.Raised; styleColor: "#55563f"
+            }
         }
         Rectangle { anchors.verticalCenter: parent.verticalCenter; width: Math.max(1, 2.6 * bar.s); height: 36 * bar.s; color: bar.paper; opacity: 0.75 }
         ArchLogo {
@@ -421,115 +428,184 @@ PanelWindow {
         color: bar.rust
     }
 
-    // ======== the readouts (plate 1645-2120), where the mock-up has them
-    // Wi-Fi: three arcs and a dot, lit to the signal (mock-up x 1711)
-    Canvas {
-        id: wifi
-        width: 26; height: 20; scale: bar.icon
-        x: bar.rx(1703) - width / 2; y: bar.my(368) - height / 2
-        readonly property int level: !Net.online ? 0 : Net.wired ? 3 : Math.max(1, Math.ceil(Net.signal * 3))
-        onLevelChanged: requestPaint()
-        onPaint: {
-            const c = getContext("2d"); c.reset();
-            // (every arc inside the canvas, strokes and all: the widest
-            // reaches 14.5 * 0.71 + 1.6 to either side, 16.1 above the dot)
-            const cx = width / 2, cy = 17.6;
-            c.lineCap = "round"; c.lineWidth = 3.2;
-            c.strokeStyle = bar.ink;
-            for (let i = 1; i <= 3; i++) {
-                c.globalAlpha = i <= level ? 1 : 0.22;
-                c.beginPath(); c.arc(cx, cy, 1 + i * 4.5, Math.PI * 1.25, Math.PI * 1.75); c.stroke();
-            }
-            c.globalAlpha = level > 0 ? 1 : 0.4;
-            c.fillStyle = bar.ink; c.beginPath(); c.arc(cx, cy - 0.4, 2.5, 0, Math.PI * 2); c.fill();
-        }
+    // ======== the readouts (plate 1645-2120): Wi-Fi, volume and the battery
+    // (a click: the control deck; the wheel: the volume), then the date and
+    // the time (a click: the clock). Drawn, so they stay crisp at any size,
+    // in the plate's ink: a signal meter, a volume knob, a slim battery.
+    component Divider: Rectangle {
+        property real k: 1
+        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+        width: Math.max(1, 1.6 * k); height: 28 * k
+        color: "#3a352d"; opacity: 0.4
     }
-    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1737) }
-    // volume: the speaker and as many waves as it is loud (x 1791)
-    Canvas {
-        id: vol
-        width: 26; height: 20; scale: bar.icon
-        x: bar.rx(1771) - width / 2; y: bar.my(368) - height / 2
-        readonly property int waves: Audio.muted ? -1 : Audio.volume <= 0.01 ? 0 : Audio.volume < 0.4 ? 1 : 2
-        onWavesChanged: requestPaint()
-        onPaint: {
-            const c = getContext("2d"); c.reset();
-            c.fillStyle = bar.ink; c.strokeStyle = bar.ink;
-            c.beginPath();
-            c.moveTo(2, 7); c.lineTo(6, 7); c.lineTo(11, 2.5); c.lineTo(11, 17.5); c.lineTo(6, 13); c.lineTo(2, 13);
-            c.closePath(); c.fill();
-            c.lineWidth = 3.4; c.lineCap = "round";
-            if (waves < 0) {
-                c.beginPath(); c.moveTo(15, 6.5); c.lineTo(22, 13.5); c.moveTo(22, 6.5); c.lineTo(15, 13.5); c.stroke();
-            }
-            for (let i = 1; i <= waves; i++) {
-                c.beginPath(); c.arc(11, 10, 3.5 + i * 4, -Math.PI * 0.3, Math.PI * 0.3); c.stroke();
-            }
-        }
-    }
-    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1806) }
-    // battery: one smooth bar, as full as the battery (x 1888); green
-    // while charging, rust when low
-    Item {
-        id: batt
-        width: 38; height: 18; scale: bar.icon
-        x: bar.rx(1851) - width / 2; y: bar.my(368) - height / 2
-        visible: Power.present
-        readonly property color tone: Power.charging ? "#4f9b45" : Power.low ? bar.rust : bar.ink
-        Rectangle {
-            width: 34; height: 18; radius: 5
-            color: "transparent"; border.width: 2.8; border.color: bar.ink
-            Rectangle {
-                x: 4; y: 4
-                height: parent.height - 8; radius: 2
-                width: Math.max(height, (parent.width - 8) * Power.percent / 100)
-                color: batt.tone
-                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
-            }
-        }
-        Rectangle { x: 35; y: 5.5; width: 3.4; height: 7; radius: 1.5; color: bar.ink }
-    }
-    // the battery's figure, beside it
-    Text {
-        visible: Power.present
-        x: bar.rx(1890)
+    Row {
+        id: readouts
+        x: bar.rx(2104) - width
         y: bar.my(368) - height / 2
-        text: Power.percent + "%"
-        color: Power.low ? bar.rust : bar.ink
-        opacity: 0.85
-        font.family: bar.figures
-        font.pixelSize: Math.round(18 * bar.s)
-        font.weight: Font.Bold
-        font.features: { "tnum": 1 }
-    }
-    Sep { k: bar.s; cy: bar.my(368); x: bar.rx(1954); visible: Power.present }
-    // Wi-Fi, volume and the battery: one place to click for the control
-    // deck (widgets/controls), the wheel for the volume
-    MouseArea {
-        x: bar.rx(1660); width: bar.rx(1950) - x
-        y: bar.my(330); height: bar.my(408) - y
-        cursorShape: Qt.PointingHandCursor
-        onClicked: Widgets.toggle("controls")
-        onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
-    }
-    // the time: a click brings up the clock (widgets/clock)
-    MouseArea {
-        x: bar.rx(1962); width: bar.rx(2100) - x
-        y: bar.my(330); height: bar.my(408) - y
-        cursorShape: Qt.PointingHandCursor
-        onClicked: Widgets.toggle("clock")
-    }
-    // the time, centred where the mock-up's was (x 2028)
-    Text {
-        x: bar.rx(2025) - width / 2
-        y: bar.my(368) - height / 2
-        text: Clock.time
-        color: bar.ink
-        font.family: bar.figures
-        font.pixelSize: Math.round(24 * bar.s)
-        font.weight: Font.Bold
-        font.letterSpacing: 1 * bar.s
-        font.features: { "tnum": 1 }
+        height: 40 * bar.s
+        spacing: 20 * bar.s
+
+        // ---- the state of things: one place to click for the deck
+        Item {
+            width: readings.width; height: parent.height
+            Row {
+                id: readings
+                height: parent.height
+                spacing: 20 * bar.s
+
+                // Wi-Fi: four bars, as many dark as the signal is strong
+                Row {
+                    id: wifi
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 3.2 * bar.s
+                    readonly property int level: !Net.online ? 0 : Net.wired ? 4 : Math.max(1, Math.ceil(Net.signal * 4))
+                    Repeater {
+                        model: 4
+                        Rectangle {
+                            required property int index
+                            anchors.bottom: parent.bottom
+                            width: 4.6 * bar.s; height: (8 + index * 5) * bar.s; radius: 1.4 * bar.s
+                            color: bar.ink
+                            opacity: index < wifi.level ? 1 : 0.2
+                        }
+                    }
+                }
+                Divider { k: bar.s }
+
+                // volume: a knob, its marker turned as far as it is loud
+                // (from 7 to 5 o'clock), the turned part of its scale dark;
+                // muted, struck through
+                Shape {
+                    id: knob
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 28 * bar.s; height: 28 * bar.s
+                    // (the standard renderer, smoothed by multisampling: the curve
+                    // renderer drew nothing for it)
+                    layer.enabled: true
+                    layer.samples: 8
+                    layer.smooth: true
+                    readonly property real r: 11.2 * bar.s
+                    readonly property real cx: width / 2
+                    readonly property real cy: height / 2
+                    readonly property real level: Audio.muted ? 0 : Math.max(0, Math.min(1, Audio.volume))
+                    readonly property real turn: -225 + 270 * level        // degrees (0: three o'clock)
+                    opacity: Audio.muted ? 0.45 : 1
+                    // the whole scale, faint
+                    ShapePath {
+                        strokeColor: Qt.rgba(0.21, 0.19, 0.16, 0.3); strokeWidth: 2.2 * bar.s
+                        fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                        PathAngleArc { centerX: knob.cx; centerY: knob.cy; radiusX: knob.r; radiusY: knob.r; startAngle: 135; sweepAngle: 270 }
+                    }
+                    // the turned part
+                    ShapePath {
+                        strokeColor: bar.ink; strokeWidth: 2.6 * bar.s
+                        fillColor: "transparent"; capStyle: ShapePath.RoundCap
+                        PathAngleArc { centerX: knob.cx; centerY: knob.cy; radiusX: knob.r; radiusY: knob.r; startAngle: 135; sweepAngle: Math.max(0.01, 270 * knob.level) }
+                    }
+                    // the knob's face and its marker
+                    ShapePath {
+                        strokeColor: "transparent"; fillColor: bar.ink
+                        PathAngleArc { centerX: knob.cx; centerY: knob.cy; radiusX: knob.r * 0.46; radiusY: knob.r * 0.46; startAngle: 0; sweepAngle: 360 }
+                    }
+                    ShapePath {
+                        strokeColor: "#f2ead8"; strokeWidth: 1.8 * bar.s; capStyle: ShapePath.RoundCap
+                        fillColor: "transparent"
+                        startX: knob.cx; startY: knob.cy
+                        PathLine {
+                            x: knob.cx + Math.cos((135 + 270 * knob.level) * Math.PI / 180) * knob.r * 0.42
+                            y: knob.cy + Math.sin((135 + 270 * knob.level) * Math.PI / 180) * knob.r * 0.42
+                        }
+                    }
+                    // muted: struck through
+                    ShapePath {
+                        strokeColor: Audio.muted ? bar.ink : "transparent"; strokeWidth: 2.2 * bar.s; capStyle: ShapePath.RoundCap
+                        fillColor: "transparent"
+                        startX: knob.width * 0.12; startY: knob.height * 0.88
+                        PathLine { x: knob.width * 0.88; y: knob.height * 0.12 }
+                    }
+                }
+                Divider { k: bar.s }
+
+                // the battery: slim, filled as far as it is charged (green
+                // while charging, rust when low), and its figure
+                Row {
+                    visible: Power.present
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 7 * bar.s
+                    Item {
+                        id: batt
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 31 * bar.s; height: 14 * bar.s
+                        readonly property color tone: Power.charging ? "#4f9b45" : Power.low ? bar.rust : bar.ink
+                        Rectangle {
+                            width: 28 * bar.s; height: parent.height; radius: 3.6 * bar.s
+                            color: "transparent"; border.width: 2 * bar.s; border.color: bar.ink
+                            Rectangle {
+                                x: 3.2 * bar.s; y: 3.2 * bar.s
+                                height: parent.height - 6.4 * bar.s; radius: 1.6 * bar.s
+                                width: Math.max(height * 0.6, (parent.width - 6.4 * bar.s) * Power.percent / 100)
+                                color: batt.tone
+                                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                            }
+                        }
+                        Rectangle { x: 28.8 * bar.s; y: parent.height * 0.3; width: 2.2 * bar.s; height: parent.height * 0.4; radius: 1 * bar.s; color: bar.ink }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Power.percent + "%"
+                        color: Power.low && !Power.charging ? bar.rust : bar.ink
+                        opacity: 0.85
+                        font.family: bar.figures
+                        font.pixelSize: Math.round(17 * bar.s)
+                        font.weight: Font.Bold
+                        font.features: { "tnum": 1 }
+                    }
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; anchors.margins: -8 * bar.s
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Widgets.toggle("controls")
+                onWheel: e => Audio.setVolume(Math.max(0, Math.min(1, Audio.volume + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
+            }
+        }
+        Divider { k: bar.s }
+
+        // ---- the date and the time: a click brings up the clock
+        Item {
+            width: when.width; height: parent.height
+            Row {
+                id: when
+                height: parent.height
+                spacing: 11 * bar.s
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenterOffset: 1 * bar.s
+                    text: Qt.formatDate(Clock.now, "ddd d MMM").toUpperCase()
+                    color: bar.ink
+                    opacity: 0.72
+                    font.family: bar.figures
+                    font.pixelSize: Math.round(16 * bar.s)
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 1.2 * bar.s
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Clock.time
+                    color: bar.ink
+                    font.family: bar.figures
+                    font.pixelSize: Math.round(24 * bar.s)
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1 * bar.s
+                    font.features: { "tnum": 1 }
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; anchors.margins: -8 * bar.s
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Widgets.toggle("clock")
+            }
+        }
     }
     }
 }
