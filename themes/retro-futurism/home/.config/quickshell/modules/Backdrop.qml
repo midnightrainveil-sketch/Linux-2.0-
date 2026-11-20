@@ -47,10 +47,10 @@ PanelWindow {
         // the sway: slow waves of different lengths, so it never falls
         // into a beat (screen pixels; degrees)
         readonly property real swayX: !Settings.sway ? 0
-            : 7.5 * Math.sin(t * 0.62) + 3.0 * Math.sin(t * 1.41 + 1.3)
+            : 13.0 * Math.sin(t * 0.58) + 5.0 * Math.sin(t * 1.33 + 1.3)
         readonly property real swayY: !Settings.sway ? 0
-            : 5.0 * Math.sin(t * 0.87 + 0.4) + 2.0 * Math.sin(t * 2.07 + 2.1)
-        readonly property real swayR: !Settings.sway ? 0 : 0.4 * Math.sin(t * 0.5 + 0.8)
+            : 8.5 * Math.sin(t * 0.81 + 0.4) + 3.5 * Math.sin(t * 1.93 + 2.1)
+        readonly property real swayR: !Settings.sway ? 0 : 0.7 * Math.sin(t * 0.47 + 0.8)
 
         // a joint: each axle gives a short jolt that dies away in a moment;
         // two axles on the front bogie, then two on the back one
@@ -91,7 +91,7 @@ PanelWindow {
                                    && w.y + w.h >= glass.y + glass.height)
 
         // the car moves; a touch larger than the screen, so no edge shows
-        scale: 1.05                    // room for the sway: no edge ever shows
+        scale: 1.075                   // room for the sway: no edge ever shows
         transform: [
             Translate { x: ride.swayX + ride.bump * 0.25; y: ride.swayY + ride.bump },
             Rotation { origin.x: scene.width / 2; origin.y: scene.height / 2; angle: ride.swayR + ride.bump * 0.02 }
@@ -130,7 +130,7 @@ PanelWindow {
                     // is when the animation starts)
                     property real progress: 0
                     // (a little to the left as well: the sway never opens a gap at the glass's edge)
-                    x: -progress * glass.loopW - 24
+                    x: -progress * glass.loopW - 32
                     // where the city has got to (the lock screen fades into it)
                     onProgressChanged: Scene.viewShift = progress
                     Repeater {
