@@ -1,19 +1,50 @@
 #!/usr/bin/env bash
 # ultra-update: fetch the latest version of the desktop and install it.
 #
-#   ultra-update
+#   ultra-update          quick: only what changed (usually seconds). No
+#                           system upgrade unless a new package is needed;
+#                           the machine's own steps only if they changed;
+#                           nothing at all if you already have the latest
+#   ultra-update --full   everything, with a full system upgrade (pacman -Syu)
+#   ultra-update --force  install again even if it is the latest
 #
 # Downloads it from GitHub into a temporary folder and runs its setup.sh,
 # which copies it over ~/ultra (the machine's part and every theme it
 # ships; themes of your own are left alone), installs anything new and
-# rebuilds the title-bar plugins if they changed. Reboot when it says so.
+# rebuilds the plugins if they changed.
 # ULTRA_REPO / ULTRA_BRANCH pick another source.
 set -euo pipefail
 repo=${ULTRA_REPO:-midnightrainveil-sketch/Linux-2.0-}
 branch=${ULTRA_BRANCH:-claude/hyprland-ui-setup-l5njnw}
+full=0 force=0 pass=()
+for a in "$@"; do
+    case $a in
+        --full) full=1 ;;
+        --force) force=1 ;;
+        *) pass+=("$a") ;;
+    esac
+done
+
+installed="$HOME/ultra/.commit"
+# the newest commit on the branch (a few bytes; empty if GitHub cannot be asked)
+latest=$(curl -fsSL --max-time 10 -H "Accept: application/vnd.github.sha" \
+    "https://api.github.com/repos/$repo/commits/$branch" 2>/dev/null || true)
+[[ $latest =~ ^[0-9a-f]{40}$ ]] || latest=""
+if (( !full && !force )) && [[ -n $latest && -f $installed && $(cat "$installed") == "$branch $latest" ]]; then
+    echo ":: already the latest ($branch, ${latest:0:7})"
+    echo "   (ultra-update --full also upgrades the system; --force installs it again)"
+    exit 0
+fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-echo ":: downloading $repo ($branch)"
-curl -fL "https://github.com/$repo/archive/refs/heads/$branch.tar.gz" | tar xz -C "$tmp" --strip-components=1
-"$tmp/setup.sh" "$@"
+echo ":: downloading $repo ($branch${latest:+, ${latest:0:7}})"
+# (that very commit, so what is noted as installed is what was installed)
+curl -fL "https://github.com/$repo/archive/${latest:-refs/heads/$branch}.tar.gz" | tar xz -C "$tmp" --strip-components=1
+if (( full )); then
+    "$tmp/setup.sh" ${pass[@]+"${pass[@]}"}
+else
+    "$tmp/setup.sh" --quick ${pass[@]+"${pass[@]}"}
+fi
+[[ -n $latest ]] && echo "$branch $latest" >"$installed"
+exit 0

@@ -44,8 +44,11 @@ chosen theme (your old files go to `~/.ultra-backup/`), names the G14's
 GPUs if it finds a G14, builds each theme's icons and title-bar plugin, and
 offers a typed login screen. Then reboot.
 
-To update later: `ultra-update` (it downloads the latest version and runs
-the same setup; then reboot).
+To update later: `ultra-update`. It does only what changed, usually in
+seconds: nothing if you have the latest; no system upgrade unless a new
+package is needed; the machine's own steps only when they changed. Then log
+out and back in. `ultra-update --full` also upgrades the whole system
+(`pacman -Syu`) and runs every step again; then reboot.
 
 **→ [GUIDE.md](GUIDE.md)** walks through the same steps by hand, from a fresh
 Arch install, with a check after each one.
@@ -60,7 +63,7 @@ chosen theme.
 | Command | What it does |
 | --- | --- |
 | `ultra-theme` | List, choose (`set <id>`) or show (`current`) the theme |
-| `ultra-update` | Fetch the latest version and install it |
+| `ultra-update` | Fetch the latest version and install what changed (`--full`: everything, with a system upgrade) |
 | `ultra-rog` | The G14's graphics and power: NVIDIA driver, Hybrid mode, the dGPU off when unused |
 | `ultra-profile` | Step through the power profiles (the fan key) |
 | `ultra-refresh` | The panel's refresh rate: 60, 120, or Auto (follows the charger) |

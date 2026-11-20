@@ -3,6 +3,7 @@
 #
 #   ./setup.sh            install everything, asking two questions
 #   ./setup.sh --yes      the same, answering yes (typed login screen included)
+#   ./setup.sh --quick    only what changed (ultra-update): see below
 #
 # What is where (everything lives in ~/ultra):
 #   core/            the machine: screens, GPUs, Wi-Fi, ROS, updates, the
@@ -27,8 +28,16 @@ set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 home_repo="$(realpath -m "$HOME/ultra")"
-yes=0
-[[ ${1:-} == --yes || ${1:-} == -y ]] && yes=1
+yes=0 quick=0
+for a in "$@"; do
+    case $a in
+        --yes | -y) yes=1 ;;
+        # what ultra-update runs: only what changed. No system upgrade unless a
+        # new package is needed; the machine's own steps (services, boot, zram,
+        # tunings ...) only when the machine's files changed since they last ran
+        --quick) quick=1 ;;
+    esac
+done
 config="${XDG_CONFIG_HOME:-$HOME/.config}"
 state="${XDG_STATE_HOME:-$HOME/.local/state}"
 data="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -164,22 +173,33 @@ ultra_theme apply "$theme" --force || { warn "could not link the theme"; exit 1;
 theme=$(ultra_theme current)
 note "theme: $theme"
 export PATH="$bin:$PATH"
-fc-cache -f >/dev/null 2>&1 || true
+fc-cache >/dev/null 2>&1 || true      # (new fonts only: a full rebuild takes long)
 
 # ------------------------------------------------------------------ 3. packages
+# the machine's, and those of every theme kept (themes/<id>/packages.txt)
+mapfile -t wanted < <(cat "$here/core/packages/pacman.txt" "$here"/themes/*/packages.txt 2>/dev/null | grep -vE '^\s*(#|$)' | sort -u)
+# the ones not installed yet (one quick local look; installed ones by any name they provide)
+mapfile -t missing < <(pacman -T "${wanted[@]}" 2>/dev/null)
+if (( quick )) && (( ${#missing[@]} == 0 )); then
+    say "packages: all there"
+    note "(the system itself is upgraded with: ultra-update --full)"
+else
 say "updating the system and installing packages (sudo pacman)"
 # Arch is upgraded as a whole; installing onto stale package lists breaks things
 if ! sudo pacman -Syu --noconfirm; then
     warn "the upgrade needs a decision; answering it yourself this time"
     sudo pacman -Syu || warn "the system upgrade reported a problem; see above"
 fi
-# the machine's, and those of every theme kept (themes/<id>/packages.txt)
-mapfile -t wanted < <(cat "$here/core/packages/pacman.txt" "$here"/themes/*/packages.txt 2>/dev/null | grep -vE '^\s*(#|$)' | sort -u)
+# which are in the repositories (and package groups), which only in the AUR:
+# looked up all at once, not one by one
+(( quick )) && wanted=("${missing[@]}")
+declare -A in_repos=()
+while read -r n; do in_repos[$n]=1; done < <(pacman -Slq 2>/dev/null; pacman -Sgq 2>/dev/null)
 repo_pkgs=() aur_pkgs=()
 for p in "${wanted[@]}"; do
-    if pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
+    if [[ -n ${in_repos[$p]:-} ]] || pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
 done
-if ! sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"; then
+if (( ${#repo_pkgs[@]} )) && ! sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"; then
     # usually a question pacman will not answer by itself (a conflicting
     # package to replace, a provider to pick): ask you instead
     warn "pacman needs a decision; answering it yourself this time"
@@ -205,12 +225,27 @@ if (( ${#aur_pkgs[@]} )); then
         warn "install them yourself, then run ./setup.sh again"
     fi
 fi
+fi
 command -v qs >/dev/null || warn "Quickshell (qs) is missing: the themes' shells need it"
 
 ver=$(Hyprland --version 2>/dev/null | grep -oE 'Hyprland [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -n1)
 if [[ -n $ver ]] && (( $(cut -d. -f2 <<<"$ver") < 55 )); then
     warn "Hyprland $ver is older than 0.55, which this config (hyprland.lua) needs: sudo pacman -Syu"
 fi
+
+# ------------------------------------------------------------------ the machine's own steps
+# (services, defaults, the G14, restore points, the quiet start, zram,
+# tunings). Each is safe to run again, but together they take a while and
+# ask for sudo: a quick update runs them only when the machine's files
+# (these steps, its commands, its packages) changed since they last ran.
+machine_stamp="$state/ultra/setup-machine"
+machine_now=$(cat "$here/setup.sh" "$here"/core/packages/*.txt "$here"/core/home/.local/bin/* 2>/dev/null | sha1sum | cut -c1-16)
+machine_steps=1
+if (( quick )) && [[ $(cat "$machine_stamp" 2>/dev/null) == "$machine_now" ]]; then
+    machine_steps=0
+    say "the machine's own steps: unchanged, skipped"
+fi
+if (( machine_steps )); then
 
 # ------------------------------------------------------------------ services, defaults
 say "services"
@@ -377,6 +412,10 @@ if [[ ! -f $state/ultra/tune-off ]]; then
     "$bin/ultra-tune" on || warn "the tunings were not set; run ultra-tune on"
 fi
 
+
+echo "$machine_now" >"$machine_stamp"
+fi   # (the machine's own steps)
+
 # ------------------------------------------------------------------ 5. each theme's own
 # Icons and the title-bar plugin are made per theme, from its own folder, so
 # a theme you switch to later is ready at its first login. A wallpaper of
@@ -439,6 +478,14 @@ elif ask "Start Hyprland at boot from a typed login screen (greetd)?"; then
 fi
 
 say "done"
+if (( quick )); then
+    cat <<'EOF'
+   Log out and back in to use it (the power menu: LOG OUT; SAVE first, and
+   RESTORE after, to keep your windows). Until then this session keeps its
+   old look. A full system upgrade as well: ultra-update --full
+EOF
+    exit 0
+fi
 cat <<'EOF'
    Now reboot (sudo reboot). Until then this session keeps its old look.
 
