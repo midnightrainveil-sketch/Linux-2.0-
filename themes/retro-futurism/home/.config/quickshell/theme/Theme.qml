@@ -28,12 +28,12 @@ Singleton {
     readonly property real taskbarReach: Math.ceil(128 * taskbarScale) - 8 * taskbarScale
     // ---- the window frames (assets/frame.png, art/WindowFrame.png). These
     // and Hyprland's gaps (hypr/theme/look.lua) go together:
-    //   gaps_out = frameMargin + frameRim + frameGap   (22 + 17 + 6 = 45)
-    //   gaps_in  = frameRim + frameGap + 6             (29: 12 px between frames)
+    //   gaps_out = frameMargin + frameRim + frameGap   (22 + 17 - 1 = 38)
+    //   gaps_in  = frameRim + frameGap + 3             (19: 6 px between frames)
     readonly property real frameScale: 0.72            // the mock-up's frame at this size
     readonly property int frameMargin: 22              // screen edge to frame, and to the taskbar's ends
     readonly property int frameRim: 17                 // the rim's width on screen (24 x 0.72)
-    readonly property int frameGap: 6                  // inside the rim, before the window
+    readonly property int frameGap: -1                 // the rim's inner edge 1 px under the window: they touch
     readonly property int edge: 34                     // panels' distance from the screen edge
     readonly property int columnWidth: 380             // the notifications' width
 

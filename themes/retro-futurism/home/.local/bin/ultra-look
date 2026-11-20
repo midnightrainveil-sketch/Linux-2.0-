@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ultra-look: this theme's look for programs, set as the session starts:
-# dark, monochrome, one typeface. (GTK reads gtk.css from ~/.config/gtk-3.0
+# light (day), Cassette OS's cream and rust; websites and apps asked for light. (GTK reads gtk.css from ~/.config/gtk-3.0
 # and gtk-4.0; they are written here, and taken away when another theme
 # comes: theme.json "leaves".)
 set -u
@@ -15,9 +15,9 @@ fi
 fc-cache >/dev/null 2>&1 &
 if command -v gsettings >/dev/null; then
     i=org.gnome.desktop.interface
-    gsettings set $i color-scheme prefer-dark
-    gsettings set $i gtk-theme adw-gtk3-dark
-    gsettings set $i icon-theme Papirus-Dark
+    gsettings set $i color-scheme prefer-light
+    gsettings set $i gtk-theme adw-gtk3
+    gsettings set $i icon-theme Papirus
     gsettings set $i font-name 'JetBrains Mono 10'
     gsettings set $i monospace-font-name 'JetBrains Mono 11'
     gsettings set $i cursor-theme Adwaita

@@ -78,7 +78,7 @@ Singleton {
 
     function look(): void { Hyprland.refreshToplevels(); soon.restart(); settled.restart(); }
     // once quickly, and once when the window has finished moving
-    Timer { id: soon; interval: 90; onTriggered: root.collect() }
+    Timer { id: soon; interval: 16; onTriggered: root.collect() }
     Timer { id: settled; interval: 420; onTriggered: { Hyprland.refreshToplevels(); late.restart(); } }
     Timer { id: late; interval: 90; onTriggered: root.collect() }
     // a window dragged or resized by hand says nothing: look now and then

@@ -52,7 +52,11 @@ PanelWindow {
     // under the lock it waits below the screen; let in, it comes up and
     // stays a moment before it hides for the windows
     Timer { id: welcome; interval: 2600 }
-    Connections { target: Scene; function onUnlocked() { welcome.restart(); } }
+    Connections {
+        target: Scene
+        function onUnlocked() { bar.hovered = false; linger.stop(); welcome.restart(); }
+        function onLockedChanged() { if (Scene.locked) { bar.hovered = false; linger.stop(); } }
+    }
     // a cartridge just in: the bar stays up a moment, to see it
     Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
     readonly property bool reserve: !Scene.locked && (hovered || linger.running || welcome.running)
@@ -69,14 +73,19 @@ PanelWindow {
     readonly property var portEntry: Cartridges.lastLaunched
     readonly property string portClass: Hypr.activeClass ?? ""
     readonly property bool focusedScreen: (Hyprland.focusedMonitor?.name ?? "") === (bar.screen?.name ?? "")
-    Timer { id: linger; interval: 700 }               // a moment after the pointer leaves
+    Timer { id: linger; interval: 900 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
+    // the windows move when the bar makes room or gives it back: the frames follow
+    onReserveChanged: Hypr.look()
 
     // where the pointer counts: the tube while the bar is up, else a thin
     // strip along the screen's bottom edge
     // (just the tube: the cartridge standing above it lets the pointer through)
     mask: Region { item: bar.shown ? tubeZone : edgeStrip }
     Item { id: edgeStrip; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
+    // the tube's place once the bar is up; it does not slide (the pointer must
+    // stay inside it all the while the bar rises, or the bar would go again)
+    Item { id: tubeZone; y: bar.lift; width: parent.width; height: parent.height - bar.lift }
     HoverHandler { onHoveredChanged: bar.hovered = hovered }
 
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
@@ -218,7 +227,6 @@ PanelWindow {
     }
 
     // the tube itself (for the pointer)
-    Item { id: tubeZone; y: bar.lift; width: parent.width; height: 128 * bar.s }
 
     // ======== the cartridge in the port: the window under the pointer's app
     // (focus follows the pointer), else the last one launched. It stands in

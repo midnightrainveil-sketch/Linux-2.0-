@@ -175,22 +175,14 @@ PanelWindow {
             Item {
                 id: framed
                 required property var modelData
-                readonly property real out: Theme.frameRim + Theme.frameGap      // window edge to the frame's outer edge
+                readonly property real out: Theme.frameRim + Theme.frameGap      // window edge to the frame's outer edge (the rim's inner edge a pixel under the window)
                 x: modelData.x - out; y: modelData.y - out
                 width: modelData.w + 2 * out; height: modelData.h + 2 * out
-                Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-                Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
+                Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
+                Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
+                Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
 
-                // the gap between rim and window: a soft dark bed
-                Rectangle {
-                    x: Theme.frameRim - 2; y: x
-                    width: parent.width - 2 * x; height: parent.height - 2 * x
-                    radius: 10
-                    color: "#000000"
-                    opacity: 0.32
-                }
                 // the frame; drawn at the picture's own size, then scaled
                 BorderImage {
                     readonly property real k: Theme.frameScale

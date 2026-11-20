@@ -1,16 +1,17 @@
 -- Windows in frames: the shell draws the mock-up's sage-and-chrome frame
 -- round each one (modules/Backdrop.qml), so Hyprland draws no border and
 -- leaves room for the frame. These gaps go with Theme.qml's frame values:
---   gaps_out 45 = 22 (screen edge to frame) + 17 (the rim) + 6 (inside it)
---   gaps_in  29 = 17 + 6 + 6, so 12 px lie between two frames
+--   gaps_out 38 = 22 (screen edge to frame) + 17 (the rim) - 1 (the window
+--                 over the rim's inner edge: they touch)
+--   gaps_in  19 = 17 - 1 + 3, so 6 px lie between two frames
 local ink, grey = "f2efed", "6b6766"
 
 hl.config({
     general = {
         border_size = 0,
-        gaps_in = 29,
-        gaps_out = 45,              -- nearly fullscreen, the frame in the margin
-        float_gaps = 45,
+        gaps_in = 19,
+        gaps_out = 38,              -- nearly fullscreen, the frame in the margin
+        float_gaps = 38,
         layout = "dwindle",
         resize_on_border = true,
         col = {
@@ -20,7 +21,7 @@ hl.config({
     },
 
     decoration = {
-        rounding = 6,               -- inside the frame's rounded rim
+        rounding = 9,               -- the frame's rim's inner corner (13 x 0.72)
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         dim_inactive = false,
