@@ -340,17 +340,13 @@ Scope {
                 }
             }
 
-            // ---- at rest: the card, what is clearly the lock (the time, the
-            // date, the machine; any key). It steps aside for the pass.
-            LockCard {
-                readonly property real level: 1 - Math.max(room.passLevel, room.homeLevel)
+            // ---- at rest: a flat, see-through layer on the glass (the date,
+            // the time, the machine; any key). It fades as the pass drops.
+            LockOverlay {
+                anchors.fill: parent
                 s: Math.max(0.6, Math.min(surface.width / 1920, surface.height / 1080))
                 now: tick.date
-                // bottom right, over the bed (where the picture's own pass and
-                // pager lie)
-                x: surface.width - width - 56 * s
-                y: surface.height - height - 56 * s + (1 - level) * 30 * s
-                opacity: Math.max(0, Math.min(1, level))
+                opacity: Math.max(0, Math.min(1, 1 - Math.max(room.passLevel, room.homeLevel)))
                 visible: opacity > 0.01
             }
 
