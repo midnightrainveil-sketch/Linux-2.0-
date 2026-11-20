@@ -1,3 +1,4 @@
 depth 22
 corner 88
 radius 49.5
+bloom 128

@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <fstream>
 #include <string>
+#include <vector>
 
 namespace RimPaint {
 
@@ -295,7 +296,8 @@ inline cairo_surface_t* side(const SLook& lk, bool right) {
 struct SArt {
     bool             ok    = false;
     int              depth = 22, n = 84;          // the rim's depth and a corner piece's side, in the pieces' pixels
-    cairo_surface_t* piece[8] = {};               // corners tl tr bl br, top, bottom, left, right
+    int              bloom = 0;                   // a bright spot's length (0: none)
+    cairo_surface_t* piece[10] = {};              // corners tl tr bl br, top, bottom, left, right; bright spots top, bottom
 };
 
 inline void freeArt(SArt& art) {
@@ -319,6 +321,8 @@ inline SArt loadArt(const std::string& dir) {
             art.depth = (int)v;
         else if (key == "corner")
             art.n = (int)v;
+        else if (key == "bloom")
+            art.bloom = (int)v;
     }
     const char* names[8] = {"corner-tl", "corner-tr", "corner-bl", "corner-br", "top", "bottom", "left", "right"};
     for (int i = 0; i < 8; ++i) {
@@ -326,6 +330,16 @@ inline SArt loadArt(const std::string& dir) {
         if (cairo_surface_status(art.piece[i]) != CAIRO_STATUS_SUCCESS) {
             freeArt(art);
             return art;
+        }
+    }
+    // the bright spots, if there are any (older pieces have none)
+    const char* spots[2] = {"bloom-top", "bloom-bottom"};
+    for (int i = 0; i < 2 && art.bloom > 0; ++i) {
+        art.piece[8 + i] = cairo_image_surface_create_from_png((dir + "/" + spots[i] + ".png").c_str());
+        if (cairo_surface_status(art.piece[8 + i]) != CAIRO_STATUS_SUCCESS) {
+            cairo_surface_destroy(art.piece[8 + i]);
+            art.piece[8 + i] = nullptr;
+            art.bloom        = 0;
         }
     }
     art.ok = art.depth > 0 && art.n > 0;
@@ -344,6 +358,30 @@ inline int artCorner(const SArt& art, const SLook& lk) {
 }
 inline int artDepth(const SArt& art, const SLook& lk) {
     return std::max(1, (int)std::lround(art.depth * artScale(art, lk)));
+}
+// a bright spot's length, device px (scaled as the straights are)
+inline int artBloom(const SArt& art, const SLook& lk) {
+    return art.bloom > 0 ? std::max(1, (int)std::lround((double)art.bloom / art.depth * artDepth(art, lk))) : 0;
+}
+
+// Where a window's bright spots go along a straight of `len` px, as offsets
+// from its start: one, or two on a long edge, at places of the window's own
+// (its seed), so each window keeps its spots as it moves and resizes, and no
+// two windows have them in the same places.
+inline std::vector<int> spotsAlong(uint32_t seed, int len, int spot) {
+    std::vector<int> at;
+    if (spot <= 0 || len < 3 * spot)
+        return at;
+    auto rnd = [&seed]() {                                   // (xorshift)
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        return (seed & 0xffff) / 65535.0;
+    };
+    const int n = len > 6 * spot && rnd() < 0.6 ? 2 : 1;
+    for (int i = 0; i < n; ++i)
+        at.push_back((int)std::lround(((i + 0.15 + 0.7 * rnd()) / n) * (len - spot)));
+    return at;
 }
 
 // a piece scaled to w x h device px, darkened as a window not in use has it

@@ -64,6 +64,11 @@ Item {
     Piece { x: panel.k; y: panel.height - panel.rim; width: panel.width - 2 * panel.k; height: panel.rim; source: panel.dir + "bottom.png" }
     Piece { y: panel.k; width: panel.rim; height: panel.height - 2 * panel.k; source: panel.dir + "left.png" }
     Piece { x: panel.width - panel.rim; y: panel.k; width: panel.rim; height: panel.height - 2 * panel.k; source: panel.dir + "right.png" }
+    // a bright spot on its top and one on its foot, as the taskbar has (and
+    // the windows' rims)
+    readonly property real spot: 128 / 22 * rim
+    Piece { visible: tl.status === Image.Ready; x: panel.k + (panel.width - 2 * panel.k - panel.spot) * 0.3; width: panel.spot; height: panel.rim; source: panel.dir + "bloom-top.png" }
+    Piece { visible: tl.status === Image.Ready; x: panel.k + (panel.width - 2 * panel.k - panel.spot) * 0.72; y: panel.height - panel.rim; width: panel.spot; height: panel.rim; source: panel.dir + "bloom-bottom.png" }
     // (no pieces: the rim drawn)
     Frame {
         anchors.fill: parent

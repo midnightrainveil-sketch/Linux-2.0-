@@ -15,6 +15,8 @@ imitated: its chrome, its glints, its dark reflections round the bends.
                                       edge at the top / at the bottom)
     left.png, right.png               the middle of an end (a row, outer
                                       edge at the left / at the right)
+    bloom-top.png, bloom-bottom.png   a bright spot of the bar's, to lay
+                                      here and there along a straight
 
 Pieces are in the mock-up's pixels, transparent inside the rim's inner edge
 and outside its outer one (soft, 4 x 4 samples); the chromerim plugin scales
@@ -139,7 +141,36 @@ strip(TOP, True, False).save(os.path.join(out, 'top.png'))
 strip(BOTTOM, True, True).save(os.path.join(out, 'bottom.png'))
 strip(LEFT, False, False).save(os.path.join(out, 'left.png'))
 strip(LEFT, False, True).save(os.path.join(out, 'right.png'))
+
+
+# ---- bright spots: two of the bar's own flares, where its bright band
+# blooms white and the dark reflection under it washes out (its top run at
+# x 1016, its bottom run at 1017), each eased into the plain straight at both
+# ends so it can be laid anywhere along a window's edge
+BLOOM = 128                    # a spot's length, in the pieces' pixels
+FADE = 30                      # how far each end eases into the plain straight
+
+
+def bloom(cx, foot):
+    rgb = np.zeros((DEPTH, BLOOM, 3))
+    straight = BOTTOM if foot else TOP
+    for i in range(BLOOM):
+        w = min(smooth(i / FADE), smooth((BLOOM - 1 - i) / FADE))    # 0 at the ends, 1 in the middle
+        x = cx - BLOOM / 2 + i + 0.5
+        for d in range(DEPTH):
+            y = Y1 - d - 0.5 if foot else Y0 + d + 0.5
+            ww = w if d < DEPTH - 5 else 0                            # (the inner lip stays plain)
+            rgb[d, i] = px(x, y) * ww + straight[d] * (1 - ww)
+    if foot:
+        rgb = rgb[::-1]
+    img = np.dstack([np.clip(rgb, 0, 255), np.full((DEPTH, BLOOM), 255.0)]).astype('uint8')
+    return Image.fromarray(img, 'RGBA')
+
+
+bloom(1016, False).save(os.path.join(out, 'bloom-top.png'))
+bloom(1017, True).save(os.path.join(out, 'bloom-bottom.png'))
+
 with open(os.path.join(out, 'rim.txt'), 'w') as f:
     # what the plugin needs to scale them: the rim's depth and a corner's side, in the pieces' pixels
-    f.write(f'depth {DEPTH}\ncorner {N}\nradius {R}\n')
+    f.write(f'depth {DEPTH}\ncorner {N}\nradius {R}\nbloom {BLOOM}\n')
 print('rim pieces in', out, '- depth', DEPTH, 'corner', N)

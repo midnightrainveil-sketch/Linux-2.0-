@@ -56,6 +56,8 @@ namespace {
         int                  K = 0, D = 0; // a corner piece's side; the straight pieces' depth (device px)
         SP<Render::ITexture> corner[4]; // tl tr bl br
         SP<Render::ITexture> top, bottom, left, right;
+        SP<Render::ITexture> bloomTop, bloomBottom;     // bright spots (the taskbar's own), if there are any
+        int                  B = 0;                      // a spot's length, device px
         uint64_t             lastUsed = 0;
     };
 
@@ -132,6 +134,11 @@ namespace {
             p->bottom = upload(artPiece(g_art, 5, lk, 1, D));
             p->left   = upload(artPiece(g_art, 6, lk, D, 1));
             p->right  = upload(artPiece(g_art, 7, lk, D, 1));
+            if (g_art.bloom > 0) {
+                p->B           = artBloom(g_art, lk);
+                p->bloomTop    = upload(artPiece(g_art, 8, lk, p->B, D));
+                p->bloomBottom = upload(artPiece(g_art, 9, lk, p->B, D));
+            }
         } else {
             // (no pieces: drawn)
             const SGeom g = geom(lk);
@@ -386,6 +393,17 @@ void CChromeRim::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, fl
     put(ctx, p->bottom, a, x0 + cw, y1 - D, w - 2 * cw, D);
     put(ctx, p->left, a, x0, y0 + ch, D, h - 2 * ch);
     put(ctx, p->right, a, x1 - D, y0 + ch, D, h - 2 * ch);
+
+    // a bright spot or two along the top and the bottom, as the taskbar has
+    // them: in places of this window's own, kept as it moves and resizes
+    if (p->bloomTop && p->bloomBottom && p->B > 0) {
+        const uint32_t seed = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this) >> 4) * 2654435761U | 1U;
+        const int      run  = w - 2 * cw;
+        for (const int off : spotsAlong(seed ^ 0x9e3779b9U, run, p->B))
+            put(ctx, p->bloomTop, a, x0 + cw + off, y0, p->B, D);
+        for (const int off : spotsAlong(seed ^ 0x85ebca6bU, run, p->B))
+            put(ctx, p->bloomBottom, a, x0 + cw + off, y1 - D, p->B, D);
+    }
 }
 
 // ---------------------------------------------------------------- pass element

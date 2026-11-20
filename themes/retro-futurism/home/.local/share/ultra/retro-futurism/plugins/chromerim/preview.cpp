@@ -61,6 +61,19 @@ static void window(cairo_t* cr, const SLook& lk, double x, double y, double w, d
     put(cr, pieces[5], x0 + cw, y1 - D, W - 2 * cw, D);
     put(cr, pieces[6], x0, y0 + ch, D, H - 2 * ch);
     put(cr, pieces[7], x1 - D, y0 + ch, D, H - 2 * ch);
+    if (g_art.ok && g_art.bloom > 0) {
+        // bright spots, as the plugin lays them (a seed from the window's place)
+        const int      B    = artBloom(g_art, lk);
+        auto*          top  = artPiece(g_art, 8, lk, B, D);
+        auto*          foot = artPiece(g_art, 9, lk, B, D);
+        const uint32_t seed = (uint32_t)(x * 7919 + y * 104729) * 2654435761U | 1U;
+        for (const int off : spotsAlong(seed ^ 0x9e3779b9U, W - 2 * cw, B))
+            put(cr, top, x0 + cw + off, y0, B, D);
+        for (const int off : spotsAlong(seed ^ 0x85ebca6bU, W - 2 * cw, B))
+            put(cr, foot, x0 + cw + off, y1 - D, B, D);
+        cairo_surface_destroy(top);
+        cairo_surface_destroy(foot);
+    }
     for (auto* p : pieces)
         cairo_surface_destroy(p);
 
