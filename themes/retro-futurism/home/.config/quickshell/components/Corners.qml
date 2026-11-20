@@ -1,7 +1,7 @@
 import QtQuick
 import qs.theme
 
-// Retro Futurism marks: an L at each corner of the item.
+// Magnetic 88 marks: an L at each corner of the item.
 Item {
     id: root
     property real arm: 30

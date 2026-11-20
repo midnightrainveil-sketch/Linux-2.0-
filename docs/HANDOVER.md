@@ -67,7 +67,7 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     use (drawn by the shell from Hyprland's window list, no plugin), a
     small terminal on the picture, launcher, power menu, themes, lock,
     start-up page. No day / night, no title bars, no sounds.
-  - **Retro Futurism** (`themes/retro-futurism`, in the works): "Cassette
+  - **Magnetic 88** (`themes/retro-futurism`, in the works): "Cassette
     OS", gadgets in steel, cream and sage with e-ink screens. The user's
     mock-ups are in its `art/` (see its README). Begun as a copy of
     Viewfinder's box, now wholly its own: the moving wallpaper, the lock
@@ -132,7 +132,7 @@ run under a headless sway, which catches QML errors and shows the desk:
   import (`nm -D --undefined-only`), and run with `LD_LIBRARY_PATH` at it.
   Then Qt's real QML compiler runs (it catches what qmllint does not:
   capitalised function names, FINAL properties like `left`), and so does
-  `preview.py` (`ULTRA_CHECK=1` makes Retro Futurism compile every widget;
+  `preview.py` (`ULTRA_CHECK=1` makes Magnetic 88 compile every widget;
   `ipc:widget.open=controls` opens one; `onewindow` tiles one window as
   Hyprland would, to line the taskbar up against its rim). Effects (MultiEffect, layer.effect)
   draw nothing in its software renderer: the glow layers come out blank. With
@@ -146,7 +146,7 @@ run under a headless sway, which catches QML errors and shows the desk:
   put every window in one (the desk went blank). The harness's stand-in
   loads at once, so it cannot catch this. To make windows afresh, empty and
   refill a Variants model instead (shell.qml: deskAlive).
-- Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
+- Magnetic 88's chromerim plugin (Hyprland decoration, C++) can be
   compile-checked here without Hyprland installed: clone Hyprland and
   hyprutils, aquamarine, hyprlang, hyprgraphics, hyprcursor,
   hyprland-protocols and hyprwayland-scanner from GitHub (gitlab is

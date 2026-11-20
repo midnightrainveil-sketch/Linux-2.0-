@@ -1,4 +1,4 @@
-// chromerim: the Retro Futurism theme's window rim (RimDeco.hpp says what
+// chromerim: the Magnetic 88 theme's window rim (RimDeco.hpp says what
 // it is). Built for the installed Hyprland by ultra-rim; loaded by the
 // theme's hypr/theme/look.lua.
 #define WLR_USE_UNSTABLE
@@ -41,7 +41,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     HyprlandAPI::reloadConfig();
 
-    return {"chromerim", "The Retro Futurism theme's chrome rim round windows.", "Linux 2.0", "1.0"};
+    return {"chromerim", "The Magnetic 88 theme's chrome rim round windows.", "Linux 2.0", "1.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {

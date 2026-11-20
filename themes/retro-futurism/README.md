@@ -1,4 +1,4 @@
-# Retro Futurism
+# Magnetic 88
 
 `ultra-theme set retro-futurism`
 

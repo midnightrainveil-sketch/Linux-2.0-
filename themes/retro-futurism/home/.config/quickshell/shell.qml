@@ -1,6 +1,6 @@
 //@ pragma AppId retro-futurism.shell
 
-// The Retro Futurism shell. Hyprland handles windows; this draws the rest: the
+// The Magnetic 88 shell. Hyprland handles windows; this draws the rest: the
 // picture and the marks on it, the two bars, the film strip (workspaces),
 // now playing and the notes, notifications, the launcher, the power menu,
 // the themes and the lock screen.

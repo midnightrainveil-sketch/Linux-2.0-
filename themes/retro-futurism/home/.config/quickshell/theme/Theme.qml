@@ -3,7 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// Retro Futurism: the look in one place, for the plain panels (the
+// Magnetic 88: the look in one place, for the plain panels (the
 // notifications, the themes list): Magnetic 88's cream plates, charcoal
 // lettering in Barlow, rust for what matters. (The gadgets have their own
 // pictures; see widgets/.)

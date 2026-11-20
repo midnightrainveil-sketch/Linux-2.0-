@@ -1,4 +1,4 @@
--- Retro Futurism: this theme's Hyprland side. ~/.config/hypr/hyprland.lua (the
+-- Magnetic 88: this theme's Hyprland side. ~/.config/hypr/hyprland.lua (the
 -- selector, the same for every theme) has set up the machine: screens,
 -- GPUs, input, PATH. Everything here, and everything it starts, belongs to
 -- this theme alone.
