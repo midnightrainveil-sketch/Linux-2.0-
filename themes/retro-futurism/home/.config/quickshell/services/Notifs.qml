@@ -12,6 +12,8 @@ Singleton {
     readonly property ListModel popups: ListModel {}     // nid, at ("02:14")
     property var byId: ({})
     property bool dnd: false
+    // how many are waiting (not yet read or dismissed)
+    readonly property int count: server.trackedNotifications.values.length
     function toggleDnd(): void { dnd = !dnd; }
 
     function indexOf(id: int): int {
