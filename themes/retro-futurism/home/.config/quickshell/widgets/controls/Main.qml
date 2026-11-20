@@ -300,12 +300,12 @@ Widget {
                     Behavior on opacity { NumberAnimation { duration: 160 } }
                 }
             }
-            // the blue showing beside the knob when it is over to ON (and as
-            // it slides there)
+            // the blue filling the slot behind the knob as it goes over to
+            // ON (on the right), and as it slides there
             Rectangle {
                 x: 36; y: 8; height: 42; radius: 7
-                readonly property real onness: Math.max(0, Math.min(1, (knob.offX - knob.x) / (knob.offX - knob.onX)))
-                width: Math.max(0, knob.x - 32) * onness
+                readonly property real onness: Math.max(0, Math.min(1, (knob.x - knob.offX) / (knob.onX - knob.offX)))
+                width: Math.max(0, knob.x + knob.width / 2 - 36) * onness
                 visible: width > 1
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: "#7c87cf" }
@@ -317,10 +317,11 @@ Widget {
                 id: knob
                 source: sw.w.art("knob.png")
                 y: 6
-                readonly property real onX: 61
-                readonly property real offX: 102
+                // the slot's inside runs from 36 to 166: the knob goes end to end
+                readonly property real offX: 37
+                readonly property real onX: 166 - 1 - width
                 x: area.dragging ? area.dragX : (sw.on ? onX : offX)
-                Behavior on x { enabled: !area.dragging; NumberAnimation { duration: 170; easing.type: Easing.OutCubic } }
+                Behavior on x { enabled: !area.dragging; NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 smooth: true; mipmap: true
             }
             // ON / OFF under it, the one in force darker
@@ -345,11 +346,11 @@ Widget {
                 onPositionChanged: e => {
                     if (!pressed) return;
                     if (!dragging && Math.abs(e.x - pressX) > 4) dragging = true;
-                    if (dragging) dragX = Math.max(knob.onX, Math.min(knob.offX, startKnob + e.x - pressX));
+                    if (dragging) dragX = Math.max(knob.offX, Math.min(knob.onX, startKnob + e.x - pressX));
                 }
                 onReleased: {
                     if (dragging) {
-                        const to = dragX < (knob.onX + knob.offX) / 2;
+                        const to = dragX > (knob.onX + knob.offX) / 2;
                         dragging = false;
                         if (to !== sw.on) sw.flipped(to);
                     } else {
@@ -362,29 +363,48 @@ Widget {
         Switch { w: self; dk: deck; sx: 1100; on: Net.wifiOn; onFlipped: to => Net.setWifi(to) }
         Switch { w: self; dk: deck; sx: 1372; on: Net.bluetoothOn; usable: Net.bluetoothAvailable; onFlipped: to => Net.setBluetooth(to) }
 
-        // ---- a round button, as the mock-up's (up, or lit), pressed in a little
+        // ---- a round button, as the mock-up's. The one in force is latched
+        // in: sunk a little into the plate and in its shadow, as a pressed
+        // mechanical button stays; pressed, any goes in a little more
         component Key: Item {
             property var w: null
             id: key
             property bool lit: false
             property string up: "key-up.png"
-            property string litArt: "key-lit.png"
             property string label: ""
             property bool labelOn: false                // the label on the button (refresh) or under it (power)
             signal hit()
-            Image {
+            Item {
+                id: cap
                 anchors.fill: parent
-                source: key.w.art(key.lit ? key.litArt : key.up)
-                smooth: true; mipmap: true
-                scale: keyArea.pressed ? 0.965 : 1
-                y: keyArea.pressed ? 2 : 0
-                Behavior on scale { NumberAnimation { duration: 80 } }
+                readonly property real sink: keyArea.pressed ? 1 : key.lit ? 0.7 : 0
+                scale: 1 - 0.035 * sink
+                y: 3 * sink
+                Behavior on scale { NumberAnimation { duration: 90 } }
+                Behavior on y { NumberAnimation { duration: 90 } }
+                Image {
+                    anchors.fill: parent
+                    source: key.w.art(key.up)
+                    smooth: true; mipmap: true
+                }
+                // in its well: shaded, darkest at the top where the plate overhangs it
+                Rectangle {
+                    anchors.fill: parent; anchors.margins: 5
+                    radius: height / 2
+                    opacity: Math.min(1, cap.sink / 0.7)
+                    Behavior on opacity { NumberAnimation { duration: 90 } }
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: Qt.rgba(0.08, 0.08, 0.10, 0.42) }
+                        GradientStop { position: 0.35; color: Qt.rgba(0.08, 0.08, 0.10, 0.18) }
+                        GradientStop { position: 1.0; color: Qt.rgba(0.08, 0.08, 0.10, 0.10) }
+                    }
+                }
                 Text {
                     visible: key.labelOn
                     anchors.centerIn: parent; anchors.verticalCenterOffset: -2
                     text: key.label
-                    color: key.lit ? "#f3f3fb" : "#2f3033"
-                    style: key.lit ? Text.Raised : Text.Normal; styleColor: "#3a3f7a"
+                    color: "#2f3033"
+                    style: Text.Raised; styleColor: Qt.rgba(1, 1, 1, key.lit ? 0.25 : 0.55)
                     font.family: key.w.plateFace; font.weight: Font.Bold; font.pixelSize: 30
                 }
             }
@@ -415,7 +435,7 @@ Widget {
                 Text {
                     x: deck.ax(mode.cx) - width / 2; y: deck.ay(464) - height / 2
                     text: mode.modelData.word
-                    color: mode.lit ? "#2c2d6e" : self.plateInk
+                    color: self.plateInk
                     font.family: self.plateFace; font.weight: Font.Bold
                     font.pixelSize: mode.index === 2 ? 23 : 26
                 }
@@ -442,7 +462,7 @@ Widget {
                 required property int index
                 x: deck.ax([158, 333, 510][index]); y: deck.ay(604)
                 width: 156; height: 73
-                up: "rate-up.png"; litArt: "rate-lit.png"
+                up: "rate-up.png"
                 label: modelData.word; labelOn: true
                 lit: Machine.refresh === modelData.id
                 onHit: Machine.setRefresh(modelData.id)
@@ -494,10 +514,14 @@ Widget {
             readonly property real lo: track0 + 38           // where the thumb's middle can go
             readonly property real hi: track0 + 422
             x: fader.dk.ax(track0); y: fader.dk.ay(752); width: 470; height: 100
+            // while it is held it follows the hand, whatever the machine
+            // answers meanwhile (brightness answers late)
+            property real held: 0
+            readonly property real shown: faderArea.pressed ? held : value
             Image {
                 source: fader.w.art("fader.png")
                 y: 9
-                x: (fader.lo + (fader.hi - fader.lo) * Math.max(0, Math.min(1, fader.value))) - fader.track0 - width / 2
+                x: (fader.lo + (fader.hi - fader.lo) * Math.max(0, Math.min(1, fader.shown))) - fader.track0 - width / 2
                 Behavior on x { enabled: !faderArea.pressed; NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                 smooth: true; mipmap: true
             }
@@ -506,14 +530,14 @@ Widget {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 function at(mx) { return Math.max(0, Math.min(1, (mx + fader.track0 - fader.lo) / (fader.hi - fader.lo))); }
-                onPressed: e => fader.moved(at(e.x))
-                onPositionChanged: e => { if (pressed) fader.moved(at(e.x)); }
+                onPressed: e => { fader.held = at(e.x); fader.moved(fader.held); }
+                onPositionChanged: e => { if (pressed) { fader.held = at(e.x); fader.moved(fader.held); } }
                 onWheel: e => fader.moved(Math.max(0, Math.min(1, fader.value + (e.angleDelta.y > 0 ? 0.05 : -0.05))))
             }
             // its read-out: the figure, glowing white
             Text {
                 x: fader.readoutX - fader.track0 - width / 2 + 0; y: 50 - height / 2
-                text: fader.muted ? "--" : Math.round(Math.max(0, Math.min(1, fader.value)) * 100)
+                text: fader.muted ? "--" : Math.round(Math.max(0, Math.min(1, fader.shown)) * 100)
                 color: "#f4f6f8"
                 style: Text.Outline; styleColor: Qt.rgba(0.8, 0.9, 1, 0.18)
                 font.family: fader.w.lcdFace; font.pixelSize: 58

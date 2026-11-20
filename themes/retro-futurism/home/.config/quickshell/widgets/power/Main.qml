@@ -235,11 +235,6 @@ Widget {
                 x: dev.ax(688); y: -10; width: 20; height: 20
                 onPaint: { const c = getContext("2d"); c.reset(); c.fillStyle = dev.ink; c.beginPath(); c.moveTo(20, 0); c.lineTo(2, 10); c.lineTo(20, 20); c.closePath(); c.fill(); }
             }
-            // and a faint band behind it
-            Rectangle {
-                x: dev.ax(207); y: -50; width: 487; height: 100
-                color: dev.ink; opacity: 0.06
-            }
         }
 
         // ---- what is chosen, and how to do it

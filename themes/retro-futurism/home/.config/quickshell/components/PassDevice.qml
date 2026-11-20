@@ -8,7 +8,8 @@ import Quickshell
 //
 // It is drawn in the mock-up's own pixels (1162 x 1201; pass.png starts at
 // the mock-up's 38, 26): scale it from outside. Put what glows on its face
-// inside it (they go through one glow), placed with X() and Y():
+// inside it (they glow: a halo close round them, and a wide one behind),
+// placed with ax() and ay():
 //
 //   PassDevice {
 //       scale: 0.6; transformOrigin: Item.TopLeft
@@ -70,19 +71,33 @@ Item {
         }
     }
 
-    // ---- what glows on its face, through one soft glow
+    // ---- what glows on its face: a bright halo close round every stroke,
+    // and the same light spread wide behind it, as a backlit screen bleeds
+    // into the glass over it
+    MultiEffect {
+        source: glowing
+        anchors.fill: glowing
+        blurEnabled: true
+        blur: 1.0
+        blurMax: 48
+        colorization: 1.0
+        colorizationColor: "#c4e2ff"
+        brightness: 0.45
+        opacity: 0.95
+    }
     Item {
         id: glowing
         anchors.fill: parent
         layer.enabled: true
         layer.effect: MultiEffect {
             shadowEnabled: true
-            shadowColor: "#cfe6ff"
-            shadowBlur: 0.7
+            shadowColor: "#dcefff"
+            shadowBlur: 0.55
             shadowOpacity: 1.0
             shadowHorizontalOffset: 0
             shadowVerticalOffset: 0
-            blurMax: 22
+            blurMax: 24
+            brightness: 0.06
         }
     }
 
