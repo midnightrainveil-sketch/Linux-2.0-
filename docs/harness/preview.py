@@ -10,6 +10,7 @@ where the real one cannot be built (docs/harness/build.sh).
         notify:<summary>|<body>     a notification arrives (_ for a space)
         key:<text>                  typed into the focused field
         nowindows | idle | notes    no windows open / nothing playing / three sample notes
+        onewindow                   one window filling the screen, as tiled
         wait:<ms>
 
 It runs the shell's own QML in Qt (PySide6: pip install PySide6-Essentials)
@@ -103,6 +104,11 @@ class Harness(QObject):
         p = Path(path.replace("file://", ""))
         return p.read_text() if p.is_file() else None
 
+    @Slot(str, result=int)
+    def code(self, command):
+        # (no Hyprland plugins here: the shell draws the window rims itself)
+        return 1 if "hyprctl plugin list" in command else 0
+
     @Slot(str, result=str)
     def run(self, command):
         cmd = json.loads(command)
@@ -130,6 +136,8 @@ class Harness(QObject):
     def windows(self):
         if "nowindows" in self.flags:
             return []
+        if "onewindow" in self.flags:      # one window as Hyprland tiles it: gaps_out 38 all round
+            return [{"address": "0x1", "title": "foot", "class": "foot", "at": [38, 38], "size": [W - 76, H - 76], "fullscreen": 0, "hidden": False, "mapped": True}]
         return [
             {"address": "0x1", "title": "foot", "class": "viewfinder.desk", "at": [262, 176], "size": [412, 266], "fullscreen": 0, "hidden": False, "mapped": True},
             {"address": "0x2", "title": "Files", "class": "org.gnome.Nautilus", "at": [698, 176], "size": [406, 266], "fullscreen": 0, "hidden": False, "mapped": True},

@@ -25,7 +25,8 @@ hl.config({
     },
 
     decoration = {
-        rounding = 9,               -- Theme.windowRounding: the chrome's inner corner
+        rounding = 21,              -- Theme.windowRounding: the rim then bends as the taskbar's ends do
+        rounding_power = 2,         -- (round, as the rim's corners are drawn)
         active_opacity = 1.0,
         inactive_opacity = 1.0,
         dim_inactive = false,

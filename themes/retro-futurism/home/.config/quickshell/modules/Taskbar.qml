@@ -26,18 +26,17 @@ PanelWindow {
     screen: modelData
 
     anchors { bottom: true; left: true; right: true }
-    // (above the tube: room for the cartridge standing in the port)
-    implicitHeight: Math.ceil(128 * s + lift)
-    // with windows open it hides below the screen's edge, and comes up when
-    // the pointer goes down to the edge (or a panel of its is open). While
-    // it is up it keeps its room, so Hyprland lifts the windows: their
-    // frames end 10 px over the bar's tube, its ends under theirs. (The
-    // frames' bottom lies frameMargin above the room kept; the tube's top is
-    // 8 px of the mock-up below the panel's top.)
-    // (only when it comes up for the pointer: up for a widget, it lies over
-    // the windows and leaves them be)
-    exclusiveZone: bar.reserve && bar.hasWindows
-        ? Math.round(128 * s - 8 * s + 10 - Theme.frameMargin) : 0
+    // (above the tube: room for the cartridge standing in the port; below
+    // it, the margin the windows' rims keep from the screen's edge, so the
+    // tube's foot lies on theirs)
+    implicitHeight: Math.ceil(lift + 106 * s) + Theme.frameMargin
+    // With windows open it hides below the screen's edge, and comes up when
+    // the pointer goes down to the edge (or a panel of its is open). It
+    // comes up over the windows and leaves them where they are: its tube
+    // lies over the foot of the windows' rims, its rounded ends on the
+    // rims' bottom corners (the same radius: Theme.windowRounding plus the
+    // rim), its ends and foot on theirs.
+    exclusiveZone: 0
     WlrLayershell.namespace: "retro-futurism-bar"
     // with the launcher up the bar sits over its stage, out of the blur
     // (set only once the shell has started: a panel made straight onto the
@@ -59,8 +58,8 @@ PanelWindow {
     }
     // a cartridge just in: the bar stays up a moment, to see it
     Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
-    readonly property bool reserve: !Scene.locked && (hovered || linger.running || welcome.running)
-    readonly property bool shown: !Scene.locked && (!hasWindows || reserve)
+    readonly property bool called: !Scene.locked && (hovered || linger.running || welcome.running)
+    readonly property bool shown: !Scene.locked && (!hasWindows || called)
         || docking
         || Widgets.current === "power" || Widgets.current === "controls"
     // the launcher: the bar slides right on its arm until its port is under
@@ -75,8 +74,6 @@ PanelWindow {
     readonly property bool focusedScreen: (Hyprland.focusedMonitor?.name ?? "") === (bar.screen?.name ?? "")
     Timer { id: linger; interval: 900 }               // a moment after the pointer leaves
     onHoveredChanged: if (!hovered) linger.restart()
-    // the windows move when the bar makes room or gives it back: the frames follow
-    onReserveChanged: Hypr.look()
 
     // where the pointer counts: the tube while the bar is up, else a thin
     // strip along the screen's bottom edge

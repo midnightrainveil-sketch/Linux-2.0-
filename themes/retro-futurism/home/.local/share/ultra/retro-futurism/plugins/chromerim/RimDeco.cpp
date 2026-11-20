@@ -43,7 +43,7 @@ namespace {
 
     struct SPieces {
         SLook                look;
-        int                  C = 0; // a corner piece's side, and a side piece's depth, in device px
+        int                  K = 0, D = 0; // a corner piece's side; the straight pieces' depth (device px)
         SP<Render::ITexture> corner[4]; // tl tr bl br
         SP<Render::ITexture> top, bottom, left, right;
         uint64_t             lastUsed = 0;
@@ -94,20 +94,17 @@ namespace {
             }
         }
 
-        auto      p = makeUnique<SPieces>();
-        p->look     = lk;
-        const int C = cornerSize(lk);
-        const int F = 2 * C + 4; // a rim just larger than two corners, with a straight run between
-        p->C        = C;
-
-        p->corner[0] = upload(paint(lk, F, false, 0, 0, C, C));
-        p->corner[1] = upload(paint(lk, F, false, F - C, 0, C, C));
-        p->corner[2] = upload(paint(lk, F, true, 0, F - C, C, C));
-        p->corner[3] = upload(paint(lk, F, true, F - C, F - C, C, C));
-        p->top       = upload(paint(lk, F, false, C + 1, 0, 1, C));
-        p->bottom    = upload(paint(lk, F, true, C + 1, F - C, 1, C));
-        p->left      = upload(side(lk, F, C, true));
-        p->right     = upload(side(lk, F, C, false));
+        auto        p = makeUnique<SPieces>();
+        const SGeom g = geom(lk);
+        p->look       = lk;
+        p->K          = g.K;
+        p->D          = g.D;
+        for (int c = 0; c < 4; ++c)
+            p->corner[c] = upload(corner(lk, c));
+        p->top    = upload(run(lk, false));
+        p->bottom = upload(run(lk, true));
+        p->left   = upload(side(lk, false));
+        p->right  = upload(side(lk, true));
 
         if (g_pieces.size() >= 8) {
             auto oldest = std::ranges::min_element(g_pieces, {}, [](const auto& q) { return q->lastUsed; });
@@ -257,8 +254,8 @@ void CChromeRim::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, fl
     lk.dim      = static_cast<uint32_t>(g_config.dim->value());
     if (lk.focused)
         lk.dim = 0; // (one look for every window in use, whatever the dim)
-    SPieces* p = piecesFor(lk);
-    const int C = p->C;
+    SPieces*  p = piecesFor(lk);
+    const int K = p->K, D = p->D;
 
     // the rim's outer edge in device px on this monitor; the pieces are laid
     // edge to edge on whole pixels, so they meet without seams
@@ -270,16 +267,16 @@ void CChromeRim::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, fl
         return;
 
     // (a window smaller than two corners: the corners shrink to fit)
-    const int cw = std::min(C, w / 2), ch = std::min(C, h / 2);
+    const int cw = std::min(K, w / 2), ch = std::min(K, h / 2);
 
     put(ctx, p->corner[0], a, x0, y0, cw, ch);
     put(ctx, p->corner[1], a, x1 - cw, y0, cw, ch);
     put(ctx, p->corner[2], a, x0, y1 - ch, cw, ch);
     put(ctx, p->corner[3], a, x1 - cw, y1 - ch, cw, ch);
-    put(ctx, p->top, a, x0 + cw, y0, w - 2 * cw, ch);
-    put(ctx, p->bottom, a, x0 + cw, y1 - ch, w - 2 * cw, ch);
-    put(ctx, p->left, a, x0, y0 + ch, cw, h - 2 * ch);
-    put(ctx, p->right, a, x1 - cw, y0 + ch, cw, h - 2 * ch);
+    put(ctx, p->top, a, x0 + cw, y0, w - 2 * cw, D);
+    put(ctx, p->bottom, a, x0 + cw, y1 - D, w - 2 * cw, D);
+    put(ctx, p->left, a, x0, y0 + ch, D, h - 2 * ch);
+    put(ctx, p->right, a, x1 - D, y0 + ch, D, h - 2 * ch);
 }
 
 // ---------------------------------------------------------------- pass element

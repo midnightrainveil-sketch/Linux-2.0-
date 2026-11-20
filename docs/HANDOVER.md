@@ -133,7 +133,8 @@ run under a headless sway, which catches QML errors and shows the desk:
   Then Qt's real QML compiler runs (it catches what qmllint does not:
   capitalised function names, FINAL properties like `left`), and so does
   `preview.py` (`ULTRA_CHECK=1` makes Retro Futurism compile every widget;
-  `ipc:widget.open=controls` opens one). Effects (MultiEffect, layer.effect)
+  `ipc:widget.open=controls` opens one; `onewindow` tiles one window as
+  Hyprland would, to line the taskbar up against its rim). Effects (MultiEffect, layer.effect)
   draw nothing in its software renderer: the glow layers come out blank.
 - Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
   compile-checked here without Hyprland installed: clone Hyprland and

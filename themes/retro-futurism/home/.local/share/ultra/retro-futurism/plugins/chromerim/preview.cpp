@@ -3,7 +3,7 @@
 // the window over them, rounded, and saves a PNG.
 //
 //   g++ -std=c++2b preview.cpp $(pkg-config --cflags --libs cairo) -o rim-preview
-//   ./rim-preview out.png [scale] [background.png]
+//   ./rim-preview out.png [scale] [background.png] [rounding]
 #include "RimPaint.hpp"
 
 #include <cstdio>
@@ -34,26 +34,31 @@ static void window(cairo_t* cr, const SLook& lk, double x, double y, double w, d
     const double out = lk.width - lk.overlap;
     const int    x0 = std::lround((x - out) * s), y0 = std::lround((y - out) * s);
     const int    x1 = std::lround((x + w + out) * s), y1 = std::lround((y + h + out) * s);
-    const int    C = cornerSize(lk), F = 2 * C + 4;
-    const int    W = x1 - x0, H = y1 - y0, cw = std::min(C, W / 2), ch = std::min(C, H / 2);
+    const SGeom  g = geom(lk);
+    const int    K = g.K, D = g.D;
+    const int    W = x1 - x0, H = y1 - y0, cw = std::min(K, W / 2), ch = std::min(K, H / 2);
 
-    cairo_surface_t* pieces[8] = {paint(lk, F, false, 0, 0, C, C),     paint(lk, F, false, F - C, 0, C, C), paint(lk, F, true, 0, F - C, C, C),
-                                  paint(lk, F, true, F - C, F - C, C, C), paint(lk, F, false, C + 1, 0, 1, C),  paint(lk, F, true, C + 1, F - C, 1, C),
-                                  side(lk, F, C, true),                  side(lk, F, C, false)};
+    cairo_surface_t* pieces[8] = {corner(lk, 0), corner(lk, 1), corner(lk, 2), corner(lk, 3), run(lk, false), run(lk, true), side(lk, false), side(lk, true)};
     put(cr, pieces[0], x0, y0, cw, ch);
     put(cr, pieces[1], x1 - cw, y0, cw, ch);
     put(cr, pieces[2], x0, y1 - ch, cw, ch);
     put(cr, pieces[3], x1 - cw, y1 - ch, cw, ch);
-    put(cr, pieces[4], x0 + cw, y0, W - 2 * cw, ch);
-    put(cr, pieces[5], x0 + cw, y1 - ch, W - 2 * cw, ch);
-    put(cr, pieces[6], x0, y0 + ch, cw, H - 2 * ch);
-    put(cr, pieces[7], x1 - cw, y0 + ch, cw, H - 2 * ch);
+    put(cr, pieces[4], x0 + cw, y0, W - 2 * cw, D);
+    put(cr, pieces[5], x0 + cw, y1 - D, W - 2 * cw, D);
+    put(cr, pieces[6], x0, y0 + ch, D, H - 2 * ch);
+    put(cr, pieces[7], x1 - D, y0 + ch, D, H - 2 * ch);
     for (auto* p : pieces)
         cairo_surface_destroy(p);
 
     // the window, rounded as Hyprland rounds it: a cream terminal
     cairo_new_path(cr);
-    roundRect(cr, x * s, y * s, w * s, h * s, lk.rounding * s);
+    const double r = lk.rounding * s;
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, (x + w) * s - r, y * s + r, r, -M_PI / 2, 0);
+    cairo_arc(cr, (x + w) * s - r, (y + h) * s - r, r, 0, M_PI / 2);
+    cairo_arc(cr, x * s + r, (y + h) * s - r, r, M_PI / 2, M_PI);
+    cairo_arc(cr, x * s + r, y * s + r, r, M_PI, 3 * M_PI / 2);
+    cairo_close_path(cr);
     cairo_set_source_rgb(cr, 0.96, 0.93, 0.87);
     cairo_fill(cr);
 }
@@ -81,12 +86,12 @@ int main(int argc, char** argv) {
 
     SLook lk;
     lk.scale    = scale;
-    lk.rounding = 9;
+    lk.rounding = argc > 4 ? std::atof(argv[4]) : 21;
     lk.dim      = 0x521f1a14;
     lk.focused  = false;
-    window(cr, lk, 35, 35, 500, 550);   // not in use
+    window(cr, lk, 38, 38, 494, 544);   // not in use
     lk.focused = true;
-    window(cr, lk, 565, 35, 500, 550);  // in use
+    window(cr, lk, 570, 38, 492, 544);  // in use
 
     cairo_destroy(cr);
     cairo_surface_write_to_png(surf, out.c_str());

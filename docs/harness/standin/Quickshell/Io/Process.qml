@@ -12,6 +12,6 @@ QtObject {
         if (stdout && stdout.streamFinished) { stdout.text = out; stdout.streamFinished(); }
         else if (stdout && stdout.read) for (const l of out.split("\n")) if (l !== "") stdout.read(l);
         running = false;
-        exited(0);
+        exited(harness.code(JSON.stringify(command)));
     }
 }

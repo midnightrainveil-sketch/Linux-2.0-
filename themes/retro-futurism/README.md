@@ -59,16 +59,19 @@ Gadgets in steel, cream and sage with e-ink screens.
   plugin (`~/.local/share/ultra/retro-futurism/plugins/chromerim`, built for
   your Hyprland by `ultra-rim`, at setup and at login when Hyprland
   changes). So the rim moves, slides and resizes with its window in the same
-  frame, at any size. The window in use has the bright rim, the others a
-  shade darker. Until the plugin is built (and round X11 windows) the shell
+  frame, at any size, lit as the taskbar is: a glint where each bend begins,
+  the chrome darkening round it. The window in use has the bright rim, the
+  others a shade darker. Until the plugin is built (and round X11 windows) the shell
   draws the same rim (`components/Frame.qml`). The gaps in
   `hypr/theme/look.lua` go with the frame values in `theme/Theme.qml`.
   `ultra-rim status` says whether it is built and loaded; `ultra-rim off`
   leaves it out. A window rule `chromerim:no_rim` leaves one window without.
-- The taskbar runs the frames' full width (its middle band stretches) and
+- The taskbar runs the rims' full width (its middle band stretches) and
   hides below the screen while windows are open: take the pointer down to
-  the bottom edge and it slides up, and the windows lift with it, their
-  frames ending just over it, its ends under theirs.
+  the bottom edge and it slides up over the windows, which stay where they
+  are. Its tube then lies on the foot of their rims: its ends and foot on
+  theirs, its round ends on their bottom corners (the windows are rounded
+  21 px, so the rim round them bends as the taskbar's ends do).
 
 - **Widgets** ([docs/widgets.md](docs/widgets.md)): the gadgets, called up
   over the blurred desk (Super + R the typewriter, Super + Space the
