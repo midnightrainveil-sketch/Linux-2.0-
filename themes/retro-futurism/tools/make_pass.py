@@ -37,3 +37,19 @@ X0, Y0, X1, Y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
 rgb = np.where(bg[..., None], 0, a)
 Image.fromarray(np.dstack([rgb, alpha * 255])[Y0:Y1, X0:X1].astype('uint8'), 'RGBA').save(out, optimize=True)
 print('ORIGIN', (int(X0), int(Y0)), 'size', (int(X1 - X0), int(Y1 - Y0)))
+
+# ---- one of its buttons on its own (SESSION's, bezel and all), with soft
+# rounded edges: the power widget lays it where it needs more buttons
+# (assets/pass-key.png, 150 x 54: the button's 136 x 38 at 7, 7)
+from pathlib import Path
+from PIL import ImageDraw
+key_out = Path(out).with_name("pass-key.png")
+dev = Image.open(out).convert("RGBA")
+kx, ky = 890 - int(X0), 498 - int(Y0)
+key = dev.crop((kx, ky, kx + 150, ky + 54))
+m = Image.new("L", (150 * 4, 54 * 4), 0)
+ImageDraw.Draw(m).rounded_rectangle((2 * 4, 2 * 4, 148 * 4, 52 * 4), radius=25 * 4, fill=255)
+m = m.resize((150, 54), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.8))
+key.putalpha(Image.fromarray((np.asarray(key.getchannel("A"), float) * np.asarray(m, float) / 255).astype("uint8")))
+key.save(key_out, optimize=True)
+print("KEY", key_out)

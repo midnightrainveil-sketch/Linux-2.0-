@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import qs.components
 import qs.services
 
@@ -13,6 +14,9 @@ import qs.services
 //   doing      Enter / Space, the roller, or a click on the chosen line
 //   shortcuts  ‖ suspend · POWER shut down · USER log out · SESSION lock
 //              (each only chooses; the roller or Enter does it)
+//   layout     SAVE (or S) notes the windows open and where they are;
+//              RESTORE (or R) opens them again after a login (ultra-layout;
+//              logging out saves by itself)
 // Restart and shut down light the red lamp. It always opens on Suspend.
 Widget {
     id: self
@@ -41,6 +45,33 @@ Widget {
         sel = n;
     }
     function move(d: int): void { choose(sel + d); }
+
+    // ---- the windows across a logout (ultra-layout)
+    property string note: ""                                   // said on the face a moment
+    Timer { id: noteTimer; interval: 2600; onTriggered: self.note = "" }
+    function say(text: string): void { note = text; noteTimer.restart(); }
+    function saveLayout(): void {
+        if (going || saver.running) return;
+        say("SAVING LAYOUT…");
+        saver.running = true;
+    }
+    function restoreLayout(): void {
+        if (going) return;
+        Widgets.close();
+        Quickshell.execDetached(["ultra-layout", "restore"]);
+    }
+    Process {
+        id: saver
+        command: ["ultra-layout", "save"]
+        // (how many windows it noted: "ultra-layout: noted 3 programs, 5 windows")
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const m = text.match(/(\d+) windows/);
+                if (m) self.say("SAVED: " + m[1] + " WINDOW" + (m[1] === "1" ? "" : "S"));
+            }
+        }
+        onExited: (code, status) => { if (code !== 0) self.say("COULD NOT SAVE"); }
+    }
     function confirm(): void {
         if (going) return;
         going = true;
@@ -68,6 +99,8 @@ Widget {
         case Qt.Key_Home: choose(0); break;
         case Qt.Key_End: choose(options.length - 1); break;
         case Qt.Key_Return: case Qt.Key_Enter: case Qt.Key_Space: confirm(); break;
+        case Qt.Key_S: saveLayout(); break;
+        case Qt.Key_R: restoreLayout(); break;
         case Qt.Key_1: case Qt.Key_2: case Qt.Key_3: case Qt.Key_4: case Qt.Key_5: choose(e.key - Qt.Key_1); break;
         default: return;
         }
@@ -213,14 +246,64 @@ Widget {
         Rule { x: dev.ax(193); y: dev.ay(1001); width: 591 }
         Glow {
             x: dev.ax(196); y: dev.ay(1022)
-            text: self.going ? self.options[self.sel].doing + "…" : "SELECTED: " + self.options[self.sel].word
+            text: self.note !== "" ? self.note
+                : self.going ? self.options[self.sel].doing + "…" : "SELECTED: " + self.options[self.sel].word
             font.pixelSize: 30; font.letterSpacing: 4.2
         }
         Glow {
             x: dev.ax(196); y: dev.ay(1066)
-            text: self.going ? "" : "ENTER TO CONFIRM"
+            text: self.going || self.note !== "" ? "" : "ENTER TO CONFIRM"
             font.pixelSize: 24; font.letterSpacing: 6.6
         }
         Slashes { x0: dev.ax(703); y0: dev.ay(1033); h: 28 }
+    }
+
+    // ---- SAVE and RESTORE: two more of the device's buttons, under the
+    // roller, as its USER and SESSION are (the button taken from its own
+    // picture; the label engraved in the metal)
+    Item {
+        width: dev.width; height: dev.height
+        scale: self.k
+        transformOrigin: Item.TopLeft
+
+        component Engraved: Text {
+            color: "#3b3a39"
+            style: Text.Raised
+            styleColor: "#fbfaf9"
+            font.family: "Barlow"
+            font.weight: Font.Bold
+            font.pixelSize: 25
+            font.letterSpacing: 1.5
+        }
+        component Key: Item {
+            id: key
+            property string label: ""
+            signal hit()
+            width: 150; height: 104
+            Engraved { anchors.horizontalCenter: parent.horizontalCenter; y: 0; text: key.label }
+            Image {
+                // (SESSION's button, bezel and all, cut from the picture with
+                // soft edges by tools/make_pass.py)
+                y: 40; width: 150; height: 54
+                source: Quickshell.shellPath("assets/pass-key.png")
+                smooth: true
+                Rectangle {
+                    x: 7; y: 7; width: 136; height: 38; radius: 19
+                    color: "#1d2024"
+                    opacity: area.pressed ? 0.22 : area.containsMouse ? 0.07 : 0
+                    Behavior on opacity { NumberAnimation { duration: 70 } }
+                }
+            }
+            MouseArea {
+                id: area
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: key.hit()
+            }
+        }
+
+        Key { x: dev.ax(890); y: dev.ay(790); label: "SAVE"; onHit: self.saveLayout() }
+        Key { x: dev.ax(890); y: dev.ay(895); label: "RESTORE"; onHit: self.restoreLayout() }
     }
 }
