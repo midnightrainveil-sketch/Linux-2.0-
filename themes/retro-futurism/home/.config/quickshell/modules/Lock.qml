@@ -19,9 +19,13 @@ import qs.components
 //               the desk (the city outside the window where the desk has it),
 //               and the lock lets go; the taskbar comes up from below.
 //
-// The pass's buttons: ‖ sleep · POWER shut down (press twice) · USER clear
-// the key · SESSION put the pass away · ◀◀ one key back · the roller and ▶▶
-// enter. Keys: type, Enter, Backspace, Esc (clear; again, away).
+// The pass's buttons: ◀◀ / ▶▶ turn the device to its power face and back
+// (components/PowerFace.qml: log in, suspend, log out, restart, shut down,
+// chosen with the roller, the arrows or a click, done with Enter or the
+// roller); ‖ and POWER (and the laptop's power button) turn it there too,
+// with suspend or shut down chosen, never doing it at once. On the pass:
+// USER clears the key, SESSION puts the pass away, the roller enters. Keys:
+// type, Enter, Backspace, Esc (clear; again, away).
 //
 // The room is ~/.local/share/ultra/retro-futurism/lock.jpg (its clock's
 // window emptied); the pass is assets/pass.png (tools/make_pass.py), what
@@ -34,7 +38,19 @@ Scope {
     property bool busy: false
     property bool awake: false         // the pass is out
     property bool leaving: false       // let in: on the way to the desk
-    property bool powerAsked: false    // POWER pressed once
+    // the device's two faces: "pass" (the key) and "power" (◀◀ / ▶▶ turn
+    // it; any power button turns it to power, with that choice made: nothing
+    // is done until it is confirmed)
+    property string page: "pass"
+    property int powerSel: 1
+    property bool powerGoing: false
+    readonly property var powerOptions: [
+        { word: "LOG IN",    doing: "",              icon: "lock" },
+        { word: "SUSPEND",   doing: "SUSPENDING",    icon: "moon" },
+        { word: "LOG OUT",   doing: "LOGGING OUT",   icon: "exit" },
+        { word: "RESTART",   doing: "RESTARTING",    icon: "again" },
+        { word: "SHUT DOWN", doing: "SHUTTING DOWN", icon: "power" }
+    ]
 
     // 0..1 each, eased (the Behaviors below); 'animate' off to set them at once
     property bool animate: true
@@ -55,7 +71,8 @@ Scope {
 
     function reset(): void {
         animate = false;
-        awake = false; leaving = false; powerAsked = false;
+        awake = false; leaving = false;
+        page = "pass"; powerSel = 1; powerGoing = false;
         buffer = ""; verdict = ""; busy = false;
         Qt.callLater(() => room.animate = true);
     }
@@ -65,7 +82,44 @@ Scope {
         sessionLock.locked = true;
     }
     function wake(): void { if (!leaving) awake = true; }
-    function rest(): void { if (!busy && !leaving) { awake = false; buffer = ""; verdict = ""; powerAsked = false; } }
+    function rest(): void { if (!busy && !leaving && !powerGoing) { awake = false; buffer = ""; verdict = ""; page = "pass"; } }
+
+    // ---- the power face
+    function flip(): void { if (powerGoing) return; wake(); page = page === "pass" ? "power" : "pass"; }
+    function showPower(i: int): void {
+        if (leaving || powerGoing) return;
+        wake();
+        page = "power";
+        choosePower(i);
+    }
+    function choosePower(i: int): void {
+        if (powerGoing) return;
+        const n = Math.max(0, Math.min(powerOptions.length - 1, i));
+        if (n !== powerSel) ticket.roll(n - powerSel);
+        powerSel = n;
+    }
+    function confirmPower(): void {
+        if (powerGoing) return;
+        if (powerSel === 0) { page = "pass"; return; }        // LOG IN: back to the key
+        powerGoing = true;
+        powerGo.start();
+    }
+    // a moment to read what it is doing, then do it
+    Timer {
+        id: powerGo
+        interval: 420
+        onTriggered: {
+            switch (room.powerSel) {
+            case 1: Quickshell.execDetached(["systemctl", "suspend"]); break;
+            case 2: Quickshell.execDetached(["ultra-session", "logout"]); break;
+            case 3: Quickshell.execDetached(["systemctl", "reboot"]); break;
+            case 4: Quickshell.execDetached(["systemctl", "poweroff"]); break;
+            }
+            // (back from a suspend: the pass, ready)
+            if (room.powerSel === 1) resumed.start();
+        }
+    }
+    Timer { id: resumed; interval: 1500; onTriggered: { room.powerGoing = false; room.page = "pass"; room.rest(); } }
     function submit(): void {
         if (busy || leaving || buffer.length === 0) return;
         busy = true;
@@ -105,7 +159,6 @@ Scope {
     }
     // "denied" shows a moment, then the pass is ready again
     Timer { interval: 2200; running: room.verdict === "wrong"; onTriggered: room.verdict = "" }
-    Timer { interval: 3000; running: room.powerAsked; onTriggered: room.powerAsked = false }
     // left alone, nothing typed: the pass goes away again
     Timer {
         interval: 25000
@@ -271,194 +324,57 @@ Scope {
                     id: ticket
                     scale: pass.pk
                     transformOrigin: Item.TopLeft
-                    lamp: room.verdict === "wrong"            // the red lamp: the key was wrong
-                    onPause: Quickshell.execDetached(["systemctl", "suspend"])
-                    onPower: {                                // twice to shut down
-                        if (room.powerAsked) Quickshell.execDetached(["systemctl", "poweroff"]);
-                        else room.powerAsked = true;
+                    // the red lamp: the key was wrong, or restart / shut down chosen
+                    lamp: room.verdict === "wrong" || (room.page === "power" && room.powerSel >= 3)
+                    forwardIsEnter: false
+                    // power buttons only turn it to its power face, chosen
+                    onPause: room.showPower(1)                          // ‖ suspend
+                    onPower: room.showPower(4)                          // shut down
+                    onUser: room.page === "power" ? room.choosePower(2) : (room.buffer = "", room.verdict = "")
+                    onSession: room.page === "power" ? room.choosePower(0) : room.rest()
+                    onBack: room.flip()                                  // ◀◀ ▶▶: the other face
+                    onForward: room.flip()
+                    onEnter: room.page === "power" ? room.confirmPower() : room.submit()
+                    onRolled: steps => {
+                        if (room.page === "power") {
+                            // (the roller has turned already: just the choice)
+                            room.powerSel = Math.max(0, Math.min(room.powerOptions.length - 1, room.powerSel + steps));
+                        }
+                        field.forceActiveFocus();
                     }
-                    onUser: { room.buffer = ""; room.verdict = ""; }
-                    onSession: room.rest()
-                    onBack: room.buffer = room.buffer.slice(0, -1)
-                    onEnter: room.submit()
-                    onRolled: field.forceActiveFocus()
 
                     // clicks on the pass keep the keyboard on the password
                     MouseArea { anchors.fill: parent; onPressed: field.forceActiveFocus() }
 
 
-                    component Glow: Text {
-                        color: "#f2f8ff"
-                        font.family: "Barlow"
-                        font.weight: Font.Medium
-                    }
-                    component Rule: Rectangle { height: 3; color: "#f2f8ff"; opacity: 0.92 }
-
-                    // header: the mark, カセットOS
-                    Canvas {
-                        x: ticket.ax(193); y: ticket.ay(188); width: 154; height: 48
-                        onPaint: {
-                            const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
-                            const bar = (y, x0, x1, h) => { c.beginPath(); c.moveTo(x0 + 14, y); c.lineTo(x1 + 14, y); c.lineTo(x1, y + h); c.lineTo(x0, y + h); c.closePath(); c.fill(); };
-                            bar(0, 52, 152, 12);           // the mark: a cassette's E, leaning
-                            bar(18, 26, 128, 12);
-                            bar(36, 0, 140, 12);
-                            c.beginPath(); c.moveTo(70, 0); c.lineTo(84, 0); c.lineTo(56, 48); c.lineTo(42, 48); c.closePath(); c.fill();
-                        }
-                    }
-                    Rectangle { x: ticket.ax(375); y: ticket.ay(194); width: 3; height: 40; color: ticket.ink }
-                    Glow { x: ticket.ax(410); y: ticket.ay(192); text: "カセットOS"; font.pixelSize: 34; font.letterSpacing: 6 }
-
-                    Glow { x: ticket.ax(184); y: ticket.ay(262); text: "PERSONAL ACCESS PASS"; font.pixelSize: 48; font.weight: Font.DemiBold; font.letterSpacing: 2.9 }
-                    Glow { x: ticket.ax(186); y: ticket.ay(328); text: "ELECTRONIC BOARDING TICKET"; font.pixelSize: 25; font.letterSpacing: 6.4 }
-                    Rule { x: ticket.ax(187); y: ticket.ay(377); width: 526 }
-                    Repeater {
-                        model: 3
-                        Rectangle {
-                            required property int index
-                            x: ticket.ax(733 + index * 21); y: ticket.ay(366); width: 9; height: 15; color: ticket.ink
-                            transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.6, 0, 9, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-                        }
-                    }
-
-                    // passenger
-                    Glow { x: ticket.ax(186); y: ticket.ay(424); text: "PASSENGER"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Canvas {
-                        x: ticket.ax(196); y: ticket.ay(474); width: 52; height: 54
-                        onPaint: {
-                            const c = getContext("2d"); c.reset(); c.fillStyle = ticket.ink;
-                            c.beginPath(); c.arc(26, 15, 14, 0, Math.PI * 2); c.fill();
-                            c.beginPath(); c.moveTo(0, 54); c.lineTo(0, 46); c.bezierCurveTo(0, 33, 12, 30, 26, 30);
-                            c.bezierCurveTo(40, 30, 52, 33, 52, 46); c.lineTo(52, 54); c.closePath(); c.fill();
-                        }
-                    }
-                    Glow {
-                        x: ticket.ax(274); y: ticket.ay(464); width: 500; elide: Text.ElideRight
-                        text: Settings.user; font.pixelSize: 52; font.letterSpacing: 1.4
-                    }
-                    Rule { x: ticket.ax(187); y: ticket.ay(554); width: 579 }
-
-                    // from the lock screen to the desk
-                    Glow { x: ticket.ax(190); y: ticket.ay(584); text: "FROM"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Glow { x: ticket.ax(538); y: ticket.ay(584); text: "TO"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Glow { x: ticket.ax(192); y: ticket.ay(616); text: "LOCK\nSCREEN"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
-                    Glow { x: ticket.ax(538); y: ticket.ay(616); text: "DESKTOP\nSESSION"; font.pixelSize: 42; font.weight: Font.DemiBold; font.letterSpacing: 0.7; lineHeight: 0.98 }
-                    Canvas {
-                        x: ticket.ax(413); y: ticket.ay(634); width: 66; height: 30
-                        onPaint: {
-                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
-                            c.beginPath(); c.moveTo(2, 15); c.lineTo(62, 15); c.moveTo(48, 3); c.lineTo(62, 15); c.lineTo(48, 27); c.stroke();
-                        }
-                    }
-                    Rule { x: ticket.ax(187); y: ticket.ay(734); width: 579 }
-
-                    // today
-                    Canvas {
-                        x: ticket.ax(195); y: ticket.ay(765); width: 42; height: 42
-                        onPaint: {
-                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.fillStyle = ticket.ink; c.lineWidth = 3;
-                            c.strokeRect(2, 6, 38, 34); c.fillRect(2, 6, 38, 9);
-                            c.fillRect(9, 0, 4, 10); c.fillRect(29, 0, 4, 10);
-                            for (const [a, b] of [[9, 21], [19, 21], [29, 21], [9, 30], [19, 30]]) c.fillRect(a, b, 5, 5);
-                        }
-                    }
-                    readonly property var monthsUp: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-                    Glow {
-                        x: ticket.ax(270); y: ticket.ay(760)
-                        text: tick.date.getDate() + " " + ticket.monthsUp[tick.date.getMonth()] + " " + tick.date.getFullYear()
-                        font.pixelSize: 40; font.letterSpacing: 0.4
-                        font.features: { "tnum": 1 }
-                    }
-                    Rectangle { x: ticket.ax(532); y: ticket.ay(765); width: 3; height: 41; color: ticket.ink }
-                    Canvas {
-                        x: ticket.ax(577); y: ticket.ay(764); width: 44; height: 44
-                        onPaint: {
-                            const c = getContext("2d"); c.reset(); c.strokeStyle = ticket.ink; c.lineWidth = 3.2; c.lineCap = "round";
-                            c.beginPath(); c.arc(22, 22, 19, 0, Math.PI * 2); c.stroke();
-                            c.beginPath(); c.moveTo(22, 10); c.lineTo(22, 23); c.lineTo(31, 28); c.stroke();
-                        }
-                    }
-                    Glow {
-                        x: ticket.ax(651); y: ticket.ay(760)
-                        text: Qt.formatTime(tick.date, "hh:mm")
-                        font.pixelSize: 40; font.letterSpacing: 0.4
-                        font.features: { "tnum": 1 }
-                    }
-                    Rule { x: ticket.ax(187); y: ticket.ay(841); width: 593 }
-
-                    // the access key: a dot for each key, the cursor after them
-                    Glow { x: ticket.ax(192); y: ticket.ay(873); text: "ACCESS KEY"; font.pixelSize: 25; font.letterSpacing: 6 }
-                    Item {
-                        id: keyLine
-                        x: ticket.ax(247); y: ticket.ay(950)
-                        readonly property int shown: Math.min(room.buffer.length, 10)
-                        Repeater {
-                            model: keyLine.shown
-                            Rectangle {
-                                required property int index
-                                x: index * 52.2 - 13; y: -13
-                                width: 26; height: 26; radius: 13
-                                color: ticket.ink
-                                opacity: room.busy ? pulse.level : 1
-                                scale: 1
-                                Component.onCompleted: popIn.start()
-                                NumberAnimation on scale { id: popIn; from: 0.4; to: 1; duration: 120; easing.type: Easing.OutBack; running: false }
-                            }
-                        }
-                        Rectangle {
-                            // the cursor
-                            x: keyLine.shown === 0 ? -14 : (keyLine.shown - 1) * 52.2 + 36
-                            y: -34; width: 4; height: 64
-                            color: ticket.ink
-                            visible: !room.busy && room.verdict !== "ok"
-                            opacity: tick.date.getSeconds() % 2 === 0 ? 1 : 0.15
-                        }
-                        // a wrong key: the line shakes
-                        SequentialAnimation on x {
-                            running: room.verdict === "wrong"
-                            NumberAnimation { to: ticket.ax(247) - 14; duration: 50 }
-                            NumberAnimation { to: ticket.ax(247) + 14; duration: 70 }
-                            NumberAnimation { to: ticket.ax(247) - 9; duration: 70 }
-                            NumberAnimation { to: ticket.ax(247); duration: 60 }
-                        }
-                    }
-                    Rule { x: ticket.ax(191); y: ticket.ay(999); width: 590 }
-
-                    // what it is doing
-                    Rectangle {
-                        x: ticket.ax(198); y: ticket.ay(1065); width: 30; height: 30; radius: 15
-                        color: room.verdict === "wrong" ? "transparent" : ticket.ink
-                        border.width: 3; border.color: ticket.ink
-                        opacity: room.busy ? pulse.level : 1
-                    }
-                    Glow {
-                        x: ticket.ax(261); y: ticket.ay(1060); width: 400
-                        font.pixelSize: 33; font.letterSpacing: 3
-                        text: room.verdict === "ok" ? "BOARDING"
+                    // the faces: the pass, or (◀◀ / ▶▶, or any power button)
+                    // the power face; they cross over as the device turns
+                    PassFace {
+                        dev: ticket
+                        opacity: room.page === "pass" ? 1 : 0
+                        visible: opacity > 0.01
+                        Behavior on opacity { NumberAnimation { duration: 180 } }
+                        now: tick.date
+                        keys: room.buffer.length
+                        busy: room.busy
+                        wrong: room.verdict === "wrong"
+                        done: room.verdict === "ok"
+                        pulse: pulse.level
+                        status: room.verdict === "ok" ? "BOARDING"
                             : room.busy ? "CHECKING"
                             : room.verdict === "wrong" ? "ACCESS DENIED"
-                            : room.powerAsked ? "AGAIN: SHUT DOWN"
                             : room.buffer === "" ? "ENTER ACCESS KEY" : "READY TO BOARD"
                     }
-                    Rectangle { x: ticket.ax(678); y: ticket.ay(1046); width: 3; height: 57; color: ticket.ink }
-                    Glow { x: ticket.ax(733); y: ticket.ay(1042); text: "TKT No."; font.pixelSize: 25; font.letterSpacing: 3 }
-                    Glow {
-                        x: ticket.ax(733); y: ticket.ay(1070)
-                        // a ticket number of your own: from your name
-                        text: {
-                            let h = 7;
-                            for (const ch of Settings.user) h = (h * 31 + ch.charCodeAt(0)) % 1000000;
-                            return "KST-" + String(h).padStart(6, "0");
-                        }
-                        font.pixelSize: 26; font.letterSpacing: 3
-                    }
-                    Repeater {
-                        model: 3
-                        Rectangle {
-                            required property int index
-                            x: ticket.ax(1022 + index * 30); y: ticket.ay(1053); width: 14; height: 40; color: ticket.ink
-                            transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.55, 0, 22, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
-                        }
+                    PowerFace {
+                        dev: ticket
+                        opacity: room.page === "power" ? 1 : 0
+                        visible: opacity > 0.01
+                        Behavior on opacity { NumberAnimation { duration: 180 } }
+                        options: room.powerOptions
+                        sel: room.powerSel
+                        going: room.powerGoing
+                        onChose: i => room.choosePower(i)
+                        onConfirmed: room.confirmPower()
                     }
                 QtObject {
                     id: pulse
@@ -487,7 +403,23 @@ Scope {
                 readOnly: room.busy || room.verdict === "ok" || room.leaving
                 onTextChanged: { room.buffer = text; if (text !== "") room.wake(); }
                 onAccepted: room.awake ? room.submit() : room.wake()
-                Keys.onPressed: e => { room.wake(); e.accepted = false; }
+                Keys.onPressed: e => {
+                    room.wake();
+                    e.accepted = false;
+                    if (room.page !== "power") return;
+                    // the power face: choose and confirm; Esc (or typing) back to the key
+                    switch (e.key) {
+                    case Qt.Key_Up: case Qt.Key_Left: room.choosePower(room.powerSel - 1); break;
+                    case Qt.Key_Down: case Qt.Key_Right: room.choosePower(room.powerSel + 1); break;
+                    case Qt.Key_Return: case Qt.Key_Enter: room.confirmPower(); break;
+                    case Qt.Key_Escape: if (!room.powerGoing) room.page = "pass"; break;
+                    case Qt.Key_1: case Qt.Key_2: case Qt.Key_3: case Qt.Key_4: case Qt.Key_5: room.choosePower(e.key - Qt.Key_1); break;
+                    default:
+                        if (e.text !== "" && !room.powerGoing) room.page = "pass";   // a key typed: the pass, and it goes in
+                        return;
+                    }
+                    e.accepted = true;
+                }
                 Keys.onEscapePressed: { if (room.buffer !== "") room.buffer = ""; else room.rest(); }
                 Component.onCompleted: forceActiveFocus()
                 onActiveFocusChanged: if (!activeFocus) refocus.restart()

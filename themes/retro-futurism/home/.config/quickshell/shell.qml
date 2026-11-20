@@ -53,7 +53,9 @@ ShellRoot {
     IpcHandler {
         target: "shell"
         function launcher(): void { Widgets.toggle("launcher"); }
-        function power(): void { Widgets.toggle("power"); }
+        // (the power button: the power widget; locked, the lock screen's
+        // device turns to its power face instead, nothing done at once)
+        function power(): void { if (Scene.locked) lockScreen.showPower(1); else Widgets.toggle("power"); }
         function themes(): void { Panels.toggle("themes"); }
         function close(): void { Panels.close(); Widgets.close(); }
     }

@@ -135,7 +135,9 @@ run under a headless sway, which catches QML errors and shows the desk:
   `preview.py` (`ULTRA_CHECK=1` makes Retro Futurism compile every widget;
   `ipc:widget.open=controls` opens one; `onewindow` tiles one window as
   Hyprland would, to line the taskbar up against its rim). Effects (MultiEffect, layer.effect)
-  draw nothing in its software renderer: the glow layers come out blank.
+  draw nothing in its software renderer: the glow layers come out blank. With
+  `ULTRA_PLAIN_GLOW=1` the Kairo device (power widget, lock screen) draws its face
+  without glow, so it can be seen.
 - Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
   compile-checked here without Hyprland installed: clone Hyprland and
   hyprutils, aquamarine, hyprlang, hyprgraphics, hyprcursor,

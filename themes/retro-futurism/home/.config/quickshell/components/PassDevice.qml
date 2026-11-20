@@ -74,7 +74,11 @@ Item {
     // ---- what glows on its face: a bright halo close round every stroke,
     // and the same light spread wide behind it, as a backlit screen bleeds
     // into the glass over it
+    // (ULTRA_PLAIN_GLOW=1: no glow, for a renderer that draws no effects:
+    // docs/harness/preview.py)
+    readonly property bool plain: Quickshell.env("ULTRA_PLAIN_GLOW") === "1"
     MultiEffect {
+        visible: !dev.plain
         source: glowing
         anchors.fill: glowing
         blurEnabled: true
@@ -88,7 +92,7 @@ Item {
     Item {
         id: glowing
         anchors.fill: parent
-        layer.enabled: true
+        layer.enabled: !dev.plain
         layer.effect: MultiEffect {
             shadowEnabled: true
             shadowColor: "#dcefff"

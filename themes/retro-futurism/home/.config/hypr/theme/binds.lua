@@ -106,4 +106,6 @@ hl.bind("XF86Launch1", exec("rog-control-center"))
 ------------------------------------------------------------------ the power button
 -- (ultra-boot power stops logind acting on a press, so it comes here.)
 -- A press opens the power menu; choose there.
-hl.bind("XF86PowerOff", shell("shell", "power"), { description = "Power button: the power menu" })
+-- (locked too: the lock screen's device turns to its power face; nothing
+-- is done until it is confirmed there)
+hl.bind("XF86PowerOff", shell("shell", "power"), { locked = true, description = "Power button: the power menu" })
