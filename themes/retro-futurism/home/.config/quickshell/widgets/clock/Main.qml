@@ -120,12 +120,12 @@ Widget {
     }
 
     Component.onCompleted: {
-        mode = store.ready ? store.get("mode", 0) : 0;
+        mode = store && store.ready ? store.get("mode", 0) : 0;
         if (ringing !== "") mode = ringing === "alarm" ? 1 : 2;
     }
     Connections {
         target: self.store
-        function onReadyChanged() { if (self.store.ready && self.ringing === "") self.mode = self.store.get("mode", 0); }
+        function onReadyChanged() { if (self.store && self.store.ready && self.ringing === "") self.mode = self.store.get("mode", 0); }
     }
     Connections {
         target: Alarms
