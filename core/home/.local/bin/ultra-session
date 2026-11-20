@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# ultra-session logout: end the Hyprland session cleanly.
+# ultra-session logout: end the Hyprland session cleanly. The windows open
+# are noted first (ultra-layout save), so `ultra-layout restore` after the
+# next login brings them back.
 set -euo pipefail
 case ${1:-logout} in
     logout)
+        command -v ultra-layout >/dev/null && { timeout 10 ultra-layout save >/dev/null 2>&1 || true; }
         if command -v hyprshutdown >/dev/null; then
             exec hyprshutdown
         fi

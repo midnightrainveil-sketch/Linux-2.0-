@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# ultra-layout: take the windows you had open across a logout.
+#
+#   ultra-layout save      note the programs open and where their windows are
+#                            (ultra-session logout does this by itself)
+#   ultra-layout restore   start them again, each window on its workspace,
+#                            in the order they lay there; floating ones at
+#                            their place and size
+#   ultra-layout show      what was noted
+#
+# What comes back is the programs and where they were, not what was in them:
+# a terminal opens in the folder it was in, a browser brings back its tabs
+# if it is set to (Chrome: Settings, On start-up, "Continue where you left
+# off"; Firefox: "Open previous windows and tabs"), anything else opens as
+# it does when you start it. Tiled windows are opened one after another on
+# their workspace, so they split about as they did.
+set -uo pipefail
+
+file="${XDG_STATE_HOME:-$HOME/.local/state}/ultra/layout.json"
+mkdir -p "$(dirname "$file")"
+
+need() { command -v "$1" >/dev/null || { echo "ultra-layout: $1 is needed" >&2; exit 1; }; }
+need jq
+need hyprctl
+
+# the command that started a process again: its own command line, or for a
+# Flatpak app, flatpak run <app>
+command_of() {
+    local pid=$1
+    if [[ -r /proc/$pid/root/.flatpak-info ]]; then
+        local app; app=$(awk -F= '/^name=/ { print $2; exit }' "/proc/$pid/root/.flatpak-info")
+        [[ -n $app ]] && { jq -cn --arg a "$app" '["flatpak", "run", $a]'; return; }
+    fi
+    [[ -r /proc/$pid/cmdline ]] || { echo null; return; }
+    # (arguments end in a NUL each, and may hold anything else, line breaks too)
+    jq -cRs 'split("\u0000") | .[:-1] | if length == 0 then null else . end' <"/proc/$pid/cmdline"
+}
+
+# where a terminal was: the folder of the shell running in it
+folder_of() {
+    local pid=$1 child
+    child=$(pgrep -P "$pid" | head -n1)
+    readlink "/proc/${child:-$pid}/cwd" 2>/dev/null || echo ""
+}
+
+save() {
+    local clients; clients=$(hyprctl clients -j) || { echo "ultra-layout: is Hyprland running?" >&2; exit 1; }
+    # one entry per program (a browser's windows share one), its windows in
+    # the order they lie: by workspace, then top to bottom, left to right
+    local windows
+    windows=$(jq -c '[.[] | select(.mapped == true and .hidden != true and .pid > 0)
+                       | select((.class // "") | test("\\.desk$") | not)          # (the themes bring their own desk terminal)
+                       | {pid, class, title, ws: .workspace.name, wsid: .workspace.id,
+                          floating, at, size, fullscreen: ((.fullscreen // 0) > 0)}]
+                      | sort_by(.wsid, .at[1], .at[0])' <<<"$clients")
+    local out="[]" pid cmd cwd
+    for pid in $(jq -r '[.[].pid] | unique | .[]' <<<"$windows"); do
+        cmd=$(command_of "$pid")
+        [[ $cmd == null ]] && continue
+        cwd=$(folder_of "$pid")
+        out=$(jq -c --argjson pid "$pid" --argjson cmd "$cmd" --arg cwd "$cwd" --argjson w "$windows" \
+            '. + [{cmd: $cmd, cwd: $cwd, windows: [$w[] | select(.pid == $pid) | del(.pid)]}]' <<<"$out")
+    done
+    # programs in the order their first window lies
+    jq 'sort_by(.windows[0].wsid, .windows[0].at[1], .windows[0].at[0])' <<<"$out" >"$file.new" && mv "$file.new" "$file"
+    echo "ultra-layout: noted $(jq length "$file") programs, $(jq '[.[].windows[]] | length' "$file") windows ($file)"
+}
+
+show() {
+    [[ -f $file ]] || { echo "ultra-layout: nothing noted yet (ultra-layout save)"; exit 0; }
+    echo "noted $(date -r "$file" '+%a %d %b %H:%M'):"
+    jq -r '.[] | "  " + (.cmd | join(" ") | .[0:70]) + "\n" + ([.windows[] | "      workspace \(.ws)\(if .floating then ", floating" else "" end): \(.title | .[0:50])"] | join("\n"))' "$file"
+}
+
+dispatch() { hyprctl dispatch "$1" >/dev/null 2>&1; }
+
+addresses() { hyprctl clients -j | jq -c '[.[].address]'; }
+
+restore() {
+    [[ -f $file ]] || { echo "ultra-layout: nothing noted (ultra-layout save, before you log out)" >&2; exit 1; }
+    local back; back=$(hyprctl activeworkspace -j | jq -r '.name')
+    local n i entry
+    n=$(jq length "$file")
+    for ((i = 0; i < n; i++)); do
+        entry=$(jq -c ".[$i]" "$file")
+        local cmd_json cwd want first_ws
+        cmd_json=$(jq -c '.cmd' <<<"$entry")
+        cwd=$(jq -r '.cwd' <<<"$entry")
+        want=$(jq '.windows | length' <<<"$entry")
+        first_ws=$(jq -r '.windows[0].ws' <<<"$entry")
+        local -a cmd; mapfile -t cmd < <(jq -r '.[]' <<<"$cmd_json")
+        command -v "${cmd[0]}" >/dev/null || [[ -x ${cmd[0]} ]] || { echo "  skipped (not installed): ${cmd[0]}"; continue; }
+
+        # open it on its first window's workspace, so it tiles there
+        [[ $first_ws == special:* ]] || dispatch "hl.dsp.focus({ workspace = \"$first_ws\" })"
+        local before; before=$(addresses)
+        local dir="$HOME"; [[ -n $cwd && -d $cwd ]] && dir=$cwd
+        # a terminal opens in its folder
+        case $(basename "${cmd[0]}") in
+            foot) cmd=(foot --working-directory="$dir") ;;
+        esac
+        (cd "$dir" && setsid -f "${cmd[@]}" >/dev/null 2>&1)
+        echo "  $(basename "${cmd[0]}") ($want window$([[ $want -gt 1 ]] && echo s))"
+
+        # wait for its windows (up to 20 s for the first; a moment for the rest)
+        local new="[]" waited=0 limit=200
+        while ((waited < limit)); do
+            sleep 0.1; ((waited++))
+            new=$(hyprctl clients -j | jq -c --argjson b "$before" '[.[] | select(.address as $a | $b | index($a) | not) | {address, class}]')
+            local got; got=$(jq length <<<"$new")
+            ((got >= want)) && break
+            ((got > 0 && limit == 200)) && limit=$((waited + 30))
+        done
+
+        # each new window to where its noted one was
+        local k count; count=$(jq length <<<"$new")
+        for ((k = 0; k < count && k < want; k++)); do
+            local addr w ws win
+            addr=$(jq -r ".[$k].address" <<<"$new")
+            w=$(jq -c ".windows[$k]" <<<"$entry")
+            ws=$(jq -r '.ws' <<<"$w")
+            win="window = \"address:$addr\""
+            dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })"
+            if [[ $(jq -r '.floating' <<<"$w") == true ]]; then
+                dispatch "hl.dsp.window.float({ action = \"on\", $win })"
+                dispatch "hl.dsp.window.resize({ x = $(jq '.size[0]' <<<"$w"), y = $(jq '.size[1]' <<<"$w"), $win })"
+                dispatch "hl.dsp.window.move({ x = $(jq '.at[0]' <<<"$w"), y = $(jq '.at[1]' <<<"$w"), $win })"
+            fi
+            if [[ $(jq -r '.fullscreen' <<<"$w") == true ]]; then
+                dispatch "hl.dsp.focus({ $win })"
+                dispatch 'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" })'
+            fi
+        done
+    done
+    dispatch "hl.dsp.focus({ workspace = \"$back\" })"
+    echo "ultra-layout: done"
+}
+
+case ${1:-show} in
+    save) save ;;
+    restore) restore ;;
+    show) show ;;
+    *) echo "usage: ultra-layout save|restore|show" >&2; exit 2 ;;
+esac

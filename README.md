@@ -75,6 +75,7 @@ chosen theme.
 | `ultra-boot` | A quiet start-up and shut-down showing the theme's own page |
 | `ultra-health` | What happened around a wake from sleep, timed |
 | `ultra-browser`, `ultra-session` | Open the default browser; log out cleanly |
+| `ultra-layout` | Your windows across a logout: `save` (logging out does it), `restore` after you log back in, `show` |
 
 `setup.sh` also sets ssh keepalive and turns Wi-Fi power saving off for
 good. Nothing depends on the kernel: `linux` and `linux-lts` are served alike.
