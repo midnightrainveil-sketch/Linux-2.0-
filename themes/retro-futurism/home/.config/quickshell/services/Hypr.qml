@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 
 // Hyprland: workspaces, and where the windows of the workspace in view lie
 // (for the captions under them and the focus marks round the one in use).
@@ -43,7 +44,7 @@ Singleton {
     // the pointer, so: the window under it); "" when none
     readonly property string activeClass: (windows.find(w => w.active) ?? { cls: "" }).cls ?? ""
 
-    // ---- the windows in view: [{ key, x, y, w, h, cls, active }]
+    // ---- the windows in view: [{ key, x, y, w, h, cls, active, x11 }]
     property var windows: []
     property bool fullscreen: false
 
@@ -64,6 +65,7 @@ Singleton {
                 key: String(o.address ?? t.address ?? out.length),
                 x: o.at[0] - ox, y: o.at[1] - oy, w: o.size[0], h: o.size[1],
                 cls: String(o.class ?? ""),
+                x11: o.xwayland === true,
                 active: act !== null && act !== undefined && act === t
             });
         }
@@ -85,10 +87,24 @@ Singleton {
     // (not under a fullscreen window, where no caption shows)
     Timer { interval: 2500; running: root.windows.length > 0 && !root.fullscreen; repeat: true; onTriggered: root.look() }
 
+    // ---- whether Hyprland draws the windows' rims itself (the chromerim
+    // plugin, hypr/theme/look.lua): then the shell draws only those it
+    // leaves out (X11 windows); else every one (modules/Backdrop.qml)
+    property bool rimDrawn: false
+    Process {
+        id: rimCheck
+        command: ["sh", "-c", "hyprctl plugin list 2>/dev/null | grep -q chromerim"]
+        onExited: (code, status) => root.rimDrawn = code === 0
+    }
+    function checkRim(): void { rimCheck.running = false; rimCheck.running = true; }
+    Component.onCompleted: { look(); checkRim(); }
+
     Connections {
         target: Hyprland
         function onRawEvent(event) {
             const n = event.name;
+            if (n === "configreloaded")
+                root.checkRim();
             if (n === "openwindow" || n === "closewindow" || n === "movewindow" || n === "movewindowv2")
                 Hyprland.refreshWorkspaces();
             if (n === "openwindow" || n === "closewindow" || n === "movewindow" || n === "movewindowv2"
@@ -97,5 +113,4 @@ Singleton {
                 root.look();
         }
     }
-    Component.onCompleted: look()
 }

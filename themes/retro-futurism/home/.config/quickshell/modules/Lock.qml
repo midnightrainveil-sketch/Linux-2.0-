@@ -136,6 +136,9 @@ Scope {
         }
     }
 
+    // the desk knows whether it is locked (the taskbar waits below while it is)
+    Binding { target: Scene; property: "locked"; value: sessionLock.locked }
+
     WlSessionLock {
         id: sessionLock
         locked: false
@@ -146,7 +149,6 @@ Scope {
             Quickshell.execDetached(["busctl", "call", "org.freedesktop.login1",
                 "/org/freedesktop/login1/session/auto", "org.freedesktop.login1.Session",
                 "SetLockedHint", "b", locked ? "true" : "false"]);
-            Scene.locked = locked;
             if (!locked) Scene.unlocked();
         }
 
@@ -216,7 +218,7 @@ Scope {
                 anchors.fill: parent
                 opacity: room.homeLevel
                 visible: opacity > 0
-                scale: 1.012                         // as the desk draws it (room to sway)
+                scale: 1.025                         // as the desk draws it (room to sway)
                 readonly property real iw: 1585
                 readonly property real ih: 992
                 readonly property real k: Math.max(width / iw, height / ih)

@@ -47,10 +47,10 @@ PanelWindow {
         // the sway: slow waves of different lengths, so it never falls
         // into a beat (screen pixels; degrees)
         readonly property real swayX: !Settings.sway ? 0
-            : 1.6 * Math.sin(t * 0.722) + 0.7 * Math.sin(t * 1.611 + 1.3)
+            : 4.0 * Math.sin(t * 0.722) + 1.8 * Math.sin(t * 1.611 + 1.3)
         readonly property real swayY: !Settings.sway ? 0
-            : 1.1 * Math.sin(t * 0.997 + 0.4) + 0.5 * Math.sin(t * 2.327 + 2.1)
-        readonly property real swayR: !Settings.sway ? 0 : 0.08 * Math.sin(t * 0.576 + 0.8)
+            : 2.8 * Math.sin(t * 0.997 + 0.4) + 1.2 * Math.sin(t * 2.327 + 2.1)
+        readonly property real swayR: !Settings.sway ? 0 : 0.2 * Math.sin(t * 0.576 + 0.8)
 
         // a joint: each axle gives a short jolt that dies away in a moment;
         // two axles on the front bogie, then two on the back one
@@ -91,7 +91,7 @@ PanelWindow {
                                    && w.y + w.h >= glass.y + glass.height)
 
         // the car moves; a touch larger than the screen, so no edge shows
-        scale: 1.012
+        scale: 1.025
         transform: [
             Translate { x: ride.swayX + ride.bump * 0.25; y: ride.swayY + ride.bump },
             Rotation { origin.x: scene.width / 2; origin.y: scene.height / 2; angle: ride.swayR + ride.bump * 0.02 }
@@ -125,8 +125,13 @@ PanelWindow {
                 Row {
                     id: view
                     y: (300 - 376 * 0.862) * scene.k
+                    // how far round the city has come, 0..1 (the animation runs on
+                    // this, not on x: x then follows the screen's size, whatever it
+                    // is when the animation starts)
+                    property real progress: 0
+                    x: -progress * glass.loopW
                     // where the city has got to (the lock screen fades into it)
-                    onXChanged: Scene.viewShift = glass.loopW > 0 ? -x / glass.loopW : 0
+                    onProgressChanged: Scene.viewShift = progress
                     Repeater {
                         model: 2
                         Image {
@@ -137,8 +142,8 @@ PanelWindow {
                             smooth: true
                         }
                     }
-                    NumberAnimation on x {
-                        from: 0; to: -glass.loopW
+                    NumberAnimation on progress {
+                        from: 0; to: 1
                         duration: Math.max(1, Settings.windowSeconds) * 1000
                         loops: Animation.Infinite
                         running: !win.ownPicture
@@ -160,17 +165,19 @@ PanelWindow {
         }
     }
 
-    // ---- the window frames: a chrome border round each window on the
-    // workspace in view, drawn (components/Frame.qml), touching the window. The one in
-    // use is bright; the others are dimmed. They follow the windows as
-    // Hyprland reports them (services/Hypr.qml), and step aside for a
-    // fullscreen window.
+    // ---- the window frames, where Hyprland does not draw them: its
+    // chromerim plugin draws the taskbar's rim round each window itself, in
+    // step with it (hypr/theme/look.lua). Only until that is built, and round
+    // X11 windows it leaves out, the same rim is drawn here
+    // (components/Frame.qml), touching the window: bright on the one in use,
+    // a shade darker on the others. They follow the windows as Hyprland
+    // reports them (services/Hypr.qml), and step aside for a fullscreen one.
     Item {
         id: frames
         anchors.fill: parent
         visible: !Hypr.fullscreen
         Repeater {
-            model: Hypr.windows
+            model: Hypr.rimDrawn ? Hypr.windows.filter(w => w.x11) : Hypr.windows
             Item {
                 id: framed
                 required property var modelData
@@ -187,8 +194,7 @@ PanelWindow {
                     anchors.fill: parent
                     rim: Theme.frameRim
                     innerR: Theme.windowRounding
-                    opacity: framed.modelData.active ? 1 : 0.62
-                    Behavior on opacity { NumberAnimation { duration: 180 } }
+                    dim: !framed.modelData.active
                 }
             }
         }

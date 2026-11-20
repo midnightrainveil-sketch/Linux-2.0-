@@ -31,7 +31,7 @@ Singleton {
     readonly property string wallpaper: get("wallpaper", "")
     // the city outside the train's window: seconds for the view to come
     // round once (0 holds it still)
-    readonly property int windowSeconds: get("windowSeconds", 90)
+    readonly property int windowSeconds: get("windowSeconds", 55)
     // the car's gentle sway, and the jolt of a rail joint now and then
     readonly property bool sway: get("sway", true)
     readonly property bool bumps: get("bumps", true)

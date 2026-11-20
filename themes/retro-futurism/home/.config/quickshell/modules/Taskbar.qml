@@ -48,14 +48,14 @@ PanelWindow {
     color: "transparent"
 
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
-    property bool hovered: false
+    readonly property bool hovered: hover.hovered
     // under the lock it waits below the screen; let in, it comes up and
     // stays a moment before it hides for the windows
     Timer { id: welcome; interval: 2600 }
     Connections {
         target: Scene
-        function onUnlocked() { bar.hovered = false; linger.stop(); welcome.restart(); }
-        function onLockedChanged() { if (Scene.locked) { bar.hovered = false; linger.stop(); } }
+        function onUnlocked() { linger.stop(); welcome.restart(); }
+        function onLockedChanged() { if (Scene.locked) linger.stop(); }
     }
     // a cartridge just in: the bar stays up a moment, to see it
     Connections { target: Cartridges; function onLanded() { welcome.restart(); } }
@@ -86,7 +86,7 @@ PanelWindow {
     // the tube's place once the bar is up; it does not slide (the pointer must
     // stay inside it all the while the bar rises, or the bar would go again)
     Item { id: tubeZone; y: bar.lift; width: parent.width; height: parent.height - bar.lift }
-    HoverHandler { onHoveredChanged: bar.hovered = hovered }
+    HoverHandler { id: hover }
 
     // ---- the mock-up's pixels to the screen. The pieces are 128 tall (the
     // mock-up's y 312 to 440; the tube itself 320 to 418), the left one

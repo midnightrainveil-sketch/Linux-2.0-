@@ -53,13 +53,18 @@ Gadgets in steel, cream and sage with e-ink screens.
   figures (workspaces, battery, time) are in Barlow (SIL Open Font License,
   shipped with the theme).
 
-- **Window frames** (`components/Frame.qml`): every window has a chrome
-  border, drawn (GPU paths, no picture), so it takes any size; its width is
-  `frameRim` in `theme/Theme.qml`. Windows fill nearly the whole
-  screen, 45 px in; the frame lies in that margin with a small shaded gap
-  inside it. The window in use has the bright frame, the others are
-  dimmed. Hyprland draws no border of its own (`hypr/theme/look.lua`; its
-  gaps go with the frame values in `theme/Theme.qml`).
+- **Window rims**: every window has the taskbar's own chrome rim round it,
+  at the taskbar rim's depth (17 px: its 22 px at the bar's size), drawn by
+  Hyprland itself as it draws its own borders: the theme's **chromerim**
+  plugin (`~/.local/share/ultra/retro-futurism/plugins/chromerim`, built for
+  your Hyprland by `ultra-rim`, at setup and at login when Hyprland
+  changes). So the rim moves, slides and resizes with its window in the same
+  frame, at any size. The window in use has the bright rim, the others a
+  shade darker. Until the plugin is built (and round X11 windows) the shell
+  draws the same rim (`components/Frame.qml`). The gaps in
+  `hypr/theme/look.lua` go with the frame values in `theme/Theme.qml`.
+  `ultra-rim status` says whether it is built and loaded; `ultra-rim off`
+  leaves it out. A window rule `chromerim:no_rim` leaves one window without.
 - The taskbar runs the frames' full width (its middle band stretches) and
   hides below the screen while windows are open: take the pointer down to
   the bottom edge and it slides up, and the windows lift with it, their

@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+# ultra-rim: build "chromerim", the plugin that draws the chrome rim round
+# windows, for this Hyprland.
+#
+#   ultra-rim build     compile it against the installed Hyprland
+#   ultra-rim update    build only if Hyprland or the plugin changed since
+#                         the last build
+#   ultra-rim ensure    the same, quietly (run at every login)
+#   ultra-rim status
+#   ultra-rim crashed   exit 0 if Hyprland crashed inside this build of the
+#                         plugin (the config then leaves it out and the shell
+#                         draws the rim; rebuild or `ultra-rim retry`)
+#   ultra-rim retry     forget such a crash
+#   ultra-rim off       leave it out from the next login on (the shell draws
+#                         the rim), until `ultra-rim on`
+#   ultra-rim on
+#
+# Hyprland draws it as it draws its own borders, so the rim moves, slides
+# and resizes with the window in the same frame. It is compiled against the
+# Hyprland headers your distribution installed (/usr/include/hyprland), so
+# it always matches the running compositor. If a build fails, nothing
+# breaks: the shell draws the rim as before.
+set -euo pipefail
+
+data="${XDG_DATA_HOME:-$HOME/.local/share}/ultra/retro-futurism/plugins"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/ultra/retro-futurism/chromerim"
+# the sources: this theme's own, straight from its folder (so the plugin can
+# be built before the theme is ever switched to)
+box="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
+src="$box/home/.local/share/ultra/retro-futurism/plugins/chromerim"
+[[ -f $src/main.cpp ]] || src="$data/chromerim"
+so="$data/chromerim.so"
+stamp="$data/chromerim.version"
+log="$cache/build.log"
+mkdir -p "$data" "$cache"
+
+# the installed Hyprland (the one the headers belong to, and the one the next
+# login runs), else the running one
+hypr_commit() {
+    local c
+    c=$(Hyprland --version 2>/dev/null | grep -oE '[0-9a-f]{40}' | head -n1 || true)
+    if [[ -z $c && -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+        c=$(hyprctl version -j 2>/dev/null | jq -r '.commit // empty' || true)
+    fi
+    echo "$c"
+}
+
+# what the plugin was built from: the Hyprland commit and our own sources
+want_stamp() {
+    echo "$(hypr_commit) $(cat "$src"/*.?pp "$src"/Makefile 2>/dev/null | sha1sum | cut -c1-12)"
+}
+
+build() {
+    local commit; commit=$(hypr_commit)
+    [[ -n $commit ]] || { echo "ultra-rim: cannot tell which Hyprland is installed" >&2; return 1; }
+    echo "ultra-rim: Hyprland commit $commit"
+
+    # headers: the ones your distribution installed, else hyprpm's copy
+    if ! pkg-config --exists hyprland; then
+        for root in "/var/cache/hyprpm/$USER/headersRoot" "${XDG_DATA_HOME:-$HOME/.local/share}/hyprpm/headersRoot"; do
+            [[ -d $root/share/pkgconfig ]] && export PKG_CONFIG_PATH="$root/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+        done
+        if ! pkg-config --exists hyprland; then
+            echo "ultra-rim: fetching Hyprland headers with hyprpm"
+            hyprpm update || return 1
+            for root in "/var/cache/hyprpm/$USER/headersRoot" "${XDG_DATA_HOME:-$HOME/.local/share}/hyprpm/headersRoot"; do
+                [[ -d $root/share/pkgconfig ]] && export PKG_CONFIG_PATH="$root/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            done
+        fi
+    fi
+
+    local work="$cache/work"
+    rm -rf "$work"
+    # (each step stops the build on failure: `ensure` runs this in an if,
+    # where set -e does not apply, and must not stamp a failed build)
+    mkdir -p "$work" || return 1
+    cp "$src"/*.?pp "$src"/Makefile "$work"/ || return 1
+    rm -f "$work/preview.cpp"
+    # Hyprland's headers include Lua's; find them wherever the distribution keeps them
+    local lua_cflags=""
+    for pc in lua5.5 lua55 lua-5.5 lua; do
+        if pkg-config --exists "$pc"; then lua_cflags=$(pkg-config --cflags "$pc"); break; fi
+    done
+    make -C "$work" CXX="${CXX:-g++} $lua_cflags" all || return 1
+    install -m 644 "$work/chromerim.so" "$so" || return 1
+    want_stamp >"$stamp"
+    echo "ultra-rim: built $so"
+}
+
+up_to_date() {
+    [[ -f $so && -f $stamp && $(cat "$stamp") == "$(want_stamp)" ]]
+}
+
+# Make a running Hyprland use the new build, but only if it has no copy of the
+# plugin loaded yet (a first build): the reload then loads it. Swapping a
+# loaded plugin out of a running Hyprland can take the session down, so an
+# updated build waits for the next login.
+activate() {
+    [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${ULTRA_NO_RELOAD:-} ]] || return 0
+    [[ $(hyprctl version -j 2>/dev/null | jq -r '.commit // empty') == "$(hypr_commit)" ]] || return 0
+    if hyprctl plugin list 2>/dev/null | grep -q chromerim; then
+        notify-send --app-name "Cassette OS" "Window rims updated." "They change at your next login." >/dev/null 2>&1 || true
+        return 0
+    fi
+    hyprctl reload >/dev/null 2>&1 || true
+}
+
+# Hyprland writes a crash report with a backtrace; if a report newer than this
+# build has the plugin in its backtrace, the plugin caused it
+crash_reports="${XDG_CACHE_HOME:-$HOME/.cache}/hyprland"
+off_flag="${XDG_STATE_HOME:-$HOME/.local/state}/ultra/retro-futurism/rim-off"
+
+crashed() {
+    [[ -f $off_flag ]] && return 0      # switched off by hand: the config leaves it out the same way
+    [[ -f $so ]] || return 1
+    local r
+    while IFS= read -r -d '' r; do
+        awk '/^Backtrace:/ { b = 1 } /^Log tail:/ { b = 0 } b && /chromerim\.so/ { f = 1 } END { exit !f }' "$r" && return 0
+    done < <(find "$crash_reports" -maxdepth 1 -name 'hyprlandCrashReport*.txt' -newer "$so" -print0 2>/dev/null)
+    return 1
+}
+
+case ${1:-build} in
+    build)
+        build 2>&1 | tee "$log"
+        [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
+        activate
+        ;;
+    update)
+        # build only if needed (setup.sh): an unchanged build keeps its date,
+        # so a crash it caused still counts (see `crashed`)
+        if up_to_date; then
+            echo "ultra-rim: already built for this Hyprland"
+            exit 0
+        fi
+        build 2>&1 | tee "$log"
+        [[ ${PIPESTATUS[0]} -eq 0 ]] || exit 1
+        activate
+        ;;
+    ensure)
+        up_to_date && exit 0
+        if build >"$log" 2>&1; then
+            activate
+        else
+            notify-send --app-name "Cassette OS" "Window rim plugin not built." "The shell draws the rims. See $log" || true
+        fi
+        ;;
+    crashed) crashed ;;
+    off)
+        mkdir -p "$(dirname "$off_flag")"
+        touch "$off_flag"
+        echo "ultra-rim: the plugin stays off from your next login (the shell draws the rims; ultra-rim on brings it back)"
+        ;;
+    on)
+        rm -f "$off_flag"
+        touch "$so" 2>/dev/null || true
+        echo "ultra-rim: the plugin loads again at your next login"
+        ;;
+    retry)
+        touch "$so" 2>/dev/null || true   # older reports no longer count
+        echo "ultra-rim: the plugin loads again at your next login"
+        ;;
+    status)
+        if [[ -f $so ]]; then
+            echo "built for $(cat "$stamp" 2>/dev/null), running $(hypr_commit)"
+            hyprctl plugin list 2>/dev/null | grep -q chromerim && echo "loaded" || echo "not loaded"
+        else
+            echo "not built"
+        fi
+        ;;
+    *) echo "usage: ultra-rim build|update|ensure|status|crashed|retry|off|on" >&2; exit 2 ;;
+esac

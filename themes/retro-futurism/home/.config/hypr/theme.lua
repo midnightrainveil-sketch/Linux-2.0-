@@ -17,6 +17,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 hl.on("hyprland.start", function()
     hl.exec_cmd("ultra-look")                       -- dark, monochrome, one typeface
     hl.exec_cmd("hyprctl setcursor Adwaita 24")
+    hl.exec_cmd("ultra-rim ensure")                 -- the window rims: rebuilt if Hyprland was updated
     hl.exec_cmd("ultra-shell")                      -- the shell (started again if it crashes)
     hl.exec_cmd("ultra-idle start")                 -- dim, lock, screen off (ultra-idle <minutes>)
     -- a small terminal on the picture (settings.json "deskTerminal": true for it)

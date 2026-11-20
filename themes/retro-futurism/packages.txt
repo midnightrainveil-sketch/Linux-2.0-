@@ -2,6 +2,9 @@
 # ---- the shell (Quickshell)
 quickshell
 qt6-wayland
+# ---- building the window-rim plugin for your Hyprland (ultra-rim)
+pkgconf
+cpio
 # ---- idle: dim, lock, screen off
 hypridle
 # ---- the terminal's greeting, media keys

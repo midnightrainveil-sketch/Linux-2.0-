@@ -1,17 +1,21 @@
--- Windows in frames: the shell draws the mock-up's sage-and-chrome frame
--- round each one (modules/Backdrop.qml), so Hyprland draws no border and
--- leaves room for the frame. These gaps go with Theme.qml's frame values:
---   gaps_out 30 = 22 (screen edge to frame) + 9 (the chrome) - 1 (the window
---                 over its inner edge: they touch)
---   gaps_in  11 = 9 - 1 + 3, so 6 px lie between two frames
+-- Windows in chrome: the taskbar's rim round each one, drawn by Hyprland
+-- itself with the theme's chromerim plugin (built for your Hyprland by
+-- ultra-rim, from ~/.local/share/ultra/retro-futurism/plugins/chromerim), so
+-- it moves, slides and resizes with the window in the same frame, at any
+-- size. Until it is built (and round X11 windows) the shell draws the same
+-- rim instead (modules/Backdrop.qml). Hyprland's own border stays off. The
+-- gaps leave room for the rim and go with Theme.qml's frame values:
+--   gaps_out 38 = 22 (screen edge to rim) + 17 (the rim: the taskbar's) - 1
+--                 (the window over its inner edge: they touch)
+--   gaps_in  19 = 17 - 1 + 3, so 6 px lie between two rims
 local ink, grey = "f2efed", "6b6766"
 
 hl.config({
     general = {
         border_size = 0,
-        gaps_in = 11,
-        gaps_out = 30,              -- nearly fullscreen, the frame in the margin
-        float_gaps = 30,
+        gaps_in = 19,
+        gaps_out = 38,              -- nearly fullscreen, the rim in the margin
+        float_gaps = 38,
         layout = "dwindle",
         resize_on_border = true,
         col = {
@@ -81,3 +85,28 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 2.4, bezier = "settl
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 2, bezier = "settle", style = "slidefade 8%" })
 -- the shell draws its own surfaces; Hyprland just shows them
 hl.animation({ leaf = "layers", enabled = false })
+
+------------------------------------------------------------------ the rim
+-- chromerim, if built (ultra-rim). If Hyprland ever crashed inside this
+-- build, it is left out (the shell draws the rim) rather than crash at every
+-- login; `ultra-rim retry` or a rebuild brings it back.
+local data = os.getenv("XDG_DATA_HOME") or ((os.getenv("HOME") or "") .. "/.local/share")
+local rim_so = data .. "/ultra/retro-futurism/plugins/chromerim.so"
+if require("ultra.state").exists(rim_so) then
+    if os.execute((os.getenv("HOME") or "") .. "/.local/bin/ultra-rim crashed") == true then
+        hl.on("hyprland.start", function()
+            hl.exec_cmd([[notify-send --app-name "Cassette OS" "Window rims drawn by the shell." "Hyprland crashed in the rim plugin last time. Run: ultra-rim retry"]])
+        end)
+    else
+        hl.plugin.load(rim_so)
+    end
+end
+if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
+    hl.config({ plugin = { chromerim = {
+        enabled = true,
+        width = 17,                 -- Theme.frameRim: the taskbar's rim at its size
+        overlap = 1,                -- the inner edge a pixel under the window
+        dim = "rgba(1f1a1452)",     -- a window not in use: a shade darker, still solid
+    } } })
+    -- your own window without it: hl.window_rule({ match = { class = "..." }, ["chromerim:no_rim"] = true }) in user.lua
+end

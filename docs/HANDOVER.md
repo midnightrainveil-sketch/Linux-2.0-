@@ -135,6 +135,17 @@ run under a headless sway, which catches QML errors and shows the desk:
   `preview.py` (`ULTRA_CHECK=1` makes Retro Futurism compile every widget;
   `ipc:widget.open=controls` opens one). Effects (MultiEffect, layer.effect)
   draw nothing in its software renderer: the glow layers come out blank.
+- Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
+  compile-checked here without Hyprland installed: clone Hyprland and
+  hyprutils, aquamarine, hyprlang, hyprgraphics, hyprcursor,
+  hyprland-protocols and hyprwayland-scanner from GitHub (gitlab is
+  blocked, so the protocol XMLs come from Ubuntu's wayland-protocols; one
+  enum then needs adding by hand), build hyprwayland-scanner, generate
+  Hyprland's `protocols/*.hpp` (the `protocolnew` list in its
+  CMakeLists.txt), fill `src/version.h` from `version.h.in`, and compile
+  with g++-14 against those include dirs (hyprland.pc's Cflags: the root,
+  `protocols`, and `src`). `preview.cpp` next to it draws the rim with the
+  same cairo code into a PNG.
 - Also: `bash -n` every script, `python3 -m py_compile`, and the Hyprland
   config run in plain `lua` with `hl` stubbed out (a table that accepts any
   call), which catches Lua errors and shows what would be started.

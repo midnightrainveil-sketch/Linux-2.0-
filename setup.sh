@@ -405,6 +405,12 @@ for box in "$here"/themes/*/; do
             || { warn "$id: the plugin did not build (log: ~/.cache/ultra/$id/archivebars/build.log)"
                  note "everything else works; windows get plain straight edges until it builds (it retries at every login)"; }
     fi
+    if [[ -x $tbin/ultra-rim ]]; then
+        note "the window rims for your Hyprland"
+        "$tbin/ultra-rim" update >/dev/null 2>&1 \
+            || { warn "$id: the rim plugin did not build (log: ~/.cache/ultra/$id/chromerim/build.log)"
+                 note "everything else works; the shell draws the rims until it builds (it retries at every login)"; }
+    fi
 done
 # the theme in place: GTK, Qt and the terminal matched to it
 [[ -x $bin/ultra-mode ]] && { "$bin/ultra-mode" start || true; }
