@@ -22,14 +22,35 @@ flock -w 5 9 || exit 0        # one keeper is enough (a stopping one has 5 s to 
 export MALLOC_ARENA_MAX=2
 export MALLOC_TRIM_THRESHOLD_=131072
 
+# a screen to show it on: a real one, switched on (while the lid is shut or
+# the laptop sleeps, Hyprland may have none, or only its stand-in, FALLBACK)
+screen_here() {
+    hyprctl monitors -j 2>/dev/null | jq -e 'map(select(.name != "FALLBACK" and (.disabled // false) == false)) | length > 0' >/dev/null 2>&1
+}
+wait_for_screen() {
+    local i
+    for ((i = 0; i < 600; i++)); do      # (up to 10 minutes, then try anyway)
+        screen_here && return 0
+        sleep 1
+    done
+}
+
 crashes=()
 while true; do
+    wait_for_screen
     qs "$@"
     code=$?
     case $code in
         0 | 130 | 143) exit 0 ;;          # quit, Ctrl+C, or stopped on purpose
     esac
     now=$(date +%s)
+    # it stops when its screen goes (the lid, sleep): not a crash; it starts
+    # again when the screen is back
+    if ! screen_here; then
+        echo "$(date '+%F %T') the shell stopped with its screen (exit $code); starting it again when the screen is back" >>"$state/shell-crashes"
+        sleep 1
+        continue
+    fi
     echo "$(date '+%F %T') the shell stopped (exit $code); starting it again" >>"$state/shell-crashes"
     crashes+=("$now")
     recent=0

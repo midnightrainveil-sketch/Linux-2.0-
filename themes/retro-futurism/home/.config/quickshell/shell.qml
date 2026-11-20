@@ -21,43 +21,53 @@ ShellRoot {
     readonly property var focusedScreen:
         Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
 
+    // ---- the desk's windows. All of them are built afresh whenever a screen
+    // comes or goes (a lid, sleep, a cable) and after every unlock: the
+    // shell can be restarted while the screen is away (it stops when its
+    // screen goes), and a window made for a screen that has gone, or whose
+    // surface the compositor closed with it, would never show again.
+    // (the picture only when a screen comes or goes: rebuilt on every unlock,
+    // its city would start round again)
+    property bool deskAlive: true
+    property bool pictureAlive: true
+    property bool screensChanged: false
+    function renewDesk(screens: bool): void { if (screens) screensChanged = true; settle.restart(); }
+    Timer {
+        id: settle; interval: 400
+        onTriggered: { shell.deskAlive = false; if (shell.screensChanged) shell.pictureAlive = false; rebuild.restart(); }
+    }
+    Timer { id: rebuild; interval: 60; onTriggered: { shell.deskAlive = true; shell.pictureAlive = true; shell.screensChanged = false; } }
+    Connections { target: Scene; function onUnlocked() { shell.renewDesk(false); } }
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            const n = event.name;
+            if (n === "monitoradded" || n === "monitoraddedv2" || n === "monitorremoved" || n === "monitorremovedv2")
+                shell.renewDesk(true);
+        }
+    }
+
     Variants {
         model: Quickshell.screens
         Scope {
             id: perScreen
             required property var modelData
-            Backdrop { modelData: perScreen.modelData }
-            // (built afresh after every unlock and whenever a screen comes
-            // back, after sleep or a lid: a bar whose surface was lost on
-            // the way can never stay gone)
-            LazyLoader {
-                active: shell.barAlive
-                Taskbar { modelData: perScreen.modelData }
-            }
-        }
-    }
-    property bool barAlive: true
-    function renewBar(): void { barAlive = false; renewing.restart(); }
-    Timer { id: renewing; interval: 50; onTriggered: shell.barAlive = true }
-    Connections { target: Scene; function onUnlocked() { shell.renewBar(); } }
-    Connections {
-        target: Hyprland
-        function onRawEvent(event) {
-            if (event.name === "monitoradded" || event.name === "monitoraddedv2") shell.renewBar();
+            LazyLoader { active: shell.pictureAlive; Backdrop { modelData: perScreen.modelData } }
+            LazyLoader { active: shell.deskAlive; Taskbar { modelData: perScreen.modelData } }
         }
     }
 
-    Mail { screen: shell.focusedScreen }
+    LazyLoader { active: shell.deskAlive; Mail { screen: shell.focusedScreen } }
 
     // built only while open
     LazyLoader { active: Panels.open === "themes"; ThemesSheet { screen: shell.focusedScreen } }
 
     // the widgets (widgets/index.json), on the screen in use: in the middle
     // over the blurred desk, or over the taskbar's right end
-    WidgetStage { screen: shell.focusedScreen }
-    WidgetStage { screen: shell.focusedScreen; taskbar: true }
+    LazyLoader { active: shell.deskAlive; WidgetStage { screen: shell.focusedScreen } }
+    LazyLoader { active: shell.deskAlive; WidgetStage { screen: shell.focusedScreen; taskbar: true } }
     // the launcher's lifter, over the taskbar while it lowers a cartridge in
-    Lifter { screen: shell.focusedScreen }
+    LazyLoader { active: shell.deskAlive; Lifter { screen: shell.focusedScreen } }
 
     // ULTRA_CHECK=1: compile and make every widget once, and say how it went
     LazyLoader { active: Quickshell.env("ULTRA_CHECK") === "1"; SelfCheck {} }

@@ -129,10 +129,14 @@ PanelWindow {
                     // this, not on x: x then follows the screen's size, whatever it
                     // is when the animation starts)
                     property real progress: 0
+                    // (made again, it goes on from where the city had got to)
+                    property real startAt: 0
+                    property bool ready: false
+                    Component.onCompleted: { startAt = Scene.viewShift; ready = true; }
                     // (a little to the left as well: the sway never opens a gap at the glass's edge)
-                    x: -progress * glass.loopW - 32
+                    x: -(progress % 1) * glass.loopW - 32
                     // where the city has got to (the lock screen fades into it)
-                    onProgressChanged: Scene.viewShift = progress
+                    onProgressChanged: Scene.viewShift = progress % 1
                     Repeater {
                         model: 2
                         Image {
@@ -144,10 +148,10 @@ PanelWindow {
                         }
                     }
                     NumberAnimation on progress {
-                        from: 0; to: 1
+                        from: view.startAt; to: view.startAt + 1
                         duration: Math.max(1, Settings.windowSeconds) * 1000
                         loops: Animation.Infinite
-                        running: !win.ownPicture
+                        running: !win.ownPicture && view.ready
                         paused: running && (Settings.windowSeconds <= 0 || scene.hidden)
                     }
                 }
