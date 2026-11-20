@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import Quickshell.Services.Pam
 import qs.services
 import qs.components
@@ -77,7 +78,14 @@ Scope {
         Qt.callLater(() => room.animate = true);
     }
     function lock(): void {
-        if (sessionLock.locked) return;
+        if (sessionLock.locked && sessionLock.secure) return;      // locked already
+        if (sessionLock.locked) {
+            // asked for before, never held: start a fresh lock
+            console.warn("lock: the last lock never took hold; locking afresh");
+            sessionLock.locked = false;
+            Qt.callLater(() => { room.reset(); sessionLock.locked = true; });
+            return;
+        }
         reset();
         sessionLock.locked = true;
     }
@@ -189,8 +197,22 @@ Scope {
         }
     }
 
-    // the desk knows whether it is locked (the taskbar waits below while it is)
-    Binding { target: Scene; property: "locked"; value: sessionLock.locked }
+    // the desk knows whether it is locked (the taskbar waits below while it
+    // is, the power key goes to the pass): only once the compositor holds
+    // the lock (secure). A lock asked for that it never came to hold (the
+    // screen went to sleep under it) must not leave the desk believing it is
+    // locked for good. (It is never let go by itself: that could leave the
+    // desk open. Asking to lock again starts a fresh one, lock() below.)
+    Binding { target: Scene; property: "locked"; value: sessionLock.locked && sessionLock.secure }
+    // Started again (a crash, or stopped by hand) while the session was
+    // locked: lock again at once. logind remembers (LockedHint, set below);
+    // the compositor keeps the screen dark until a lock holds it again.
+    Process {
+        id: wasLocked
+        command: ["sh", "-c", "loginctl show-session auto -p LockedHint --value 2>/dev/null"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: if (text.trim() === "yes") room.lock(); }
+    }
 
     WlSessionLock {
         id: sessionLock

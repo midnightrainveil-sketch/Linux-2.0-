@@ -20,7 +20,9 @@ hl.bind(mod .. " + W", widget("clock"), { description = "Clock: time, alarm, tim
 hl.bind(mod .. " + S", widget("controls"), { description = "Control deck" })
 hl.bind(mod .. " + SHIFT + Escape", widget("power"), { description = "Power" })
 hl.bind(mod .. " + D", exec("ultra-desk"), { description = "The small terminal on the picture, back in its place" })
-hl.bind(mod .. " + Escape", shell("lock", "lock"), { description = "Lock" })
+-- (locked too: if the shell was stopped under its lock, the screen stays
+-- dark until a lock holds it again, and this brings the lock screen back)
+hl.bind(mod .. " + Escape", shell("lock", "lock"), { locked = true, description = "Lock" })
 hl.bind(mod .. " + T", shell("shell", "themes"), { description = "Themes" })
 hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "Put every notification away" })
 hl.bind(mod .. " + ALT + N", shell("notifications", "dnd"), { description = "Do not disturb, on / off" })
