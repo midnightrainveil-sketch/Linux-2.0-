@@ -7,10 +7,11 @@
 #   ultra-gpu toggle     hybrid <-> integrated
 #
 # Reading needs nothing: the firmware's switches are in sysfs (asus-armoury,
-# Linux 6.19+, else the older asus-nb-wmi files). Switching is left to what
-# owns it: supergfxctl where its daemon still runs, else ROG Control's GPU
-# page (asusd switches the GPU itself since asusctl 6.3.9; see ultra-rog).
-# Every switch takes effect after you log out and back in.
+# Linux 6.19+, else the older asus-nb-wmi files). Switching goes through
+# asusd, which owns them (asusctl armoury set dgpu_disable 0|1; it runs as
+# root, so no password), and is checked: if the switch did not move,
+# supergfxctl where its daemon still runs, else ROG Control's GPU page.
+# Every switch is finished by logging out and back in.
 set -euo pipefail
 
 attr() {   # attr <name>: a firmware switch's value, or nothing
@@ -39,6 +40,25 @@ set_mode() {
     [[ $want == hybrid || $want == integrated ]] || { echo "ultra-gpu: hybrid or integrated" >&2; exit 2; }
     [[ $(mode) == none ]] && { note "No GPU switches on this kernel." "They need Linux 6.19 or newer: ultra-rog status"; exit 1; }
     [[ $(mode) == "$want" ]] && exit 0
+    local v; [[ $want == integrated ]] && v=1 || v=0
+    # the dGPU cannot be switched off under a program using it
+    if [[ $want == integrated && -e /dev/dri/nvidia-dgpu ]]; then
+        local users
+        users=$(fuser -v "$(readlink -f /dev/dri/nvidia-dgpu)" /dev/nvidia* 2>&1 | awk 'NR>1 && $NF!="" {print $NF}' | sort -u | tr '\n' ' ' || true)
+        if [[ -n ${users// /} ]]; then
+            note "The NVIDIA GPU is in use" "Close ${users% } first, then switch to Integrated."
+            exit 1
+        fi
+    fi
+    # asusd: the firmware switch itself
+    if command -v asusctl >/dev/null 2>&1; then
+        asusctl armoury set dgpu_disable "$v" >/dev/null 2>&1 || true
+        sleep 0.5
+        if [[ $(attr dgpu_disable 2>/dev/null) == "$v" ]]; then
+            note "Graphics: ${want^}" "Log out and back in to finish switching."
+            exit 0
+        fi
+    fi
     if command -v supergfxctl >/dev/null 2>&1 && systemctl is-active --quiet supergfxd.service; then
         local m; [[ $want == hybrid ]] && m=Hybrid || m=Integrated
         if supergfxctl -m "$m"; then
