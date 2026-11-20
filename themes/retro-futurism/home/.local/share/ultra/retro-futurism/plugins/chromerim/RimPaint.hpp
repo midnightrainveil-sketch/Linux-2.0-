@@ -26,23 +26,46 @@
 
 namespace RimPaint {
 
-// The taskbar's rim from the outside in, as the mock-up has it (22 px
-// deep there, its inner lip included): the colour of its top rim at each
-// depth, and of its bottom rim. (Read off art/TaskbarEg.png, the mean of
-// x 1060-1140, at y 320-341 and 418-397; the shell's components/Frame.qml
-// has the same table.)
-constexpr int                         BANDS = 22;
-constexpr std::array<uint32_t, BANDS> TOP   = {0xcac7c3, 0x878075, 0xe0d9d0, 0xcbc2b9, 0xd6cdc4, 0xece6de, 0xf9f7f1, 0xfcfcf8,
-                                              0xfffefd, 0xf2f0ec, 0x918679, 0x5f5447, 0x685f52, 0x4b4035, 0x493c30, 0x7e7263,
-                                              0x8b7d6c, 0x8b7b66, 0xd5cab2, 0xb6a88d, 0x96886c, 0xa29a81};
-constexpr std::array<uint32_t, BANDS> FOOT  = {0x4a4a47, 0x1a1a17, 0x23211d, 0x4b473f, 0x58534a, 0x706b62, 0x76716a, 0x76716a,
-                                              0x6b655e, 0x534b45, 0x98938d, 0xfffffe, 0xf4f3f2, 0xf5f4f1, 0xf2f1ed, 0xe3e0dc,
-                                              0xd8d5d0, 0xc0c0ba, 0x4e4a40, 0x8d806e, 0xf2dfc7, 0xc9b9a1};
-
-// the bands laid across the rim: all but the taskbar's inner lip (its last
-// four, a pale edge that only reads as padding round a window), so the
-// chrome runs straight into the window
+// The rim's profile, outer edge (0) to inner edge (1): how light the chrome
+// is at each depth, along the top (lit from above) and along the foot (its
+// underside). Read off the taskbar's rim in the mock-up (art/TaskbarEg.png,
+// x 1000-1200, y 320-341 and 418-397) and made one material: neutral
+// chrome, a smooth curve between the points (no steps), its dark band
+// lifted to where the taskbar's reads (it is a reflection, not a darker
+// metal), and the tube rolled back up into a thin bright lip at the window,
+// as the taskbar's closes against its face. SHOWN: how many of the taskbar's
+// 1-px bands the rim's depth stands for (the glints are placed in those).
+struct SKey {
+    double at, light;
+};
+constexpr std::array<SKey, 15> TOP_CURVE = {SKey{0.00, 0.78}, SKey{0.05, 0.56}, SKey{0.10, 0.86}, SKey{0.20, 0.84}, SKey{0.30, 0.93},
+                                            SKey{0.40, 0.99}, SKey{0.50, 0.96}, SKey{0.56, 0.70}, SKey{0.63, 0.56}, SKey{0.72, 0.50},
+                                            SKey{0.80, 0.55}, SKey{0.86, 0.66}, SKey{0.92, 0.90}, SKey{0.97, 0.78}, SKey{1.00, 0.62}};
+constexpr std::array<SKey, 14> FOOT_CURVE = {SKey{0.00, 0.46}, SKey{0.06, 0.34}, SKey{0.14, 0.38}, SKey{0.26, 0.46}, SKey{0.38, 0.52},
+                                             SKey{0.46, 0.50}, SKey{0.52, 0.66}, SKey{0.57, 0.97}, SKey{0.72, 0.95}, SKey{0.82, 0.87},
+                                             SKey{0.88, 0.76}, SKey{0.92, 0.66}, SKey{0.96, 0.88}, SKey{1.00, 0.66}};
 constexpr int SHOWN = 18;
+
+template <size_t N>
+inline double curveAt(const std::array<SKey, N>& c, double f) {
+    if (f <= c[0].at)
+        return c[0].light;
+    for (size_t i = 1; i < N; ++i) {
+        if (f <= c[i].at) {
+            const double t = (f - c[i - 1].at) / (c[i].at - c[i - 1].at);
+            const double s = t * t * (3 - 2 * t);               // (eased: no corners in the curve)
+            return c[i - 1].light + (c[i].light - c[i - 1].light) * s;
+        }
+    }
+    return c[N - 1].light;
+}
+
+// chrome of a lightness: a whisper warm, as the taskbar's (no hue of its own)
+inline void chromeOf(double light, double out[3]) {
+    out[0] = std::clamp(light * 1.000 + 0.004, 0.0, 1.0);
+    out[1] = std::clamp(light * 0.990 + 0.002, 0.0, 1.0);
+    out[2] = std::clamp(light * 0.972, 0.0, 1.0);
+}
 
 // rows in a side's piece: its colour runs from the top rim's to the
 // bottom rim's down the window's side (stretched to fit, smoothly)
@@ -122,8 +145,9 @@ inline void rgbOf(uint32_t c, double out[3]) {
 // the bend; foot: a bottom corner. The side's own colour (t: 0 its head, 1
 // its foot) comes from side() below.
 inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, bool foot, double out[3]) {
-    const double bandF = std::clamp(depth / g.T * SHOWN, 0.0, SHOWN - 1e-6);
-    rgbOf((foot ? FOOT : TOP)[(int)bandF], out);
+    const double f     = std::clamp(depth / g.T, 0.0, 1.0);
+    const double bandF = f * SHOWN;
+    chromeOf(foot ? curveAt(FOOT_CURVE, f) : curveAt(TOP_CURVE, f), out);
     chromed(out);
 
     // round the bend the chrome turns from the light: in the bend's middle
@@ -132,9 +156,9 @@ inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, boo
     const double mid    = foot ? 0.85 : 0.92;
     const double inBend = std::exp(-std::pow((phi - mid) / 0.40, 2));
     const double groove = std::exp(-std::pow((bandF - 13.0) / 3.2, 2)); // the inner dark bands
-    const double k      = inBend * ((foot ? 0.22 : 0.28) + (foot ? 0.40 : 0.5) * groove);
+    const double k      = inBend * ((foot ? 0.18 : 0.22) + (foot ? 0.22 : 0.26) * groove);
     for (int i = 0; i < 3; ++i)
-        out[i] *= 1 - std::min(0.75, k);
+        out[i] *= 1 - std::min(0.45, k);
 
     // and just as it turns, it catches the light
     double glow = 0;
@@ -155,13 +179,9 @@ inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, boo
 // a side, `t` of the way down: the top rim's colours held a while, then
 // running into the bottom rim's
 inline void sideShade(const SGeom& g, double depth, double t, double out[3]) {
-    const int    band = (int)std::clamp(depth / g.T * SHOWN, 0.0, SHOWN - 1e-6);
-    const double w    = smoothstep(0.25, 1.0, t);
-    double       a[3], b[3];
-    rgbOf(TOP[band], a);
-    rgbOf(FOOT[band], b);
-    for (int i = 0; i < 3; ++i)
-        out[i] = a[i] * (1 - w) + b[i] * w;
+    const double f = std::clamp(depth / g.T, 0.0, 1.0);
+    const double w = smoothstep(0.25, 1.0, t);
+    chromeOf(curveAt(TOP_CURVE, f) * (1 - w) + curveAt(FOOT_CURVE, f) * w, out);
     chromed(out);
 }
 

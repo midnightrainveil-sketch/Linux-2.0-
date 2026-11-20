@@ -16,7 +16,7 @@ Item {
 
     property real rim: 17
     property real innerR: 9                             // the windows' rounding (hypr look.lua)
-    readonly property real u: rim / 18                   // its first 18 bands (the inner lip left out, as the plugin does)
+    readonly property real u: rim / 18                   // 18 rings across the rim
     readonly property real outerR: innerR + rim
     property bool dim: false                            // a window not in use: the chrome a shade darker, still solid
 
@@ -53,24 +53,24 @@ Item {
         id: chrome
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
-        Ring { d: 0; top: "#cac7c3"; bottom: "#4a4a47" }
-        Ring { d: 1; top: "#878075"; bottom: "#1a1a17" }
-        Ring { d: 2; top: "#e0d9d0"; bottom: "#23211d" }
-        Ring { d: 3; top: "#cbc2b9"; bottom: "#4b473f" }
-        Ring { d: 4; top: "#d6cdc4"; bottom: "#58534a" }
-        Ring { d: 5; top: "#ece6de"; bottom: "#706b62" }
-        Ring { d: 6; top: "#f9f7f1"; bottom: "#76716a" }
-        Ring { d: 7; top: "#fcfcf8"; bottom: "#76716a" }
-        Ring { d: 8; top: "#fffefd"; bottom: "#6b655e" }
-        Ring { d: 9; top: "#f2f0ec"; bottom: "#534b45" }
-        Ring { d: 10; top: "#918679"; bottom: "#98938d" }
-        Ring { d: 11; top: "#5f5447"; bottom: "#fffffe" }
-        Ring { d: 12; top: "#685f52"; bottom: "#f4f3f2" }
-        Ring { d: 13; top: "#4b4035"; bottom: "#f5f4f1" }
-        Ring { d: 14; top: "#493c30"; bottom: "#f2f1ed" }
-        Ring { d: 15; top: "#7e7263"; bottom: "#e3e0dc" }
-        Ring { d: 16; top: "#8b7d6c"; bottom: "#d8d5d0" }
-        Ring { d: 17; top: "#8b7b66"; bottom: "#c0c0ba" }
+        Ring { d: 0; top: "#a7a5a2"; bottom: "#696765" }
+        Ring { d: 1; top: "#c8c6c2"; bottom: "#5a5856" }
+        Ring { d: 2; top: "#dbd8d3"; bottom: "#62605e" }
+        Ring { d: 3; top: "#d7d5d0"; bottom: "#6b6967" }
+        Ring { d: 4; top: "#e3e0db"; bottom: "#767472" }
+        Ring { d: 5; top: "#eeebe7"; bottom: "#7b7a77" }
+        Ring { d: 6; top: "#f8f5f0"; bottom: "#858380" }
+        Ring { d: 7; top: "#fdfaf5"; bottom: "#83827f" }
+        Ring { d: 8; top: "#f7f4ef"; bottom: "#858380" }
+        Ring { d: 9; top: "#d8d6d1"; bottom: "#aeaca9" }
+        Ring { d: 10; top: "#aaa8a5"; bottom: "#f8f5f0" }
+        Ring { d: 11; top: "#8f8d8a"; bottom: "#f6f3ee" }
+        Ring { d: 12; top: "#84827f"; bottom: "#f4f1ec" }
+        Ring { d: 13; top: "#858380"; bottom: "#efece7" }
+        Ring { d: 14; top: "#8e8c89"; bottom: "#e0ddd9" }
+        Ring { d: 15; top: "#a9a7a4"; bottom: "#c9c7c3" }
+        Ring { d: 16; top: "#e6e3df"; bottom: "#aaa8a4" }
+        Ring { d: 17; top: "#c7c5c1"; bottom: "#d5d2ce" }
         // (dimmed: a shade laid over the whole rim)
         ShapePath {
             strokeWidth: -1
