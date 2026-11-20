@@ -160,9 +160,8 @@ PanelWindow {
         }
     }
 
-    // ---- the window frames: one round each window on the workspace in view
-    // (the mock-up's frame, its corners kept and its sides stretched), the
-    // rim a few px out from the window, the space between shaded. The one in
+    // ---- the window frames: a chrome border round each window on the
+    // workspace in view, drawn (components/Frame.qml), touching the window. The one in
     // use is bright; the others are dimmed. They follow the windows as
     // Hyprland reports them (services/Hypr.qml), and step aside for a
     // fullscreen window.
@@ -183,17 +182,11 @@ PanelWindow {
                 Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
                 Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.22, 1, 0.36, 1, 1, 1] } }
 
-                // the frame; drawn at the picture's own size, then scaled
-                BorderImage {
-                    readonly property real k: Theme.frameScale
-                    x: -2 * k; y: -2 * k                   // (2 px of air round the rim in the picture)
-                    width: (framed.width + 4 * k) / k; height: (framed.height + 4 * k) / k
-                    scale: k; transformOrigin: Item.TopLeft
-                    source: Quickshell.shellPath("assets/frame.png")
-                    border { left: 56; top: 56; right: 56; bottom: 56 }
-                    horizontalTileMode: BorderImage.Stretch
-                    verticalTileMode: BorderImage.Stretch
-                    smooth: true
+                // the frame: a drawn chrome border (components/Frame.qml)
+                Frame {
+                    anchors.fill: parent
+                    rim: Theme.frameRim
+                    innerR: Theme.windowRounding
                     opacity: framed.modelData.active ? 1 : 0.62
                     Behavior on opacity { NumberAnimation { duration: 180 } }
                 }

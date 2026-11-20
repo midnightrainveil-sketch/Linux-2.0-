@@ -46,33 +46,19 @@ Item {
             asynchronous: true
             visible: false
         }
-        // its shadow on the label
-        MultiEffect {
-            source: icon
-            anchors.fill: icon
-            anchors.leftMargin: 2; anchors.topMargin: 4
-            anchors.rightMargin: -2; anchors.bottomMargin: -4
-            brightness: -1
-            opacity: 0.42
-            blurEnabled: true; blur: 0.5; blurMax: 12
-        }
-        // the icon, a little muted, as printed
+        // the icon, a little muted, as printed, its shadow on the label: one pass
         MultiEffect {
             source: icon
             anchors.fill: icon
             saturation: -0.22
             brightness: -0.04
-            opacity: 0.96
-        }
-        // the pressed edge: a fine light along its lower right
-        MultiEffect {
-            source: icon
-            anchors.fill: icon
-            anchors.leftMargin: 1.5; anchors.topMargin: 1.5
-            anchors.rightMargin: -1.5; anchors.bottomMargin: -1.5
-            brightness: 1
-            opacity: 0.16
-            z: -1
+            shadowEnabled: true
+            shadowColor: "#140f0a"
+            shadowOpacity: 0.42
+            shadowBlur: 0.5
+            blurMax: 12
+            shadowHorizontalOffset: 2
+            shadowVerticalOffset: 4
         }
     }
 

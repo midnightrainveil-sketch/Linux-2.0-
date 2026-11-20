@@ -1,10 +1,16 @@
 import QtQuick
+import QtQuick.Effects
 
 // Amber seven-segment digits, as on the Suisei DC-80: "HH:MM", leaning a
 // little forward, the unlit segments faintly there behind the lit ones.
 // Drawn in its own units (a cell of 154 x 77, the clock's window in the
 // lock picture); the item may be any size.
-Canvas {
+//
+// Built to cost little: each digit is its own canvas and is drawn again only
+// when that digit changes (a minute's turn redraws one); the colon is two
+// plain shapes (its blink redraws nothing); the glow is one pass on the
+// GPU over all of it, not a blur in the canvas.
+Item {
     id: face
 
     property string text: "88:88"
@@ -31,8 +37,8 @@ Canvas {
     property real colonX2: 76
     property real dotR: 2.6
     property bool dotSquare: false                      // the colon's dots square (rounded)
-    property real glowWide: 9                           // the glow, in these units
-    property real glowNear: 3
+    property real glowWide: 9                           // the glow's reach, in these units
+    property real glowNear: 3                           // (kept for the clocks that set it)
     // a lit face on each segment, as on a real tube: a brighter core, darker
     // edges, a fine grain (off: flat, as on the lock screen's little clock)
     property bool relief: false
@@ -42,12 +48,8 @@ Canvas {
     property color grainDark: Qt.rgba(1, 0.75, 0.35, 0.18)
     property real grainSize: 1.3
 
-    onTextChanged: requestPaint()
-    onLitChanged: requestPaint()
-    onReliefChanged: requestPaint()
-    onColonChanged: requestPaint()
-    onWidthChanged: requestPaint()
-    onHeightChanged: requestPaint()
+    readonly property real k: width / cellW              // units to pixels
+    readonly property string chars: (text.replace(":", "") + "    ").slice(0, 4)
 
     // segments a..g of each digit
     readonly property var segs: ({
@@ -147,45 +149,70 @@ Canvas {
         }
     }
 
-    function colonDots(ctx) {
-        const r = dotR;
-        ctx.beginPath();
-        for (const [cx, cy] of [[colonX, digitTop + dh * 0.3], [colonX2, digitTop + dh * 0.72]]) {
-            if (dotSquare) {
-                ctx.roundedRect(cx - r, cy - r, 2 * r, 2 * r, r * 0.25, r * 0.25);
-            } else {
-                ctx.moveTo(cx + r, cy);
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    // ---- what glows: the four digits and the colon, through one glow
+    Item {
+        id: glowing
+        anchors.fill: parent
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: face.glow
+            shadowOpacity: 0.95
+            shadowBlur: 1.0
+            blurMax: Math.max(4, Math.min(64, Math.round(face.glowWide * face.k * 1.6)))
+            shadowHorizontalOffset: 0
+            shadowVerticalOffset: 0
+        }
+
+        Repeater {
+            model: 4
+            Canvas {
+                id: digitCanvas
+                required property int index
+                anchors.fill: parent
+                readonly property string ch: face.chars[index]
+                renderStrategy: Canvas.Cooperative
+                onChChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+                Connections {
+                    target: face
+                    function onLitChanged() { digitCanvas.requestPaint(); }
+                    function onReliefChanged() { digitCanvas.requestPaint(); }
+                }
+                onPaint: {
+                    const ctx = getContext("2d");
+                    ctx.reset();
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.scale(face.k, height / face.cellH);
+                    const base = face.digitTop + face.dh;
+                    ctx.transform(1, 0, -face.lean, 1, face.lean * base, 0);
+                    const x = face.digitX[index];
+                    ctx.fillStyle = face.unlit;
+                    face.digit(ctx, x, ch, "off");
+                    ctx.fillStyle = face.lit;
+                    face.digit(ctx, x, ch, "on");
+                    if (face.relief) face.faces(ctx, x, ch, index + 1);
+                }
             }
         }
-        ctx.fill();
-    }
 
-    onPaint: {
-        const ctx = getContext("2d");
-        ctx.reset();
-        ctx.clearRect(0, 0, width, height);
-        ctx.scale(width / cellW, height / cellH);
-        // lean forward about the digits' baseline
-        const base = digitTop + dh;
-        ctx.transform(1, 0, -lean, 1, lean * base, 0);
-
-        const chars = (text.replace(":", "") + "    ").slice(0, 4);
-
-        ctx.fillStyle = unlit;
-        for (let i = 0; i < 4; i++) digit(ctx, digitX[i], chars[i], "off");
-        if (!colon) colonDots(ctx);
-
-        ctx.fillStyle = lit;
-        ctx.shadowColor = glow;
-        for (const blur of [glowWide, glowNear]) {          // a wide glow, then a close one
-            ctx.shadowBlur = blur * width / cellW;
-            for (let i = 0; i < 4; i++) digit(ctx, digitX[i], chars[i], "on");
-            if (colon) colonDots(ctx);
-        }
-        if (relief) {
-            ctx.shadowBlur = 0;
-            for (let i = 0; i < 4; i++) faces(ctx, digitX[i], chars[i], i + 1);
+        // the colon: two dots, lit or not (nothing is drawn again as it blinks)
+        Repeater {
+            model: [[face.colonX, 0.3], [face.colonX2, 0.72]]
+            Rectangle {
+                required property var modelData
+                readonly property real cy: face.digitTop + face.dh * modelData[1]
+                // (leant as the digits are: about their baseline)
+                readonly property real cx: modelData[0] - face.lean * (cy - face.digitTop - face.dh)
+                x: (cx - face.dotR) * face.k
+                y: (cy - face.dotR) * face.height / face.cellH
+                width: 2 * face.dotR * face.k
+                height: 2 * face.dotR * face.height / face.cellH
+                radius: face.dotSquare ? width * 0.125 : width / 2
+                color: face.colon ? face.lit : face.unlit
+                antialiasing: true
+            }
         }
     }
 }

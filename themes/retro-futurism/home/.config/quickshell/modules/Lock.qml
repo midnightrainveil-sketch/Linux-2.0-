@@ -124,7 +124,17 @@ Scope {
     }
 
     // the clock: ticks every second, only while locked
-    SystemClock { id: tick; precision: SystemClock.Seconds }
+    // the seconds, only while locked (a timer that stops: nothing ticks otherwise)
+    QtObject {
+        id: tick
+        property date date: new Date()
+        property Timer timer: Timer {
+            interval: 1000 - (new Date()).getMilliseconds() % 1000 + 5
+            repeat: true; triggeredOnStart: true
+            running: sessionLock.locked
+            onTriggered: { tick.date = new Date(); interval = 1000 - tick.date.getMilliseconds() + 5; }
+        }
+    }
 
     WlSessionLock {
         id: sessionLock
@@ -148,7 +158,8 @@ Scope {
             Item {
                 id: roomPicture
                 anchors.fill: parent
-                visible: false                     // shown through the blur below
+                // plain at rest; through the blur (below) only while woken
+                visible: room.blurLevel <= 0.001
                 Image {
                     id: picture
                     anchors.fill: parent
@@ -189,6 +200,7 @@ Scope {
             }
             MultiEffect {
                 anchors.fill: parent
+                visible: room.blurLevel > 0.001            // (no effect pass at rest)
                 source: roomPicture
                 autoPaddingEnabled: false
                 blurEnabled: true
