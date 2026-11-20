@@ -271,7 +271,7 @@ Scope {
                 anchors.fill: parent
                 opacity: room.homeLevel
                 visible: opacity > 0
-                scale: 1.025                         // as the desk draws it (room to sway)
+                scale: 1.05                          // as the desk draws it (room to sway)
                 readonly property real iw: 1585
                 readonly property real ih: 992
                 readonly property real k: Math.max(width / iw, height / ih)

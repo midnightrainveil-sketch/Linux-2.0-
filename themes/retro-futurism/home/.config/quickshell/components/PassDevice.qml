@@ -72,36 +72,39 @@ Item {
     }
 
     // ---- what glows on its face: a bright halo close round every stroke,
-    // and the same light spread wide behind it, as a backlit screen bleeds
-    // into the glass over it
+    // and the same light spread wide round that, as a backlit screen bleeds
+    // into the glass over it. (Two layers, one inside the other, so the wide
+    // halo is made from the face as drawn and lies exactly on it.)
     // (ULTRA_PLAIN_GLOW=1: no glow, for a renderer that draws no effects:
     // docs/harness/preview.py)
     readonly property bool plain: Quickshell.env("ULTRA_PLAIN_GLOW") === "1"
-    MultiEffect {
-        visible: !dev.plain
-        source: glowing
-        anchors.fill: glowing
-        blurEnabled: true
-        blur: 1.0
-        blurMax: 48
-        colorization: 1.0
-        colorizationColor: "#c4e2ff"
-        brightness: 0.45
-        opacity: 0.95
-    }
     Item {
-        id: glowing
+        id: halo
         anchors.fill: parent
         layer.enabled: !dev.plain
         layer.effect: MultiEffect {
             shadowEnabled: true
-            shadowColor: "#dcefff"
-            shadowBlur: 0.55
+            shadowColor: "#c6e3ff"
+            shadowBlur: 1.0
             shadowOpacity: 1.0
             shadowHorizontalOffset: 0
             shadowVerticalOffset: 0
-            blurMax: 24
-            brightness: 0.06
+            blurMax: 40
+        }
+        Item {
+            id: glowing
+            anchors.fill: parent
+            layer.enabled: !dev.plain
+            layer.effect: MultiEffect {
+                shadowEnabled: true
+                shadowColor: "#e6f4ff"
+                shadowBlur: 0.45
+                shadowOpacity: 1.0
+                shadowHorizontalOffset: 0
+                shadowVerticalOffset: 0
+                blurMax: 20
+                brightness: 0.1
+            }
         }
     }
 

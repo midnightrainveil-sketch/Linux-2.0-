@@ -138,6 +138,10 @@ run under a headless sway, which catches QML errors and shows the desk:
   draw nothing in its software renderer: the glow layers come out blank. With
   `ULTRA_PLAIN_GLOW=1` the Kairo device (power widget, lock screen) draws its face
   without glow, so it can be seen.
+  To see the real effects (glows, blurs) instead: install xvfb and Mesa, then run
+  `preview.py` under `xvfb-run -a -s "-screen 0 1920x1200x24"` with
+  `QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1`
+  (and without the libEGL stand-in).
 - Retro Futurism's chromerim plugin (Hyprland decoration, C++) can be
   compile-checked here without Hyprland installed: clone Hyprland and
   hyprutils, aquamarine, hyprlang, hyprgraphics, hyprcursor,
