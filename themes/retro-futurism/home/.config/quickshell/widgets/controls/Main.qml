@@ -292,25 +292,44 @@ Widget {
             // the lamp beside it
             Rectangle {
                 x: 6; y: 14; width: 8; height: 32; radius: 2
-                color: sw.on ? "#4d55c4" : "#9a9aa0"
+                color: sw.on ? "#5459a8" : "#9a9aa0"          // (the mock-up's lamp)
                 Behavior on color { ColorAnimation { duration: 160 } }
                 Rectangle {
-                    anchors.centerIn: parent; width: 18; height: 42; radius: 6
-                    color: "#6d76ff"; opacity: sw.on ? 0.22 : 0
+                    anchors.centerIn: parent; width: 14; height: 38; radius: 5
+                    color: "#7077d8"; opacity: sw.on ? 0.10 : 0
                     Behavior on opacity { NumberAnimation { duration: 160 } }
                 }
             }
-            // the blue filling the slot behind the knob as it goes over to
-            // ON (on the right), and as it slides there
-            Rectangle {
-                x: 36; y: 8; height: 42; radius: 7
+            // the blue the knob uncovers as it goes over to ON (on the right):
+            // the mock-up's own, its rounded end and a column of its middle
+            // stretched to the knob (it runs on under it)
+            Item {
+                id: fill
                 readonly property real onness: Math.max(0, Math.min(1, (knob.x - knob.offX) / (knob.onX - knob.offX)))
-                width: Math.max(0, knob.x + knob.width / 2 - 36) * onness
+                opacity: Math.min(1, onness * 6)
+                visible: opacity > 0
+                Image {
+                    x: 34; y: 7
+                    source: sw.w.art("fill-end.png")
+                    smooth: true
+                }
+                Image {
+                    x: 48; y: 7
+                    width: Math.max(0, knob.x + knob.width / 2 - 48); height: 44
+                    source: sw.w.art("fill-mid.png")
+                    fillMode: Image.Stretch
+                    smooth: true
+                }
+            }
+            // the knob's shadow on the bare slot to its right
+            Rectangle {
+                x: knob.x + knob.width - 4; y: 9
+                width: Math.max(0, Math.min(18, 166 - x)); height: 40
                 visible: width > 1
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#7c87cf" }
-                    GradientStop { position: 0.5; color: "#6370b8" }
-                    GradientStop { position: 1.0; color: "#4c5797" }
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.30) }
+                    GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0) }
                 }
             }
             Image {

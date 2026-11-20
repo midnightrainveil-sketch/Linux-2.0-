@@ -4,7 +4,8 @@
     python3 tools/make_clock.py art/ClockWidget.png home/.config/quickshell/widgets/clock
 
 Makes, in the widget's folder:
-    clock.png       the clock lifted off its white ground (no shadow),
+    clock.png       the clock lifted off its white ground (no shadow, not even
+                    the dark one right under its foot),
                     what the widget draws erased: the digits and their glow,
                     the date's dots, the lit lamp (made like the others);
                     the brand made SUISEI (as the lock screen's clock)
@@ -159,6 +160,15 @@ rgb = np.where(bg[..., None], 0, img)
 ys, xs = np.nonzero(alpha > 0.03)
 X0, Y0 = int(xs.min()) - 2, int(ys.min()) - 2
 X1, Y1 = int(xs.max()) + 3, int(ys.max()) + 3
+# and the dark contact shadow right under its foot (the picture keeps its
+# size, so the widget's pixels stay where they are): below the foot's line
+# (y 896) only the red corners' paint stays, the rows nearest it softened
+fy = 896
+below = np.zeros((H, W), bool); below[fy:, :] = True
+red = (img[..., 0] > 90) & (img[..., 0] > img[..., 1] + 45)
+alpha = np.where(below & ~red, 0.0, alpha)
+alpha[fy - 1, :] = np.minimum(alpha[fy - 1, :], np.where(red[fy - 1], 1.0, 0.6))
+rgb = np.where((alpha == 0)[..., None], 0, rgb)
 Image.fromarray(np.dstack([np.clip(rgb, 0, 255), alpha * 255])[Y0:Y1, X0:X1].astype('uint8'), 'RGBA') \
     .save(os.path.join(out, 'clock.png'), optimize=True)
 print('ORIGIN', (X0, Y0), 'size', (X1 - X0, Y1 - Y0))

@@ -9,10 +9,12 @@ import qs.services
 // clock put away, and ring whatever is on the screen.
 //
 //   MODE (M, Tab, or a lamp)   TIME / ALARM / TIMER
+//   ALARM lamp (A), again      the alarm on / off (the strip says which; its
+//                              lamp stays faintly lit while it is on)
 //   SET  (S, Enter)            TIME: set the alarm. ALARM: hour, then minute,
 //                              then done (and the alarm on). TIMER: minutes,
 //                              then seconds, then done.
-//   the date strip (Space)     ALARM: on / off. TIMER: start / pause.
+//   the date strip (Space)     ALARM: on / off too. TIMER: start / pause.
 //   Up / Down, the wheel       the figure being set; the wheel over either
 //                              pair of digits sets that pair
 //   Backspace, R               TIMER: back to its set time
@@ -88,6 +90,11 @@ Widget {
     // ---- what it does
     function setMode(m: int): void { mode = m; edit = ""; store.set("mode", m); }
     function nextMode(): void { setMode((mode + 1) % 3); }
+    // a lamp pressed: its mode; ALARM pressed again: the alarm on or off
+    function lamp(m: int): void {
+        if (m === 1 && mode === 1 && edit === "") Alarms.toggleAlarm();
+        else setMode(m);
+    }
     function set(): void {
         if (mode === 0) { setMode(1); edit = "h"; return; }
         if (mode === 1) {
@@ -154,7 +161,7 @@ Widget {
         case Qt.Key_Down: case Qt.Key_Minus: adjust(-1, ""); break;
         case Qt.Key_Backspace: case Qt.Key_R: if (mode === 2) { edit = ""; Alarms.resetTimer(); } break;
         case Qt.Key_T: setMode(0); break;
-        case Qt.Key_A: setMode(1); break;
+        case Qt.Key_A: lamp(1); break;
         default: return;
         }
         e.accepted = true;
@@ -253,7 +260,8 @@ Widget {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: if (self.ringing === "") self.setMode(lampRow.index)
+                    // (ALARM, when it is already showing: the alarm on / off)
+                    onClicked: if (self.ringing === "") self.lamp(lampRow.index)
                 }
             }
         }

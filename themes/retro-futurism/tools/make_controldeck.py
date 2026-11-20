@@ -14,6 +14,7 @@ Makes, in the widget's folder:
     rate-up.png     a refresh button, up    (from 60 Hz, its label erased)
     rate-lit.png    a refresh button, lit   (from AUTO, its label erased)
     knob.png        a switch's knob
+    fill-end.png, fill-mid.png   the blue it uncovers (its end, a column to stretch)
     fader.png       a fader's thumb
     tab.png         the lock slider's thumb
 and prints where things are (the mock-up's pixels; deck.png starts at
@@ -154,6 +155,10 @@ sprite((1061, 375, 1207, 445), 32, 'key-lit.png')                 # QUIET
 sprite((158, 604, 312, 677), 34, 'rate-up.png', erase=[(190, 622, 282, 660)])
 sprite((510, 604, 666, 677), 34, 'rate-lit.png', erase=[(545, 622, 632, 660)])
 sprite((1131, 206, 1197, 254), 7, 'knob.png')
+# the blue under a switch's knob when it is ON: its rounded left end, and a
+# column of its middle to stretch to wherever the knob is
+sprite((1104, 207, 1118, 251), 0, 'fill-end.png')
+sprite((1121, 207, 1122, 251), 0, 'fill-mid.png')
 sprite((447, 761, 524, 836), 8, 'fader.png')
 sprite((1117, 604, 1167, 642), 9, 'tab.png')
 
