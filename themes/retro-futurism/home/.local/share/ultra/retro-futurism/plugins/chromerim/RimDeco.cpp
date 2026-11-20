@@ -18,6 +18,7 @@
 #include <hyprland/src/config/values/types/BoolValue.hpp>
 #include <hyprland/src/config/values/types/FloatValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
+#include <hyprland/src/config/values/types/StringValue.hpp>
 #include <hyprland/src/render/pass/RectPassElement.hpp>
 #include <hyprland/src/state/workspace/State.hpp>
 #include <hyprland/src/workspace/HLWorkspace.hpp>
@@ -47,6 +48,7 @@ namespace {
         SP<Config::Values::CColorValue> dim;
         SP<Config::Values::CFloatValue> deskDim;
         SP<Config::Values::CColorValue> deskDimColor;
+        SP<Config::Values::CStringValue> art;
     };
 
     struct SPieces {
@@ -94,7 +96,22 @@ namespace {
         return tex;
     }
 
+    // the taskbar's own pieces (tools/make_rim.py), from plugin:chromerim:art;
+    // loaded again when the setting names another folder
+    SArt        g_art;
+    std::string g_artDir;
+    void        ensureArt() {
+        const std::string dir = g_config.art ? std::string{g_config.art->value()} : std::string{};
+        if (dir == g_artDir)
+            return;
+        freeArt(g_art);
+        g_art    = loadArt(dir);
+        g_artDir = dir;
+        g_pieces.clear();
+    }
+
     SPieces* piecesFor(const SLook& lk) {
+        ensureArt();
         for (auto& p : g_pieces) {
             if (p->look == lk) {
                 p->lastUsed = ++g_tick;
@@ -102,17 +119,31 @@ namespace {
             }
         }
 
-        auto        p = makeUnique<SPieces>();
-        const SGeom g = geom(lk);
-        p->look       = lk;
-        p->K          = g.K;
-        p->D          = g.D;
-        for (int c = 0; c < 4; ++c)
-            p->corner[c] = upload(corner(lk, c));
-        p->top    = upload(run(lk, false));
-        p->bottom = upload(run(lk, true));
-        p->left   = upload(side(lk, false));
-        p->right  = upload(side(lk, true));
+        auto p  = makeUnique<SPieces>();
+        p->look = lk;
+        if (g_art.ok) {
+            // the taskbar's chrome itself, scaled to the rim
+            const int K = artCorner(g_art, lk), D = artDepth(g_art, lk);
+            p->K        = K;
+            p->D        = D;
+            for (int c = 0; c < 4; ++c)
+                p->corner[c] = upload(artPiece(g_art, c, lk, K, K));
+            p->top    = upload(artPiece(g_art, 4, lk, 1, D));
+            p->bottom = upload(artPiece(g_art, 5, lk, 1, D));
+            p->left   = upload(artPiece(g_art, 6, lk, D, 1));
+            p->right  = upload(artPiece(g_art, 7, lk, D, 1));
+        } else {
+            // (no pieces: drawn)
+            const SGeom g = geom(lk);
+            p->K          = g.K;
+            p->D          = g.D;
+            for (int c = 0; c < 4; ++c)
+                p->corner[c] = upload(corner(lk, c));
+            p->top    = upload(run(lk, false));
+            p->bottom = upload(run(lk, true));
+            p->left   = upload(side(lk, false));
+            p->right  = upload(side(lk, true));
+        }
 
         if (g_pieces.size() >= 8) {
             auto oldest = std::ranges::min_element(g_pieces, {}, [](const auto& q) { return q->lastUsed; });
@@ -397,10 +428,11 @@ void rimInit(HANDLE handle) {
     g_config.overlap = makeShared<CFloatValue>("plugin:chromerim:overlap", "How far the rim's inner edge lies under the window", 1.F);
     g_config.dim     = makeShared<CColorValue>("plugin:chromerim:dim", "Laid over the rim of a window not in use (alpha = how much)", 0x521f1a14);
 
+    g_config.art          = makeShared<CStringValue>("plugin:chromerim:art", "Folder of the rim's pieces, cut from the taskbar (tools/make_rim.py); empty: drawn", "");
     g_config.deskDim      = makeShared<CFloatValue>("plugin:chromerim:desk_dim", "How dark the picture behind the windows goes while they are open (0 = not at all)", 0.F);
     g_config.deskDimColor = makeShared<CColorValue>("plugin:chromerim:desk_dim_color", "The colour it darkens to", 0xff0d0907);
 
-    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim, g_config.deskDim, g_config.deskDimColor})
+    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim, g_config.deskDim, g_config.deskDimColor, g_config.art})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config (and the shell, through it) tell the rim is drawn here
@@ -459,4 +491,6 @@ void rimExit() {
     Desktop::Rule::windowEffects()->unregisterEffect(g_noRimIdx);
     g_pieces.clear();
     g_occupied.clear();
+    freeArt(g_art);
+    g_artDir.clear();
 }

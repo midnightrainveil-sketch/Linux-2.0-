@@ -105,6 +105,8 @@ end
 if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
     hl.config({ plugin = { chromerim = {
         enabled = true,
+        -- the taskbar's own chrome, cut from its picture (tools/make_rim.py)
+        art = data .. "/ultra/retro-futurism/rim",
         width = 17,                 -- Theme.frameRim: the taskbar's rim at its size
         overlap = 1,                -- the inner edge a pixel under the window
         dim = "rgba(1f1a1452)",     -- a window not in use: a shade darker, still solid

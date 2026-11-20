@@ -3,14 +3,17 @@
 // the window over them, rounded, and saves a PNG.
 //
 //   g++ -std=c++2b preview.cpp $(pkg-config --cflags --libs cairo) -o rim-preview
-//   ./rim-preview out.png [scale] [background.png] [rounding]
+//   [RIM_ART=<folder of the pieces>] ./rim-preview out.png [scale] [background.png] [rounding]
 #include "RimPaint.hpp"
 
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <string>
 
 using namespace RimPaint;
+
+static SArt g_art;   // the taskbar's pieces, if RIM_ART names their folder
 
 static void put(cairo_t* cr, cairo_surface_t* piece, int x, int y, int w, int h) {
     if (w <= 0 || h <= 0)
@@ -35,10 +38,21 @@ static void window(cairo_t* cr, const SLook& lk, double x, double y, double w, d
     const int    x0 = std::lround((x - out) * s), y0 = std::lround((y - out) * s);
     const int    x1 = std::lround((x + w + out) * s), y1 = std::lround((y + h + out) * s);
     const SGeom  g = geom(lk);
-    const int    K = g.K, D = g.D;
+    const int    K = g_art.ok ? artCorner(g_art, lk) : g.K, D = g_art.ok ? artDepth(g_art, lk) : g.D;
     const int    W = x1 - x0, H = y1 - y0, cw = std::min(K, W / 2), ch = std::min(K, H / 2);
 
-    cairo_surface_t* pieces[8] = {corner(lk, 0), corner(lk, 1), corner(lk, 2), corner(lk, 3), run(lk, false), run(lk, true), side(lk, false), side(lk, true)};
+    cairo_surface_t* pieces[8];
+    if (g_art.ok) {
+        for (int c = 0; c < 4; ++c)
+            pieces[c] = artPiece(g_art, c, lk, K, K);
+        pieces[4] = artPiece(g_art, 4, lk, 1, D);
+        pieces[5] = artPiece(g_art, 5, lk, 1, D);
+        pieces[6] = artPiece(g_art, 6, lk, D, 1);
+        pieces[7] = artPiece(g_art, 7, lk, D, 1);
+    } else {
+        cairo_surface_t* drawn[8] = {corner(lk, 0), corner(lk, 1), corner(lk, 2), corner(lk, 3), run(lk, false), run(lk, true), side(lk, false), side(lk, true)};
+        std::copy(drawn, drawn + 8, pieces);
+    }
     put(cr, pieces[0], x0, y0, cw, ch);
     put(cr, pieces[1], x1 - cw, y0, cw, ch);
     put(cr, pieces[2], x0, y1 - ch, cw, ch);
@@ -84,6 +98,8 @@ int main(int argc, char** argv) {
         cairo_paint(cr);
     }
 
+    if (const char* dir = std::getenv("RIM_ART"))
+        g_art = loadArt(dir);
     SLook lk;
     lk.scale    = scale;
     lk.rounding = argc > 4 ? std::atof(argv[4]) : 21;

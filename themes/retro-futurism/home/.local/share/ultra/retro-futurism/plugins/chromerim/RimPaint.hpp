@@ -23,6 +23,8 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
+#include <string>
 
 namespace RimPaint {
 
@@ -279,6 +281,93 @@ inline cairo_surface_t* side(const SLook& lk, bool right) {
         dimmed(lk, c);
         return true;
     });
+}
+
+
+// ---------------------------------------------------------------- the rim, from the taskbar
+//
+// The rim cut from the taskbar's own picture (tools/make_rim.py): its ends'
+// quarters for the corners, its straights for the top and bottom, the
+// middle of its ends for the sides. Laid round a window as they are; only
+// scaled to the rim's width and the monitor's scale (and darkened for a
+// window not in use). When they are not there, the rim is drawn as above.
+
+struct SArt {
+    bool             ok    = false;
+    int              depth = 22, n = 84;          // the rim's depth and a corner piece's side, in the pieces' pixels
+    cairo_surface_t* piece[8] = {};               // corners tl tr bl br, top, bottom, left, right
+};
+
+inline void freeArt(SArt& art) {
+    for (auto*& p : art.piece) {
+        if (p)
+            cairo_surface_destroy(p);
+        p = nullptr;
+    }
+    art.ok = false;
+}
+
+inline SArt loadArt(const std::string& dir) {
+    SArt art;
+    if (dir.empty())
+        return art;
+    std::ifstream meta(dir + "/rim.txt");
+    std::string   key;
+    double        v;
+    while (meta >> key >> v) {
+        if (key == "depth")
+            art.depth = (int)v;
+        else if (key == "corner")
+            art.n = (int)v;
+    }
+    const char* names[8] = {"corner-tl", "corner-tr", "corner-bl", "corner-br", "top", "bottom", "left", "right"};
+    for (int i = 0; i < 8; ++i) {
+        art.piece[i] = cairo_image_surface_create_from_png((dir + "/" + names[i] + ".png").c_str());
+        if (cairo_surface_status(art.piece[i]) != CAIRO_STATUS_SUCCESS) {
+            freeArt(art);
+            return art;
+        }
+    }
+    art.ok = art.depth > 0 && art.n > 0;
+    return art;
+}
+
+// device px per piece px for a look
+inline double artScale(const SArt& art, const SLook& lk) {
+    return lk.width * lk.scale / art.depth;
+}
+inline int artDepth(const SArt& art, const SLook& lk);
+// (the corner from the straights' depth, so both scale alike: a corner
+// piece is a whole number of rims deep, tools/make_rim.py)
+inline int artCorner(const SArt& art, const SLook& lk) {
+    return std::max(1, (int)std::lround((double)art.n / art.depth * artDepth(art, lk)));
+}
+inline int artDepth(const SArt& art, const SLook& lk) {
+    return std::max(1, (int)std::lround(art.depth * artScale(art, lk)));
+}
+
+// a piece scaled to w x h device px, darkened as a window not in use has it
+inline cairo_surface_t* artPiece(const SArt& art, int which, const SLook& lk, int w, int h) {
+    auto*        src  = art.piece[which];
+    auto*        surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+    auto*        cr   = cairo_create(surf);
+    const double sw = cairo_image_surface_get_width(src), sh = cairo_image_surface_get_height(src);
+    cairo_scale(cr, w / sw, h / sh);
+    cairo_set_source_surface(cr, src, 0, 0);
+    cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_BEST);
+    cairo_pattern_set_extend(cairo_get_source(cr), CAIRO_EXTEND_PAD);
+    cairo_paint(cr);
+    if (!lk.focused && ((lk.dim >> 24) & 0xff) > 0) {
+        double d[3];
+        rgbOf(lk.dim, d);
+        cairo_identity_matrix(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_ATOP);
+        cairo_set_source_rgba(cr, d[0], d[1], d[2], ((lk.dim >> 24) & 0xff) / 255.0);
+        cairo_paint(cr);
+    }
+    cairo_destroy(cr);
+    cairo_surface_flush(surf);
+    return surf;
 }
 
 }

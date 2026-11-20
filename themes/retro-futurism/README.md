@@ -59,8 +59,9 @@ Gadgets in steel, cream and sage with e-ink screens.
   plugin (`~/.local/share/ultra/retro-futurism/plugins/chromerim`, built for
   your Hyprland by `ultra-rim`, at setup and at login when Hyprland
   changes). So the rim moves, slides and resizes with its window in the same
-  frame, at any size, lit as the taskbar is: a glint where each bend begins,
-  the chrome darkening round it. The window in use has the bright rim, the
+  frame, at any size. The rim is the taskbar's own chrome: its pixels, cut
+  from its picture by `tools/make_rim.py` (its ends' quarters for the corners,
+  its straights for the edges), only scaled. The window in use has the bright rim, the
   others a shade darker. Until the plugin is built (and round X11 windows) the shell
   draws the same rim (`components/Frame.qml`). The gaps in
   `hypr/theme/look.lua` go with the frame values in `theme/Theme.qml`.
