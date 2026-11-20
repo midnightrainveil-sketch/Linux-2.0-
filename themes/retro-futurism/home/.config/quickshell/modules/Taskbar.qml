@@ -49,8 +49,9 @@ PanelWindow {
     readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
     readonly property bool hovered: hover.hovered
     // under the lock it waits below the screen; let in, it comes up and
-    // stays a moment before it hides for the windows
-    Timer { id: welcome; interval: 2600 }
+    // stays a moment before it hides for the windows (it is made afresh
+    // then, shell.qml: so it comes up as it is made)
+    Timer { id: welcome; interval: 2600; running: !Scene.locked }
     Connections {
         target: Scene
         function onUnlocked() { linger.stop(); welcome.restart(); }
@@ -95,7 +96,9 @@ PanelWindow {
     readonly property real side: Theme.frameMargin         // its ends line up with a window's frame
     // (the pieces span the mock-up's x 20 to 2152; the tube itself 35 to
     // 2139: 15 px of air before it, 13 after, 2004 of tube)
-    readonly property real s: Math.min(Theme.taskbarScale, (width - 2 * side) / 2004)
+    // (from the screen's width, which is there from the start: the bar's
+    // own is not known until the compositor has answered)
+    readonly property real s: Math.max(0.3, Math.min(Theme.taskbarScale, ((bar.screen?.width ?? 1920) - 2 * side) / 2004))
     readonly property real u: s / 0.6                      // for things sized by eye at 0.6
     readonly property real leftX: side - 15 * s            // (the piece has 15 px of air before the tube)
     readonly property real fillW: Math.max(0, width - 2 * side - 2004 * s)

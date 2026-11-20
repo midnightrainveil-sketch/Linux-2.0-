@@ -168,11 +168,13 @@ PanelWindow {
 
     // ---- dimmed while windows are open on the workspace in view: the
     // picture steps back behind them, and comes up again on an empty one
-    // (a picture of your own too)
+    // (a picture of your own too). Hyprland's chromerim plugin does it
+    // itself when it is loaded, following the slides and swipes frame by
+    // frame (hypr/theme/look.lua: desk_dim); this is for when it is not.
     Rectangle {
         anchors.fill: parent
         color: "#0d0907"
-        opacity: Hypr.windows.length > 0 ? 0.5 : 0
+        opacity: !Hypr.rimDrawn && Hypr.windows.length > 0 ? 0.5 : 0
         visible: opacity > 0.001
         Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
     }

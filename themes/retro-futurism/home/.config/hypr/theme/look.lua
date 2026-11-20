@@ -108,6 +108,10 @@ if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
         width = 17,                 -- Theme.frameRim: the taskbar's rim at its size
         overlap = 1,                -- the inner edge a pixel under the window
         dim = "rgba(1f1a1452)",     -- a window not in use: a shade darker, still solid
+        -- the picture behind the windows, dimmed while they are open; it
+        -- follows the workspace slides and swipes as they go
+        desk_dim = 0.5,
+        desk_dim_color = "rgb(0d0907)",
     } } })
     -- your own window without it: hl.window_rule({ match = { class = "..." }, ["chromerim:no_rim"] = true }) in user.lua
 end

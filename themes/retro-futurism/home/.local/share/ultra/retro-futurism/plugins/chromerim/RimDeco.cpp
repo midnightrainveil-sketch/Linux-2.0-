@@ -18,11 +18,17 @@
 #include <hyprland/src/config/values/types/BoolValue.hpp>
 #include <hyprland/src/config/values/types/FloatValue.hpp>
 #include <hyprland/src/config/values/types/ColorValue.hpp>
+#include <hyprland/src/render/pass/RectPassElement.hpp>
+#include <hyprland/src/state/workspace/State.hpp>
+#include <hyprland/src/workspace/HLWorkspace.hpp>
+#include <hyprland/src/output/Monitor.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <chrono>
+#include <unordered_map>
 #include <vector>
 
 extern "C" {
@@ -39,6 +45,8 @@ namespace {
         SP<Config::Values::CBoolValue>  enabled;
         SP<Config::Values::CFloatValue> width, overlap;
         SP<Config::Values::CColorValue> dim;
+        SP<Config::Values::CFloatValue> deskDim;
+        SP<Config::Values::CColorValue> deskDimColor;
     };
 
     struct SPieces {
@@ -120,6 +128,76 @@ namespace {
             return;
         CBox box = {(double)x, (double)y, (double)w, (double)h};
         g_pHyprOpenGL->renderTexture(ctx, tex, box, {.a = a});
+    }
+}
+
+// ---------------------------------------------------------------- the desk, dimmed
+//
+// The picture behind the windows (the shell's Background layer) steps back
+// while windows are open: a dark veil laid just after the wallpaper, under
+// everything else. How dark follows the workspaces as Hyprland draws them,
+// frame by frame: each workspace on the monitor that is in view counts by
+// how much of it is in view (its slide or swipe offset), times whether it
+// has windows (eased, so a window opening or the last one closing fades
+// it). A swipe from a workspace with windows to an empty one brightens the
+// picture as the fingers go.
+
+namespace {
+    std::unordered_map<const void*, double> g_occupied;     // per workspace, 0..1, eased
+    std::chrono::steady_clock::time_point   g_lastDim = std::chrono::steady_clock::now();
+
+    void renderDeskDim(Render::CRenderContext& ctx, PHLMONITOR mon) {
+        if (!mon || !g_config.deskDim)
+            return;
+        const double strength = std::clamp((double)g_config.deskDim->value(), 0.0, 1.0);
+        if (strength <= 0)
+            return;
+
+        const auto now = std::chrono::steady_clock::now();
+        const double dt = std::clamp(std::chrono::duration<double>(now - g_lastDim).count(), 0.0, 0.1);
+        g_lastDim       = now;
+
+        const double w = std::max(1.0, mon->m_size.x), h = std::max(1.0, mon->m_size.y);
+        double       dim    = 0;
+        bool         easing = false;
+        for (auto const& ref : State::Workspace::state()->workspaces()) {
+            const auto ws = ref.lock();
+            if (!ws || ws->m_monitor.lock() != mon || ws->type() == Workspace::eWorkspaceType::SPECIAL)
+                continue;
+
+            // has windows: eased over a quarter of a second
+            const double target = ws->getWindowCount() > 0 ? 1.0 : 0.0;
+            auto         it     = g_occupied.find(ws.get());
+            if (it == g_occupied.end())
+                it = g_occupied.emplace(ws.get(), target).first;
+            double& occ = it->second;
+            if (occ != target) {
+                const double step = dt / 0.25;
+                occ               = target > occ ? std::min(target, occ + step) : std::max(target, occ - step);
+                easing            = true;
+            }
+
+            // in view: the one shown, and any sliding or being swiped
+            const bool shown = ws == mon->m_activeWorkspace || ws->m_forceRendering || ws->m_renderOffset->isBeingAnimated();
+            if (!shown)
+                continue;
+            const auto   off = ws->m_renderOffset->value();
+            const double in  = std::clamp(1.0 - std::max(std::abs(off.x) / w, std::abs(off.y) / h), 0.0, 1.0);
+            dim += in * occ;
+        }
+        if (easing)
+            g_pHyprRenderer->damageMonitor(mon);
+
+        dim = std::clamp(dim, 0.0, 1.0) * strength;
+        if (dim <= 0.002)
+            return;
+
+        CHyprColor colour{static_cast<uint64_t>(g_config.deskDimColor->value())};
+        colour.a = dim;
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, mon->m_transformedSize.x, mon->m_transformedSize.y};
+        data.color = colour;
+        Render::IHyprRenderer::addPassElement(ctx, makeUnique<CRectPassElement>(data));
     }
 }
 
@@ -319,11 +397,21 @@ void rimInit(HANDLE handle) {
     g_config.overlap = makeShared<CFloatValue>("plugin:chromerim:overlap", "How far the rim's inner edge lies under the window", 1.F);
     g_config.dim     = makeShared<CColorValue>("plugin:chromerim:dim", "Laid over the rim of a window not in use (alpha = how much)", 0x521f1a14);
 
-    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim})
+    g_config.deskDim      = makeShared<CFloatValue>("plugin:chromerim:desk_dim", "How dark the picture behind the windows goes while they are open (0 = not at all)", 0.F);
+    g_config.deskDimColor = makeShared<CColorValue>("plugin:chromerim:desk_dim_color", "The colour it darkens to", 0xff0d0907);
+
+    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim, g_config.deskDim, g_config.deskDimColor})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config (and the shell, through it) tell the rim is drawn here
     HyprlandAPI::addLuaFunction(handle, "chromerim", "has_rim", ::luaHasRim);
+    HyprlandAPI::addLuaFunction(handle, "chromerim", "has_desk_dim", ::luaHasRim);
+
+    // the desk's veil: just after the wallpaper, before everything else
+    static auto P4 = Event::bus()->m_events.render.stage.listen([](const Event::SRenderStageEvent& e) {
+        if (e.stage == RENDER_POST_WALLPAPER && e.context)
+            renderDeskDim(e.context->get(), e.monitor);
+    });
 
     // the rim darkens and brightens with focus, outside the window's own damage
     static auto P1 = Event::bus()->m_events.window.active.listen([](PHLWINDOW, Desktop::eFocusReason) { damageAll(); });
@@ -370,4 +458,5 @@ void rimExit() {
     g_pHyprRenderer->context().m_pass.removeAllOfType("CRimPassElement");
     Desktop::Rule::windowEffects()->unregisterEffect(g_noRimIdx);
     g_pieces.clear();
+    g_occupied.clear();
 }

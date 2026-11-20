@@ -27,7 +27,23 @@ ShellRoot {
             id: perScreen
             required property var modelData
             Backdrop { modelData: perScreen.modelData }
-            Taskbar { modelData: perScreen.modelData }
+            // (built afresh after every unlock and whenever a screen comes
+            // back, after sleep or a lid: a bar whose surface was lost on
+            // the way can never stay gone)
+            LazyLoader {
+                active: shell.barAlive
+                Taskbar { modelData: perScreen.modelData }
+            }
+        }
+    }
+    property bool barAlive: true
+    function renewBar(): void { barAlive = false; renewing.restart(); }
+    Timer { id: renewing; interval: 50; onTriggered: shell.barAlive = true }
+    Connections { target: Scene; function onUnlocked() { shell.renewBar(); } }
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (event.name === "monitoradded" || event.name === "monitoraddedv2") shell.renewBar();
         }
     }
 

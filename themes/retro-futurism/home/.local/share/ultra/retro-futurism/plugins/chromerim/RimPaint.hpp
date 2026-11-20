@@ -100,13 +100,13 @@ inline double smoothstep(double a, double b, double x) {
     return t * t * (3 - 2 * t);
 }
 
-// more chrome than the picture: its lights pushed to white and its darks
-// deeper, so the metal reads as polished from across the room
+// more chrome than the picture: its lights pushed towards white, its darks
+// left as the taskbar has them (deepened, the groove read as a black ring)
 inline void chromed(double c[3]) {
     const double lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     const double hot = smoothstep(0.70, 0.93, lum) * 0.75;         // the bright bands: nearly white
     for (int i = 0; i < 3; ++i) {
-        double v = 0.55 + (c[i] - 0.55) * 1.35;                     // contrast round the mid-tones
+        double v = c[i] > 0.55 ? 0.55 + (c[i] - 0.55) * 1.35 : c[i];   // contrast above the mid-tones only
         v        = v + (1 - v) * hot;
         c[i]     = std::clamp(v, 0.0, 1.0);
     }
@@ -132,9 +132,9 @@ inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, boo
     const double mid    = foot ? 0.85 : 0.92;
     const double inBend = std::exp(-std::pow((phi - mid) / 0.40, 2));
     const double groove = std::exp(-std::pow((bandF - 13.0) / 3.2, 2)); // the inner dark bands
-    const double k      = inBend * ((foot ? 0.28 : 0.34) + (foot ? 0.55 : 0.7) * groove);
+    const double k      = inBend * ((foot ? 0.22 : 0.28) + (foot ? 0.40 : 0.5) * groove);
     for (int i = 0; i < 3; ++i)
-        out[i] *= 1 - std::min(0.92, k);
+        out[i] *= 1 - std::min(0.75, k);
 
     // and just as it turns, it catches the light
     double glow = 0;
