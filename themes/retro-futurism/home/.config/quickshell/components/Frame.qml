@@ -16,7 +16,7 @@ Item {
 
     property real rim: 17
     property real innerR: 9                             // the windows' rounding (hypr look.lua)
-    readonly property real u: rim / 22                   // the mock-up's rim is 22 px deep
+    readonly property real u: rim / 18                   // its first 18 bands (the inner lip left out, as the plugin does)
     readonly property real outerR: innerR + rim
     property bool dim: false                            // a window not in use: the chrome a shade darker, still solid
 
@@ -71,10 +71,6 @@ Item {
         Ring { d: 15; top: "#7e7263"; bottom: "#e3e0dc" }
         Ring { d: 16; top: "#8b7d6c"; bottom: "#d8d5d0" }
         Ring { d: 17; top: "#8b7b66"; bottom: "#c0c0ba" }
-        Ring { d: 18; top: "#d5cab2"; bottom: "#4e4a40" }
-        Ring { d: 19; top: "#b6a88d"; bottom: "#8d806e" }
-        Ring { d: 20; top: "#96886c"; bottom: "#f2dfc7" }
-        Ring { d: 21; top: "#a29a81"; bottom: "#c9b9a1" }
         // (dimmed: a shade laid over the whole rim)
         ShapePath {
             strokeWidth: -1

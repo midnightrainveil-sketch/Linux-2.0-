@@ -39,6 +39,11 @@ constexpr std::array<uint32_t, BANDS> FOOT  = {0x4a4a47, 0x1a1a17, 0x23211d, 0x4
                                               0x6b655e, 0x534b45, 0x98938d, 0xfffffe, 0xf4f3f2, 0xf5f4f1, 0xf2f1ed, 0xe3e0dc,
                                               0xd8d5d0, 0xc0c0ba, 0x4e4a40, 0x8d806e, 0xf2dfc7, 0xc9b9a1};
 
+// the bands laid across the rim: all but the taskbar's inner lip (its last
+// four, a pale edge that only reads as padding round a window), so the
+// chrome runs straight into the window
+constexpr int SHOWN = 18;
+
 // rows in a side's piece: its colour runs from the top rim's to the
 // bottom rim's down the window's side (stretched to fit, smoothly)
 constexpr int    SIDE_ROWS = 64;
@@ -84,15 +89,27 @@ struct SGlint {
 // over the rim's dark bands and a little back along the straight (the
 // taskbar's ends have it there), and a small sharp one on the outer edge as
 // the bend runs into the side
-constexpr std::array<SGlint, 3> TOP_GLINTS  = {SGlint{0.18, 7.0, 0.24, 4.5, 1.25}, SGlint{0.30, 12.5, 0.10, 2.0, 0.9},
-                                               SGlint{1.30, 3.0, 0.13, 2.2, 0.75}};
+constexpr std::array<SGlint, 3> TOP_GLINTS  = {SGlint{0.18, 7.0, 0.27, 5.0, 1.5}, SGlint{0.30, 12.5, 0.11, 2.2, 1.1},
+                                               SGlint{1.30, 3.0, 0.14, 2.4, 0.95}};
 // on a bottom corner: one on its bright band low in the bend, and a small
 // one on the outer edge
-constexpr std::array<SGlint, 2> FOOT_GLINTS = {SGlint{0.30, 13.0, 0.22, 3.6, 1.1}, SGlint{1.20, 3.5, 0.12, 2.0, 0.6}};
+constexpr std::array<SGlint, 2> FOOT_GLINTS = {SGlint{0.30, 13.0, 0.24, 4.0, 1.35}, SGlint{1.20, 3.5, 0.13, 2.2, 0.8}};
 
 inline double smoothstep(double a, double b, double x) {
     const double t = std::clamp((x - a) / (b - a), 0.0, 1.0);
     return t * t * (3 - 2 * t);
+}
+
+// more chrome than the picture: its lights pushed to white and its darks
+// deeper, so the metal reads as polished from across the room
+inline void chromed(double c[3]) {
+    const double lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    const double hot = smoothstep(0.70, 0.93, lum) * 0.75;         // the bright bands: nearly white
+    for (int i = 0; i < 3; ++i) {
+        double v = 0.55 + (c[i] - 0.55) * 1.35;                     // contrast round the mid-tones
+        v        = v + (1 - v) * hot;
+        c[i]     = std::clamp(v, 0.0, 1.0);
+    }
 }
 
 inline void rgbOf(uint32_t c, double out[3]) {
@@ -105,8 +122,9 @@ inline void rgbOf(uint32_t c, double out[3]) {
 // the bend; foot: a bottom corner. The side's own colour (t: 0 its head, 1
 // its foot) comes from side() below.
 inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, bool foot, double out[3]) {
-    const double bandF = std::clamp(depth / g.T * BANDS, 0.0, BANDS - 1e-6);
+    const double bandF = std::clamp(depth / g.T * SHOWN, 0.0, SHOWN - 1e-6);
     rgbOf((foot ? FOOT : TOP)[(int)bandF], out);
+    chromed(out);
 
     // round the bend the chrome turns from the light: in the bend's middle
     // the outer bands dim, and the inner ones (the groove) run dark, nearly
@@ -114,9 +132,9 @@ inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, boo
     const double mid    = foot ? 0.85 : 0.92;
     const double inBend = std::exp(-std::pow((phi - mid) / 0.40, 2));
     const double groove = std::exp(-std::pow((bandF - 13.0) / 3.2, 2)); // the inner dark bands
-    const double k      = inBend * ((foot ? 0.22 : 0.28) + (foot ? 0.45 : 0.6) * groove);
+    const double k      = inBend * ((foot ? 0.28 : 0.34) + (foot ? 0.55 : 0.7) * groove);
     for (int i = 0; i < 3; ++i)
-        out[i] *= 1 - std::min(0.85, k);
+        out[i] *= 1 - std::min(0.92, k);
 
     // and just as it turns, it catches the light
     double glow = 0;
@@ -137,13 +155,14 @@ inline void shade(const SLook& lk, const SGeom& g, double depth, double phi, boo
 // a side, `t` of the way down: the top rim's colours held a while, then
 // running into the bottom rim's
 inline void sideShade(const SGeom& g, double depth, double t, double out[3]) {
-    const int    band = (int)std::clamp(depth / g.T * BANDS, 0.0, BANDS - 1e-6);
+    const int    band = (int)std::clamp(depth / g.T * SHOWN, 0.0, SHOWN - 1e-6);
     const double w    = smoothstep(0.25, 1.0, t);
     double       a[3], b[3];
     rgbOf(TOP[band], a);
     rgbOf(FOOT[band], b);
     for (int i = 0; i < 3; ++i)
         out[i] = a[i] * (1 - w) + b[i] * w;
+    chromed(out);
 }
 
 // a window not in use: the dim colour laid over the rim at its alpha (still solid)
