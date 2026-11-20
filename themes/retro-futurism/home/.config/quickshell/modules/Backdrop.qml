@@ -166,6 +166,17 @@ PanelWindow {
         }
     }
 
+    // ---- dimmed while windows are open on the workspace in view: the
+    // picture steps back behind them, and comes up again on an empty one
+    // (a picture of your own too)
+    Rectangle {
+        anchors.fill: parent
+        color: "#0d0907"
+        opacity: Hypr.windows.length > 0 ? 0.5 : 0
+        visible: opacity > 0.001
+        Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+    }
+
     // ---- the window frames, where Hyprland does not draw them: its
     // chromerim plugin draws the taskbar's rim round each window itself, in
     // step with it (hypr/theme/look.lua). Only until that is built, and round

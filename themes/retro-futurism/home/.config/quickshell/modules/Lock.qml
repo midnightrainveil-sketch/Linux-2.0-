@@ -272,6 +272,13 @@ Scope {
                 opacity: room.homeLevel
                 visible: opacity > 0
                 scale: 1.075                         // as the desk draws it (room to sway)
+                // dimmed as the desk is while windows are open (Backdrop.qml)
+                Rectangle {
+                    z: 10
+                    anchors.fill: parent
+                    color: "#0d0907"
+                    opacity: Hypr.windows.length > 0 ? 0.5 : 0
+                }
                 readonly property real iw: 1585
                 readonly property real ih: 992
                 readonly property real k: Math.max(width / iw, height / ih)
