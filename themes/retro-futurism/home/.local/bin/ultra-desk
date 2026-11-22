@@ -9,9 +9,9 @@
 #                       widget stays behind it, and closing the view goes
 #                       back to the widget
 #
-# The widget floats in the picture's left third, 16:9: its right edge along
-# the pole (the painting's own left third line), its middle on the lower
-# third line, so that it balances her on the right third; untouched by
+# The widget floats low on the left of the picture, 16:9, a third of the
+# screen wide: its middle on the lower third line, its right edge just short
+# of her coat, so that it balances her on the right third; untouched by
 # Hyprland's tiling: while a tiled window is on the workspace it steps out
 # of the way and comes back when the workspace is clear (hypr/theme/rules.lua).
 # Its shell runs in a tmux session of its own (desk.tmux.conf: no status
@@ -21,7 +21,7 @@ set -uo pipefail
 
 # its place and size: fractions of the screen's width (so 16:9 on any
 # screen) and height (as in hypr/theme/rules.lua)
-X=0.0198 Y=0.5375 W=0.2875 H=0.16172
+X=0.0677 Y=0.5167 W=0.3333 H=0.1875
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/retro-futurism/desk.tmux.conf"
 session=(tmux -L ultra-desk -f "$conf")
 attach=("${session[@]}" new-session -A -s desk -e ULTRA_DESK=1 zsh)
@@ -67,7 +67,7 @@ fi
 
 addr=$(address_of retro-futurism.desk) || true
 if [[ -z ${addr:-} ]]; then
-    once desk && ghostty_with retro-futurism.desk 10 14 10 "${attach[@]}"   # rules.lua floats it and puts it in place
+    once desk && ghostty_with retro-futurism.desk 10.5 14 10 "${attach[@]}"   # rules.lua floats it and puts it in place
     exit 0
 fi
 
