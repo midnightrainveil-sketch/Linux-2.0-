@@ -78,7 +78,7 @@ PanelWindow {
     readonly property var portEntry: justIn.running ? Cartridges.lastLaunched : null
     readonly property string portClass: Hypr.activeClass ?? ""
     readonly property bool focusedScreen: (Hyprland.focusedMonitor?.name ?? "") === (bar.screen?.name ?? "")
-    Timer { id: linger; interval: 900 }               // a moment after the pointer leaves
+    Timer { id: linger; interval: 120 }               // a moment after the pointer leaves (only to ride out a slip off its edge)
     onHoveredChanged: if (!hovered) linger.restart()
 
     // where the pointer counts: the tube while the bar is up, else a thin
