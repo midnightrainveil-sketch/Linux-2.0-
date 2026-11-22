@@ -64,7 +64,7 @@ open(os.path.join(out, 'ratio'), 'w').write('%.4f\n' % (w / h))
 
 # ---- blocks, at each height: the ink thickened a little first, so fine
 # lines still make a shape
-soft = ink.filter(ImageFilter.GaussianBlur(max(w, h) / 70))
+soft = ink.filter(ImageFilter.GaussianBlur(max(w, h) / 120))
 for rows in range(3, 17):
     cols = max(1, round(w / h * rows / CELL))
     a = np.asarray(soft.resize((cols * 2, rows * 2), Image.BOX)).astype(float) / 255
@@ -72,7 +72,7 @@ for rows in range(3, 17):
     for r in range(rows):
         s = ''
         for c in range(cols):
-            q = a[2 * r:2 * r + 2, 2 * c:2 * c + 2] > 0.16
+            q = a[2 * r:2 * r + 2, 2 * c:2 * c + 2] > 0.26
             s += QUAD[q[0, 0] * 1 + q[0, 1] * 2 + q[1, 0] * 4 + q[1, 1] * 8]
         lines.append(s)
     open(os.path.join(out, 'blocks-%d.txt' % rows), 'w').write('\n'.join(lines) + '\n')

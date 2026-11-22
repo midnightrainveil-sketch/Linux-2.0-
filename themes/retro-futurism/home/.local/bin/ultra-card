@@ -20,9 +20,14 @@
 #             small box side by side, as many facts as the height allows
 #   tiny      6 and on (14 x 8, 14 x 3): the picture and the time, or the time
 #
-# The picture: where the terminal shows real pictures (Ghostty, kitty; not
-# over SSH nor in tmux) the drawing itself, placed over cells the card
-# leaves free; anywhere else, the same in quadrant blocks.
+# The picture: where the terminal shows real pictures (Ghostty, kitty) the
+# drawing itself, placed over cells the card leaves free; in tmux under
+# Ghostty (the terminal widget) the same through kitty's Unicode
+# placeholders (cells tmux keeps like any text, each naming its piece of the
+# picture); anywhere else (over SSH, other terminals) quadrant blocks.
+#
+#   ultra-card --send-art <tty>    give that terminal the picture again (tmux
+#                                  runs it as a view attaches: desk.tmux.conf)
 #
 #   ultra-card
 #   ULTRA_CARD_COLS=60 ULTRA_CARD_ROWS=20 ultra-card    as if it were that size
@@ -80,10 +85,13 @@ ic_mem=$'\U000f035b' ic_disk=$'\U000f02ca' ic_bat=$'\U000f0079' ic_wifi=$'\U000f
 # ---- drawing
 rep() { local s="" n=$2; while (( n-- > 0 )); do s+=$1; done; printf '%s' "$s"; }
 re_apc=$'\e_G[^\e]*\e\\\\' re_fwd=$'\e\\[([0-9]+)C'
+# kitty's placeholder: the cell, and the marks that give its row and column
+PH=$'\U0010eeee' DIAC=$'\u0305\u030D\u030E\u0310\u0312\u033D\u033E\u033F\u0346\u034A\u034B\u034C\u0350\u0351\u0352\u0357\u035B\u0363\u0364\u0365\u0366\u0367\u0368\u0369\u036A\u036B\u036C\u036D\u036E\u036F\u0483\u0484\u0485\u0486\u0487\u0592\u0593\u0594\u0595\u0597\u0598\u0599\u059C\u059D\u059E\u059F\u05A0\u05A1\u05A8\u05A9\u05AB\u05AC\u05AF\u05C4\u0610\u0611\u0612\u0613\u0614\u0615\u0616\u0617\u0657\u0658'
 # a string's width on screen: inks left out, a picture's placing left out, a
 # cursor step forward counted as the cells it steps over
 vis() {
     local s=${1//$'\e['*([0-9;])m/} n=0
+    s=${s//[$DIAC]/}
     while [[ $s =~ $re_apc ]]; do s=${s/"${BASH_REMATCH[0]}"/}; done
     while [[ $s =~ $re_fwd ]]; do n=$(( n + BASH_REMATCH[1] )); s=${s/"${BASH_REMATCH[0]}"/}; done
     echo $(( ${#s} + n ))
@@ -196,14 +204,43 @@ header() {   # header <width>: the name, who and where, the date, the time, into
 ratio=1
 [[ -r $art/ratio ]] && ratio=$(<"$art/ratio")
 pic_cols() { awk -v r="$1" -v k="$ratio" 'BEGIN { printf "%d", r * k / 0.42 + 0.5 }'; }
+# 1: placed directly; 2: through tmux, by placeholders; 0: blocks
 real=0
-if [[ -z ${ULTRA_CARD_BLOCKS:-} && -r $art/picture.png && -z ${TMUX:-} && -z ${SSH_CONNECTION:-} ]]; then
-    case ${TERM:-} in xterm-ghostty|xterm-kitty) real=1 ;; esac
+art_state="${XDG_RUNTIME_DIR:-/tmp}/ultra-card-art"
+if [[ -z ${ULTRA_CARD_BLOCKS:-} && -r $art/picture.png && -z ${SSH_CONNECTION:-} ]]; then
+    if [[ -n ${TMUX:-} ]]; then
+        case $(tmux display-message -p '#{client_termname}' 2>/dev/null) in xterm-ghostty|xterm-kitty) real=2 ;; esac
+    else
+        case ${TERM:-} in xterm-ghostty|xterm-kitty) real=1 ;; esac
+    fi
+fi
+# the picture for a placeholder grid c x r: transmitted with a virtual
+# placement (image 88), its cells coloured 88 to name it
+art_apc() { printf '\e_Ga=T,U=1,i=88,f=100,t=f,q=2,c=%s,r=%s;%s\e\\' "$1" "$2" "$(printf '%s' "$(realpath "$art/picture.png")" | base64 -w0)"; }
+if [[ ${1:-} == --send-art ]]; then
+    # (tmux, as a view attaches: straight to that terminal, the size the
+    # card last used)
+    [[ -w ${2:-} && -r $art_state && -r $art/picture.png ]] || exit 0
+    read -r c r <"$art_state"
+    art_apc "$c" "$r" >"$2"
+    exit 0
 fi
 picture() {   # picture <rows>: its lines, into PIC (PW wide)
     local rows=$1 r
     PW=$(pic_cols "$rows"); PIC=()
-    if (( real )); then
+    if (( real == 2 )); then
+        # through tmux: transmitted to the terminal (passed through), then
+        # placeholder cells, row and column marked
+        local apc; apc=$(art_apc "$PW" "$rows")
+        printf '\ePtmux;%s\e\\' "${apc//$'\e'/$'\e\e'}"
+        printf '%s %s\n' "$PW" "$rows" >"$art_state" 2>/dev/null
+        local c line
+        for (( r = 0; r < rows; r++ )); do
+            line=$'\e[38;5;88m'
+            for (( c = 0; c < PW; c++ )); do line+="$PH${DIAC:r:1}${DIAC:c:1}"; done
+            PIC+=("$line"$'\e[39m')
+        done
+    elif (( real )); then
         # placed at the first line's start, over cells the card steps over
         # (the cursor stays put: C=1; no answer back: q=2)
         local path; path=$(printf '%s' "$(realpath "$art/picture.png")" | base64 -w0)

@@ -34,7 +34,16 @@ hl.bind(mod .. " + B", exec(browser), { description = "Browser" })
 
 ------------------------------------------------------------------ windows
 hl.bind(mod .. " + Q", hl.dsp.window.close(), { description = "Close the window" })
-hl.bind(mod .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }), { description = "Fullscreen" })
+-- (on the terminal widget: a fullscreen view of the same shell over it,
+-- the widget left in place: ultra-desk full)
+hl.bind(mod .. " + F", function()
+    local w = hl.get_active_window()
+    if w ~= nil and w.class == "retro-futurism.desk" then
+        hl.exec_cmd("ultra-desk full")
+    else
+        hl.dispatch(hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
+    end
+end, { description = "Fullscreen (the terminal widget: a fullscreen view of it)" })
 hl.bind(mod .. " + M", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }), { description = "Maximise" })
 hl.bind(mod .. " + SHIFT + V", hl.dsp.window.float({ action = "toggle" }), { description = "Float / tile" })
 hl.bind(mod .. " + P", hl.dsp.window.pseudo(), { description = "Pseudotile" })

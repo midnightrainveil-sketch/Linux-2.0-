@@ -5,7 +5,7 @@
 --
 --   theme/look.lua      borders, gaps, motion
 --   theme/binds.lua     keybinds
---   theme/rules.lua     window and layer rules, the small terminal on the picture
+--   theme/rules.lua     window and layer rules, the terminal widget on the picture
 require("theme.look")
 require("theme.binds")
 require("theme.rules")
@@ -20,9 +20,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("ultra-rim ensure")                 -- the window rims: rebuilt if Hyprland was updated
     hl.exec_cmd("ultra-shell")                      -- the shell (started again if it crashes)
     hl.exec_cmd("ultra-idle start")                 -- dim, lock, screen off (ultra-idle <minutes>)
-    -- a small terminal on the picture (settings.json "deskTerminal": true for it)
+    -- the terminal widget on the picture (settings.json "deskTerminal": false for none)
     if require("ultra.state").settings((os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config"))
-            .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", false) then
+            .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", true) then
         hl.exec_cmd("sh -c 'sleep 1; ultra-desk'")
     end
 end)

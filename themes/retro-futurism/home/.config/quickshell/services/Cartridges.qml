@@ -55,7 +55,7 @@ Singleton {
     // an illustrated label: what ids, classes or categories it covers
     readonly property var illustrated: [
         { art: "browser",  ids: ["firefox", "librewolf", "zen", "zen-browser", "app.zen_browser.zen", "chromium", "google-chrome", "brave-browser", "org.mozilla.firefox"], categories: ["WebBrowser"] },
-        { art: "terminal", ids: ["kitty", "foot", "footclient", "alacritty", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "org.gnome.console", "retro-futurism.desk"], categories: ["TerminalEmulator"] },
+        { art: "terminal", ids: ["kitty", "foot", "footclient", "alacritty", "org.wezfurlong.wezterm", "com.mitchellh.ghostty", "org.gnome.console", "retro-futurism.desk", "retro-futurism.desk-view"], categories: ["TerminalEmulator"] },
         { art: "files",    ids: ["thunar", "org.gnome.nautilus", "nautilus", "pcmanfm", "org.kde.dolphin", "nemo"], categories: ["FileManager"] },
         { art: "settings", ids: ["org.gnome.settings", "gnome-control-center", "systemsettings", "nwg-look", "pavucontrol"], categories: ["Settings"] },
         { art: "music",    ids: ["spotify", "com.spotify.client", "rhythmbox", "org.gnome.music", "elisa", "strawberry", "audacious", "io.bassi.amberol"], categories: ["Music", "Audio"] },

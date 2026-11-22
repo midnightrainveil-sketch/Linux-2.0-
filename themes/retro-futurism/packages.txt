@@ -7,8 +7,10 @@ pkgconf
 cpio
 # ---- idle: dim, lock, screen off
 hypridle
-# ---- the terminal (Ghostty: its e-ink shader), media keys
+# ---- the terminal (Ghostty: its e-ink shader; tmux under the home screen's
+# terminal widget), media keys
 ghostty
+tmux
 fastfetch
 playerctl
 # ---- screenshots

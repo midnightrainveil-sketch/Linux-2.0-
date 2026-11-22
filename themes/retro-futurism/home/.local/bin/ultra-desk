@@ -1,35 +1,71 @@
 #!/usr/bin/env bash
-# ultra-desk: the small terminal on the picture, as at login.
+# ultra-desk: the terminal widget on the home screen.
 #
-#   ultra-desk       bring it to the workspace you are on, at its place and
-#                    size; if it was closed, a new one opens (Super + D)
+#   ultra-desk          bring it to the workspace you are on, at its place
+#                       and size; if it was closed, open it again (Super + D)
+#   ultra-desk full     a fullscreen view of it (Super + F on the widget):
+#                       another window onto the same shell, so whatever runs
+#                       in it, its history and the screen carry over; the
+#                       widget stays behind it, and closing the view goes
+#                       back to the widget
 #
-# It is an ordinary terminal that floats where the reference picture has
-# it. While a tiled window is on the workspace it steps out of the way,
-# and it comes back when the workspace is clear (hypr/theme.lua).
+# The widget floats low on the left of the picture, 16:9, untouched by
+# Hyprland's tiling: while a tiled window is on the workspace it steps out
+# of the way and comes back when the workspace is clear (hypr/theme/rules.lua).
+# Its shell runs in a tmux session of its own (desk.tmux.conf: no status
+# line, no prefix), which is what lets the views share it, and lets it live
+# on when the widget is closed: opening it again picks it up.
 set -uo pipefail
 
-# its place and size as fractions of the screen (as in hypr/theme.lua)
-X=0.1375 Y=0.1467 W=0.2146 H=0.2217
+# its place and size: fractions of the screen's width (so 16:9 on any
+# screen) and height (as in hypr/theme/rules.lua)
+X=0.06 Y=0.60 W=0.30 H=0.16875
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/retro-futurism/desk.tmux.conf"
+session=(tmux -L ultra-desk -f "$conf")
+attach=("${session[@]}" new-session -A -s desk -e ULTRA_DESK=1 zsh)
 opening="${XDG_RUNTIME_DIR:-/tmp}/ultra-desk-opening"
 
-desk_window() {
-    hyprctl clients -j | jq -r '[.[] | select(.class == "retro-futurism.desk")][0] | if . == null then empty else .address end'
+clients() { hyprctl clients -j 2>/dev/null; }
+address_of() {   # address_of <class>: the newest window of that class
+    clients | jq -r --arg c "$1" '[.[] | select(.class == $c)] | sort_by(.focusHistoryID) | .[0].address // empty'
+}
+once() {   # once <name>: not again while one is still starting (5 s)
+    local f="$opening-$1"
+    if [[ -e $f ]] && (( $(date +%s) - $(stat -c %Y "$f") < 5 )); then return 1; fi
+    touch "$f"
+}
+ghostty_with() {   # ghostty_with <class> <font size> <padding x> <padding y> <command...>
+    local class=$1 size=$2 px=$3 py=$4; shift 4
+    if command -v tmux >/dev/null; then
+        setsid -f ghostty --class="$class" --gtk-single-instance=false \
+            --font-size="$size" --window-padding-x="$px" --window-padding-y="$py" \
+            -e "$@" >/dev/null 2>&1
+    else
+        # (no tmux: a plain shell; the fullscreen view then opens a new one)
+        setsid -f ghostty --class="$class" --gtk-single-instance=false \
+            --font-size="$size" --window-padding-x="$px" --window-padding-y="$py" \
+            -e env ULTRA_DESK=1 zsh >/dev/null 2>&1
+    fi
 }
 
-open_terminal() {
-    # one desk terminal: not again while one is still starting (5 s)
-    if [[ -e $opening ]] && (( $(date +%s) - $(stat -c %Y "$opening") < 5 )); then return; fi
-    touch "$opening"
-    # (its own instance, so it keeps its own class and size)
-    setsid -f ghostty --class=retro-futurism.desk --gtk-single-instance=false \
-        --font-size=10 --window-padding-x=14 --window-padding-y=10 \
-        -e env ULTRA_DESK=1 zsh >/dev/null 2>&1
-}
+if [[ ${1:-} == full ]]; then
+    once full || exit 0
+    ghostty_with retro-futurism.desk-view 14 24 18 "${attach[@]}"
+    # fullscreen as soon as it is up and in focus
+    for _ in $(seq 40); do
+        a=$(clients | jq -r '[.[] | select(.class == "retro-futurism.desk-view")] | sort_by(.focusHistoryID) | .[0] | select(.focusHistoryID == 0) | .address // empty')
+        if [[ -n $a ]]; then
+            hyprctl dispatch 'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" })' >/dev/null
+            exit 0
+        fi
+        sleep 0.1
+    done
+    exit 0
+fi
 
-addr=$(desk_window) || true
+addr=$(address_of retro-futurism.desk) || true
 if [[ -z ${addr:-} ]]; then
-    open_terminal            # theme.lua floats it and puts it in place
+    once desk && ghostty_with retro-futurism.desk 10 14 10 "${attach[@]}"   # rules.lua floats it and puts it in place
     exit 0
 fi
 
@@ -43,7 +79,7 @@ read -r mx my mw mh < <(jq -r '
 px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
 py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
 pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
-ph=$(awk -v h="$mh" -v f="$H" 'BEGIN { printf "%d", h * f }')
+ph=$(awk -v w="$mw" -v f="$H" 'BEGIN { printf "%d", w * f }')
 
 win="window = \"address:$addr\""
 hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null

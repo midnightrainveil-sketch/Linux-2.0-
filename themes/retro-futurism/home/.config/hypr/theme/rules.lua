@@ -17,16 +17,18 @@ local function alive(w)
     return w ~= nil and w.address ~= nil
 end
 
------------------------------------------------------------------- the small terminal on the picture
--- At rest the picture holds one small terminal, floating where the
--- reference has it. ultra-desk (Super+D) puts it back here and opens it at
--- login; keep the two in step.
+------------------------------------------------------------------ the terminal widget on the picture
+-- At rest the picture holds one terminal, a widget floating low on its
+-- left, 16:9 on any screen. ultra-desk (Super+D) puts it back here and
+-- opens it at login; keep the two in step. Super + F on it opens a
+-- fullscreen view of the same shell (class retro-futurism.desk-view), an
+-- ordinary window: the widget steps behind it, and is back when it closes.
 hl.window_rule({
     name = "retro-futurism-desk",
     match = { class = "^retro-futurism\\.desk$" },
     float = true,
-    size = { "monitor_w*0.2146", "monitor_h*0.2217" },
-    move = { "monitor_w*0.1375", "monitor_h*0.1467" },
+    size = { "monitor_w*0.30", "monitor_w*0.16875" },
+    move = { "monitor_w*0.06", "monitor_h*0.60" },
 })
 
 -- It is part of the picture: every other window goes over it. Hyprland
@@ -105,11 +107,11 @@ on("window.active", function(w)
     if not is_desk(w) then tuck() end
 end)
 
--- Going to an empty workspace brings the small terminal there, at its
--- place (moved over, or opened again if it was closed), as at login: only
--- with "deskTerminal" on in settings.json.
+-- Going to an empty workspace brings the widget there, at its place (moved
+-- over, or opened again if it was closed), as at login (settings.json
+-- "deskTerminal": false for none).
 local wants_desk = require("ultra.state").settings((os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config"))
-    .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", false)
+    .. "/ultra/retro-futurism/settings.json").bool("deskTerminal", true)
 on("workspace.active", function(ws)
     if not wants_desk then return end
     if ws == nil or ws.special then return end

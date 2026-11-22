@@ -176,3 +176,17 @@ sleeping cat): the drawing itself where the terminal shows pictures
 
     python3 tools/make_card_art.py art/Card-Cat.webp \
         home/.local/share/ultra/retro-futurism/card-art
+
+## The terminal widget
+
+A terminal pinned low on the left of the home screen, 16:9, floating and
+untouched by Hyprland's tiling (`ultra-desk`, `hypr/theme/rules.lua`; on
+by default, `"deskTerminal": false` in settings.json for none). Its shell
+lives in a tmux session of its own (`desk.tmux.conf`: no status line, no
+prefix key), so Super + F on it opens a fullscreen view of the same shell
+over it, another window onto the session: what runs, its history and the
+screen carry over, the widget stays where it was, and closing the view
+goes back to it. The session outlives the widget: closing it and opening
+it again (Super + D) picks the shell up where it was. The card's picture
+shows through tmux by kitty's Unicode placeholders.
+
