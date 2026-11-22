@@ -10,18 +10,17 @@ import qs.components
 // The lock screen, and the way back in.
 //
 //   at rest     the platform at dusk, she waiting for the train, its
-//               headlights coming; up in the sky the split-flap departure
-//               board (the time, your desk's departure: ON TIME), along the
-//               foot the machine's state. Lock with: qs ipc call lock lock
+//               headlights coming; up in the sky the time written top to
+//               bottom in Japanese (components/LockOverlay.qml), along the
+//               foot how to get in and the machine's state. Lock with: qs ipc call lock lock
 //               (Super + Escape, the idle timer, the lid)
 //   woken       by any key or click (the key counts): the platform blurs and the
 //               Personal Access Pass drops down (art/Login1.png): who you
 //               are, today, a dot for each key of your password, what it is
-//               doing; the board reads BOARDING, CHECKING, HELD for a wrong
-//               key (the signal red). Left alone 25 s with nothing typed, it
-//               goes again.
+//               doing; a wrong key lights the signal red. Left alone 25 s
+//               with nothing typed, it goes again.
 //   unlocked    the signal turns green, she has boarded (the platform without
-//               her), the board flips to DEPARTED; the pass shoots back up,
+//               her); the pass shoots back up,
 //               the blur clears, the platform fades into
 //               the desk (the city outside the window where the desk has it),
 //               and the lock lets go; the taskbar comes up from below.
@@ -389,11 +388,7 @@ Scope {
                 s: Math.max(0.6, Math.min(surface.width / 1920, surface.height / 1080))
                 now: tick.date
                 woken: Math.max(0, Math.min(1, room.passLevel))
-                status: room.verdict === "ok" ? "DEPARTED"
-                    : room.busy ? "CHECKING"
-                    : room.verdict === "wrong" ? "HELD"
-                    : room.awake ? "BOARDING" : "ON TIME"
-                opacity: Math.max(0, Math.min(1, 1 - room.homeLevel))
+                opacity: Math.max(0, Math.min(1, 1 - Math.max(room.homeLevel, 0.6 * room.passLevel)))
                 visible: opacity > 0.01
             }
 

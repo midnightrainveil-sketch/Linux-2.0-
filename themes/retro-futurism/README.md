@@ -111,13 +111,14 @@ headlights' glow, and lights the signal red for a wrong key, then green
 as you are let in, when the platform fades to the one without her: she has
 boarded.
 
-The clock is a split-flap departure board (`components/DepartureBoard.qml`,
-of `FlapTile` cards that flip as the real ones do, card by card): the time,
-your desk's departure and its status (ON TIME, BOARDING, CHECKING, HELD,
-DEPARTED), and what is playing. It and a strip along the foot (how to get
-in, notifications, Wi-Fi, the battery) are a flat, see-through layer on the
-glass (`components/LockOverlay.qml`). `art/Lock-Car.webp`, the empty car,
-is kept for later.
+The clock is written in Japanese, top to bottom, up in the sky to the
+right (二十一時 / 四十六分, the hour's column first), in Shippori Mincho;
+beside it, down a fine rule, the time in figures, the day and the date in
+Cormorant Garamond, and along the foot, in the same serif, how to get in
+and the machine's state (`components/LockOverlay.qml`). Both fonts are
+under the SIL Open Font License, cut down to what they are used for (the
+mincho to the clock's characters). `art/Lock-Car.webp`, the empty car, is
+kept for later.
 
 ## How the window's view is made
 
