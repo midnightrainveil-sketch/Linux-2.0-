@@ -11,7 +11,6 @@ set -uo pipefail
 
 # its place and size as fractions of the screen (as in hypr/theme.lua)
 X=0.1375 Y=0.1467 W=0.2146 H=0.2217
-FONT="JetBrains Mono:size=9.5"
 opening="${XDG_RUNTIME_DIR:-/tmp}/ultra-desk-opening"
 
 desk_window() {
@@ -22,11 +21,10 @@ open_terminal() {
     # one desk terminal: not again while one is still starting (5 s)
     if [[ -e $opening ]] && (( $(date +%s) - $(stat -c %Y "$opening") < 5 )); then return; fi
     touch "$opening"
-    setsid -f foot --app-id=retro-futurism.desk \
-        --override="main.font=$FONT" \
-        --override="main.font-bold=JetBrains Mono:weight=Bold:size=9.5" \
-        --override="main.pad=14x10" \
-        env ULTRA_DESK=1 zsh >/dev/null 2>&1
+    # (its own instance, so it keeps its own class and size)
+    setsid -f ghostty --class=retro-futurism.desk --gtk-single-instance=false \
+        --font-size=9.5 --window-padding-x=14 --window-padding-y=10 \
+        -e env ULTRA_DESK=1 zsh >/dev/null 2>&1
 }
 
 addr=$(desk_window) || true

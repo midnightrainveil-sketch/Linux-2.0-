@@ -13,7 +13,7 @@ Singleton {
         .sort((a, b) => a.name.localeCompare(b.name))
 
     readonly property var words: ({
-        "foot": "Terminal", "footclient": "Terminal", "retro-futurism.desk": "Terminal", "kitty": "Terminal",
+        "com.mitchellh.ghostty": "Terminal", "foot": "Terminal", "footclient": "Terminal", "retro-futurism.desk": "Terminal", "kitty": "Terminal",
         "alacritty": "Terminal", "com.mitchellh.ghostty": "Terminal", "org.wezfurlong.wezterm": "Terminal",
         "org.gnome.nautilus": "Files", "thunar": "Files", "pcmanfm": "Files",
         "code": "Editor", "code-oss": "Editor", "codium": "Editor"

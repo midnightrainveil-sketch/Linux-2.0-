@@ -7,7 +7,8 @@ pkgconf
 cpio
 # ---- idle: dim, lock, screen off
 hypridle
-# ---- the terminal's greeting, media keys
+# ---- the terminal (Ghostty: its e-ink shader), media keys
+ghostty
 fastfetch
 playerctl
 # ---- screenshots

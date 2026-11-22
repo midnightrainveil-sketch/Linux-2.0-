@@ -131,7 +131,7 @@ if [[ -d $old_repo/dotfiles && ! -f $config/ultra/.moved-from-archive ]]; then
     fi
     systemctl --user disable --now archive-mode.timer >/dev/null 2>&1 || true
     # its links, wherever they were, and the folders they leave empty
-    for d in "$config"/{hypr,quickshell,archive,foot,fastfetch,gtk-3.0,gtk-4.0,qt6ct,fontconfig,zsh,systemd,pipewire} \
+    for d in "$config"/{hypr,quickshell,archive,foot,ghostty,fastfetch,gtk-3.0,gtk-4.0,qt6ct,fontconfig,zsh,systemd,pipewire} \
              "$bin" "$data"/{archive,applications,fonts,icons,sounds} "$HOME/Templates"; do
         [[ -d $d ]] || continue
         find "$d" -type l -lname "$old_repo/dotfiles/*" -delete 2>/dev/null || true

@@ -1,4 +1,175 @@
 #!/usr/bin/env bash
-# ultra-card: the terminal's greeting (the machine, in a few lines). zsh
-# runs it as a terminal opens; `ff` does too.
-exec fastfetch "$@"
+# ultra-card: the terminal's greeting, drawn like the theme's e-ink
+# devices: a header with the date and time, a cassette (its reels full
+# when something plays), who and what the machine is, and its gauges.
+# zsh runs it as a terminal opens; `ff` does too.
+#
+# It reads the machine itself (no fastfetch: quicker, and the same on every
+# version), and fits the window: the whole card from 78 columns, without
+# the cassette from 46, a few lines below that.
+#
+#   ultra-card            the card
+#   ULTRA_CARD_COLS=60 ultra-card    as if the window were that wide
+set -u
+export LC_ALL="${LC_ALL:-C.UTF-8}"      # (character counts, not bytes)
+
+cols=${ULTRA_CARD_COLS:-$(tput cols 2>/dev/null || echo 80)}
+(( cols > 84 )) && W=84 || W=$cols
+
+# ---- inks: the terminal's own (hypr/theme: ghostty's palette)
+B=$'\e[1m' D=$'\e[22m' F=$'\e[90m' I=$'\e[34m' R=$'\e[31m' N=$'\e[0m'
+
+# ---- the machine
+user=${USER:-$(id -un)}
+host=$(cat /etc/hostname 2>/dev/null || uname -n)
+host=${host%%$'\n'*}
+os=$(. /etc/os-release 2>/dev/null; echo "${NAME:-Linux}")
+kernel=$(uname -r)
+session=${XDG_CURRENT_DESKTOP:-${XDG_SESSION_TYPE:-tty}}
+shell_name=$(basename "${SHELL:-sh}")
+shell_ver=$("$shell_name" --version 2>/dev/null | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)
+if command -v pacman >/dev/null; then pkgs=$(pacman -Qq 2>/dev/null | wc -l)
+elif command -v dpkg-query >/dev/null; then pkgs=$(dpkg-query -f '.\n' -W 2>/dev/null | wc -l)
+else pkgs="?"; fi
+read -r up _ </proc/uptime
+up=${up%.*}
+if (( up >= 86400 )); then uptime="$((up / 86400))d $((up % 86400 / 3600))h"
+elif (( up >= 3600 )); then uptime="$((up / 3600))h $((up % 3600 / 60))m"
+else uptime="$((up / 60))m"; fi
+
+# memory (used = total less available), the root disk
+mem_total=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
+mem_avail=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
+mem_used=$((mem_total - mem_avail))
+read -r disk_total disk_used < <(df -B1 --output=size,used / 2>/dev/null | tail -n1)
+
+# the battery, the network, the tape
+bat="" bat_state=""
+for b in /sys/class/power_supply/BAT*; do
+    [[ -r $b/capacity ]] || continue
+    bat=$(<"$b/capacity"); bat_state=$(<"$b/status"); break
+done
+net=""
+if command -v nmcli >/dev/null; then
+    net=$(timeout 0.5 nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
+          | awk -F: '$2 !~ /loopback|bridge|tun|wireguard/ {print $1; exit}')
+fi
+tape=""
+if command -v playerctl >/dev/null && [[ $(timeout 0.5 playerctl status 2>/dev/null) == Playing ]]; then
+    tape=$(timeout 0.5 playerctl metadata --format '{{title}}{{ " · " + artist }}' 2>/dev/null \
+           || timeout 0.5 playerctl metadata --format '{{title}}' 2>/dev/null)
+fi
+
+# ---- drawing
+rep() { local s=""; local n=$2; while (( n-- > 0 )); do s+=$1; done; printf '%s' "$s"; }
+fit() { local s=$1 n=$2; (( ${#s} > n )) && s="${s:0:n-1}…"; printf '%s' "$s"; }
+pad() { local s=$1 n=$2; printf '%s%s' "$s" "$(rep ' ' $((n - ${#s})))"; }
+gib() { awk -v b="$1" 'BEGIN { printf "%.1f", b / 1073741824 }'; }
+# a gauge: n cells, filled as far as used/total, rust when nearly full
+gauge() {
+    local used=$1 total=$2 n=$3 warn=${4:-90} f p ink=""
+    (( total > 0 )) || { rep '□' "$n"; return; }
+    p=$((used * 100 / total)); f=$(((used * n + total / 2) / total))
+    (( p >= warn )) && ink=$R
+    printf '%s%s%s%s%s' "$ink" "$(rep '■' "$f")" "$F" "$(rep '□' $((n - f)))" "$N"
+}
+
+now_day=$(date '+%a %-d %b' | tr '[:lower:]' '[:upper:]')
+now_time=$(date '+%H:%M')
+
+# the header: /// MAGNETIC 88 · TERMINAL ────── SUN 22 NOV · 21:46
+header() {
+    local brand="MAGNETIC 88" tail=" · TERMINAL" right="$now_day · $now_time" gap
+    gap=$((W - 2 - 5 - ${#brand} - ${#tail} - 1 - ${#right} - 1))
+    if (( gap < 3 )); then brand="M88"; tail=""; gap=$((W - 2 - 5 - ${#brand} - 1 - ${#right} - 1)); fi
+    if (( gap < 3 )); then printf '  %s///%s  %s%s%s\n' "$I$B" "$N" "$B" "$now_time" "$N"; return; fi
+    printf '  %s///%s  %s%s%s%s%s %s %s%s%s\n' "$I$B" "$N" "$B" "$brand" "$N" "$F" "$tail" \
+        "$(rep '─' "$gap")$N" "$B" "$right" "$N"
+}
+
+# the cassette (24 wide): reels full while something plays
+reel='◎'; [[ -n $tape ]] && reel='◉'
+side='SIDE A'; [[ -n $tape ]] && side='▶ PLAY'
+cassette=(
+    "╭──────────────────────╮"
+    "│ $(rep '▔' 20) │"
+    "│ ╭──────────────────╮ │"
+    "│ │  ($reel)  ════  ($reel)  │ │"
+    "│ ╰──────────────────╯ │"
+    "│  M88 · C-90  $(pad "$side" 6)  │"
+    "╰──╱────────────────╲──╯"
+)
+
+# who and what (key, value)
+keyw=11
+info=(
+    "PASSENGER|$user"
+    "MACHINE|$host"
+    "-|"
+    "SYSTEM|$os"
+    "KERNEL|$kernel"
+    "SESSION|$session · $shell_name${shell_ver:+ $shell_ver}"
+    "PACKAGES|$pkgs"
+    "UPTIME|$uptime"
+)
+info_line() {    # info_line <entry> <width>
+    local k=${1%%|*} v=${1#*|} w=$2
+    if [[ $k == - ]]; then printf '%s%s%s' "$F" "$(rep '─' "$w")" "$N"; return; fi
+    printf '%s%s%s%s' "$F" "$(pad "$k" "$keyw")" "$N$B" "$(fit "$v" $((w - keyw)))$N"
+}
+
+# the gauges
+mem_text="$(gib $((mem_used * 1024))) / $(gib $((mem_total * 1024))) GiB"
+disk_text="$(gib "${disk_used:-0}") / $(gib "${disk_total:-0}") GiB"
+bat_text=""
+if [[ -n $bat ]]; then
+    bat_text="$bat%"
+    case $bat_state in Charging) bat_text+=" ↑" ;; Full) bat_text+=" full" ;; esac
+fi
+
+printf '\n'
+header
+printf '\n'
+if (( W >= 78 )); then
+    # the whole card: the cassette at the left, who and what beside it
+    rw=$((W - 4 - 24 - 4))
+    (( rw > 46 )) && rw=46
+    for i in 0 1 2 3 4 5 6 7; do
+        left="$(rep ' ' 24)"
+        (( i < ${#cassette[@]} )) && left="${cassette[i]}"
+        printf '  %s%s%s    %s\n' "$F" "$left" "$N" "$(info_line "${info[i]}" "$rw")"
+    done
+    printf '\n'
+    gw=12
+    printf '  %s%s%s %s  %s' "$F" "$(pad MEMORY 9)" "$N" "$(gauge "$mem_used" "$mem_total" $gw)" "$(pad "$mem_text" 20)"
+    if [[ -n $bat ]]; then
+        warn=101; [[ $bat_state != Charging ]] && (( bat <= 15 )) && warn=0
+        printf '  %s%s%s %s  %s' "$F" "$(pad BATTERY 9)" "$N" "$(gauge "$bat" 100 10 "$warn")" "$bat_text"
+    fi
+    printf '\n'
+    printf '  %s%s%s %s  %s' "$F" "$(pad STORAGE 9)" "$N" "$(gauge "${disk_used:-0}" "${disk_total:-0}" $gw)" "$(pad "$disk_text" 20)"
+    [[ -n $net ]] && printf '  %s%s%s %s' "$F" "$(pad NETWORK 9)" "$N" "$B$(fit "$net" 18)$N"
+    printf '\n'
+    if [[ -n $tape ]]; then
+        printf '  %s%s%s %s▶%s %s\n' "$F" "$(pad TAPE 9)" "$N" "$I" "$N" "$(fit "$tape" $((W - 16)))"
+    fi
+elif (( W >= 46 )); then
+    # no cassette: who and what, then the gauges under it
+    rw=$((W - 4))
+    for e in "${info[@]}"; do printf '  %s\n' "$(info_line "$e" "$rw")"; done
+    printf '\n'
+    gw=$(( W >= 60 ? 12 : 8 ))
+    printf '  %s%s%s %s  %s\n' "$F" "$(pad MEMORY 9)" "$N" "$(gauge "$mem_used" "$mem_total" $gw)" "$mem_text"
+    printf '  %s%s%s %s  %s\n' "$F" "$(pad STORAGE 9)" "$N" "$(gauge "${disk_used:-0}" "${disk_total:-0}" $gw)" "$disk_text"
+    [[ -n $bat ]] && printf '  %s%s%s %s  %s\n' "$F" "$(pad BATTERY 9)" "$N" "$(gauge "$bat" 100 $gw 101)" "$bat_text"
+    [[ -n $tape ]] && printf '  %s%s%s %s▶%s %s\n' "$F" "$(pad TAPE 9)" "$N" "$I" "$N" "$(fit "$tape" $((W - 16)))"
+else
+    # narrow (the desk terminal): a few lines
+    printf '  %s%s%s\n' "$B" "$(fit "$user@$host" $((W - 4)))" "$N"
+    printf '  %s%s%s\n' "$F" "$(fit "$os · $kernel" $((W - 4)))" "$N"
+    gw=$(( W >= 34 ? 8 : 5 ))
+    printf '  %s%s%s %s\n' "$F" "$(pad MEM 4)" "$N" "$(gauge "$mem_used" "$mem_total" $gw)"
+    [[ -n $bat ]] && printf '  %s%s%s %s %s\n' "$F" "$(pad BAT 4)" "$N" "$(gauge "$bat" 100 $gw 101)" "$bat_text"
+    [[ -n $tape ]] && printf '  %s▶%s %s\n' "$I" "$N" "$(fit "$tape" $((W - 6)))"
+fi
+printf '\n'

@@ -60,7 +60,7 @@ fi
 # every new terminal window, though not a shell started inside one, nor VS
 # Code's terminal. Only on the desk:  touch ~/.config/ultra/card-desk-only
 # (ultra-card is the theme's own: a theme without one simply has no card)
-if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == foot* && -z ${ULTRA_CARDED:-} \
+if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == (foot*|xterm-ghostty|xterm-kitty) && -z ${ULTRA_CARDED:-} \
       && ! -e ${XDG_CONFIG_HOME:-$HOME/.config}/ultra/card-desk-only ]]; }; then
     unset ULTRA_DESK
     export ULTRA_CARDED=1

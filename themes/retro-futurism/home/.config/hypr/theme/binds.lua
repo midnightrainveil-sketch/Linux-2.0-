@@ -1,6 +1,6 @@
 -- Keybinds.
 -- Shell surfaces are reached over Quickshell IPC: `qs ipc call <target> <fn>`.
-local terminal = "foot"
+local terminal = "ghostty"
 local files = "nautilus"
 local browser = "ultra-browser"           -- your default browser (xdg-settings)
 local mod = "SUPER"

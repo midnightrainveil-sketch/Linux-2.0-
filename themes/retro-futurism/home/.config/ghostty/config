@@ -1,0 +1,57 @@
+# Ghostty: the terminal, as an e-ink screen like the theme's devices (the
+# control deck, the organizer, the pager): dark ink on light grey glass,
+# a paper grain and a touch of ink spread (eink.glsl), no colour but a
+# few muted inks. The chrome round it is the windows' rim (chromerim).
+
+# ---- type
+font-family = JetBrains Mono
+font-size = 12
+adjust-cell-height = 8%
+
+# ---- the screen
+window-padding-x = 24
+window-padding-y = 18
+window-padding-balance = true
+window-padding-color = background
+window-decoration = none
+gtk-titlebar = false
+window-theme = light
+background-opacity = 1
+resize-overlay = never
+confirm-close-surface = false
+mouse-hide-while-typing = true
+scrollback-limit = 10000000
+app-notifications = no-clipboard-copy
+# (the prompt's cursor stays a block)
+shell-integration-features = no-cursor
+
+# ---- e-ink: the glass, its grain, the ink spreading a little into it
+custom-shader = eink.glsl
+custom-shader-animation = false
+
+# ---- the inks: dark grey on light grey glass, the deck's indigo and a
+# muted rust, the rest greys and dull earths
+background = #d7d6d1
+foreground = #2a2b2a
+cursor-color = #2a2b2a
+cursor-text = #d7d6d1
+cursor-style = block
+cursor-style-blink = true
+selection-background = #2a2b2a
+selection-foreground = #d7d6d1
+palette = 0=#2a2b2a
+palette = 1=#8a4636
+palette = 2=#4c5c43
+palette = 3=#76622f
+palette = 4=#4d518f
+palette = 5=#6b4d68
+palette = 6=#3d605d
+palette = 7=#8e8d88
+palette = 8=#6e6d68
+palette = 9=#a3553f
+palette = 10=#5f7155
+palette = 11=#8c7639
+palette = 12=#5f64a8
+palette = 13=#80617d
+palette = 14=#4f7672
+palette = 15=#efeee9

@@ -25,7 +25,7 @@ Singleton {
     readonly property real latitude: get("latitude", 1.3521)
     readonly property real longitude: get("longitude", 103.8198)
     readonly property int workspaces: get("workspaces", 6)
-    readonly property string terminal: get("terminal", "foot")
+    readonly property string terminal: get("terminal", "ghostty")
     readonly property string search: get("search", "https://www.google.com/search?q=%s")
     // a picture of your own instead of the theme's: ~/.config/ultra/retro-futurism/wallpaper.jpg
     readonly property string wallpaper: get("wallpaper", "")

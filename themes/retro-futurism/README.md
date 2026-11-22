@@ -152,3 +152,20 @@ kept for later.
   from `cava`, with a stand-in if cava is missing).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
+
+## The terminal
+
+Ghostty (`home/.config/ghostty/`): an e-ink screen like the theme's devices,
+dark ink on light grey glass, inside the windows' chrome rim and nothing
+else. `eink.glsl` gives the glass its grain, a soft light from the top
+left, the rim's shadow along its top and the ink spreading a hair, as e-ink
+does; it is drawn once per change of the text (nothing animates). The
+palette is greys and a few muted inks (the deck's indigo, a dull rust).
+
+The greeting is `ultra-card` (`home/.local/bin`): a header with the date
+and time, a cassette (its reels full while something plays), who and what
+the machine is, and gauges for memory, storage and the battery, with the
+network and what is playing. It reads the machine itself rather than
+through fastfetch (quicker, and the same on every version) and fits the
+window: the whole card from 78 columns, without the cassette from 46, a
+few lines below that (the desk terminal).
