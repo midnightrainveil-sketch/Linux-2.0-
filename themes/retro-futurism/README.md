@@ -162,10 +162,11 @@ left, the rim's shadow along its top and the ink spreading a hair, as e-ink
 does; it is drawn once per change of the text (nothing animates). The
 palette is greys and a few muted inks (the deck's indigo, a dull rust).
 
-The greeting is `ultra-card` (`home/.local/bin`): a header with the date
-and time, a cassette (its reels full while something plays), who and what
-the machine is, and gauges for memory, storage and the battery, with the
-network and what is playing. It reads the machine itself rather than
-through fastfetch (quicker, and the same on every version) and fits the
-window: the whole card from 78 columns, without the cassette from 46, a
-few lines below that (the desk terminal).
+The greeting is `ultra-card` (`home/.local/bin`): boxed panels, each
+titled in its top edge, in the terminal's inks: a header (the name, who and
+where, the date and time), the tape (the cassette, its reels full while
+something plays, and what is playing), the system and the session, and the
+resources as thin gauges with their figures. It reads the machine itself
+rather than through fastfetch (quicker, and the same on every version) and
+fits the window: every panel from 80 columns, without the tape from 56, two
+small panels below that (the desk terminal).
