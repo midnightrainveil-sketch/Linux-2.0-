@@ -51,7 +51,7 @@ tc = np.polyfit(topPts[:, 0], topPts[:, 1], 2)
 def top(x): return np.polyval(tc, x)
 def topSlope(x): return np.polyval(np.polyder(tc), x)
 d = np.minimum.reduce([X - xL, xR - X, yB - Y, (Y - top(X)) / np.sqrt(1 + topSlope(X) ** 2)])
-for (cxs, side, r) in ((xL, 'top', 80), (xR, 'top', 45), (xL, 'bottom', 120), (xR, 'bottom', 120)):
+for (cxs, side, r) in ((xL, 'top', 80), (xR, 'top', 45), (xL, 'bottom', 134), (xR, 'bottom', 120)):
     cx = cxs + r if cxs == xL else cxs - r
     cy = top(cx) + r * np.sqrt(1 + topSlope(cx) ** 2) if side == 'top' else yB - r
     zone = ((X < cx) if cxs == xL else (X > cx)) & ((Y < cy) if side == 'top' else (Y > cy))
