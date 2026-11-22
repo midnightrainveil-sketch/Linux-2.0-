@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
 # ultra-card: the terminal's greeting, in black and white, each fact with its
 # icon (Nerd Font symbols, which Ghostty carries): a picture, borderless (the
 # card-art folder: tools/make_card_art.py), and the machine in boxes titled
@@ -19,8 +19,8 @@
 #   compact   (shorter): the header; a small picture, the system and the
 #             session side by side; the resources
 #   column    4 (35 x 18): the picture on top, one box under it
-#   strip     5 (35 x 8): the picture and one
-#             small box side by side, as many facts as the height allows
+#   strip     5 (35 x 8): the picture and one small box side by side, as
+#             many facts as the height allows
 #   tiny      6 and on (14 x 8, 14 x 3): the picture and the time, or the time
 #
 # The picture: where the terminal shows real pictures (Ghostty, kitty) the
@@ -29,402 +29,428 @@
 # placeholders (cells tmux keeps like any text, each naming its piece of the
 # picture); anywhere else (over SSH, other terminals) quadrant blocks.
 #
-#   ultra-card --send-art <tty>    give that terminal the picture again (tmux
-#                                  runs it as a view attaches: desk.tmux.conf)
+# Quick, as a greeting must be: one process, the slow facts (the shell's
+# version, the network) kept a while in $XDG_RUNTIME_DIR.
 #
 #   ultra-card
+#   ultra-card --redraw           drawn over the screen in place, from its top
+#                                 (zsh, on a resize: no blank moment between)
+#   ultra-card --send-art <tty>   give that terminal the picture again (tmux
+#                                 runs it as a view attaches: desk.tmux.conf)
 #   ULTRA_CARD_COLS=60 ULTRA_CARD_ROWS=20 ultra-card    as if it were that size
 #   ULTRA_CARD_BLOCKS=1 ultra-card                      blocks, not the picture
-set -u
-shopt -s extglob
-export LC_ALL="${LC_ALL:-C.UTF-8}"      # (character counts, not bytes)
+import base64, json, os, re, shutil, subprocess, sys, time
 
-COLS=${ULTRA_CARD_COLS:-$(tput cols 2>/dev/null || echo 80)}
-ROWS=${ULTRA_CARD_ROWS:-$(tput lines 2>/dev/null || echo 24)}
-HMAX=$(( ROWS - 3 ))                    # a blank line above and below, and the prompt
-art="${XDG_DATA_HOME:-$HOME/.local/share}/ultra/retro-futurism/card-art"
+ENV = os.environ
+HOME = ENV.get('HOME', '')
+DATA = ENV.get('XDG_DATA_HOME') or os.path.join(HOME, '.local/share')
+ART = os.path.join(DATA, 'ultra/retro-futurism/card-art')
+RUN = ENV.get('XDG_RUNTIME_DIR') or '/tmp'
+ART_STATE = os.path.join(RUN, 'ultra-card-art')
+FACTS = os.path.join(RUN, 'ultra-card-facts.json')
 
-# ---- inks: black and white only
-B=$'\e[1m' F=$'\e[90m' N=$'\e[0m'
+B, F, N = '\x1b[1m', '\x1b[90m', '\x1b[0m'      # black and white only
+LIGHT = '\x1b[37m'
+PH = '\U0010eeee'                                # kitty's placeholder cell
+DIAC = ('̅̍̎̐̒̽̾̿͆͊͋͌͐͑͒͗'
+        '͛ͣͤͥͦͧͨͩͪͫͬͭͮͯ҃҄'
+        '҅҆҇֒֓֔֕֗֘֙֜֝֞֟֠֡'
+        '֨֩֫֬֯ׄؐؑؒؓؔؕؖؗٗ٘')
+
+def run(cmd, timeout=0.6):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except Exception:
+        return ''
+
+def read(path, default=''):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+def art_apc(c, r):
+    """the picture for a placeholder grid c x r: transmitted with a virtual
+    placement (image 88), its cells coloured 88 to name it"""
+    path = base64.b64encode(os.path.realpath(os.path.join(ART, 'picture.png')).encode()).decode()
+    return f'\x1b_Ga=T,U=1,i=88,f=100,t=f,q=2,c={c},r={r};{path}\x1b\\'
+
+# (tmux, as a view attaches: straight to that terminal, the size the card
+# last used)
+if len(sys.argv) > 2 and sys.argv[1] == '--send-art':
+    try:
+        c, r = read(ART_STATE).split()
+        if os.path.exists(os.path.join(ART, 'picture.png')):
+            with open(sys.argv[2], 'w') as t:
+                t.write(art_apc(c, r))
+    except Exception:
+        pass
+    sys.exit(0)
+REDRAW = '--redraw' in sys.argv[1:]
+
+# ---- the size
+try:
+    tc, tr = os.get_terminal_size(sys.stdout.fileno())
+except OSError:
+    tc, tr = shutil.get_terminal_size((80, 24))
+COLS = int(ENV.get('ULTRA_CARD_COLS') or tc)
+ROWS = int(ENV.get('ULTRA_CARD_ROWS') or tr)
+HMAX = ROWS - 3                     # a blank line above and below, and the prompt
 
 # ---- the machine
-user=${USER:-$(id -un)}
-host=$(cat /etc/hostname 2>/dev/null || uname -n); host=${host%%$'\n'*}
-os=$(. /etc/os-release 2>/dev/null; echo "${NAME:-Linux}")
-kernel=$(uname -r)
-if command -v pacman >/dev/null; then pkgs=$(pacman -Qq 2>/dev/null | wc -l)
-elif command -v dpkg-query >/dev/null; then pkgs=$(dpkg-query -f '.\n' -W 2>/dev/null | wc -l)
-else pkgs="?"; fi
-desktop=${XDG_CURRENT_DESKTOP:-tty}
-shell_name=$(basename "${SHELL:-sh}")
-shell_ver=$("$shell_name" --version 2>/dev/null | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)
-read -r up _ </proc/uptime; up=${up%.*}
-if (( up >= 86400 )); then uptime="$((up / 86400))d $((up % 86400 / 3600))h"
-elif (( up >= 3600 )); then uptime="$((up / 3600))h $((up % 3600 / 60))m"
-else uptime="$((up / 60))m"; fi
-mem_total=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
-mem_used=$(( mem_total - $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) ))
-read -r disk_total disk_used < <(df -B1 --output=size,used / 2>/dev/null | tail -n1)
-bat="" bat_state=""
-for b in /sys/class/power_supply/BAT*; do
-    [[ -r $b/capacity ]] || continue
-    bat=$(<"$b/capacity"); bat_state=$(<"$b/status"); break
-done
-net=""
-if command -v nmcli >/dev/null; then
-    net=$(timeout 0.5 nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
-          | awk -F: '$2 !~ /loopback|bridge|tun|wireguard/ {print $1; exit}')
-fi
-now_day=$(date '+%a %-d %b' | tr '[:lower:]' '[:upper:]')
-now_time=$(date '+%H:%M')
+def facts_cached():
+    """what changes seldom, kept: the shell's version for the boot, the
+    network a few seconds"""
+    boot = read('/proc/sys/kernel/random/boot_id')
+    try:
+        with open(FACTS) as f:
+            c = json.load(f)
+    except Exception:
+        c = {}
+    if c.get('boot') != boot:
+        c = {'boot': boot}
+    shell = os.path.basename(ENV.get('SHELL', 'sh'))
+    if c.get('shell') != shell:
+        m = re.search(r'\d+(\.\d+)+', run([shell, '--version']).split('\n')[0])
+        c['shell'], c['shell_ver'] = shell, (m.group(0) if m else '')
+    if time.time() - c.get('net_at', 0) > 20:
+        net = ''
+        if shutil.which('nmcli'):
+            for line in run(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show', '--active'], 0.5).splitlines():
+                name, _, kind = line.rpartition(':')
+                if name and not re.search('loopback|bridge|tun|wireguard', kind):
+                    net = name.replace('\\:', ':'); break
+        c['net'], c['net_at'] = net, time.time()
+    try:
+        with open(FACTS + '.new', 'w') as f:
+            json.dump(c, f)
+        os.replace(FACTS + '.new', FACTS)
+    except OSError:
+        pass
+    return c
+
+cache = facts_cached()
+user = ENV.get('USER') or run(['id', '-un']).strip()
+host = (read('/etc/hostname') or os.uname().nodename).split('\n')[0]
+osname = 'Linux'
+for line in read('/etc/os-release').splitlines():
+    if line.startswith('NAME='):
+        osname = line[5:].strip('"'); break
+kernel = os.uname().release
+if os.path.isdir('/var/lib/pacman/local'):
+    pkgs = str(sum(1 for d in os.scandir('/var/lib/pacman/local') if d.is_dir()))
+elif os.path.exists('/var/lib/dpkg/status'):
+    with open('/var/lib/dpkg/status', errors='replace') as f:
+        pkgs = str(sum(1 for l in f if l.startswith('Package: ')))
+else:
+    pkgs = '?'
+desktop = ENV.get('XDG_CURRENT_DESKTOP') or 'tty'
+shell_name, shell_ver = cache['shell'], cache['shell_ver']
+up = int(float(read('/proc/uptime', '0').split()[0]))
+uptime = (f'{up // 86400}d {up % 86400 // 3600}h' if up >= 86400 else
+          f'{up // 3600}h {up % 3600 // 60}m' if up >= 3600 else f'{up // 60}m')
+mi = {}
+for line in read('/proc/meminfo').splitlines():
+    k, _, v = line.partition(':'); mi[k] = int(v.split()[0]) if v.split() else 0
+mem_total = mi.get('MemTotal', 0); mem_used = mem_total - mi.get('MemAvailable', 0)
+try:
+    st = os.statvfs('/')
+    disk_total = st.f_blocks * st.f_frsize; disk_used = (st.f_blocks - st.f_bfree) * st.f_frsize
+except OSError:
+    disk_total = disk_used = 0
+bat = bat_state = ''
+try:
+    for b in sorted(os.listdir('/sys/class/power_supply')):
+        p = f'/sys/class/power_supply/{b}'
+        if b.startswith('BAT') and os.path.exists(p + '/capacity'):
+            bat, bat_state = read(p + '/capacity'), read(p + '/status'); break
+except OSError:
+    pass
+net = cache.get('net', '')
+now_day = time.strftime('%a ') + str(int(time.strftime('%d'))) + time.strftime(' %b')
+now_day = now_day.upper()
+now_time = time.strftime('%H:%M')
 
 # ---- icons (Nerd Font symbols)
-ic_user=$'' ic_cal=$'' ic_clock=$'' ic_tape=$'\U000f09d4'
-ic_os=$''; [[ $os == Arch* ]] && ic_os=$''
-ic_kernel=$'' ic_pkgs=$'' ic_desk=$'' ic_shell=$'' ic_up=$'\U000f0150'
-ic_mem=$'\U000f035b' ic_disk=$'\U000f02ca' ic_bat=$'\U000f0079' ic_wifi=$'\U000f05a9'
-[[ $bat_state == Charging ]] && ic_bat=$'\U000f0084'
+ic_user, ic_cal, ic_clock, ic_tape = '', '', '', '\U000f09d4'
+ic_os = '' if osname.startswith('Arch') else ''
+ic_kernel, ic_pkgs, ic_desk, ic_shell, ic_up = '', '', '', '', '\U000f0150'
+ic_mem, ic_disk, ic_wifi = '\U000f035b', '\U000f02ca', '\U000f05a9'
+ic_bat = '\U000f0084' if bat_state == 'Charging' else '\U000f0079'
 
 # ---- drawing
-rep() { local s="" n=$2; while (( n-- > 0 )); do s+=$1; done; printf '%s' "$s"; }
-re_apc=$'\e_G[^\e]*\e\\\\' re_fwd=$'\e\\[([0-9]+)C'
-# kitty's placeholder: the cell, and the marks that give its row and column
-PH=$'\U0010eeee' DIAC=$'\u0305\u030D\u030E\u0310\u0312\u033D\u033E\u033F\u0346\u034A\u034B\u034C\u0350\u0351\u0352\u0357\u035B\u0363\u0364\u0365\u0366\u0367\u0368\u0369\u036A\u036B\u036C\u036D\u036E\u036F\u0483\u0484\u0485\u0486\u0487\u0592\u0593\u0594\u0595\u0597\u0598\u0599\u059C\u059D\u059E\u059F\u05A0\u05A1\u05A8\u05A9\u05AB\u05AC\u05AF\u05C4\u0610\u0611\u0612\u0613\u0614\u0615\u0616\u0617\u0657\u0658'
-# a string's width on screen: inks left out, a picture's placing left out, a
-# cursor step forward counted as the cells it steps over
-vis() {
-    local s=${1//$'\e['*([0-9;])m/} n=0
-    s=${s//[$DIAC]/}
-    while [[ $s =~ $re_apc ]]; do s=${s/"${BASH_REMATCH[0]}"/}; done
-    while [[ $s =~ $re_fwd ]]; do n=$(( n + BASH_REMATCH[1] )); s=${s/"${BASH_REMATCH[0]}"/}; done
-    echo $(( ${#s} + n ))
-}
-fit() { local s=$1 n=$2; (( n < 1 )) && return; (( ${#s} > n )) && s="${s:0:n-1}…"; printf '%s' "$s"; }
-pad() { local s=$1 n=$2 v; v=$(vis "$s"); printf '%s%s' "$s" "$(rep ' ' $((n - v)))"; }
-gib() { awk -v b="$1" 'BEGIN { v = b / 1073741824; printf (v >= 100 ? "%.0f" : "%.1f"), v }'; }
-pct() { (( $2 > 0 )) && echo $(( $1 * 100 / $2 )) || echo 0; }
-gauge() {   # gauge <percent> <cells> <warn>: solid, ink as far as the percent, light grey after
-    local p=$1 n=$2 f
-    f=$(( (p * n + 50) / 100 )); (( f > n )) && f=$n
-    printf '%s%s%s%s%s' "${3:+$B}" "$(rep '▆' "$f")" $'\e[37m' "$(rep '▆' $((n - f)))" "$N"
-}
-mem_p=$(pct "$mem_used" "$mem_total")
-disk_p=$(pct "${disk_used:-0}" "${disk_total:-0}")
-mem_warn=""; (( mem_p >= 90 )) && mem_warn=1
-disk_warn=""; (( disk_p >= 90 )) && disk_warn=1
-bat_warn=""; [[ -n $bat && $bat_state != Charging ]] && (( bat <= 15 )) && bat_warn=1
-bat_word=""; case $bat_state in Charging) bat_word=charging ;; Full) bat_word=full ;; Discharging) bat_word="on battery" ;; esac
+_sgr = re.compile(r'\x1b\[[0-9;]*m')
+_apc = re.compile(r'\x1b_G[^\x1b]*\x1b\\')
+_fwd = re.compile(r'\x1b\[(\d+)C')
+_diac = set(DIAC)
 
-# box <array> <title> <width> <line>...: a rounded box, its title in its top
-# edge; a line "-" is a rule across it
-box() {
-    local -n out=$1; local title=$2 w=$3 line
-    shift 3
-    out=()
-    if [[ -n $title ]]; then out+=("$F┏━$N $B$title$N $F$(rep '━' $((w - 5 - ${#title})))┓$N")
-    else out+=("$F┏$(rep '━' $((w - 2)))┓$N"); fi
-    for line in "$@"; do
-        if [[ $line == - ]]; then out+=("$F┣$(rep '━' $((w - 2)))┫$N"); continue; fi
-        out+=("$F┃$N $(pad "$line" $((w - 4))) $F┃$N")
-    done
-    out+=("$F┗$(rep '━' $((w - 2)))┛$N")
-}
-# edge <width> <corner l> <corner r> <words l> <words r>: a box's edge with
-# words set into it at both ends
-edge() {
-    local w=$1 l=$4 r=$5 fill
-    fill=$(( w - 4 - 2 - $(vis "$l") - 2 - $(vis "$r") ))
-    [[ -z $l ]] && fill=$(( fill + 2 )); [[ -z $r ]] && fill=$(( fill + 2 ))
-    printf '%s%s━%s' "$F" "$2" "$N"; [[ -n $l ]] && printf ' %s ' "$l"
-    printf '%s%s%s' "$F" "$(rep '━' "$fill")" "$N"; [[ -n $r ]] && printf ' %s ' "$r"
-    printf '%s━%s%s' "$F" "$3" "$N"
-}
-# side <array>...: arrays side by side, a column apart, each kept to its width
-side() {
-    local rows=0 r n line w
-    for n in "$@"; do local -n a=$n; (( ${#a[@]} > rows )) && rows=${#a[@]}; done
-    for (( r = 0; r < rows; r++ )); do
-        line=""
-        for n in "$@"; do local -n a=$n; w=$(vis "${a[0]}"); line+="$(pad "${a[r]:-}" "$w") "; done
-        printf '  %s\n' "${line% }"
-    done
-}
-# a stack: arrays one under the other, as one (for a column)
-stack() { local -n out=$1; shift; out=(); local n; for n in "$@"; do local -n a=$n; out+=("${a[@]}"); done; }
+def vis(s):
+    """its width on screen: inks and a picture's placing left out, a cursor
+    step forward counted as the cells it steps over"""
+    s = _apc.sub('', _sgr.sub('', s))
+    n = sum(int(m) for m in _fwd.findall(s))
+    s = _fwd.sub('', s)
+    return len(s) - sum(1 for ch in s if ch in _diac) + n
 
-# ---- the facts, as lines: an icon, a key, the value
-KW=10
-kv() {   # (KW 0: no key, the icon says it)
-    if (( KW )); then printf '%s  %s%s%s%s' "$1" "$F" "$(pad "$2" $KW)" "$N" "$3"
-    else printf '%s  %s' "$1" "$3"; fi
-}
-fact() {   # fact <name> <value width>
-    local vw=$2
-    case $1 in
-        os) kv "$ic_os" os "$(fit "$os" "$vw")" ;;
-        kernel) kv "$ic_kernel" kernel "$(fit "$kernel" "$vw")" ;;
-        packages) kv "$ic_pkgs" packages "$pkgs" ;;
-        desktop) kv "$ic_desk" desktop "$(fit "$desktop" "$vw")" ;;
-        shell) kv "$ic_shell" shell "$(fit "$shell_name${shell_ver:+ $shell_ver}" "$vw")" ;;
-        uptime) kv "$ic_up" uptime "$uptime" ;;
-        network) kv "$ic_wifi" network "$(fit "${net:-offline}" "$vw")" ;;
-    esac
-}
-# a gauge line `inner` wide: icon, key, bar, [figures], the percent at the end
-meter() {   # meter <name> <inner> <with figures>
-    local inner=$2 figs=$3 icon key p warn text tail g line
-    case $1 in
-        memory) icon=$ic_mem key=memory p=$mem_p warn=$mem_warn
-                text="$(gib $((mem_used * 1024))) / $(gib $((mem_total * 1024))) GiB" ;;
-        storage) icon=$ic_disk key=storage p=$disk_p warn=$disk_warn
-                 text="$(gib "${disk_used:-0}") / $(gib "${disk_total:-0}") GiB" ;;
-        battery) icon=$ic_bat key=battery p=${bat:-0} warn=$bat_warn text=$bat_word ;;
-    esac
-    tail="$B$p%$N"
-    if (( figs )); then g=$(( inner - 3 - KW - 2 - 18 - 5 )); else g=$(( inner - 3 - KW - 5 )); fi
-    (( g < 4 )) && g=4
-    line="$icon  "; (( KW )) && line+="$F$(pad "$key" $KW)$N"
-    line+="$(gauge "$p" "$g" "$warn")"
-    (( figs )) && line+="  $F$(pad "$text" 18)$N"
-    printf '%s%s%s' "$line" "$(rep ' ' $(( inner - $(vis "$line") - $(vis "$tail") )))" "$tail"
-}
-meters() {   # meters <inner> <with figures> <with network>: the lines, into METERS
-    METERS=("$(meter memory "$1" "$2")" "$(meter storage "$1" "$2")")
-    [[ -n $bat ]] && METERS+=("$(meter battery "$1" "$2")")
-    (( $3 )) && [[ -n $net ]] && METERS+=("$(fact network $(( $1 - 3 - KW )))")
-    return 0
-}
-header() {   # header <width>: the name, who and where, the date, the time, into HEAD
-    local w=$1 inner=$(( $1 - 4 )) left right
-    left="$ic_tape  ${B}MAGNETIC 88$N"
-    right="$ic_user  $B$user$N$F @ $N$B$host$N   $ic_cal  $F$now_day$N   $ic_clock  $B$now_time$N"
-    (( $(vis "$left") + $(vis "$right") + 2 > inner )) && right="$ic_cal  $F$now_day$N   $ic_clock  $B$now_time$N"
-    (( $(vis "$left") + $(vis "$right") + 2 > inner )) && right="$ic_clock  $B$now_time$N"
-    box HEAD "" "$w" "$left$(rep ' ' $((inner - $(vis "$left") - $(vis "$right"))))$right"
-}
+def fit(s, n):
+    if n < 1: return ''
+    return s if len(s) <= n else s[:n - 1] + '…'
+
+def pad(s, n): return s + ' ' * max(0, n - vis(s))
+
+def gib(b):
+    v = b / 1073741824
+    return f'{v:.0f}' if v >= 100 else f'{v:.1f}'
+
+def pct(a, b): return a * 100 // b if b > 0 else 0
+
+def gauge(p, n, warn):
+    f = min(n, (p * n + 50) // 100)
+    return (B if warn else '') + '▆' * f + LIGHT + '▆' * (n - f) + N
+
+mem_p = pct(mem_used, mem_total)
+disk_p = pct(disk_used, disk_total)
+mem_warn, disk_warn = mem_p >= 90, disk_p >= 90
+bat_warn = bool(bat) and bat_state != 'Charging' and int(bat or 0) <= 15
+bat_word = {'Charging': 'charging', 'Full': 'full', 'Discharging': 'on battery'}.get(bat_state, '')
+
+def box(title, w, lines):
+    """a box, its title in its top edge; a line "-" is a rule across it"""
+    out = [f'{F}┏━{N} {B}{title}{N} {F}' + '━' * (w - 5 - len(title)) + f'┓{N}' if title
+           else F + '┏' + '━' * (w - 2) + '┓' + N]
+    for line in lines:
+        out.append(F + '┣' + '━' * (w - 2) + '┫' + N if line == '-' else f'{F}┃{N} {pad(line, w - 4)} {F}┃{N}')
+    out.append(F + '┗' + '━' * (w - 2) + '┛' + N)
+    return out
+
+def edge(w, cl, cr, l, r):
+    """a box's edge with words set into it at both ends"""
+    fill = w - 4 - 2 - vis(l) - 2 - vis(r) + (2 if not l else 0) + (2 if not r else 0)
+    s = f'{F}{cl}━{N}' + (f' {l} ' if l else '') + F + '━' * fill + N + (f' {r} ' if r else '') + f'{F}━{cr}{N}'
+    return s
+
+def side(*cols):
+    """columns side by side, a column apart, each kept to its width"""
+    rows = max(len(c) for c in cols)
+    out = []
+    for r in range(rows):
+        out.append('  ' + ' '.join(pad(c[r] if r < len(c) else '', vis(c[0])) for c in cols))
+    return out
+
+KW = 10
+def kv(icon, key, value):
+    return f'{icon}  {F}{pad(key, KW)}{N}{value}' if KW else f'{icon}  {value}'
+
+def fact(name, vw):
+    return {
+        'os': lambda: kv(ic_os, 'os', fit(osname, vw)),
+        'kernel': lambda: kv(ic_kernel, 'kernel', fit(kernel, vw)),
+        'packages': lambda: kv(ic_pkgs, 'packages', pkgs),
+        'desktop': lambda: kv(ic_desk, 'desktop', fit(desktop, vw)),
+        'shell': lambda: kv(ic_shell, 'shell', fit(shell_name + (' ' + shell_ver if shell_ver else ''), vw)),
+        'uptime': lambda: kv(ic_up, 'uptime', uptime),
+        'network': lambda: kv(ic_wifi, 'network', fit(net or 'offline', vw)),
+    }[name]()
+
+def meter(name, inner, figs):
+    if name == 'memory':
+        icon, key, p, warn = ic_mem, 'memory', mem_p, mem_warn
+        text = f'{gib(mem_used * 1024)} / {gib(mem_total * 1024)} GiB'
+    elif name == 'storage':
+        icon, key, p, warn = ic_disk, 'storage', disk_p, disk_warn
+        text = f'{gib(disk_used)} / {gib(disk_total)} GiB'
+    else:
+        icon, key, p, warn, text = ic_bat, 'battery', int(bat or 0), bat_warn, bat_word
+    tail = f'{B}{p}%{N}'
+    g = max(4, inner - 3 - KW - 2 - 18 - 5 if figs else inner - 3 - KW - 5)
+    line = f'{icon}  ' + (F + pad(key, KW) + N if KW else '') + gauge(p, g, warn)
+    if figs: line += f'  {F}{pad(text, 18)}{N}'
+    return line + ' ' * (inner - vis(line) - vis(tail)) + tail
+
+def meters(inner, figs, with_net):
+    m = [meter('memory', inner, figs), meter('storage', inner, figs)]
+    if bat: m.append(meter('battery', inner, figs))
+    if with_net and net: m.append(fact('network', inner - 3 - KW))
+    return m
+
+def header(w):
+    inner = w - 4
+    left = f'{ic_tape}  {B}MAGNETIC 88{N}'
+    right = f'{ic_user}  {B}{user}{N}{F} @ {N}{B}{host}{N}   {ic_cal}  {F}{now_day}{N}   {ic_clock}  {B}{now_time}{N}'
+    if vis(left) + vis(right) + 2 > inner: right = f'{ic_cal}  {F}{now_day}{N}   {ic_clock}  {B}{now_time}{N}'
+    if vis(left) + vis(right) + 2 > inner: right = f'{ic_clock}  {B}{now_time}{N}'
+    return box('', w, [left + ' ' * (inner - vis(left) - vis(right)) + right])
 
 # ---- the picture: `rows` lines tall, its width from its proportions
-ratio=1
-[[ -r $art/ratio ]] && ratio=$(<"$art/ratio")
-pic_cols() { awk -v r="$1" -v k="$ratio" 'BEGIN { printf "%d", r * k / 0.42 + 0.5 }'; }
-# 1: placed directly; 2: through tmux, by placeholders; 0: blocks
-real=0
-art_state="${XDG_RUNTIME_DIR:-/tmp}/ultra-card-art"
-if [[ -z ${ULTRA_CARD_BLOCKS:-} && -r $art/picture.png && -z ${SSH_CONNECTION:-} ]]; then
-    if [[ -n ${TMUX:-} ]]; then
-        case $(tmux display-message -p '#{client_termname}' 2>/dev/null) in xterm-ghostty|xterm-kitty) real=2 ;; esac
-    else
-        case ${TERM:-} in xterm-ghostty|xterm-kitty) real=1 ;; esac
-    fi
-fi
-# the picture for a placeholder grid c x r: transmitted with a virtual
-# placement (image 88), its cells coloured 88 to name it
-art_apc() { printf '\e_Ga=T,U=1,i=88,f=100,t=f,q=2,c=%s,r=%s;%s\e\\' "$1" "$2" "$(printf '%s' "$(realpath "$art/picture.png")" | base64 -w0)"; }
-if [[ ${1:-} == --send-art ]]; then
-    # (tmux, as a view attaches: straight to that terminal, the size the
-    # card last used)
-    [[ -w ${2:-} && -r $art_state && -r $art/picture.png ]] || exit 0
-    read -r c r <"$art_state"
-    art_apc "$c" "$r" >"$2"
-    exit 0
-fi
-picture() {   # picture <rows>: its lines, into PIC (PW wide)
-    local rows=$1 r
-    PW=$(pic_cols "$rows"); PIC=()
-    if (( real == 2 )); then
-        # through tmux: transmitted to the terminal (passed through), then
-        # placeholder cells, row and column marked
-        local apc; apc=$(art_apc "$PW" "$rows")
-        printf '\ePtmux;%s\e\\' "${apc//$'\e'/$'\e\e'}"
-        printf '%s %s\n' "$PW" "$rows" >"$art_state" 2>/dev/null
-        local c line
-        for (( r = 0; r < rows; r++ )); do
-            line=$'\e[38;5;88m'
-            for (( c = 0; c < PW; c++ )); do line+="$PH${DIAC:r:1}${DIAC:c:1}"; done
-            PIC+=("$line"$'\e[39m')
-        done
-    elif (( real )); then
-        # placed at the first line's start, over cells the card steps over
-        # (the cursor stays put: C=1; no answer back: q=2)
-        local path; path=$(printf '%s' "$(realpath "$art/picture.png")" | base64 -w0)
-        PIC+=($'\e_Ga=T,f=100,t=f,C=1,q=2,c='"$PW"',r='"$rows"';'"$path"$'\e\\\e['"$PW"'C')
-        for (( r = 1; r < rows; r++ )); do PIC+=($'\e['"$PW"'C'); done
-    elif [[ -r $art/blocks-$rows.txt ]]; then
-        mapfile -t PIC <"$art/blocks-$rows.txt"
-        for r in "${!PIC[@]}"; do PIC[r]="$(pad "${PIC[r]}" "$PW")"; done
-    else
-        for (( r = 0; r < rows; r++ )); do PIC+=("$(rep ' ' "$PW")"); done
-    fi
-}
-# a column of blank lines `w` wide, `n` tall
-blank() { local -n out=$1; out=(); local i; for (( i = 0; i < $3; i++ )); do out+=("$(rep ' ' "$2")"); done; }
+try:
+    ratio = float(read(os.path.join(ART, 'ratio'), '1'))
+except ValueError:
+    ratio = 1.0
+def pic_cols(r): return int(r * ratio / 0.42 + 0.5)
+
+real = 0                            # 1: placed directly; 2: through tmux; 0: blocks
+if not ENV.get('ULTRA_CARD_BLOCKS') and os.path.exists(os.path.join(ART, 'picture.png')) and not ENV.get('SSH_CONNECTION'):
+    if ENV.get('TMUX'):
+        if run(['tmux', 'display-message', '-p', '#{client_termname}']).strip() in ('xterm-ghostty', 'xterm-kitty'):
+            real = 2
+    elif ENV.get('TERM') in ('xterm-ghostty', 'xterm-kitty'):
+        real = 1
+
+PRE = []                            # sent before the card (the picture, through tmux)
+def picture(rows):
+    pw = pic_cols(rows)
+    if real == 2:
+        apc = art_apc(pw, rows)
+        PRE.append('\x1bPtmux;' + apc.replace('\x1b', '\x1b\x1b') + '\x1b\\')
+        try:
+            with open(ART_STATE, 'w') as f: f.write(f'{pw} {rows}\n')
+        except OSError:
+            pass
+        return pw, ['\x1b[38;5;88m' + ''.join(PH + DIAC[r] + DIAC[c] for c in range(pw)) + '\x1b[39m' for r in range(rows)]
+    if real == 1:
+        # placed at the first line's start, over cells the card steps over (the
+        # cursor stays put: C=1; no answer back: q=2); the same image and
+        # placement each time, so a redraw replaces it
+        path = base64.b64encode(os.path.realpath(os.path.join(ART, 'picture.png')).encode()).decode()
+        first = f'\x1b_Ga=T,i=89,p=1,f=100,t=f,C=1,q=2,c={pw},r={rows};{path}\x1b\\\x1b[{pw}C'
+        return pw, [first] + [f'\x1b[{pw}C'] * (rows - 1)
+    try:
+        with open(os.path.join(ART, f'blocks-{rows}.txt')) as f:
+            lines = f.read().rstrip('\n').split('\n')
+        return pw, [pad(l, pw) for l in lines]
+    except OSError:
+        return pw, [' ' * pw] * rows
+
+def blank(w, n): return [' ' * w] * n
+def centred(col, pw, n):
+    top = max(0, (n - len(col)) // 2)
+    return blank(pw, top) + col
 
 # ======================================================================
-# the layouts, richest first; each draws itself if it fits and says so
+# the layouts, richest first; each gives its lines if it fits, else None
 
-# wide: the picture large; beside it the header, the system and the session
-# side by side, the resources
-lay_wide() {
-    (( COLS >= 120 && HMAX >= 14 )) || return 1
-    local W=$(( COLS - 4 )); (( W > 150 )) && W=150
-    picture 14
-    local RW=$(( W - PW - 3 )) hw vw
-    (( RW >= 76 )) || return 1
-    header "$RW"
-    hw=$(( (RW - 1) / 2 )); vw=$(( hw - 4 - 3 - KW ))
-    box SYS SYSTEM "$hw" "$(fact os $vw)" "$(fact kernel $vw)" "$(fact packages $vw)"
-    box SES SESSION "$(( RW - 1 - hw ))" "$(fact desktop $vw)" "$(fact shell $vw)" "$(fact uptime $vw)"
-    local MID; mapfile -t MID < <(side SYS SES | sed 's/^  //')
-    meters $(( RW - 4 )) 1 1
-    box RES RESOURCES "$RW" "${METERS[@]}"
-    local RIGHT; stack RIGHT HEAD MID RES
-    local GAP; blank GAP 1 "${#RIGHT[@]}"
-    side PIC GAP RIGHT
-}
+def lay_wide():
+    if not (COLS >= 120 and HMAX >= 14): return None
+    W = min(COLS - 4, 150)
+    pw, pic = picture(14)
+    RW = W - pw - 3
+    if RW < 76: return None
+    hw = (RW - 1) // 2; vw = hw - 4 - 3 - KW
+    sys_ = box('SYSTEM', hw, [fact('os', vw), fact('kernel', vw), fact('packages', vw)])
+    ses = box('SESSION', RW - 1 - hw, [fact('desktop', vw), fact('shell', vw), fact('uptime', vw)])
+    mid = [l[2:] for l in side(sys_, ses)]
+    right = header(RW) + mid + box('RESOURCES', RW, meters(RW - 4, True, True))
+    return side(pic, blank(1, len(right)), right)
 
-# classic: the header; the picture, the system over the session; the resources
-lay_classic() {
-    (( COLS >= 72 && HMAX >= 19 )) || return 1
-    local W=$(( COLS - 4 )); (( W > 90 )) && W=90
-    header "$W"
-    picture 9
-    local RW=$(( W - PW - 3 )) vw=$(( W - PW - 3 - 4 - 3 - KW ))
-    (( RW >= 32 )) || return 1
-    box SYS SYSTEM "$RW" "$(fact os $vw)" "$(fact kernel $vw)" "$(fact packages $vw)"
-    box SES SESSION "$RW" "$(fact desktop $vw)" "$(fact shell $vw)" "$(fact uptime $vw)"
-    local RIGHT; stack RIGHT SYS SES
-    local LEFT=() top=$(( (${#RIGHT[@]} - 9) / 2 )) i
-    for (( i = 0; i < top; i++ )); do LEFT+=("$(rep ' ' "$PW")"); done
-    LEFT+=("${PIC[@]}")
-    local GAP; blank GAP 1 "${#RIGHT[@]}"
-    side HEAD
-    side LEFT GAP RIGHT
-    meters $(( W - 4 )) 1 1
-    box RES RESOURCES "$W" "${METERS[@]}"; side RES
-}
+def lay_classic():
+    if not (COLS >= 72 and HMAX >= 19): return None
+    W = min(COLS - 4, 90)
+    head = header(W)
+    pw, pic = picture(9)
+    RW = W - pw - 3; vw = RW - 4 - 3 - KW
+    if RW < 32: return None
+    right = (box('SYSTEM', RW, [fact('os', vw), fact('kernel', vw), fact('packages', vw)]) +
+             box('SESSION', RW, [fact('desktop', vw), fact('shell', vw), fact('uptime', vw)]))
+    left = blank(pw, (len(right) - 9) // 2) + pic
+    return side(head) + side(left, blank(1, len(right)), right) + side(box('RESOURCES', W, meters(W - 4, True, True)))
 
-# panel: the picture large at the left; beside it, stacked, the header,
-# the machine (system and session in one box) and the resources (the
-# terminal widget, and the third tiled terminal)
-lay_panel() {
-    (( COLS >= 58 && HMAX >= 11 )) || return 1
-    local W=$(( COLS - 4 )); (( W > 100 )) && W=100
-    # (short: no header box, the time goes into the machine box's edge)
-    local tall=$(( HMAX >= 14 )) min=34
-    (( tall )) && min=40
-    local pr=$(( HMAX - 2 )); (( pr > 11 )) && pr=11
-    PW=$(pic_cols "$pr")
-    while (( W - PW - 3 < min + 4 && pr > 5 )); do pr=$(( pr - 1 )); PW=$(pic_cols "$pr"); done
-    local RW=$(( W - PW - 3 )) vw
-    (( RW >= min )) || return 1
-    vw=$(( RW - 4 - 3 - KW ))
-    local facts=("$(fact os $vw)" "$(fact kernel $vw)" "$(fact desktop $vw)" "$(fact uptime $vw)")
-    (( HMAX >= 18 )) && facts=("$(fact os $vw)" "$(fact kernel $vw)" "$(fact packages $vw)" "$(fact desktop $vw)" "$(fact shell $vw)" "$(fact uptime $vw)")
-    box SYS MACHINE "$RW" "${facts[@]}"
-    if (( tall )); then
-        header "$RW"
-        SYS[0]=$(edge "$RW" ┏ ┓ "$ic_user  $B$(fit "$user" 16)$N$F @ $N$B$(fit "$host" 16)$N" "")
-    else
-        HEAD=()
-        SYS[0]=$(edge "$RW" ┏ ┓ "$B$(fit "$user@$host" $(( RW - 16 )))$N" "$ic_clock  $B$now_time$N")
-    fi
-    meters $(( RW - 4 )) 0 0
-    box RES RESOURCES "$RW" "${METERS[@]}"
-    local RIGHT; stack RIGHT HEAD SYS RES
-    (( ${#RIGHT[@]} <= HMAX )) || return 1
-    picture "$pr"
-    local top=$(( (${#RIGHT[@]} - pr) / 2 )) LEFT=() i
-    for (( i = 0; i < top; i++ )); do LEFT+=("$(rep ' ' "$PW")"); done
-    LEFT+=("${PIC[@]}")
-    local GAP; blank GAP 2 "${#RIGHT[@]}"
-    side LEFT GAP RIGHT
-}
+def lay_panel():
+    global KW
+    if not (COLS >= 58 and HMAX >= 11): return None
+    W = min(COLS - 4, 100)
+    tall = HMAX >= 14                    # (short: no header box, the time in the machine box's edge)
+    mn = 40 if tall else 34
+    pr = min(HMAX - 2, 11); pw = pic_cols(pr)
+    while W - pw - 3 < mn + 4 and pr > 5:
+        pr -= 1; pw = pic_cols(pr)
+    RW = W - pw - 3
+    if RW < mn: return None
+    vw = RW - 4 - 3 - KW
+    names = ['os', 'kernel', 'packages', 'desktop', 'shell', 'uptime'] if HMAX >= 18 else ['os', 'kernel', 'desktop', 'uptime']
+    sys_ = box('MACHINE', RW, [fact(n, vw) for n in names])
+    if tall:
+        head = header(RW)
+        sys_[0] = edge(RW, '┏', '┓', f'{ic_user}  {B}{fit(user, 16)}{N}{F} @ {N}{B}{fit(host, 16)}{N}', '')
+    else:
+        head = []
+        sys_[0] = edge(RW, '┏', '┓', f'{B}{fit(user + "@" + host, RW - 16)}{N}', f'{ic_clock}  {B}{now_time}{N}')
+    right = head + sys_ + box('RESOURCES', RW, meters(RW - 4, False, False))
+    if len(right) > HMAX: return None
+    pw, pic = picture(pr)
+    return side(centred(pic, pw, len(right)), blank(2, len(right)), right)
 
-# compact: the header; a small picture, the system and the session side by
-# side; the resources (no network)
-lay_compact() {
-    (( COLS >= 64 && HMAX >= 13 )) || return 1
-    local W=$(( COLS - 4 )); (( W > 90 )) && W=90
-    header "$W"
-    picture 5
-    local RW=$(( W - PW - 2 )) hw vw
-    hw=$(( (RW - 1) / 2 )); vw=$(( hw - 4 - 3 - KW ))
-    (( hw >= 25 )) || return 1
-    box SYS SYSTEM "$hw" "$(fact os $vw)" "$(fact kernel $vw)" "$(fact packages $vw)"
-    box SES SESSION "$(( RW - 1 - hw ))" "$(fact desktop $vw)" "$(fact shell $vw)" "$(fact uptime $vw)"
-    side HEAD
-    side PIC SYS SES
-    meters $(( W - 4 )) $(( W >= 80 )) 0
-    box RES RESOURCES "$W" "${METERS[@]}"; side RES
-}
+def lay_compact():
+    if not (COLS >= 64 and HMAX >= 13): return None
+    W = min(COLS - 4, 90)
+    head = header(W)
+    pw = pic_cols(5)
+    RW = W - pw - 2; hw = (RW - 1) // 2; vw = hw - 4 - 3 - KW
+    if hw < 25: return None
+    pw, pic = picture(5)
+    sys_ = box('SYSTEM', hw, [fact('os', vw), fact('kernel', vw), fact('packages', vw)])
+    ses = box('SESSION', RW - 1 - hw, [fact('desktop', vw), fact('shell', vw), fact('uptime', vw)])
+    return side(head) + side(pic, sys_, ses) + side(box('RESOURCES', W, meters(W - 4, W >= 80, False)))
 
-# column: the picture on top, one box under it (who and when in its edges)
-lay_column() {
-    (( COLS >= 30 && HMAX >= 14 )) || return 1
-    local W=$(( COLS - 4 )); (( W > 44 )) && W=44
-    local pr=$(( HMAX - 10 )); (( pr > 7 )) && pr=7
-    (( pr >= 3 )) || return 1
-    picture "$pr"
-    local inner=$(( W - 4 )) vw=$(( W - 4 - 3 - KW ))
-    local i; for i in "${!PIC[@]}"; do printf '  %s%s\n' "$(rep ' ' $(( (W - PW) / 2 )))" "${PIC[i]}"; done
-    printf '\n'
-    meters "$inner" 0 0
-    box ONE "" "$W" "$(fact os $vw)" "$(fact desktop $vw)" "$(fact uptime $vw)" - "${METERS[@]}"
-    ONE[0]=$(edge "$W" ┏ ┓ "$B$(fit "$user" $(( W / 2 - 4 )))$N" "$ic_clock  $B$now_time$N")
-    ONE[-1]=$(edge "$W" ┗ ┛ "$F$now_day$N" "")
-    side ONE
-}
+def lay_column():
+    if not (COLS >= 30 and HMAX >= 14): return None
+    W = min(COLS - 4, 44)
+    pr = min(HMAX - 10, 7)
+    if pr < 3: return None
+    pw, pic = picture(pr)
+    inner = W - 4; vw = W - 4 - 3 - KW
+    out = ['  ' + ' ' * ((W - pw) // 2) + l for l in pic] + ['']
+    one = box('', W, [fact('os', vw), fact('desktop', vw), fact('uptime', vw), '-'] + meters(inner, False, False))
+    one[0] = edge(W, '┏', '┓', f'{B}{fit(user, W // 2 - 4)}{N}', f'{ic_clock}  {B}{now_time}{N}')
+    one[-1] = edge(W, '┗', '┛', f'{F}{now_day}{N}', '')
+    return out + side(one)
 
-# strip: the picture and one small box side by side, as many facts as fit;
-# no keys (the icons say what each is)
-lay_strip() {
-    (( COLS >= 26 && HMAX >= 5 )) || return 1
-    local KW=0
-    local h=$HMAX; (( h > 9 )) && h=9
-    local pr=$h BW
-    while :; do
-        PW=$(pic_cols "$pr")
-        BW=$(( COLS - 4 - PW - 2 )); (( BW > 30 )) && BW=30
-        (( BW >= 18 )) && break
-        (( --pr < 3 )) && { pr=0; PW=0; BW=$(( COLS - 4 )); (( BW > 30 )) && BW=30; break; }
-    done
-    local inner=$(( BW - 4 )) vw=$(( BW - 4 - 3 )) n=$(( h - 2 ))
-    # what goes in, by worth, as the height allows: then the facts above,
-    # the gauges below, a rule between when there is room
-    meters "$inner" 0 0
-    local all=("F$(fact os $vw)" "G${METERS[0]}")
-    [[ -n $bat ]] && all+=("G${METERS[2]}")
-    all+=("F$(fact uptime $vw)" "F$(fact desktop $vw)" "G${METERS[1]}")
-    local facts=() gauges=() e
-    for e in "${all[@]:0:$n}"; do [[ $e == F* ]] && facts+=("${e#F}") || gauges+=("${e#G}"); done
-    local lines=("${facts[@]}")
-    (( n - ${#facts[@]} - ${#gauges[@]} >= 1 && ${#facts[@]} > 0 && ${#gauges[@]} > 0 )) && lines+=(-)
-    lines+=("${gauges[@]}")
-    box ONE "" "$BW" "${lines[@]}"
-    ONE[0]=$(edge "$BW" ┏ ┓ "$B$(fit "$user" $(( BW - 14 )))$N" "$B$now_time$N")
-    if (( pr > 0 )); then
-        picture "$pr"
-        local top=$(( (${#ONE[@]} - pr) / 2 )) LEFT=() i
-        for (( i = 0; i < top; i++ )); do LEFT+=("$(rep ' ' "$PW")"); done
-        LEFT+=("${PIC[@]}")
-        local GAP; blank GAP 1 "${#ONE[@]}"
-        side LEFT GAP ONE
-    else
-        side ONE
-    fi
-}
+def lay_strip():
+    global KW
+    if not (COLS >= 26 and HMAX >= 5): return None
+    KW = 0                               # no keys: the icons say what each is
+    h = min(HMAX, 9); pr = h
+    while True:
+        pw = pic_cols(pr); BW = min(COLS - 4 - pw - 2, 30)
+        if BW >= 18: break
+        pr -= 1
+        if pr < 3:
+            pr = 0; pw = 0; BW = min(COLS - 4, 30); break
+    inner = BW - 4; vw = BW - 4 - 3; n = h - 2
+    m = meters(inner, False, False)
+    allf = [('F', fact('os', vw)), ('G', m[0])]
+    if bat: allf.append(('G', m[2]))
+    allf += [('F', fact('uptime', vw)), ('F', fact('desktop', vw)), ('G', m[1])]
+    facts = [l for k, l in allf[:n] if k == 'F']; gauges = [l for k, l in allf[:n] if k == 'G']
+    lines = facts + (['-'] if n - len(facts) - len(gauges) >= 1 and facts and gauges else []) + gauges
+    one = box('', BW, lines)
+    one[0] = edge(BW, '┏', '┓', f'{B}{fit(user, BW - 14)}{N}', f'{B}{now_time}{N}')
+    KW = 10
+    if pr > 0:
+        pw, pic = picture(pr)
+        return side(centred(pic, pw, len(one)), blank(1, len(one)), one)
+    return side(one)
 
-# tiny: the picture and the time, or the time alone
-lay_tiny() {
-    local pr=$(( HMAX - 1 )); (( pr > 5 )) && pr=5
-    while (( pr >= 3 )) && (( $(pic_cols "$pr") > COLS - 4 )); do (( pr-- )); done
-    if (( pr >= 3 )); then
-        picture "$pr"
-        local i; for i in "${!PIC[@]}"; do printf '  %s\n' "${PIC[i]}"; done
-    fi
-    printf '  %s  %s%s%s\n' "$ic_clock" "$B" "$now_time" "$N"
-}
+def lay_tiny():
+    pr = min(HMAX - 1, 5)
+    while pr >= 3 and pic_cols(pr) > COLS - 4: pr -= 1
+    out = []
+    if pr >= 3:
+        pw, pic = picture(pr)
+        out = ['  ' + l for l in pic]
+    return out + [f'  {ic_clock}  {B}{now_time}{N}']
 
-printf '\n'
-lay_wide || lay_classic || lay_panel || lay_compact || lay_column || lay_strip || lay_tiny
-printf '\n'
+for lay in (lay_wide, lay_classic, lay_panel, lay_compact, lay_column, lay_strip, lay_tiny):
+    PRE.clear()
+    lines = lay()
+    if lines is not None: break
+
+body = [''] + lines + ['']
+if REDRAW:
+    # over the screen in place, from its top: each line cleared to its end,
+    # the rest of the screen after it (and the history the reflow made)
+    out = '\x1b[3J\x1b[H' + ''.join(PRE) + '\x1b[K\n'.join(body) + '\x1b[K\n\x1b[J'
+else:
+    out = ''.join(PRE) + '\n'.join(body) + '\n'
+sys.stdout.write(out)
+sys.stdout.flush()

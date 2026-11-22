@@ -71,14 +71,21 @@ if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == (fo
     # window tiled smaller, the desk terminal lifted) draws it again for the
     # new size, instead of leaving the terminal to rewrap the old one.
     _ultra_card_fresh=1
+    grep -qs -e '--redraw' "${commands[ultra-card]}" && _ultra_card_redraw=1
     _ultra_card_used() { unset _ultra_card_fresh; }
     autoload -Uz add-zsh-hook
     add-zsh-hook preexec _ultra_card_used
     TRAPWINCH() {
         [[ -n ${_ultra_card_fresh:-} ]] || return 0
         zle && zle -I
-        print -n '\e[H\e[2J\e[3J'
-        ultra-card
+        # drawn over the old one in place, in one go (no blank moment), by a
+        # card that can; another: cleared, then drawn
+        if [[ -n ${_ultra_card_redraw:-} ]]; then
+            ultra-card --redraw
+        else
+            print -n '\e[H\e[2J\e[3J'
+            ultra-card
+        fi
         zle && zle reset-prompt
         return 0
     }
