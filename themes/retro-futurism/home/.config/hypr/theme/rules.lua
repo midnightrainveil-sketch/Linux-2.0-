@@ -18,8 +18,10 @@ local function alive(w)
 end
 
 ------------------------------------------------------------------ the terminal widget on the picture
--- At rest the picture holds one terminal, a widget floating low on its
--- left, 16:9 on any screen. ultra-desk (Super+D) puts it back here and
+-- At rest the picture holds one terminal, a widget floating in its left
+-- third, 16:9 on any screen: its right edge along the pole (the painting's
+-- own left third line), its middle on the lower third line, balancing her
+-- on the right third. ultra-desk (Super+D) puts it back here and
 -- opens it at login; keep the two in step. Super + F on it opens a
 -- fullscreen view of the same shell (class retro-futurism.desk-view), an
 -- ordinary window: the widget steps behind it, and is back when it closes.
@@ -27,8 +29,8 @@ hl.window_rule({
     name = "retro-futurism-desk",
     match = { class = "^retro-futurism\\.desk$" },
     float = true,
-    size = { "monitor_w*0.36", "monitor_w*0.2025" },
-    move = { "monitor_w*0.05", "monitor_h*0.555" },
+    size = { "monitor_w*0.2875", "monitor_w*0.16172" },
+    move = { "monitor_w*0.0198", "monitor_h*0.5375" },
 })
 
 -- It is part of the picture: every other window goes over it. Hyprland

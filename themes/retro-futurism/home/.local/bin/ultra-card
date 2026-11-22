@@ -13,8 +13,9 @@
 #             header, the system and the session side by side, the resources
 #   classic   2 (77 x 40): the header; the picture, the system over the
 #             session; the resources
-#   panel     3 (77 x 19), the terminal widget (74 x 17): the picture large,
-#             beside it the header, the machine and the resources stacked
+#   panel     3 (77 x 19), the terminal widget (65 x 15): the picture,
+#             beside it the header (when tall enough), the machine and the
+#             resources stacked
 #   compact   (shorter): the header; a small picture, the system and the
 #             session side by side; the resources
 #   column    4 (35 x 18): the picture on top, one box under it
@@ -306,20 +307,27 @@ lay_classic() {
 # the machine (system and session in one box) and the resources (the
 # terminal widget, and the third tiled terminal)
 lay_panel() {
-    (( COLS >= 72 && HMAX >= 14 )) || return 1
+    (( COLS >= 58 && HMAX >= 11 )) || return 1
     local W=$(( COLS - 4 )); (( W > 100 )) && W=100
+    # (short: no header box, the time goes into the machine box's edge)
+    local tall=$(( HMAX >= 14 )) min=34
+    (( tall )) && min=40
     local pr=$(( HMAX - 2 )); (( pr > 11 )) && pr=11
     PW=$(pic_cols "$pr")
-    while (( W - PW - 3 < 44 && pr > 5 )); do pr=$(( pr - 1 )); PW=$(pic_cols "$pr"); done
+    while (( W - PW - 3 < min + 4 && pr > 5 )); do pr=$(( pr - 1 )); PW=$(pic_cols "$pr"); done
     local RW=$(( W - PW - 3 )) vw
-    (( RW >= 40 )) || return 1
+    (( RW >= min )) || return 1
     vw=$(( RW - 4 - 3 - KW ))
-    header "$RW"
     local facts=("$(fact os $vw)" "$(fact kernel $vw)" "$(fact desktop $vw)" "$(fact uptime $vw)")
-    # (shell and packages too where the height allows)
     (( HMAX >= 18 )) && facts=("$(fact os $vw)" "$(fact kernel $vw)" "$(fact packages $vw)" "$(fact desktop $vw)" "$(fact shell $vw)" "$(fact uptime $vw)")
     box SYS MACHINE "$RW" "${facts[@]}"
-    SYS[0]=$(edge "$RW" ┏ ┓ "$ic_user  $B$(fit "$user" 16)$N$F @ $N$B$(fit "$host" 16)$N" "")
+    if (( tall )); then
+        header "$RW"
+        SYS[0]=$(edge "$RW" ┏ ┓ "$ic_user  $B$(fit "$user" 16)$N$F @ $N$B$(fit "$host" 16)$N" "")
+    else
+        HEAD=()
+        SYS[0]=$(edge "$RW" ┏ ┓ "$B$(fit "$user@$host" $(( RW - 16 )))$N" "$ic_clock  $B$now_time$N")
+    fi
     meters $(( RW - 4 )) 0 0
     box RES RESOURCES "$RW" "${METERS[@]}"
     local RIGHT; stack RIGHT HEAD SYS RES
