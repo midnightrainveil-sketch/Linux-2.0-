@@ -19,7 +19,7 @@ set -uo pipefail
 
 # its place and size: fractions of the screen's width (so 16:9 on any
 # screen) and height (as in hypr/theme/rules.lua)
-X=0.06 Y=0.60 W=0.30 H=0.16875
+X=0.05 Y=0.555 W=0.36 H=0.2025
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/retro-futurism/desk.tmux.conf"
 session=(tmux -L ultra-desk -f "$conf")
 attach=("${session[@]}" new-session -A -s desk -e ULTRA_DESK=1 zsh)
@@ -65,7 +65,7 @@ fi
 
 addr=$(address_of retro-futurism.desk) || true
 if [[ -z ${addr:-} ]]; then
-    once desk && ghostty_with retro-futurism.desk 10 14 10 "${attach[@]}"   # rules.lua floats it and puts it in place
+    once desk && ghostty_with retro-futurism.desk 11 16 12 "${attach[@]}"   # rules.lua floats it and puts it in place
     exit 0
 fi
 

@@ -27,8 +27,8 @@ hl.window_rule({
     name = "retro-futurism-desk",
     match = { class = "^retro-futurism\\.desk$" },
     float = true,
-    size = { "monitor_w*0.30", "monitor_w*0.16875" },
-    move = { "monitor_w*0.06", "monitor_h*0.60" },
+    size = { "monitor_w*0.36", "monitor_w*0.2025" },
+    move = { "monitor_w*0.05", "monitor_h*0.555" },
 })
 
 -- It is part of the picture: every other window goes over it. Hyprland
