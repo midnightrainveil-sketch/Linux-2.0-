@@ -62,6 +62,8 @@ fi
 # (ultra-card is the theme's own: a theme without one simply has no card)
 if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == (foot*|xterm-ghostty|xterm-kitty) && -z ${ULTRA_CARDED:-} \
       && ! -e ${XDG_CONFIG_HOME:-$HOME/.config}/ultra/card-desk-only ]]; }; then
+    # (the desk terminal, the home screen's widget: remembered, for `clear`)
+    [[ -n ${ULTRA_DESK:-} ]] && _ultra_widget=1
     unset ULTRA_DESK
     export ULTRA_CARDED=1
     ultra-card
@@ -80,4 +82,15 @@ if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == (fo
         zle && zle reset-prompt
         return 0
     }
+    # In the desk terminal only, `clear` puts it back as it opened: the
+    # screen and its history wiped (tmux's too, under the widget), the card
+    # drawn fresh, and redrawn again on a resize until a command runs.
+    if [[ -n ${_ultra_widget:-} ]]; then
+        clear() {
+            print -n '\e[H\e[2J\e[3J'
+            [[ -n ${TMUX:-} ]] && tmux clear-history 2>/dev/null
+            ultra-card
+            _ultra_card_fresh=1
+        }
+    fi
 fi
