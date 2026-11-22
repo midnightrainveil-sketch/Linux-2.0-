@@ -14,6 +14,6 @@ Mock-ups and references for Retro Futurism: the pictures to match.
 | Notifications | [Notification](Notification.png) |
 | Power menu | [Power](Power.png) |
 | Login | [Login0](Login0.png), [Login1](Login1.png) |
-| Lock screen | **[Lockscreen](Lockscreen.png)** (the one to use: between the two in warmth, the mole made clearer); [Lockscreen-blank](Lockscreen-blank.png) (the same with the clock's window empty, for the live clock); the sources [Lockscreen1](Lockscreen1.png), [Lockscreen2](Lockscreen2.png) |
+| Lock screen | **[Lock-Platform](Lock-Platform.webp)** (the one in use) and [Lock-Platform-Empty](Lock-Platform-Empty.webp) (she has boarded); [Lock-Car](Lock-Car.webp) (the empty car, for later); the old room: [Lockscreen](Lockscreen.png), [Lockscreen-blank](Lockscreen-blank.png), [Lockscreen1](Lockscreen1.png), [Lockscreen2](Lockscreen2.png) |
 | File icons | [FileIcons](FileIcons.png) |
 | Cursors | [Cursors](Cursors.png) |

@@ -9,14 +9,20 @@ import qs.components
 
 // The lock screen, and the way back in.
 //
-//   at rest     the room at night; the Suisei clock on the night stand keeps
-//               the time and the date. Lock with: qs ipc call lock lock
+//   at rest     the platform at dusk, she waiting for the train, its
+//               headlights coming; up in the sky the split-flap departure
+//               board (the time, your desk's departure: ON TIME), along the
+//               foot the machine's state. Lock with: qs ipc call lock lock
 //               (Super + Escape, the idle timer, the lid)
-//   woken       by any key or click (the key counts): the room blurs and the
+//   woken       by any key or click (the key counts): the platform blurs and the
 //               Personal Access Pass drops down (art/Login1.png): who you
 //               are, today, a dot for each key of your password, what it is
-//               doing. Left alone 25 s with nothing typed, it goes again.
-//   unlocked    the pass shoots back up, the blur clears, the room fades into
+//               doing; the board reads BOARDING, CHECKING, HELD for a wrong
+//               key (the signal red). Left alone 25 s with nothing typed, it
+//               goes again.
+//   unlocked    the signal turns green, she has boarded (the platform without
+//               her), the board flips to DEPARTED; the pass shoots back up,
+//               the blur clears, the platform fades into
 //               the desk (the city outside the window where the desk has it),
 //               and the lock lets go; the taskbar comes up from below.
 //
@@ -28,8 +34,8 @@ import qs.components
 // USER clears the key, SESSION puts the pass away, the roller enters. Keys:
 // type, Enter, Backspace, Esc (clear; again, away).
 //
-// The room is ~/.local/share/ultra/retro-futurism/lock.jpg (its clock's
-// window emptied); the pass is assets/pass.png (tools/make_pass.py), what
+// The platform is ~/.local/share/ultra/retro-futurism/lock.jpg, and
+// lock-boarded.jpg without her (tools/make_lock.py); the pass is assets/pass.png (tools/make_pass.py), what
 // is on it drawn here in the mock-up's own pixels (pass.png starts at 38, 26).
 Scope {
     id: room
@@ -39,6 +45,7 @@ Scope {
     property bool busy: false
     property bool awake: false         // the pass is out
     property bool leaving: false       // let in: on the way to the desk
+    readonly property bool boarded: verdict === "ok"      // she has got on (the signal green)
     // the device's two faces: "pass" (the key) and "power" (◀◀ / ▶▶ turn
     // it; any power button turns it to power, with that choice made: nothing
     // is done until it is confirmed)
@@ -176,7 +183,7 @@ Scope {
     // let in: "boarding" a moment, then away to the desk, then the lock lets go
     SequentialAnimation {
         id: letIn
-        PauseAnimation { duration: 300 }
+        PauseAnimation { duration: 650 }
         ScriptAction { script: room.leaving = true }
         PauseAnimation { duration: 640 }
         ScriptAction { script: sessionLock.locked = false }
@@ -245,7 +252,18 @@ Scope {
                     smooth: true
                     mipmap: true
                 }
-                readonly property real iw: picture.implicitWidth > 0 ? picture.implicitWidth : 1671
+                // she has boarded: the same platform without her
+                Image {
+                    anchors.fill: parent
+                    source: Settings.art + "/lock-boarded.jpg"
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                    mipmap: true
+                    opacity: room.boarded ? 1 : 0
+                    visible: opacity > 0.001
+                    Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.InOutQuad } }
+                }
+                readonly property real iw: picture.implicitWidth > 0 ? picture.implicitWidth : 1672
                 readonly property real ih: picture.implicitHeight > 0 ? picture.implicitHeight : 941
                 readonly property real k: Math.max(width / iw, height / ih)          // picture px -> screen
                 readonly property real ox: (width - iw * k) / 2
@@ -253,37 +271,50 @@ Scope {
                 function px(x) { return ox + x * k; }
                 function py(y) { return oy + y * k; }
 
-                readonly property var days: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
-                readonly property var months: ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-                SevenSegment {
-                    // the clock's window: 100,634 to 254,711, turned a little
-                    x: roomPicture.px(100); y: roomPicture.py(634)
-                    width: 154 * roomPicture.k; height: 77 * roomPicture.k
-                    rotation: -1.3
-                    visible: picture.status === Image.Ready
-                    text: Qt.formatTime(tick.date, "hh:mm")
-                    colon: tick.date.getSeconds() % 2 === 0
+                // ---- the platform's lights. The train's headlights, coming
+                // closer: their glow breathes. The signal: amber at rest; red
+                // a moment for a wrong key; green as you are let in.
+                component Glow: Image {
+                    required property real cx
+                    required property real cy
+                    property real r: 20                  // the halo's radius, picture px
+                    x: roomPicture.px(cx) - width / 2; y: roomPicture.py(cy) - height / 2
+                    width: 2 * r * roomPicture.k; height: width
+                    smooth: true
                 }
-                DotMatrix {
-                    // the date strip: 114,723 to 218,740
-                    x: roomPicture.px(114); y: roomPicture.py(723)
-                    width: 104 * roomPicture.k; height: 17 * roomPicture.k
-                    rotation: -1.0
-                    unit: roomPicture.k
-                    pitch: 1.45
-                    visible: picture.status === Image.Ready
-                    text: roomPicture.days[tick.date.getDay()] + " " + tick.date.getDate() + " " + roomPicture.months[tick.date.getMonth()]
+                Repeater {
+                    model: [[1212.5, 614.5], [1247.5, 614]]
+                    Glow {
+                        required property var modelData
+                        cx: modelData[0]; cy: modelData[1]; r: 26
+                        source: Settings.art + "/lock/glow-warm.png"
+                        SequentialAnimation on opacity {
+                            running: sessionLock.locked; loops: Animation.Infinite
+                            NumberAnimation { from: 0.35; to: 0.85; duration: 2600; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.85; to: 0.35; duration: 2600; easing.type: Easing.InOutSine }
+                        }
+                    }
                 }
-                // the cassette player on the bed, playing while music plays
-                CassettePlay {
-                    anchors.fill: parent
-                    visible: picture.status === Image.Ready
-                    which: "lock"
-                    ox: roomPicture.ox; oy: roomPicture.oy; k: roomPicture.k
-                    reels: [[880, 761.25], [949, 759.5]]
-                    reelSize: 34
-                    meter: Qt.rect(1009, 723, 51, 34)
-                    bars: 6; barX: 1017; barStep: 6; barW: 5; barFoot: 748.5; barMax: 15
+                // the signal: its lit lamp put out (the housing's dark) for
+                // green, then green in the lamp above it
+                Rectangle {
+                    x: roomPicture.px(862.5 - 6) ; y: roomPicture.py(579.5 - 6)
+                    width: 12 * roomPicture.k; height: width; radius: width / 2
+                    color: "#26272d"
+                    opacity: room.boarded ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 160 } }
+                }
+                Glow {
+                    cx: 861; cy: 564; r: 22
+                    source: Settings.art + "/lock/glow-green.png"
+                    opacity: room.boarded ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 160 } }
+                }
+                Glow {
+                    cx: 862.5; cy: 579.5; r: 22
+                    source: Settings.art + "/lock/glow-red.png"
+                    opacity: room.verdict === "wrong" ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
                 }
             }
             MultiEffect {
@@ -357,7 +388,12 @@ Scope {
                 anchors.fill: parent
                 s: Math.max(0.6, Math.min(surface.width / 1920, surface.height / 1080))
                 now: tick.date
-                opacity: Math.max(0, Math.min(1, 1 - Math.max(room.passLevel, room.homeLevel)))
+                woken: Math.max(0, Math.min(1, room.passLevel))
+                status: room.verdict === "ok" ? "DEPARTED"
+                    : room.busy ? "CHECKING"
+                    : room.verdict === "wrong" ? "HELD"
+                    : room.awake ? "BOARDING" : "ON TIME"
+                opacity: Math.max(0, Math.min(1, 1 - room.homeLevel))
                 visible: opacity > 0.01
             }
 

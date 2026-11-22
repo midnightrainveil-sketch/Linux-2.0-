@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# The cassette players in the two pictures, made to play: each reel cut out
+# The cassette player in the wallpaper, made to play: each reel cut out
 # as a disc (its centre found where the reel looks most alike turned a
 # quarter, so it spins without a wobble), and each level meter's window with
 # its painted bars taken out (the shell lights its own, to the music).
 #   python3 tools/make_cassette.py home/.local/share/ultra/retro-futurism
-# reads wallpaper.jpg and lock.jpg there, writes cassette/*.png and prints
-# where each part goes (picture pixels; modules/Backdrop.qml, Lock.qml).
+# reads wallpaper.jpg there, writes cassette/*.png and prints where each
+# part goes (picture pixels; modules/Backdrop.qml).
 # (pip: numpy pillow opencv-python-headless)
 import os, sys
 import numpy as np, cv2
@@ -18,8 +18,6 @@ PARTS = {
     # picture: (reels (rough centre, radius), meter window, its bars' box)
     'home': ('wallpaper.jpg', [((2404, 1518), 22), ((2502, 1523), 22)],
              (2596, 1468, 2676, 1522), (2604, 1479, 2667, 1514)),
-    'lock': ('lock.jpg', [((880, 761), 14), ((949, 760), 14)],
-             (1009, 723, 1060, 757), (1014, 730, 1055, 752)),
 }
 
 

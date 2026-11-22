@@ -100,14 +100,24 @@ notifications are plain cream cards at the top right until it is.
 look is gone from it now.)
 
 
-## How the lock screen's clock is made
+## How the lock screen is made
 
-`home/.local/share/ultra/retro-futurism/lock.jpg` is `art/Lockscreen.png`
-with the clock's window and date strip emptied (also kept as
-`art/Lockscreen-blank.png`). `modules/Lock.qml` fills the screen with it and
-places the live parts in the picture's own pixels (1671 x 941):
-`components/SevenSegment.qml` in the window (100,634 to 254,711) and
-`components/DotMatrix.qml` in the date strip (114,723 to 218,740).
+The lock screen is a station platform at dusk: she waits for the train
+whose headlights are coming round the bend. `tools/make_lock.py` writes
+`lock.jpg` (`art/Lock-Platform.webp`) and `lock-boarded.jpg`
+(`art/Lock-Platform-Empty.webp`, the same platform without her) and the
+glows laid on it (`lock/`). On it, `modules/Lock.qml` breathes the
+headlights' glow, and lights the signal red for a wrong key, then green
+as you are let in, when the platform fades to the one without her: she has
+boarded.
+
+The clock is a split-flap departure board (`components/DepartureBoard.qml`,
+of `FlapTile` cards that flip as the real ones do, card by card): the time,
+your desk's departure and its status (ON TIME, BOARDING, CHECKING, HELD,
+DEPARTED), and what is playing. It and a strip along the foot (how to get
+in, notifications, Wi-Fi, the battery) are a flat, see-through layer on the
+glass (`components/LockOverlay.qml`). `art/Lock-Car.webp`, the empty car,
+is kept for later.
 
 ## How the window's view is made
 
@@ -132,13 +142,12 @@ places the live parts in the picture's own pixels (1671 x 941):
   wide where her hair is; her loose strands kept for the matte to weigh;
   her colour there with the view behind taken back out; bits of the old
   view that are not her taken out; the reflected ceiling lights kept.
-- `tools/make_cassette.py` cuts the cassette players' moving parts from
-  `wallpaper.jpg` and `lock.jpg` (`cassette/`): each reel as a disc,
+- `tools/make_cassette.py` cuts the cassette player's moving parts from
+  `wallpaper.jpg` (`cassette/`): each reel as a disc,
   centred where it looks most alike turned a quarter (so it spins without
   a wobble), and each level meter's window with its painted bars taken out.
   While music plays, `components/CassettePlay.qml` turns the reels and
   lights the meter's bars to the music (`services/Spectrum.qml`: six bands
-  from `cava`, with a stand-in if cava is missing), on the desk and on the
-  lock screen alike.
+  from `cava`, with a stand-in if cava is missing).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
