@@ -2,12 +2,13 @@
 # The picture beside the terminal's greeting (ultra-card): any image drawn
 # in quadrant blocks (each text cell split 2 x 2, the terminal draws them
 # whole), borderless; ink where the picture is dark, or where it is opaque
-# when it has transparency. Without an image, the Arch logo.
+# when it has transparency. Without an image, a smiling face (a stand-in
+# until a picture is chosen).
 #
 #   python3 tools/make_card_art.py [picture.png] [rows] \
 #       > home/.local/share/ultra/retro-futurism/card-art.txt
 #
-# rows: how many lines tall (11). The width follows the picture, in the
+# rows: how many lines tall (9). The width follows the picture, in the
 # terminal's cell proportions (a cell is about 0.42 as wide as it is tall).
 # (pip: numpy pillow)
 import sys
@@ -18,22 +19,19 @@ CELL = 0.42                      # a terminal cell's width over its height
 QUAD = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
 
 src = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].isdigit() else None
-rows = int(next((a for a in sys.argv[1:] if a.isdigit()), 11))
+rows = int(next((a for a in sys.argv[1:] if a.isdigit()), 9))
 
 
-def arch_logo(size=1200):
-    """the Arch logo: the peak, and the arch cut out of its foot"""
+def smile(size=1200):
+    """a smiling face: a ring, two eyes, a smile"""
     im = Image.new('L', (size, size), 0)
     d = ImageDraw.Draw(im)
     s = size
-    d.polygon([(0.50 * s, 0.00 * s), (0.97 * s, 1.00 * s), (0.03 * s, 1.00 * s)], fill=255)
-    # the arch: a rounded opening in its foot
-    d.polygon([(0.50 * s, 0.50 * s), (0.71 * s, 1.00 * s), (0.29 * s, 1.00 * s)], fill=0)
-    d.ellipse([0.36 * s, 0.50 * s, 0.64 * s, 0.82 * s], fill=0)
-    d.polygon([(0.36 * s, 0.68 * s), (0.64 * s, 0.68 * s), (0.71 * s, 1.0 * s), (0.29 * s, 1.0 * s)], fill=0)
-    # its feet, a touch swept out
-    d.polygon([(0.03 * s, 1.0 * s), (0.17 * s, 0.86 * s), (0.20 * s, 1.0 * s)], fill=255)
-    d.polygon([(0.97 * s, 1.0 * s), (0.83 * s, 0.86 * s), (0.80 * s, 1.0 * s)], fill=255)
+    d.ellipse([0.02 * s, 0.02 * s, 0.98 * s, 0.98 * s], fill=255)
+    d.ellipse([0.12 * s, 0.12 * s, 0.88 * s, 0.88 * s], fill=0)
+    for x in (0.36, 0.64):                                    # the eyes
+        d.ellipse([(x - 0.065) * s, 0.30 * s, (x + 0.065) * s, 0.47 * s], fill=255)
+    d.arc([0.27 * s, 0.30 * s, 0.73 * s, 0.74 * s], 25, 155, fill=255, width=int(0.085 * s))
     return im
 
 
@@ -46,7 +44,7 @@ if src:
     bbox = ink.point(lambda v: 255 if v > 40 else 0).getbbox()
     if bbox: ink = ink.crop(bbox)
 else:
-    ink = arch_logo()
+    ink = smile()
 
 w, h = ink.size
 cols = max(1, round(w / h * rows / CELL))
