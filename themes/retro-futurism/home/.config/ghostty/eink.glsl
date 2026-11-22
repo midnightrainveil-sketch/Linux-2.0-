@@ -21,7 +21,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                      texture(iChannel0, uv - vec2(px.x, 0.0)).rgb),
                  min(texture(iChannel0, uv + vec2(0.0, px.y)).rgb,
                      texture(iChannel0, uv - vec2(0.0, px.y)).rgb));
-    vec3 col = mix(c.rgb, min(c.rgb, n), 0.16);
+    vec3 col = mix(c.rgb, min(c.rgb, n), 0.32);
 
     // the glass: lighter at the top left, darker toward the foot and right
     // (uv.y is 1 at the top)

@@ -162,17 +162,17 @@ left, the rim's shadow along its top and the ink spreading a hair, as e-ink
 does; it is drawn once per change of the text (nothing animates). The
 palette is greys and a few muted inks (the deck's indigo, a dull rust).
 
-The greeting is `ultra-card` (`home/.local/bin`), in black and white,
-each fact with its icon (Nerd Font symbols, which Ghostty carries): a
-header box (the name, who and where, the date and time); at the left,
-borderless, a picture; beside it the system and the session, each in a box
-titled in its top edge; and the resources as thin gauges. The picture is
-`card-art.txt`, drawn in quadrant blocks by `tools/make_card_art.py`: a
-smiling face until one is chosen, or any image:
+The greeting is `ultra-card` (`home/.local/bin`): in black and white,
+heavy as e-ink is (thick borders, solid gauges, Medium and ExtraBold type),
+each fact with its icon (Nerd Font symbols, which Ghostty carries), a
+picture borderless beside the boxes. Hyprland tiles terminals by halving
+the newest, so it has a layout for each size and takes the richest that
+fits the width and the height: wide (one terminal), classic (two), compact
+(three), a column (four), a strip (five, and the desk terminal), and the
+picture with the time (six on). The picture is the `card-art` folder,
+made by `tools/make_card_art.py` from any drawing (`art/Card-Cat.webp`, the
+sleeping cat): the drawing itself where the terminal shows pictures
+(Ghostty or kitty, not over SSH or in tmux), quadrant blocks elsewhere.
 
-    python3 tools/make_card_art.py picture.png 9 \
-        > home/.local/share/ultra/retro-futurism/card-art.txt
-
-It reads the machine itself rather than through fastfetch (quicker, and
-the same on every version) and fits the window: everything from 80
-columns, without the picture from 56, two small boxes below that.
+    python3 tools/make_card_art.py art/Card-Cat.webp \
+        home/.local/share/ultra/retro-futurism/card-art

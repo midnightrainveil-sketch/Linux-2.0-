@@ -5,8 +5,10 @@
 
 # ---- type
 font-family = JetBrains Mono
-font-size = 13
-# bold stands out: the heaviest weight (the theme's fonts carry it)
+font-size = 14
+# heavy, as e-ink type is: Medium for the text, the heaviest weight for
+# bold (the theme's fonts carry both)
+font-style = Medium
 font-style-bold = ExtraBold
 adjust-cell-height = 8%
 
@@ -49,7 +51,7 @@ palette = 4=#4d518f
 palette = 5=#6b4d68
 palette = 6=#3d605d
 palette = 7=#8e8d88
-palette = 8=#6e6d68
+palette = 8=#565550
 palette = 9=#a3553f
 palette = 10=#5f7155
 palette = 11=#8c7639
