@@ -103,7 +103,10 @@ PanelWindow {
         readonly property real iw: 3840
         readonly property real ih: 2160
         readonly property real k: Math.max(width / iw, height / ih)
-        readonly property real ox: (width - iw * k) / 2
+        // (what is cropped off at the sides, where the screen is narrower than
+        // the picture: a little more of it at the right, 27 to 73, so the
+        // scene sits a touch to the right)
+        readonly property real ox: (width - iw * k) * 0.27
         readonly property real oy: (height - ih * k) / 2
 
         // the whole picture (its glass is covered: by the view, then the front)

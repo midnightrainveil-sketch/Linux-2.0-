@@ -345,7 +345,7 @@ Scope {
                 readonly property real iw: 3840
                 readonly property real ih: 2160
                 readonly property real k: Math.max(width / iw, height / ih)
-                readonly property real ox: (width - iw * k) / 2
+                readonly property real ox: (width - iw * k) * 0.27          // as the desk has it (Backdrop.qml)
                 readonly property real oy: (height - ih * k) / 2
                 Image {
                     x: home.ox; y: home.oy

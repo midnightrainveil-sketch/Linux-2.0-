@@ -21,7 +21,7 @@ set -uo pipefail
 
 # its place and size: fractions of the screen's width (so 16:9 on any
 # screen) and height (as in hypr/theme/rules.lua)
-X=0.0677 Y=0.5167 W=0.3333 H=0.1875
+X=0.0927 Y=0.5167 W=0.3333 H=0.1875
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/retro-futurism/desk.tmux.conf"
 session=(tmux -L ultra-desk -f "$conf")
 attach=("${session[@]}" new-session -A -s desk -e ULTRA_DESK=1 zsh)
