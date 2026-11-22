@@ -5,7 +5,9 @@
 
 # ---- type
 font-family = JetBrains Mono
-font-size = 12
+font-size = 13
+# bold stands out: the heaviest weight (the theme's fonts carry it)
+font-style-bold = ExtraBold
 adjust-cell-height = 8%
 
 # ---- the screen

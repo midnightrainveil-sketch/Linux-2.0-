@@ -162,16 +162,17 @@ left, the rim's shadow along its top and the ink spreading a hair, as e-ink
 does; it is drawn once per change of the text (nothing animates). The
 palette is greys and a few muted inks (the deck's indigo, a dull rust).
 
-The greeting is `ultra-card` (`home/.local/bin`): a picture at the left,
-borderless, and one box beside it, who and where set in its top edge with
-the time, the date and the theme's name in its bottom edge; inside, the
-machine in five lines, a rule, and gauges for memory, the disk and the
-battery. The picture is `card-art.txt`, any image drawn in quadrant blocks
-by `tools/make_card_art.py` (the Arch logo until another is chosen):
+The greeting is `ultra-card` (`home/.local/bin`), in black and white:
+a header box (the name, who and where, the date and time); at the left,
+borderless, the cassette (its reels full while something plays) and what
+is playing; beside it the system and the session, each in a box titled in
+its top edge; and the resources as thin gauges. A picture of your own
+takes the cassette's place: `card-art.txt`, any image drawn in quadrant
+blocks by `tools/make_card_art.py`:
 
     python3 tools/make_card_art.py picture.png 11 \
         > home/.local/share/ultra/retro-futurism/card-art.txt
 
 It reads the machine itself rather than through fastfetch (quicker, and
-the same on every version) and fits the window: the picture and the box,
-the box alone, and a small box for the desk terminal.
+the same on every version) and fits the window: everything from 80
+columns, without the cassette from 56, two small boxes below that.

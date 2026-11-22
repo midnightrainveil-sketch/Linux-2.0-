@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# ultra-card: the terminal's greeting. A picture at the left, borderless
-# (card-art.txt: any image, drawn by tools/make_card_art.py; the Arch logo
-# until then), and one box beside it: who and where in its top edge, the
-# time at its right; the machine in five lines; a rule; three gauges; the
-# date and the theme's name in its bottom edge.
+# ultra-card: the terminal's greeting, as boxed panels in black and white,
+# the theme's e-ink: a header (the name, who and where, the date and time);
+# at the left, borderless, the cassette (its reels full while something
+# plays) and what is playing; beside it the system and the session; and
+# the resources as gauges. A picture of your own takes the cassette's
+# place: card-art.txt (tools/make_card_art.py).
 #
 # It reads the machine itself (no fastfetch: quicker, and the same on every
-# version) and fits the window: the picture and the box from 72 columns,
-# the box alone below that, three lines in it for the small desk terminal.
+# version) and fits the window: every panel from 80 columns, without the
+# tape from 56, two small panels below that (the desk terminal).
 # zsh runs it as a terminal opens; `ff` does too.
 #
 #   ultra-card
@@ -17,16 +18,21 @@ shopt -s extglob
 export LC_ALL="${LC_ALL:-C.UTF-8}"      # (character counts, not bytes)
 
 cols=${ULTRA_CARD_COLS:-$(tput cols 2>/dev/null || echo 80)}
-art_file="${XDG_DATA_HOME:-$HOME/.local/share}/ultra/retro-futurism/card-art.txt"
+(( cols > 86 )) && W=86 || W=$cols
+W=$(( W - 2 ))                          # (the card is drawn two columns in)
 
-# ---- inks (the terminal's palette): bold, faint, indigo, rust
-B=$'\e[1m' F=$'\e[90m' I=$'\e[34m' R=$'\e[31m' N=$'\e[0m'
+# ---- inks: black and white only (bold, faint; a gauge's warning is bold)
+B=$'\e[1m' F=$'\e[90m' I=$'\e[1m' R=$'\e[1m' N=$'\e[0m'
+art_file="${XDG_DATA_HOME:-$HOME/.local/share}/ultra/retro-futurism/card-art.txt"
 
 # ---- the machine
 user=${USER:-$(id -un)}
 host=$(cat /etc/hostname 2>/dev/null || uname -n); host=${host%%$'\n'*}
 os=$(. /etc/os-release 2>/dev/null; echo "${NAME:-Linux}")
 kernel=$(uname -r)
+if command -v pacman >/dev/null; then pkgs=$(pacman -Qq 2>/dev/null | wc -l)
+elif command -v dpkg-query >/dev/null; then pkgs=$(dpkg-query -f '.\n' -W 2>/dev/null | wc -l)
+else pkgs="?"; fi
 desktop=${XDG_CURRENT_DESKTOP:-tty}
 shell_name=$(basename "${SHELL:-sh}")
 shell_ver=$("$shell_name" --version 2>/dev/null | head -n1 | grep -oE '[0-9]+(\.[0-9]+)+' | head -n1)
@@ -34,6 +40,7 @@ read -r up _ </proc/uptime; up=${up%.*}
 if (( up >= 86400 )); then uptime="$((up / 86400))d $((up % 86400 / 3600))h"
 elif (( up >= 3600 )); then uptime="$((up / 3600))h $((up % 3600 / 60))m"
 else uptime="$((up / 60))m"; fi
+
 mem_total=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
 mem_used=$(( mem_total - $(awk '/^MemAvailable:/ {print $2}' /proc/meminfo) ))
 read -r disk_total disk_used < <(df -B1 --output=size,used / 2>/dev/null | tail -n1)
@@ -42,94 +49,155 @@ for b in /sys/class/power_supply/BAT*; do
     [[ -r $b/capacity ]] || continue
     bat=$(<"$b/capacity"); bat_state=$(<"$b/status"); break
 done
+net=""
+if command -v nmcli >/dev/null; then
+    net=$(timeout 0.5 nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
+          | awk -F: '$2 !~ /loopback|bridge|tun|wireguard/ {print $1; exit}')
+fi
+tape_title="" tape_artist=""
+if command -v playerctl >/dev/null && [[ $(timeout 0.5 playerctl status 2>/dev/null) == Playing ]]; then
+    tape_title=$(timeout 0.5 playerctl metadata title 2>/dev/null)
+    tape_artist=$(timeout 0.5 playerctl metadata artist 2>/dev/null)
+fi
 
 # ---- drawing
 rep() { local s="" n=$2; while (( n-- > 0 )); do s+=$1; done; printf '%s' "$s"; }
 vis() { local s=${1//$'\e['*([0-9;])m/}; echo "${#s}"; }          # its width, inks left out
 fit() { local s=$1 n=$2; (( n < 1 )) && return; (( ${#s} > n )) && s="${s:0:n-1}…"; printf '%s' "$s"; }
 pad() { local s=$1 n=$2; printf '%s%s' "$s" "$(rep ' ' $((n - $(vis "$s"))))"; }
+gib() { awk -v b="$1" 'BEGIN { v = b / 1073741824; printf (v >= 100 ? "%.0f" : "%.1f"), v }'; }
 pct() { (( $2 > 0 )) && echo $(( $1 * 100 / $2 )) || echo 0; }
-# a gauge: n cells of heavy line, ink as far as p percent, faint after
+
+# box <out array> <title> <width> <line>...: a rounded box, its title set
+# in its top edge, each line padded to fill it
+box() {
+    local -n out=$1; local title=$2 w=$3 line top
+    shift 3
+    out=()
+    if [[ -n $title ]]; then
+        top="$F╭─$N $I$B$title$N $F$(rep '─' $((w - 5 - ${#title})))╮$N"
+    else
+        top="$F╭$(rep '─' $((w - 2)))╮$N"
+    fi
+    out+=("$top")
+    for line in "$@"; do out+=("$F│$N $(pad "$line" $((w - 4))) $F│$N"); done
+    out+=("$F╰$(rep '─' $((w - 2)))╯$N")
+}
+# side <boxes...> (names of arrays): print them side by side, a column apart,
+# the shorter ones carried down with blank space their width
+side() {
+    local names=("$@") rows=0 r n line w
+    for n in "${names[@]}"; do local -n a=$n; (( ${#a[@]} > rows )) && rows=${#a[@]}; done
+    for (( r = 0; r < rows; r++ )); do
+        line="  "
+        for n in "${names[@]}"; do
+            local -n a=$n
+            w=$(vis "${a[0]}")
+            line+="$(pad "${a[r]:-}" "$w") "
+        done
+        printf '%s\n' "${line% }"
+    done
+}
+# a key and its value
+kv() { printf '%s%s%s%s' "$F" "$(pad "$1" 9)" "$N" "$2"; }
+# a gauge: n cells of heavy line, ink as far as used/total, faint after
 gauge() {
-    local p=$1 n=$2 warn=${3:-0} f ink=""
-    f=$(( (p * n + 50) / 100 )); (( f > n )) && f=$n
+    local used=$1 total=$2 n=$3 warn=${4:-0} f ink=""
+    (( total > 0 )) && f=$(( (used * n + total / 2) / total )) || f=0
     (( warn )) && ink=$R
     printf '%s%s%s%s%s' "$ink" "$(rep '━' "$f")" "$F" "$(rep '━' $((n - f)))" "$N"
 }
-# an edge of the box, words set into it at both ends:  ╭─ left ─────── right ─╮
-edge() {    # edge <width> <left corner> <right corner> <left words> <right words>
-    local w=$1 lc=$2 rc=$3 l=$4 r=$5 fill
-    fill=$(( w - 2 - 2 - $(vis "$l") - 2 - $(vis "$r") - 2 ))
-    [[ -z $l ]] && fill=$(( fill + 3 ))
-    [[ -z $r ]] && fill=$(( fill + 3 ))
-    printf '%s%s─%s' "$F" "$lc" "$N"
-    [[ -n $l ]] && printf ' %s %s' "$l" ""
-    printf '%s%s%s' "$F" "$(rep '─' "$fill")" "$N"
-    [[ -n $r ]] && printf ' %s ' "$r"
-    printf '%s─%s%s' "$F" "$rc" "$N"
-}
 
+now_day=$(date '+%a %-d %b' | tr '[:lower:]' '[:upper:]')
+now_time=$(date '+%H:%M')
 mem_p=$(pct "$mem_used" "$mem_total")
 disk_p=$(pct "${disk_used:-0}" "${disk_total:-0}")
 bat_low=0; [[ -n $bat && $bat_state != Charging ]] && (( bat <= 15 )) && bat_low=1
-bat_mark=""; [[ $bat_state == Charging ]] && bat_mark=" ↑"
+bat_word=""; case $bat_state in Charging) bat_word=charging ;; Full) bat_word=full ;; Discharging) bat_word="on battery" ;; esac
 
-# the box, `w` wide, into the array BOX
-make_box() {
-    local w=$1 small=${2:-0} inner kw=9 vw g rows=() r
-    inner=$(( w - 4 ))
-    vw=$(( inner - kw ))
-    kv() { printf '%s%s%s%s' "$F" "$(pad "$1" "$kw")" "$N" "$(fit "$2" "$vw")"; }
-    meter() {    # meter <key> <percent> <warn> <mark>
-        local tail="$B$2%$N$4"
-        g=$(( inner - 6 - 6 ))
-        printf '%s%s%s%s%s%s' "$F" "$(pad "$1" 6)" "$N" "$(gauge "$2" "$g" "$3")" \
-            "$(rep ' ' $(( inner - 6 - g - $(vis "$tail") )))" "$tail"
+# the header: the name at the left, who, where and when at the right
+header_box() {    # header_box <width>
+    local w=$1 inner left right
+    inner=$((w - 4))
+    left="${B}MAGNETIC 88$N"
+    right="$B$user$N$F @ $N$B$host$N   $F$now_day ·$N $B$now_time$N"
+    (( $(vis "$left") + $(vis "$right") + 2 > inner )) && right="$F$now_day ·$N $B$now_time$N"
+    (( $(vis "$left") + $(vis "$right") + 2 > inner )) && right="$B$now_time$N"
+    box HEAD "" "$w" "$left$(rep ' ' $((inner - $(vis "$left") - $(vis "$right"))))$right"
+}
+# the resources: a gauge each, its figures after it, the percentage at the end
+resources_box() {   # resources_box <width>
+    local w=$1 inner g rows=()
+    inner=$((w - 4))
+    g=$(( inner - 9 - 2 - 18 - 6 ))
+    (( g > 34 )) && g=34
+    (( g < 6 )) && g=6
+    row() {   # row <key> <used> <total> <warn> <text> <percent>
+        local t; t=$(fit "$5" 18)
+        local line; line="$(kv "$1" "$(gauge "$2" "$3" "$g" "$4")")  $F$t$N"
+        printf '%s%s%s' "$line" "$(rep ' ' $((inner - $(vis "$line") - ${#6})))" "$B$6$N"
     }
-    BOX=("$(edge "$w" ╭ ╮ "$B$user$N$F @ $N$B$host$N" "$B$(date +%H:%M)$N")")
-    if (( ! small )); then
-        rows+=("$(kv system "$os")" "$(kv kernel "$kernel")" "$(kv desktop "$desktop")"
-               "$(kv shell "$shell_name${shell_ver:+ $shell_ver}")" "$(kv awake "$uptime")" "-")
-        rows+=("$(meter mem "$mem_p" $(( mem_p >= 90 )) "")" "$(meter disk "$disk_p" $(( disk_p >= 90 )) "")")
-    else
-        rows+=("$(meter mem "$mem_p" $(( mem_p >= 90 )) "")")
-    fi
-    [[ -n $bat ]] && rows+=("$(meter bat "$bat" "$bat_low" "$bat_mark")")
-    for r in "${rows[@]}"; do
-        if [[ $r == - ]]; then BOX+=("$F├$(rep '─' $((w - 2)))┤$N"); continue; fi
-        BOX+=("$F│$N $(pad "$r" "$inner") $F│$N")
-    done
-    if (( small )); then
-        BOX+=("$F╰$(rep '─' $((w - 2)))╯$N")
-    else
-        BOX+=("$(edge "$w" ╰ ╯ "$F$(date '+%a %-d %b' | tr '[:lower:]' '[:upper:]')$N" "${F}MAGNETIC 88$N")")
-    fi
+    rows+=("$(row memory "$mem_used" "$mem_total" $(( mem_p >= 90 )) "$(gib $((mem_used * 1024))) / $(gib $((mem_total * 1024))) GiB" "$mem_p%")")
+    rows+=("$(row storage "${disk_used:-0}" "${disk_total:-0}" $(( disk_p >= 90 )) "$(gib "${disk_used:-0}") / $(gib "${disk_total:-0}") GiB" "$disk_p%")")
+    [[ -n $bat ]] && rows+=("$(row battery "$bat" 100 "$bat_low" "$bat_word" "$bat%")")
+    [[ -n $net ]] && rows+=("$(kv network "$(fit "$net" $((inner - 9)))")")
+    box RES RESOURCES "$w" "${rows[@]}"
 }
 
-art=()
-[[ -r $art_file ]] && mapfile -t art <"$art_file"
-art_w=0
-for l in "${art[@]}"; do (( ${#l} > art_w )) && art_w=${#l}; done
-
 printf '\n'
-if (( art_w > 0 && cols >= art_w + 4 + 4 + 44 )); then
-    # the picture, then the box beside it, both centred on each other
-    w=$(( cols - 2 - art_w - 4 - 2 )); (( w > 50 )) && w=50
-    make_box "$w"
-    n=${#BOX[@]}; (( ${#art[@]} > n )) && n=${#art[@]}
-    ao=$(( (n - ${#art[@]}) / 2 )); bo=$(( (n - ${#BOX[@]}) / 2 ))
-    for (( r = 0; r < n; r++ )); do
-        a=""; (( r >= ao && r - ao < ${#art[@]} )) && a=${art[r - ao]}
-        bx=""; (( r >= bo && r - bo < ${#BOX[@]} )) && bx=${BOX[r - bo]}
-        printf '  %s%s%s    %s\n' "$I" "$(pad "$a" "$art_w")" "$N" "$bx"
-    done
-elif (( cols >= 40 )); then
-    w=$(( cols - 4 )); (( w > 56 )) && w=56
-    make_box "$w"
-    printf '  %s\n' "${BOX[@]}"
+if (( W >= 78 )); then
+    header_box "$W"; side HEAD
+    # at the left, borderless: the cassette (or a picture of your own) and
+    # what is playing; beside it the system and the session
+    reel='◎'; side_a='SIDE A'
+    [[ -n $tape_title ]] && { reel='◉'; side_a='▶ PLAY'; }
+    TAPE=()
+    if [[ -r $art_file ]]; then
+        mapfile -t TAPE <"$art_file"
+    else
+        TAPE=("╭──────────────────────╮"
+              "│ $(rep '▔' 20) │"
+              "│ ╭──────────────────╮ │"
+              "│  ($reel)  ════  ($reel)  │ │"
+              "│ ╰──────────────────╯ │"
+              "│  M88 · C-90  $(pad "$side_a" 6)  │"
+              "╰──╱────────────────╲──╯")
+        TAPE[3]="│ │  ($reel)  ════  ($reel)  │ │"
+    fi
+    tw=0; for l in "${TAPE[@]}"; do (( $(vis "$l") > tw )) && tw=$(vis "$l"); done
+    (( tw < 24 )) && tw=24
+    for i in "${!TAPE[@]}"; do TAPE[i]="$F$(pad "${TAPE[i]}" "$tw")$N"; done
+    if [[ -n $tape_title ]]; then
+        TAPE+=("$B$(fit "$tape_title" "$tw")$N" "$(fit "$tape_artist" "$tw")")
+    else
+        TAPE+=("$F$(pad "nothing playing" "$tw")$N")
+    fi
+    rw=$(( W - tw - 3 ))
+    vw=$(( rw - 4 - 9 ))
+    box SYS SYSTEM "$rw" "$(kv os "$(fit "$os" $vw)")" "$(kv kernel "$(fit "$kernel" $vw)")" "$(kv packages "$pkgs")"
+    box SES SESSION "$rw" "$(kv desktop "$(fit "$desktop" $vw)")" "$(kv shell "$shell_name${shell_ver:+ $shell_ver}")" "$(kv uptime "$uptime")"
+    RIGHT=("${SYS[@]}" "${SES[@]}")
+    n=${#RIGHT[@]}; top=0; (( top < 0 )) && top=0
+    LEFT=(); for (( r = 0; r < top; r++ )); do LEFT+=("$(rep ' ' "$tw")"); done
+    LEFT+=("${TAPE[@]}"); LEFT[0]="$(pad "${LEFT[0]}" "$tw")  "
+    for i in "${!LEFT[@]}"; do LEFT[i]="$(pad "${LEFT[i]}" $((tw + 2)))"; done
+    side LEFT RIGHT
+    resources_box "$W"; side RES
+elif (( W >= 54 )); then
+    header_box "$W"; side HEAD
+    hw=$(( (W - 1) / 2 )); vw=$(( hw - 4 - 9 ))
+    box SYS SYSTEM "$hw" "$(kv os "$(fit "$os" $vw)")" "$(kv kernel "$(fit "$kernel" $vw)")" "$(kv packages "$pkgs")"
+    box SES SESSION "$(( W - 1 - hw ))" "$(kv desktop "$(fit "$desktop" $vw)")" "$(kv shell "$shell_name${shell_ver:+ $shell_ver}")" "$(kv uptime "$uptime")"
+    side SYS SES
+    resources_box "$W"; side RES
+    [[ -n $tape_title ]] && printf '  %s▶%s %s\n' "$I" "$N" "$(fit "$tape_title${tape_artist:+ · $tape_artist}" $((W - 4)))"
 else
-    w=$(( cols - 4 )); (( w < 24 )) && w=24
-    make_box "$w" 1
-    printf '  %s\n' "${BOX[@]}"
+    # narrow (the desk terminal): who and when, then the gauges
+    box HEAD "" "$W" "$B$(fit "$user@$host" $((W - 12)))$N$(rep ' ' $((W - 4 - $(vis "$(fit "$user@$host" $((W - 12)))") - 5)))$B$now_time$N"
+    side HEAD
+    g=$(( W - 4 - 5 - 5 )); (( g < 4 )) && g=4
+    rows=("$F$(pad mem 5)$N$(gauge "$mem_used" "$mem_total" "$g" $(( mem_p >= 90 )))$(rep ' ' $((5 - ${#mem_p} - 1)))$B$mem_p%$N")
+    [[ -n $bat ]] && rows+=("$F$(pad bat 5)$N$(gauge "$bat" 100 "$g" "$bat_low")$(rep ' ' $((5 - ${#bat} - 1)))$B$bat%$N")
+    box RES "" "$W" "${rows[@]}"; side RES
 fi
 printf '\n'
