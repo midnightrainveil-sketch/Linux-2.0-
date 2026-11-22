@@ -115,5 +115,10 @@ if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
         desk_dim = 0.5,
         desk_dim_color = "rgb(0d0907)",
     } } })
+    -- the terminal widget is part of the desk: it does not dim it (a build
+    -- of the plugin from before this option: left out, no error)
+    if hl.plugin.chromerim.has_desk_dim_ignore ~= nil then
+        hl.config({ plugin = { chromerim = { desk_dim_ignore = "retro-futurism.desk" } } })
+    end
     -- your own window without it: hl.window_rule({ match = { class = "..." }, ["chromerim:no_rim"] = true }) in user.lua
 end

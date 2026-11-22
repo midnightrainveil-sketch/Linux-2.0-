@@ -340,7 +340,7 @@ Scope {
                     z: 10
                     anchors.fill: parent
                     color: "#0d0907"
-                    opacity: Hypr.windows.length > 0 ? 0.5 : 0
+                    opacity: Hypr.apps.length > 0 ? 0.5 : 0
                 }
                 readonly property real iw: 3840
                 readonly property real ih: 2160

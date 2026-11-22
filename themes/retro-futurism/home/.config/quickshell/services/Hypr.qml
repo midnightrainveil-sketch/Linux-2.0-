@@ -44,11 +44,16 @@ Singleton {
     // the pointer, so: the window under it); "" when none
     // (none in use there, the pointer between them: the first one; an
     // empty workspace: none)
-    readonly property string activeClass: (windows.find(w => w.active) ?? windows[0] ?? { cls: "" }).cls ?? ""
+    readonly property string activeClass: (apps.find(w => w.active) ?? apps[0] ?? { cls: "" }).cls ?? ""
 
     // ---- the windows in view: [{ key, x, y, w, h, cls, active, x11 }]
     property var windows: []
     property bool fullscreen: false
+    // the windows that are apps open on the desk: not the terminal widget,
+    // which is part of the desk (it neither dims the picture, nor sends the
+    // taskbar away, nor shows in its port)
+    readonly property var deskClasses: ["retro-futurism.desk"]
+    readonly property var apps: windows.filter(w => !deskClasses.includes(w.cls))
 
     function collect(): void {
         const ws = Hyprland.focusedMonitor?.activeWorkspace;

@@ -47,7 +47,7 @@ PanelWindow {
     WlrLayershell.layer: bar.started && bar.docking ? WlrLayer.Overlay : WlrLayer.Top
     color: "transparent"
 
-    readonly property bool hasWindows: Hypr.windows.length > 0 || Hypr.fullscreen
+    readonly property bool hasWindows: Hypr.apps.length > 0 || Hypr.fullscreen
     readonly property bool hovered: hover.hovered
     // under the lock it waits below the screen; let in, it comes up and
     // stays a moment before it hides for the windows (it is made afresh

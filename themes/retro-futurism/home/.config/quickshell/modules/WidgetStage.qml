@@ -76,7 +76,7 @@ PanelWindow {
         visible: !stage.taskbar
         color: "#140f0b"
         // dimmer over windows than over the bare picture
-        opacity: (Hypr.windows.length > 0 ? 0.62 : 0.38) * Math.min(1, stage.p)
+        opacity: (Hypr.apps.length > 0 ? 0.62 : 0.38) * Math.min(1, stage.p)
     }
     MouseArea {
         anchors.fill: parent

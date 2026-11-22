@@ -13,6 +13,7 @@ where the real one cannot be built (docs/harness/build.sh).
         frames:<n>:<ms>             n pictures, one every ms (out-000.png ...), for
                                     an animation; the run goes on after them
         nowindows | idle | notes    no windows open / nothing playing / three sample notes
+        deskonly                    only the terminal widget open (part of the desk)
         onewindow                   one window filling the screen, as tiled
         wait:<ms>
 
@@ -159,6 +160,8 @@ class Harness(QObject):
     def windows(self):
         if "nowindows" in self.flags:
             return []
+        if "deskonly" in self.flags:      # only the terminal widget on the home screen
+            return [{"address": "0x9", "title": "zsh", "class": "retro-futurism.desk", "at": [178, 620], "size": [640, 360], "fullscreen": 0, "hidden": False, "mapped": True}]
         if "onewindow" in self.flags:      # one window as Hyprland tiles it: gaps_out 38 all round
             return [{"address": "0x1", "title": "foot", "class": "foot", "at": [38, 38], "size": [W - 76, H - 76], "fullscreen": 0, "hidden": False, "mapped": True}]
         return [

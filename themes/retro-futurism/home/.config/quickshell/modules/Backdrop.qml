@@ -87,7 +87,7 @@ PanelWindow {
 
         // nothing of it to see: a fullscreen window, or one over the whole glass
         readonly property bool hidden: Hypr.fullscreen
-            || Hypr.windows.some(w => w.x <= glass.x && w.y <= glass.y
+            || Hypr.apps.some(w => w.x <= glass.x && w.y <= glass.y
                                    && w.x + w.w >= glass.x + glass.width
                                    && w.y + w.h >= glass.y + glass.height)
 
@@ -214,7 +214,7 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         color: "#0d0907"
-        opacity: !Hypr.rimDrawn && Hypr.windows.length > 0 ? 0.5 : 0
+        opacity: !Hypr.rimDrawn && Hypr.apps.length > 0 ? 0.5 : 0
         visible: opacity > 0.001
         Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
     }
