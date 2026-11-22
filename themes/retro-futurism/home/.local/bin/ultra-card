@@ -77,14 +77,13 @@ gauge() {
 now_day=$(date '+%a %-d %b' | tr '[:lower:]' '[:upper:]')
 now_time=$(date '+%H:%M')
 
-# the header: /// MAGNETIC 88 · TERMINAL ────── SUN 22 NOV · 21:46
+# the header: MAGNETIC 88 · TERMINAL ────── SUN 22 NOV · 21:46
 header() {
     local brand="MAGNETIC 88" tail=" · TERMINAL" right="$now_day · $now_time" gap
-    gap=$((W - 2 - 5 - ${#brand} - ${#tail} - 1 - ${#right} - 1))
-    if (( gap < 3 )); then brand="M88"; tail=""; gap=$((W - 2 - 5 - ${#brand} - 1 - ${#right} - 1)); fi
-    if (( gap < 3 )); then printf '  %s///%s  %s%s%s\n' "$I$B" "$N" "$B" "$now_time" "$N"; return; fi
-    printf '  %s///%s  %s%s%s%s%s %s %s%s%s\n' "$I$B" "$N" "$B" "$brand" "$N" "$F" "$tail" \
-        "$(rep '─' "$gap")$N" "$B" "$right" "$N"
+    gap=$((W - 2 - ${#brand} - ${#tail} - 2 - ${#right}))
+    if (( gap < 3 )); then tail=""; gap=$((W - 2 - ${#brand} - 2 - ${#right})); fi
+    if (( gap < 3 )); then printf '  %s%s%s\n' "$B" "$now_time" "$N"; return; fi
+    printf '  %s%s%s%s%s %s %s%s%s\n' "$B" "$brand" "$N" "$F" "$tail" "$(rep '─' "$gap")$N" "$B" "$right" "$N"
 }
 
 # the cassette (24 wide): reels full while something plays
