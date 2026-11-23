@@ -12,6 +12,8 @@ body starts at ORIGIN):
     carriage.png    the lift's carriage, run up and down its column
     motor.png       the column's head, laid over the carriage as it goes up
     clips.png       the tray's two front clips, laid over a dispensed cassette
+    wheel-N.png     the wheel's knurled drum turned through one ridge (0..7),
+                    to roll it as the choice moves
     shell-N.png     the eight cassettes (0..7), their titles taken off; the
                     widget writes a song's title where each had its own
     shells.json     each shell's size and where its title goes, in what ink
@@ -105,6 +107,35 @@ clip = np.zeros((cy1 - cy0, cx1 - cx0), np.float32)
 for bx0, by0, bx1, by1 in CLIPS:
     clip[by0 - cy0:by1 - cy0, bx0 - cx0:bx1 - cx0] = rrect(bx1 - bx0, by1 - by0, 5)
 save(src0[cy0:cy1, cx0:cx1], clip, 'clips.png')
+
+# ---- the wheel: its drum drawn again, a steel cylinder with its knurls,
+# turned through one ridge in eight steps (the body gets the first)
+WHEEL = (902, 536, 949, 650)                 # the drum, in its recess
+KNURL = (911, 941)                           # the knurled band between its rims
+x0, y0, x1, y1 = WHEEL
+dw, dh = x1 - x0, y1 - y0
+yc, R = (y0 + y1) / 2, (y1 - y0) / 2 + 1
+D = src0[y0:y1, x0:x1]
+light = cv2.GaussianBlur(D, (0, 0), sigmaX=0.6, sigmaY=9)          # the light on it, along it
+band = np.zeros(dw, np.float32)
+band[KNURL[0] - x0:KNURL[1] - x0] = 1
+band = np.convolve(band, np.ones(3) / 3, 'same')[None, :, None]
+SS, PITCH = 4, 4.2                                                 # supersampling; the ridges' pitch at the middle
+wheel_frames = []
+for k in range(8):
+    ys = (np.arange(dh * SS) + 0.5) / SS + y0
+    th = np.arcsin(np.clip((ys - yc) / R, -0.999, 0.999))
+    ph = th * R / PITCH + k / 8
+    ridge = (0.5 + 0.5 * np.cos(2 * np.pi * ph)) ** 2.2
+    ridge = ridge.reshape(dh, SS).mean(1)
+    lit = 0.45 + 0.95 * ridge                                      # groove dark, crest bright
+    edge = np.cos(th.reshape(dh, SS).mean(1)) ** 0.6               # darker toward its top and foot
+    v = (lit * (0.35 + 0.65 * edge))[:, None, None]
+    steel = light * v * 1.05 * np.array([1.0, 0.99, 0.95])
+    frame = D * (1 - band) + steel * band
+    wheel_frames.append(frame)
+    save(frame, np.ones((dh, dw), np.float32), f'wheel-{k}.png')
+img[y0:y1, x0:x1] = wheel_frames[0]
 
 # ---- the body
 # the shelves bare: behind each cassette the bay's dark back, shadowed under

@@ -106,12 +106,15 @@ Widget {
             const d = Math.abs(e.angleDelta.x) > Math.abs(e.angleDelta.y) ? -e.angleDelta.x : e.angleDelta.y;
             self.wheelRest += d;
             const steps = Math.trunc(self.wheelRest / 120);
-            if (steps !== 0) { self.wheelRest -= steps * 120; self.move(-steps); self.wheelTurn -= steps; }
+            if (steps !== 0) { self.wheelRest -= steps * 120; self.move(-steps); }
         }
     }
-    // the wheel by the screen, turned as the choice moves
-    property int wheelTurn: 0
-    onSelChanged: wheelTurn += 1
+    // the wheel by the screen: how far it has rolled, in its ridges (three
+    // a song), eased
+    property real roll: 0
+    Behavior on roll { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+    property int lastSel: 0
+    onSelChanged: { roll += Math.max(-12, Math.min(12, (sel - lastSel) * 3)); lastSel = sel; }
 
     // a button pressed for a moment (by the keyboard)
     property string tapped: ""
@@ -429,6 +432,13 @@ Widget {
         }
         Button { name: "up"; x: unit.ax(890); y: unit.ay(480); width: 64; height: 40; r: 10; onClicked: self.move(-1) }
         Button { name: "down"; x: unit.ax(890); y: unit.ay(660); width: 64; height: 40; r: 10; onClicked: self.move(1) }
+        // the wheel's drum, rolled a few ridges for each song the choice moves
+        Image {
+            x: unit.ax(902); y: unit.ay(536)
+            readonly property int frame: ((Math.floor(self.roll * 8) % 8) + 8) % 8
+            source: self.art("wheel-" + frame + ".png")
+            smooth: true
+        }
         // the wheel itself: a drag up or down turns it
         MouseArea {
             x: unit.ax(895); y: unit.ay(520); width: 58; height: 135
@@ -439,21 +449,6 @@ Widget {
                 if (!pressed) return;
                 const steps = Math.trunc((m.y - y0) / 22);
                 if (steps !== 0) { y0 += steps * 22; self.move(steps); }
-            }
-            // its knurls, running as it turns
-            Item {
-                anchors.fill: parent
-                anchors.margins: 6
-                clip: true
-                opacity: 0.32
-                Column {
-                    y: ((self.wheelTurn * 7) % 14) - 14
-                    spacing: 4
-                    Repeater {
-                        model: 14
-                        Rectangle { width: 46; height: 3; color: "#1d1c1a"; opacity: 0.6 }
-                    }
-                }
             }
         }
         Button { name: "select"; x: unit.ax(868); y: unit.ay(740); width: 108; height: 126; r: 16; onClicked: self.dispense() }

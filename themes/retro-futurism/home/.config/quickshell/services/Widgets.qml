@@ -45,6 +45,13 @@ Singleton {
         open(id);
     }
 
+    // a swipe to another page (workspace), or any change of page: the widget
+    // is put away (what it set going, the music, goes on)
+    Connections {
+        target: Hypr
+        function onActiveIdChanged() { root.close(); }
+    }
+
     FileView {
         path: Quickshell.shellPath("widgets/index.json")
         watchChanges: true
