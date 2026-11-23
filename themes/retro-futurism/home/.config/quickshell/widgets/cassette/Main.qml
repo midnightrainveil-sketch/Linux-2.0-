@@ -185,24 +185,13 @@ Widget {
             x: unit.ax(330); y: unit.ay(410); width: 744; height: 306
             clip: true
 
-            // nothing in it: a faint word on the dark
-            Column {
-                anchors.centerIn: parent
-                spacing: 8
-                opacity: self.held ? 0 : 0.55
-                Behavior on opacity { NumberAnimation { duration: 300 } }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "NO CASSETTE"
-                    color: "#8d877e"
-                    font.family: "Barlow"; font.weight: Font.DemiBold; font.pixelSize: 34; font.letterSpacing: 8
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Tapes.readOnce && Tapes.tapes.length === 0 ? "PUT SONGS IN  ~/MUSIC" : "PRESS REC FOR THE ARCHIVE"
-                    color: "#6f6a62"
-                    font.family: "Barlow"; font.weight: Font.Medium; font.pixelSize: 19; font.letterSpacing: 4
-                }
+            // nothing in it: a sign swung down from the top of the window
+            FlipSign {
+                x: (744 - width) / 2; y: 64
+                width: 360; height: 84
+                shown: !self.held && !self.busy
+                text: "NO TAPE"
+                lampLevel: 0
             }
             MouseArea {
                 anchors.fill: parent
@@ -214,8 +203,8 @@ Widget {
             Item {
                 id: tape
                 visible: self.held !== null
-                x: 392 - 330; y: 444 - 410 - self.out * 330
-                width: 620; height: 260
+                x: 349 - 330; y: 425 - 410 - self.out * 340
+                width: 712; height: 281
                 readonly property var t: self.held
                 readonly property int shell: t ? Math.max(0, Math.min(7, t.shell ?? 0)) : 0
 
@@ -227,7 +216,7 @@ Widget {
                 // the tape on its spools, through its window: wound from the
                 // left one onto the right as the song goes
                 Item {
-                    x: 236; y: 91; width: 157; height: 86
+                    x: 279; y: 110; width: 165; height: 86
                     clip: true
                     readonly property real p: Tapes.tape === tape.t ? Tapes.progress : 0
                     Repeater {
@@ -236,8 +225,8 @@ Widget {
                             required property int index
                             readonly property real full: index === 0 ? 1 - parent.p : parent.p
                             readonly property real r: Math.sqrt(46 * 46 + (156 * 156 - 46 * 46) * full)
-                            readonly property real cx: (index === 0 ? 168 : 467) - 236
-                            x: cx - r; y: 131 - 91 - r; width: r * 2; height: r * 2
+                            readonly property real cx: (index === 0 ? 211 : 510) - 279
+                            x: cx - r; y: 150 - 110 - r; width: r * 2; height: r * 2
                             Rectangle {
                                 anchors.fill: parent; radius: width / 2
                                 gradient: Gradient {
@@ -279,7 +268,7 @@ Widget {
                     Image {
                         required property int index
                         source: self.art("reel.png")
-                        x: (index === 0 ? 168 : 467) - 45; y: 131 - 45
+                        x: (index === 0 ? 211 : 510) - 45; y: 150 - 45
                         width: 90; height: 90
                         smooth: true; mipmap: true
                         rotation: self.spin * (index === 0 ? 1.15 - 0.4 * Tapes.progress : 0.75 + 0.4 * Tapes.progress) + index * 23
@@ -287,7 +276,7 @@ Widget {
                 }
                 // its label: the song, and who, and how far
                 Text {
-                    x: 142; y: 47 - height + 4
+                    x: 185; y: 66 - height + 4
                     width: 390
                     text: tape.t ? tape.t.title : ""
                     elide: Text.ElideRight
@@ -295,7 +284,7 @@ Widget {
                     font.family: "Barlow"; font.weight: Font.DemiBold; font.pixelSize: 27
                 }
                 Text {
-                    x: 142; y: 52
+                    x: 185; y: 71
                     width: 390
                     elide: Text.ElideRight
                     readonly property string who: tape.t ? (tape.t.artist || tape.t.album || "") : ""

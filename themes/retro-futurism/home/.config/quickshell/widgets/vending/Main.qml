@@ -20,15 +20,15 @@ import qs.services
 //                cassette player comes up and it goes in and plays
 //
 // The song in the player is missing from its shelf. Everything is placed in
-// the mock-up's own pixels (body.png starts at its 83, 15;
+// the mock-up's own pixels (body.png starts at its 83, 14;
 // tools/make_vending.py) and the whole machine scaled once.
 Widget {
     id: self
     widgetId: "vending"
 
     readonly property real k: 0.66
-    preferredWidth: 952 * k
-    preferredHeight: 1384 * k
+    preferredWidth: 953 * k
+    preferredHeight: 1385 * k
 
     // ---- what it holds
     property string query: ""
@@ -219,11 +219,11 @@ Widget {
     // the machine, in the mock-up's pixels
     Item {
         id: unit
-        width: 952; height: 1384
+        width: 953; height: 1385
         scale: self.k
         transformOrigin: Item.TopLeft
         function ax(x) { return x - 83; }
-        function ay(y) { return y - 15; }
+        function ay(y) { return y - 14; }
 
         Image {
             anchors.fill: parent
@@ -277,15 +277,13 @@ Widget {
                         x: 204 - 176
                         y: place.foot - height - 160
                     }
-                    // the song in the player: its place empty, and said so
-                    Text {
-                        visible: place.away && place.t.file === self.inPlayer && self.phase === 0
-                        x: 204 - 176; width: 336
-                        y: place.foot - 160 - 52
-                        horizontalAlignment: Text.AlignHCenter
-                        text: "▸  IN THE PLAYER"
-                        color: "#8b847a"
-                        font.family: "Barlow"; font.weight: Font.DemiBold; font.pixelSize: 17; font.letterSpacing: 4
+                    // the song in the player: its place empty, a sign swung down in it
+                    FlipSign {
+                        x: 204 - 176 + 38; width: 260; height: 54
+                        y: place.foot - 160 - 86
+                        shown: place.away && place.t.file === self.inPlayer && self.phase === 0
+                        text: "IN PLAYER"
+                        lampLevel: Tapes.playing ? 1 : 0.25
                     }
                     MouseArea {
                         x: 204 - 176; width: 336

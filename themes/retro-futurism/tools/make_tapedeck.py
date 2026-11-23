@@ -32,7 +32,7 @@ ORIGIN = CROP[:2]
 
 # ---- the places (mock-up pixels)
 GLASS = (330, 410, 1074, 716, 24)             # the window's glass: x0 y0 x1 y1, corner radius
-CASSETTE = (392, 444, 1012, 704, 14)
+CASSETTE = (349, 425, 1061, 706, 16)        # the whole cassette, nearly filling the window
 REELS = [(560, 575), (859, 575)]
 TOP_KEYS = {'rec': (361, 184, 462, 260), 'play': (471, 184, 604, 262), 'rew': (610, 184, 724, 262),
             'ff': (740, 184, 862, 262), 'stop': (866, 184, 970, 262)}
@@ -95,13 +95,49 @@ shell = (alpha > 0.5) & ~keep & ~stripe
 L = part.mean(2)
 d_shell = L / max(1, L[shell].mean())
 d_stripe = L / max(1, L[stripe].mean()) if stripe.any() else L
+# and the streaks' edges, still there: each point against the mean along its
+# streak (turned upright, a tall average over a square one)
+def along(img, mask, ang=-30, n=121):
+    h, w = img.shape
+    D = int(np.hypot(h, w)) + 4
+    M = cv2.getRotationMatrix2D((w / 2, h / 2), ang, 1); M[:, 2] += (D - w) / 2, (D - h) / 2
+    Mi = cv2.invertAffineTransform(M)
+    f = mask.astype(np.float32)
+    ri = cv2.warpAffine(img * f, M, (D, D)); rf = cv2.warpAffine(f, M, (D, D))
+    tall = cv2.blur(ri, (3, n)) / np.maximum(1e-3, cv2.blur(rf, (3, n)))
+    square = cv2.blur(ri, (n, n)) / np.maximum(1e-3, cv2.blur(rf, (n, n)))
+    ratio = np.where(cv2.blur(rf, (3, n)) > 0.2, tall / np.maximum(1e-3, square), 1)
+    back = cv2.warpAffine(ratio.astype(np.float32), Mi, (w, h), borderValue=1)
+    return np.clip(back, 0.6, 1.6)
+face = (alpha > 0.5) & ~np.zeros_like(keep)
+for rx, ry in REELS:
+    face &= np.hypot(xx - (rx - cx0), yy - (ry - cy0)) >= 61
+face[WIN[1] - 3:WIN[3] + 3, WIN[0] - 3:WIN[2] + 3] = False
+lab = np.zeros_like(face); lab[464 - cy0:517 - cy0, 465 - cx0:941 - cx0] = True
+for m in (lab, face & ~lab):
+    f = m.astype(np.float32)
+    loc = cv2.GaussianBlur(L * f, (0, 0), 12) / np.maximum(1e-3, cv2.GaussianBlur(f, (0, 0), 12))
+    st = along(L / np.maximum(1, loc), m)
+    part[m] = (part / np.maximum(1, st)[..., None])[m]
+L = part.mean(2)
+# the shell's fine texture (its scratches, its grain) without the broad
+# light on it, the glass's streaks among it: each point against the shell
+# round it, softly; the stripes the same
+def texture(mask, sigma=12):
+    f = mask.astype(np.float32)
+    local = cv2.GaussianBlur(L * f, (0, 0), sigma) / np.maximum(1e-3, cv2.GaussianBlur(f, (0, 0), sigma))
+    return np.clip(L / np.maximum(1, local), 0.3, 2.2) * np.clip(local / max(1, L[mask].mean()), 0.85, 1.15) ** 0.5
+d_shell = texture(shell)
+streaks = along(d_shell, shell)
+d_shell = d_shell / np.maximum(1, streaks)
+d_stripe = texture(stripe, 6) if stripe.any() else L
 # the tape window emptied: the shell's dark inside, the spools drawn over it
 wx0, wy0, wx1, wy1 = WIN
 inside = part[wy0:wy1, wx0:wx1]
 inside[:] = np.array([24, 22, 21], np.float32) + 6 * np.linspace(1, 0, wy1 - wy0)[:, None, None]
 # (shell colour, its sheen kept, stripes' colour) for each of the eight
 COLOURS = [
-    ((52, 50, 48), 0.0, (176, 52, 44)),       # 0 smoke, red (the player's own)
+    ((50, 48, 46), 0.0, (176, 52, 44)),       # 0 smoke, red (the player's own)
     ((214, 206, 188), 0.25, (196, 120, 128)),  # 1 cream, blossom
     ((60, 61, 62), 0.1, (214, 203, 180)),      # 2 charcoal, cream waves
     ((196, 116, 44), 0.3, (186, 70, 44)),     # 3 amber, sunset
@@ -112,9 +148,9 @@ COLOURS = [
 ]
 for i, (base, sheen, stripe_c) in enumerate(COLOURS):
     out_ = part.copy()
-    if i > 0:
+    if True:
         tint = np.array(base, np.float32) * np.clip(d_shell, 0.4, 1.8)[..., None] ** 0.9
-        tint = tint * (1 - sheen) + (part * np.array(base) / 52) .clip(0, 255) * sheen
+        tint = tint * (1 - sheen) + (np.array(base, np.float32) * d_shell[..., None] * 1.08).clip(0, 255) * sheen
         out_[shell] = tint[shell]
         st = np.array(stripe_c, np.float32) * np.clip(d_stripe, 0.5, 1.5)[..., None]
         out_[stripe] = st[stripe]
@@ -124,7 +160,7 @@ for i, (base, sheen, stripe_c) in enumerate(COLOURS):
 # ---- the glass: two soft diagonal streaks, faint
 gw, gh = gx1 - gx0, gy1 - gy0
 yy, xx = np.mgrid[0:gh, 0:gw].astype(np.float32)
-u = xx * 0.5 + yy * 0.866                                               # across the streaks
+u = xx * 0.866 + yy * 0.5                                               # across the streaks
 streak = 0.11 * np.exp(-((u - gw * 0.36) / 26) ** 2) + 0.06 * np.exp(-((u - gw * 0.44) / 9) ** 2) \
     + 0.07 * np.exp(-((u - gw * 0.86) / 34) ** 2)
 streak *= rrect(GLASS[:4], gr)

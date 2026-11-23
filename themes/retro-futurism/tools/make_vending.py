@@ -82,7 +82,7 @@ for i, (box, tbox, span, ink) in enumerate(SHELLS):
     m = (L < ground - 22) if dark else (L > ground + 22)
     m = cv2.dilate(m.astype(np.uint8), np.ones((3, 3), np.uint8), iterations=2)
     t[:] = cv2.inpaint(t.clip(0, 255).astype(np.uint8), m * 255, 4, cv2.INPAINT_TELEA).astype(np.float32)
-    save(part, rrect(x1 - x0, y1 - y0, 7), f'shell-{i}.png')
+    save(part, rrect(x1 - x0, y1 - y0, 5), f'shell-{i}.png')
     info.append({'w': x1 - x0, 'h': y1 - y0,
                  'tx': span[0] - x0, 'tw': span[1] - span[0], 'ty': (ty0 + ty1) / 2, 'ink': ink})
 json.dump({'shells': info}, open(os.path.join(out, 'shells.json'), 'w'), indent=1)
@@ -206,7 +206,22 @@ n, lab, stats, _ = cv2.connectedComponentsWithStats(ground.astype(np.uint8), con
 for i in range(1, n):
     if stats[i, cv2.CC_STAT_AREA] > 400:
         bg |= lab == i
+# its outline is a rounded box (85 px corners at the top, 60 at the foot):
+# drawn, not found, so its chrome's white edges stay
+BODY = (91, 19, 1031, 1351)
+def outline(r, scale=4):
+    x0, y0, x1, y1 = BODY
+    m = Image.new('L', ((x1 - x0) * scale, (y1 - y0) * scale), 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, (x1 - x0) * scale - 1, (y1 - y0) * scale - 1], r * scale, fill=255)
+    return np.asarray(m.resize((x1 - x0, y1 - y0), Image.LANCZOS)).astype(np.float32) / 255
+sil = np.zeros((H, W), np.float32)
+mid = (BODY[3] - BODY[1]) // 2
+o85, o60 = outline(85), outline(60)
+sil[BODY[1]:BODY[3], BODY[0]:BODY[2]] = np.vstack([o85[:mid], o60[mid:]])
 alpha = np.where(bg, np.clip((245 - lum0) / 245 * 1.4, 0, 0.45), 1.0)
+below = np.arange(H)[:, None] >= 1346
+alpha = np.where(below, np.maximum(alpha * (sil < 0.5), sil), sil)
+bg = bg & (sil < 0.5)
 alpha = cv2.GaussianBlur(alpha.astype(np.float32), (0, 0), 0.7)
 rgb = np.where(bg[..., None], 0, img)
 ys, xs = np.where(alpha > 0.02)
