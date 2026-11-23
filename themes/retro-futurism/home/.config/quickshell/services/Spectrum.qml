@@ -10,7 +10,7 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property bool on: Media.playing
+    readonly property bool on: Media.playing || Tapes.playing
     property var levels: [0, 0, 0, 0, 0, 0]
     property bool real: false               // cava is answering
 

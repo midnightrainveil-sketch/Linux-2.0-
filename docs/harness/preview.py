@@ -15,6 +15,8 @@ where the real one cannot be built (docs/harness/build.sh).
         nowindows | idle | notes    no windows open / nothing playing / three sample notes
         deskonly                    only the terminal widget open (part of the desk)
         onewindow                   one window filling the screen, as tiled
+        qml:<statements>            JavaScript run in the shell, its services
+                                    imported (qml:Tapes.insert(Tapes.tapes[3],true))
         wait:<ms>
 
 It runs the shell's own QML in Qt (PySide6: pip install PySide6-Essentials)
@@ -132,6 +134,14 @@ class Harness(QObject):
             return "12 5.1 33 41"
         if name == "ultra-brightness":
             return "50"
+        if name == "ultra-tapes":                                 # the cassettes: a sample shelf
+            names = [("Night Crossing", "Arca Quartet"), ("Rain Terminal", "Mio Sato"), ("Harmonic Log", "Kaito"),
+                     ("Dawn Build", "Haruka Ito"), ("Wind Algorithm", "Sora Band"), ("Mirror of Fuji", "Ren"),
+                     ("Quiet Kernel", "Yuna Mori"), ("Ginkgo Script", "Tomo"), ("Late Compile", "Arca Quartet"),
+                     ("Platform One", "Mio Sato"), ("Signal Green", "Kaito"), ("Last Train Home", "Haruka Ito")]
+            return json.dumps({"root": "/home/misaki/Music", "tapes": [
+                {"file": f"/home/misaki/Music/{t}.flac", "title": t, "artist": a, "album": "", "year": "1988",
+                 "track": i + 1, "length": 180 + i * 17, "cover": "", "shell": i % 8} for i, (t, a) in enumerate(names)]})
         if name == "ultra-screenshot":
             return "11"
         if name == "sh" and "nmcli" in cmd[-1]:                  # the Wi-Fi picker's look round
@@ -307,6 +317,15 @@ def main():
             Path(stem + "-times.json").write_text(json.dumps(times))
             print("frames: %s-%03d.png ... (%s)" % (stem, first, n))
             continue
+        elif kind == "qml":
+            from PySide6.QtQml import QQmlComponent
+            c = QQmlComponent(engine)
+            c.setData(('import QtQuick\nimport "%s"\nQtObject { Component.onCompleted: { %s } }'
+                       % (QUrl.fromLocalFile(str(shell / "services")).toString(), arg)).encode(), QUrl.fromLocalFile(str(shell / "harness-step.qml")))
+            o = c.create()
+            if o is None:
+                print("qml step:", c.errorString())
+            harness._keep = getattr(harness, "_keep", []) + [o]
         elif kind == "wait":
             spin(int(arg))
         spin(200)

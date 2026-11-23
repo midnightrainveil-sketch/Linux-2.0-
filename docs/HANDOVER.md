@@ -73,8 +73,10 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     Viewfinder's box, now wholly its own: the moving wallpaper, the lock
     screen with the access pass, the taskbar with the cartridge port, the
     window frames, and the widget system (`themes/retro-futurism/docs/widgets.md`)
-    with the launcher, control deck, clock and power built. Not yet: the
-    typewriter, organizer, cassette player, vending machine and the pager
+    with the launcher, control deck, clock, power, cassette vending machine
+    and cassette player built (`ultra-tapes`, `services/Tapes.qml`: ~/Music
+    as cassettes, mpv over its socket). Not yet: the
+    typewriter, organizer and the pager
     (notifications are plain cream cards). **Never run in Quickshell or
     Hyprland yet**: only linted (pyside6-qmllint) and drawn in Python from
     the code's own numbers. Least sure: the taskbar changing layer (Top to

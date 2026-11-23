@@ -89,12 +89,25 @@ Gadgets in steel, cream and sage with e-ink screens.
   search, Enter to launch: the taskbar slides across on its arm, the
   slot's bracket lowers the cartridge into its port on the launcher's rods
   and the bar slides home; a cartridge stays there, the app of the window under the pointer.
-  The rest are
-  placeholders (their mock-up) until made.
+  The **cassette vending machine** (Super + V): every song in `~/Music`
+  (any folder below it; or the `music` setting) is a cassette on its
+  shelves, in one of its eight shells, its title on its label. The wheel,
+  the arrows or typing choose and search, as in the launcher; the lift's
+  carriage rides its screw to the chosen shelf. Enter (or SELECT / EJECT)
+  dispenses it: the carriage draws it off its shelf, carries it down and
+  drops it in the tray, step by step on the e-ink screen, and the
+  **cassette player** (Super + A) comes up and takes it in. The player's
+  keys work (PLAY stays down while it runs, REW / FF wind while held,
+  STOP/EJ stops and, again, ejects, REC opens the machine); the reels
+  turn, the tape winds from spool to spool as the song goes, the meter and
+  the lamp light, the knob is the volume. The music is a windowless mpv
+  (`ultra-tapes`; with `mpv-mpris` it is an ordinary player for the media
+  keys and the meters too). The rest are placeholders (their mock-up)
+  until made.
 
-Not built yet: the typewriter, the organizer, the cassette player and the
-cassette vending machine (their keys show their mock-ups), and the pager:
-notifications are plain cream cards at the top right until it is.
+Not built yet: the typewriter, the organizer (their keys show their
+mock-ups), and the pager: notifications are plain cream cards at the top
+right until it is.
 
 (The theme was begun as a copy of Viewfinder's box; everything of Viewfinder's
 look is gone from it now.)
@@ -150,6 +163,15 @@ kept for later.
   While music plays, `components/CassettePlay.qml` turns the reels and
   lights the meter's bars to the music (`services/Spectrum.qml`: six bands
   from `cava`, with a stand-in if cava is missing).
+- `tools/make_tapedeck.py` cuts the cassette player widget from
+  `art/CassettePlayerWidget.png` (`widgets/cassette/`): the body with its
+  window, meter, lamp and knob emptied, each key, a reel's hub, the glass's
+  streaks, and its cassette in the vending machine's eight colours.
+  `tools/make_vending.py` cuts the vending machine (`widgets/vending/`):
+  the body with its shelves, numbers, lamps, column, tray and screen
+  emptied, the carriage, the column's head, the tray's clips, and the
+  eight cassettes with their titles taken off (`shells.json`: where a
+  title goes on each).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
 

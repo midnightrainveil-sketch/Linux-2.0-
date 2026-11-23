@@ -25,8 +25,8 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `typewriter` | Typewriter | Super + R | Typewriter |
 | `launcher` | App launcher (**built**) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
 | `organizer` | Organizer | Super + C | Calendar |
-| `cassette` | Cassette player | Super + A | CassettePlayerWidget |
-| `vending` | Cassette vending | Super + V | CassetteVending |
+| `cassette` | Cassette player (**built**) | Super + A, or REC on it for the machine | CassettePlayerWidget |
+| `vending` | Cassette vending (**built**): your ~/Music | Super + V | CassetteVending |
 | `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |
 | `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
 | `power` | Power (**built**) | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |

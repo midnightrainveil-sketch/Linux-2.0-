@@ -25,3 +25,7 @@ inter-font
 sound-theme-freedesktop
 # ---- the cassette players' level meters (the music's levels)
 cava
+# ---- the cassettes (your ~/Music) and their player: widgets/vending, widgets/cassette
+mpv
+mpv-mpris
+ffmpeg

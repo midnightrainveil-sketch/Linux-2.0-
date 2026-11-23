@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""ultra-tapes: the cassettes and their player (the vending machine and the
+cassette player, widgets/vending and widgets/cassette).
+
+    ultra-tapes library [music dir]   the cassettes, as JSON (for the shell)
+    ultra-tapes start                 the player (mpv), if not running
+    ultra-tapes stop                  stop it
+
+Every audio file in ~/Music (or the "music" setting, or XDG_MUSIC_DIR), in
+any folder below it, is one cassette. Its title, artist and album come from
+its tags (ffprobe), else from its name; its picture is the one inside it,
+else its folder's cover. Each gets a shell of the machine's eight (the
+vending machine's cassettes, cut by tools/make_vending.py), chosen from the
+file's name, so a song keeps its cassette. Everything read is cached in
+~/.cache/ultra/retro-futurism/tapes, so a second look is instant.
+
+The player is mpv, without a window, controlled by the shell over
+$XDG_RUNTIME_DIR/ultra-tapes.sock. With mpv-mpris installed it is also an
+ordinary media player (media keys, the taskbar, the level meters).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys
+from concurrent.futures import ThreadPoolExecutor
+
+AUDIO = {".mp3", ".flac", ".ogg", ".oga", ".opus", ".m4a", ".aac", ".wav", ".wma", ".alac", ".aiff", ".aif", ".ape", ".wv", ".mka"}
+IMAGES = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+COVER_NAMES = ("cover", "folder", "front", "album", "albumart")
+SHELLS = 8
+
+HOME = os.path.expanduser("~")
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.join(HOME, ".cache"), "ultra", "retro-futurism", "tapes")
+RUNTIME = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+SOCKET = os.path.join(RUNTIME, "ultra-tapes.sock")
+
+
+def music_dir():
+    if len(sys.argv) > 2 and sys.argv[2]:
+        return os.path.expanduser(sys.argv[2])
+    try:
+        cfg = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config"), "ultra", "retro-futurism", "settings.json")
+        with open(cfg, encoding="utf-8") as f:
+            d = json.load(f).get("music")
+        if d:
+            return os.path.expanduser(d)
+    except (OSError, ValueError, AttributeError):
+        pass
+    try:
+        d = subprocess.run(["xdg-user-dir", "MUSIC"], capture_output=True, text=True, timeout=2).stdout.strip()
+        if d and d != HOME and os.path.isdir(d):
+            return d
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return os.path.join(HOME, "Music")
+
+
+def probe(path):
+    """tags and length of one file"""
+    try:
+        out = subprocess.run(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", path],
+                             capture_output=True, text=True, timeout=20).stdout
+        d = json.loads(out or "{}")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        d = {}
+    fmt = d.get("format", {})
+    tags = {k.lower(): v for k, v in (fmt.get("tags") or {}).items()}
+    for s in d.get("streams", []):
+        if s.get("codec_type") == "audio":
+            for k, v in (s.get("tags") or {}).items():
+                tags.setdefault(k.lower(), v)
+    try:
+        length = float(fmt.get("duration") or 0)
+    except ValueError:
+        length = 0
+
+    def num(v):
+        m = re.match(r"\s*(\d+)", str(v or ""))
+        return int(m.group(1)) if m else 0
+    return {
+        "title": tags.get("title", ""),
+        "artist": tags.get("artist", "") or tags.get("album_artist", ""),
+        "album": tags.get("album", ""),
+        "year": (re.search(r"\d{4}", tags.get("date", "") or tags.get("year", "") or "") or [""])[0],
+        "track": num(tags.get("track")),
+        "length": round(length, 1),
+        "pic": any(s.get("codec_type") == "video" for s in d.get("streams", [])),
+    }
+
+
+def name_title(file):
+    """a title from a file name: '03 - Some Song.flac' -> 'Some Song'"""
+    t = os.path.splitext(os.path.basename(file))[0]
+    t = re.sub(r"^\s*\d{1,3}\s*[-._)]*\s*", "", t) or t
+    return t.replace("_", " ").strip()
+
+
+def own_cover(f, tag):
+    """the picture inside a file (drawn out once, as a jpg), or """""
+    if not tag.get("pic"):
+        return ""
+    try:
+        st = os.stat(f)
+    except OSError:
+        return ""
+    key = hashlib.sha1(f"{f}|{st.st_mtime}|{st.st_size}".encode()).hexdigest()[:16]
+    out = os.path.join(CACHE, "covers", key + ".jpg")
+    if not os.path.exists(out):
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        try:
+            subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", f, "-an", "-frames:v", "1",
+                            "-vf", "scale='min(600,iw)':-2", out], timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            return ""
+    return out if os.path.exists(out) else ""
+
+
+def folder_cover(folder):
+    try:
+        pics = [p for p in os.listdir(folder) if p.lower().endswith(IMAGES)]
+    except OSError:
+        return ""
+    for want in COVER_NAMES:
+        for p in pics:
+            if os.path.splitext(p)[0].lower() == want:
+                return os.path.join(folder, p)
+    return os.path.join(folder, sorted(pics)[0]) if pics else ""
+
+
+def library():
+    root = music_dir()
+    os.makedirs(CACHE, exist_ok=True)
+    cache_file = os.path.join(CACHE, "tags.json")
+    try:
+        with open(cache_file, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        cache = {}
+
+    files = []
+    if os.path.isdir(root):
+        for dirpath, dirs, names in os.walk(root, followlinks=True):
+            dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+            files += [os.path.join(dirpath, n) for n in names
+                      if not n.startswith(".") and os.path.splitext(n)[1].lower() in AUDIO]
+
+    stamp = {}
+    for f in files:
+        try:
+            st = os.stat(f)
+            stamp[f] = f"{st.st_mtime}|{st.st_size}"
+        except OSError:
+            stamp[f] = ""
+    todo = [f for f in files if cache.get(f, {}).get("stamp") != stamp[f]]
+    if todo:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            for f, t in zip(todo, pool.map(probe, todo)):
+                t["stamp"] = stamp[f]
+                cache[f] = t
+    cache = {f: cache[f] for f in files if f in cache}
+    try:
+        with open(cache_file + ".tmp", "w", encoding="utf-8") as fh:
+            json.dump(cache, fh)
+        os.replace(cache_file + ".tmp", cache_file)
+    except OSError:
+        pass
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        covers = dict(zip(files, pool.map(lambda f: own_cover(f, cache.get(f, {})), files)))
+    folders = {}
+    tapes = []
+    for f in files:
+        t = cache.get(f, {})
+        d = os.path.dirname(f)
+        if d not in folders:
+            folders[d] = "" if os.path.normpath(d) == os.path.normpath(root) else folder_cover(d)
+        rel = os.path.relpath(f, root)
+        tapes.append({
+            "file": f,
+            "title": t.get("title") or name_title(f),
+            "artist": t.get("artist", "") or ("" if os.sep not in rel else os.path.basename(d)),
+            "album": t.get("album", ""),
+            "year": t.get("year", ""),
+            "track": t.get("track", 0),
+            "length": t.get("length", 0),
+            "cover": covers.get(f) or folders[d],
+            # its shell: one of the machine's eight, kept for the file's name
+            "shell": int(hashlib.sha1(os.path.basename(f).encode()).hexdigest(), 16) % SHELLS,
+        })
+    tapes.sort(key=lambda t: (t["artist"].lower(), t["album"].lower(), t["track"], t["title"].lower()))
+    json.dump({"root": root, "tapes": tapes}, sys.stdout)
+    print()
+
+
+def running():
+    if not os.path.exists(SOCKET):
+        return False
+    import socket
+    s = socket.socket(socket.AF_UNIX)
+    try:
+        s.connect(SOCKET)
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+
+def start():
+    if running():
+        return
+    if not shutil.which("mpv"):
+        sys.exit("ultra-tapes: mpv is not installed (sudo pacman -S mpv mpv-mpris)")
+    try:
+        os.unlink(SOCKET)
+    except OSError:
+        pass
+    subprocess.Popen(
+        ["mpv", "--idle=yes", "--no-video", "--audio-display=no", "--no-terminal", "--force-window=no",
+         "--title=ultra-tapes", "--input-ipc-server=" + SOCKET, "--volume=100", "--keep-open=yes"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def stop():
+    if running():
+        import socket
+        s = socket.socket(socket.AF_UNIX)
+        s.connect(SOCKET)
+        s.sendall(b'{"command":["quit"]}\n')
+        s.close()
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "library"
+    if cmd == "library":
+        library()
+    elif cmd == "start":
+        start()
+    elif cmd == "stop":
+        stop()
+    else:
+        sys.exit("usage: ultra-tapes library [dir] | start | stop")
