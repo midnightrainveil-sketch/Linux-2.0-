@@ -280,14 +280,7 @@ Widget {
                         x: 204 - 176
                         y: place.foot - height - 160
                     }
-                    // the song in the player: its place empty, a sign swung down in it
-                    FlipSign {
-                        x: 204 - 176 + 38; width: 260; height: 54
-                        y: place.foot - 160 - 86
-                        shown: place.away && place.t.file === self.inPlayer && self.phase === 0
-                        text: "IN PLAYER"
-                        lampLevel: Tapes.playing ? 1 : 0.25
-                    }
+                    // (the song in the player: its slot simply empty, as drawn in body.png)
                     MouseArea {
                         x: 204 - 176; width: 336
                         y: place.foot - 160 - 96; height: 96

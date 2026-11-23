@@ -71,6 +71,79 @@ def inpaint(region, mask, r=4):
     img[y0:y1, x0:x1] = cv2.inpaint(part, (mask > 0).astype(np.uint8) * 255, r, cv2.INPAINT_TELEA).astype(np.float32)
 
 
+
+# ---- drawing an empty slot (its own pixels)
+SS = 3
+
+
+def shape(w, h, draw):
+    m = Image.new('L', (w * SS, h * SS), 0)
+    draw(ImageDraw.Draw(m), SS)
+    return np.asarray(m.resize((w, h), Image.LANCZOS)).astype(np.float32) / 255
+
+
+def lay(base, mask, colour):
+    a = mask[..., None]
+    return base * (1 - a) + colour * a
+
+
+def shadow(base, mask, dx=3, dy=4, blur=4, depth=0.55):
+    sh = cv2.GaussianBlur(np.roll(np.roll(mask, dy, 0), dx, 1), (0, 0), blur)
+    return base * (1 - depth * np.clip(sh, 0, 1))[..., None]
+
+
+def steel(field, lo=60, hi=225, tint=(1.0, 0.985, 0.95)):
+    return (lo + (hi - lo) * np.clip(field, 0, 1))[..., None] * np.array(tint, np.float32)
+
+
+def empty_slot(w, h, rng):
+    """a shelf's slot with no cassette: its brushed back wall with vent slots,
+    its side walls in shadow, its floor's rubber strip, a spring pusher at the
+    back on the left and two rubber stops on the right"""
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    # the back wall: brushed steel, dark; in the shelf above's shadow at its top
+    brushed = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), sigmaX=18, sigmaY=0.5)
+    v = 40 + 10 * np.clip(yy / (h * 0.75), 0, 1) + 3.5 * brushed
+    v *= 0.55 + 0.45 * np.clip(yy / 22, 0, 1) ** 0.8
+    slot = v[..., None] * np.array([1.0, 0.97, 0.93], np.float32)
+    # its vent slots, pressed into it in a row
+    for k in range(9):
+        cx = w * 0.56 + (k - 4) * 19
+        vm = shape(w, h, lambda d, s, cx=cx: d.rounded_rectangle([(cx - 4.5) * s, h * 0.30 * s, (cx + 4.5) * s, h * 0.50 * s], 3 * s, fill=255))
+        rim = np.clip(vm - np.roll(vm, 1, 0), 0, 1)
+        inner = 16 + 8 * np.clip((yy - h * 0.30) / (h * 0.2), 0, 1)
+        slot = lay(slot, vm, inner[..., None] * np.array([1.0, 0.97, 0.93], np.float32))
+        slot = slot + (np.clip(np.roll(vm, -1, 0) - vm, 0, 1) * 18)[..., None] - (rim * 6)[..., None]
+    # the floor: its edge seen just over the shelf, a rubber strip along it
+    fl = np.clip((yy - (h - 11)) / 3, 0, 1)
+    slot = lay(slot, fl, (30 + 18 * np.clip((yy - (h - 11)) / 11, 0, 1))[..., None] * np.array([1.0, 0.98, 0.95], np.float32))
+    strip = shape(w, h, lambda d, s: d.rounded_rectangle([40 * s, (h - 9) * s, (w - 40) * s, (h - 4) * s], 2 * s, fill=255))
+    slot = lay(slot, strip, np.array([22, 21, 20], np.float32))
+    # the spring pusher: a steel plate with its coil to the back wall
+    coil_y = h * 0.64
+    rod = shape(w, h, lambda d, s: d.rectangle([20 * s, (coil_y - 1) * s, 74 * s, (coil_y + 1) * s], fill=255))
+    slot = lay(slot, rod, steel(0.4, 40, 120))
+    for k in range(9):
+        cx = 24 + k * 5.4
+        c_ = shape(w, h, lambda d, s, cx=cx: d.arc([(cx - 2.6) * s, (coil_y - 6) * s, (cx + 2.6) * s, (coil_y + 6) * s], 200, 520, fill=255, width=int(1.1 * s)))
+        slot = shadow(slot, c_, 1, 2, 1.5, 0.4)
+        slot = lay(slot, c_, steel(0.3 + 0.5 * np.clip(1 - np.abs(yy - coil_y + 3) / 5, 0, 1), 45, 150))
+    pl = shape(w, h, lambda d, s: d.rounded_rectangle([74 * s, (h * 0.36) * s, 81 * s, (h - 12) * s], 2 * s, fill=255))
+    slot = shadow(slot, pl, 3, 2, 3, 0.6)
+    u = (xx - 74) / 7
+    slot = lay(slot, pl, steel(0.25 + 0.6 * np.clip(np.sin(np.pi * np.clip(u, 0, 1)), 0, 1) ** 2, 45, 165))
+    # the rubber stops on the right
+    for sy in (h * 0.42, h * 0.70):
+        st = shape(w, h, lambda d, s, sy=sy: d.rounded_rectangle([(w - 30) * s, (sy - 6) * s, (w - 18) * s, (sy + 6) * s], 4 * s, fill=255))
+        slot = shadow(slot, st, -2, 2, 2.5, 0.5)
+        slot = lay(slot, st, np.array([24, 23, 22], np.float32) + (np.clip(1 - np.abs(yy - sy + 3) / 3, 0, 1) * 16)[..., None])
+    # its side walls, in shadow, and the shadow of the shelf above
+    side = np.clip(1 - np.minimum(xx, w - 1 - xx) / 16, 0, 1) ** 1.4
+    slot *= (1 - 0.6 * side)[..., None]
+    slot *= (1 - 0.55 * np.clip(1 - yy / 10, 0, 1) ** 1.5)[..., None]
+    return slot + rng.normal(0, 0.7, (h, w))[..., None]
+
+
 # ---- the shells, their titles taken off
 info = []
 for i, (box, tbox, span, ink) in enumerate(SHELLS):
@@ -131,29 +204,19 @@ for k in range(8):
     lit = 0.45 + 0.95 * ridge                                      # groove dark, crest bright
     edge = np.cos(th.reshape(dh, SS).mean(1)) ** 0.6               # darker toward its top and foot
     v = (lit * (0.35 + 0.65 * edge))[:, None, None]
-    steel = light * v * 1.05 * np.array([1.0, 0.99, 0.95])
-    frame = D * (1 - band) + steel * band
+    metal = light * v * 1.05 * np.array([1.0, 0.99, 0.95])
+    frame = D * (1 - band) + metal * band
     wheel_frames.append(frame)
     save(frame, np.ones((dh, dw), np.float32), f'wheel-{k}.png')
 img[y0:y1, x0:x1] = wheel_frames[0]
 
 # ---- the body
-# the shelves bare: behind each cassette the bay's dark back, shadowed under
-# the shelf above
-back = np.array([36, 33, 30], np.float32)
+# the shelves bare: each slot as it is with its cassette gone (tray_slot)
 rng = np.random.default_rng(5)
 for box, *_ in SHELLS:
     x0, y0, x1, y1 = box
     x0 -= 3; x1 += 3; y0 -= 2; y1 += 1
-    h, w = y1 - y0, x1 - x0
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    shade = 0.72 + 0.28 * np.clip(yy / (h * 0.6), 0, 1)          # darker under the shelf above
-    side = 1 - 0.25 * np.abs(xx / w - 0.5) * 2                    # and toward the sides
-    fill = back * (shade * side)[..., None] + rng.normal(0, 0.8, (h, w))[..., None]
-    # a faint back panel: two seams, as a shelving's back has
-    for sx in (0.33, 0.67):
-        fill[:, int(w * sx):int(w * sx) + 2] *= 0.7
-    img[y0:y1, x0:x1] = fill
+    img[y0:y1, x0:x1] = empty_slot(x1 - x0, y1 - y0, rng)
 
 # the numbers and lamps gone (the dividing lines kept): what is darker, or
 # warmer, than the panel

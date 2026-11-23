@@ -185,14 +185,8 @@ Widget {
             x: unit.ax(330); y: unit.ay(410); width: 744; height: 306
             clip: true
 
-            // nothing in it: a sign swung down from the top of the window
-            FlipSign {
-                x: (744 - width) / 2; y: 64
-                width: 360; height: 84
-                shown: !self.held && !self.busy
-                text: "NO TAPE"
-                lampLevel: 0
-            }
+            // nothing in it: the deck's inside shows (drawn in body.png); a click
+            // opens the vending machine
             MouseArea {
                 anchors.fill: parent
                 enabled: !self.held

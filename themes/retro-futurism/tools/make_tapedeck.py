@@ -63,6 +63,154 @@ def inpaint(mask, r=5):
     img = cv2.inpaint(img.clip(0, 255).astype(np.uint8), m, r, cv2.INPAINT_TELEA).astype(np.float32)
 
 
+
+# ---- drawing the deck's inside (in the window's own pixels, from x0, y0 of the mock-up)
+SS = 3
+
+
+def shape(w, h, draw):
+    """a soft-edged mask: draw(d, s) paints white on a supersampled canvas"""
+    m = Image.new('L', (w * SS, h * SS), 0)
+    draw(ImageDraw.Draw(m), SS)
+    return np.asarray(m.resize((w, h), Image.LANCZOS)).astype(np.float32) / 255
+
+
+def lay(base, mask, colour):
+    a = mask[..., None]
+    return base * (1 - a) + colour * a
+
+
+def shadow(base, mask, dx=3, dy=5, blur=5, depth=0.55):
+    sh = np.roll(np.roll(mask, dy, 0), dx, 1)
+    sh = cv2.GaussianBlur(sh, (0, 0), blur)
+    return base * (1 - depth * np.clip(sh, 0, 1))[..., None]
+
+
+def steel(field, lo=70, hi=225, tint=(1.0, 0.985, 0.95)):
+    """a metal's colour from a 0..1 light field"""
+    v = lo + (hi - lo) * np.clip(field, 0, 1)
+    return v[..., None] * np.array(tint, np.float32)
+
+
+def paint_deck(w, h, ox, oy):
+    rng = np.random.default_rng(11)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    X = lambda x: x - ox
+    Y = lambda y: y - oy
+    # the floor: dark moulded plastic, lit softly from the top left, in shadow under the rim
+    light = 1 - 0.35 * np.hypot((xx - w * 0.38) / w, (yy - h * 0.35) / h) * 1.6
+    top = np.clip(yy / 26, 0, 1) ** 0.7
+    v = 30 + 13 * light * top
+    v = v + rng.normal(0, 1.4, (h, w))
+    v = v + cv2.GaussianBlur(rng.normal(0, 3, (h, w)).astype(np.float32), (0, 0), 6)  # its mottling
+    deck = v[..., None] * np.array([1.0, 0.97, 0.93], np.float32)
+
+    # its moulding: a raised plate round the spindles, its upper edges catching the light
+    def emboss(box, r, up=True, amt=7):
+        global_ = shape(w, h, lambda d, s: d.rounded_rectangle([X(box[0]) * s, Y(box[1]) * s, X(box[2]) * s, Y(box[3]) * s], r * s, fill=255))
+        edge_hi = np.clip(global_ - np.roll(global_, 2, 0), 0, 1) + 0.6 * np.clip(global_ - np.roll(global_, 2, 1), 0, 1)
+        edge_lo = np.clip(global_ - np.roll(global_, -2, 0), 0, 1) + 0.6 * np.clip(global_ - np.roll(global_, -2, 1), 0, 1)
+        sgn = 1 if up else -1
+        return global_ * sgn * 3 + (edge_hi - edge_lo) * sgn * amt
+    deck += emboss((372, 448, 1032, 650), 22)[..., None]
+    deck += emboss((612, 520, 808, 628), 10, up=False, amt=6)[..., None]
+    # two long ribs above, as moulded plastic has
+    for ry in (470, 478):
+        rib = shape(w, h, lambda d, s, ry=ry: d.rounded_rectangle([X(640) * s, Y(ry) * s, X(780) * s, Y(ry + 3) * s], 1.5 * s, fill=255))
+        deck += (rib * 6)[..., None]
+
+    # the spindles' platters, and the spindles: white nylon hubs with six teeth
+    for cx, cy in REELS:
+        R = 50
+        plat = shape(w, h, lambda d, s: d.ellipse([(X(cx) - R) * s, (Y(cy) - R) * s, (X(cx) + R) * s, (Y(cy) + R) * s], fill=255))
+        deck = shadow(deck, plat, 2, 4, 6, 0.5)
+        rr = np.hypot(xx - X(cx), yy - Y(cy))
+        ang = np.arctan2(yy - Y(cy), xx - X(cx))
+        rings = 0.5 + 0.5 * np.cos(rr * 1.6)                                    # its turned rings
+        sheen = 0.5 + 0.5 * np.cos(ang + 2.4)                                   # lit from the top left
+        pv = 22 + 10 * sheen + 5 * rings * (rr > 20) + 22 * np.clip(1 - np.abs(rr - R + 2) / 2.5, 0, 1) * sheen
+        deck = lay(deck, plat, pv[..., None] * np.array([1.0, 0.98, 0.95], np.float32))
+        # the hub: a ring, six teeth, the shaft in its middle
+        def hub(d, s):
+            d.ellipse([(X(cx) - 15) * s, (Y(cy) - 15) * s, (X(cx) + 15) * s, (Y(cy) + 15) * s], fill=255)
+            for k in range(6):
+                a = k * np.pi / 3 + 0.3
+                pts = []
+                for (r_, da) in ((13, -0.24), (25, -0.13), (25, 0.13), (13, 0.24)):
+                    pts.append(((X(cx) + r_ * np.cos(a + da)) * s, (Y(cy) + r_ * np.sin(a + da)) * s))
+                d.polygon(pts, fill=255)
+        hm = shape(w, h, hub)
+        deck = shadow(deck, hm, 2, 3, 2.5, 0.6)
+        hv = 150 + 70 * sheen - 30 * np.clip((rr - 10) / 16, 0, 1)
+        deck = lay(deck, hm, hv[..., None] * np.array([0.97, 0.95, 0.9], np.float32))
+        hole = shape(w, h, lambda d, s: d.ellipse([(X(cx) - 6) * s, (Y(cy) - 6) * s, (X(cx) + 6) * s, (Y(cy) + 6) * s], fill=255))
+        deck = lay(deck, hole, np.array([28, 26, 25], np.float32))
+        shaft = shape(w, h, lambda d, s: d.ellipse([(X(cx) - 3.5) * s, (Y(cy) - 3.5) * s, (X(cx) + 3.5) * s, (Y(cy) + 3.5) * s], fill=255))
+        deck = lay(deck, shaft, steel(0.3 + 0.7 * sheen))
+
+    # the alignment pins and the floor's screws
+    for px, py, r in ((420, 676, 7), (1000, 676, 7)):
+        pin = shape(w, h, lambda d, s: d.ellipse([(X(px) - r) * s, (Y(py) - r) * s, (X(px) + r) * s, (Y(py) + r) * s], fill=255))
+        deck = shadow(deck, pin, 3, 4, 3, 0.6)
+        f = 1 - np.hypot(xx - X(px) + 2.5, yy - Y(py) + 2.5) / (r * 1.6)
+        deck = lay(deck, pin, steel(f, 60, 235))
+    for sx, sy in ((392, 466), (1012, 466)):
+        sc = shape(w, h, lambda d, s: d.ellipse([(X(sx) - 6) * s, (Y(sy) - 6) * s, (X(sx) + 6) * s, (Y(sy) + 6) * s], fill=255))
+        f = 1 - np.hypot(xx - X(sx) + 2, yy - Y(sy) + 2) / 10
+        deck = lay(deck, sc, steel(f, 45, 150))
+        cross = shape(w, h, lambda d, s: (d.line([(X(sx) - 3.5) * s, Y(sy) * s, (X(sx) + 3.5) * s, Y(sy) * s], fill=255, width=int(1.4 * s)),
+                                          d.line([X(sx) * s, (Y(sy) - 3.5) * s, X(sx) * s, (Y(sy) + 3.5) * s], fill=255, width=int(1.4 * s))))
+        deck = lay(deck, cross * 0.8, np.array([22, 21, 20], np.float32))
+
+    # the head block along the foot: its bracket, then what stands on it
+    br = shape(w, h, lambda d, s: d.rounded_rectangle([X(548) * s, Y(662) * s, X(890) * s, Y(730) * s], 9 * s, fill=255))
+    deck = shadow(deck, br, 0, -4, 6, 0.45)
+    f = 0.25 + 0.25 * np.clip(1 - (yy - Y(662)) / 40, 0, 1) + 0.5 * np.clip(1 - np.abs(yy - Y(664)) / 2.2, 0, 1)
+    brushed = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), sigmaX=14, sigmaY=0.6) * 0.18
+    deck = lay(deck, br, steel(f + brushed, 30, 120))
+    for sx, sy in ((566, 712), (872, 712)):
+        sc = shape(w, h, lambda d, s, sx=sx, sy=sy: d.ellipse([(X(sx) - 5) * s, (Y(sy) - 5) * s, (X(sx) + 5) * s, (Y(sy) + 5) * s], fill=255))
+        f2 = 1 - np.hypot(xx - X(sx) + 2, yy - Y(sy) + 2) / 8
+        deck = lay(deck, sc, steel(f2, 40, 150))
+        sl = shape(w, h, lambda d, s, sx=sx, sy=sy: d.line([(X(sx) - 3) * s, (Y(sy) + 1.5) * s, (X(sx) + 3) * s, (Y(sy) - 1.5) * s], fill=255, width=int(1.3 * s)))
+        deck = lay(deck, sl * 0.8, np.array([20, 19, 18], np.float32))
+    # the erase head and the playback head: chrome blocks, the playback one with its gap
+    for box, r in (((590, 654, 632, 700), 7), ((672, 646, 748, 702), 10)):
+        hd = shape(w, h, lambda d, s, box=box, r=r: d.rounded_rectangle([X(box[0]) * s, Y(box[1]) * s, X(box[2]) * s, Y(box[3]) * s], r * s, fill=255))
+        deck = shadow(deck, hd, 3, 4, 4, 0.6)
+        u = (xx - X(box[0])) / (box[2] - box[0])
+        vv = (yy - Y(box[1])) / (box[3] - box[1])
+        f = 0.35 + 0.45 * np.clip(np.sin(np.pi * np.clip(u, 0, 1)), 0, 1) ** 0.6 + 0.35 * np.exp(-((u - 0.32) / 0.08) ** 2) - 0.3 * np.clip(vv - 0.6, 0, 1)
+        deck = lay(deck, hd, steel(f, 55, 235))
+    gap = shape(w, h, lambda d, s: d.rectangle([X(709.3) * s, Y(650) * s, X(710.7) * s, Y(698) * s], fill=255))
+    deck = lay(deck, gap * 0.85, np.array([30, 28, 26], np.float32))
+    face = shape(w, h, lambda d, s: d.rectangle([X(684) * s, Y(646) * s, X(736) * s, Y(651) * s], fill=255))
+    deck = lay(deck, face * 0.5, np.array([238, 236, 230], np.float32))
+    # the tape guides, the capstan (a thin steel pin) and the pinch roller (black rubber)
+    for gx, gy in ((654, 664), (768, 664)):
+        g_ = shape(w, h, lambda d, s, gx=gx, gy=gy: d.rounded_rectangle([(X(gx) - 4) * s, Y(gy) * s, (X(gx) + 4) * s, (Y(gy) + 30) * s], 3 * s, fill=255))
+        deck = shadow(deck, g_, 2, 3, 2, 0.5)
+        u = (xx - X(gx) + 4) / 8
+        deck = lay(deck, g_, steel(0.3 + 0.7 * np.clip(np.sin(np.pi * np.clip(u, 0, 1)), 0, 1) ** 2, 60, 230))
+    cap = shape(w, h, lambda d, s: d.rounded_rectangle([X(804) * s, Y(640) * s, X(812) * s, Y(704) * s], 3 * s, fill=255))
+    deck = shadow(deck, cap, 2, 3, 2.5, 0.55)
+    u = (xx - X(804)) / 8
+    deck = lay(deck, cap, steel(0.25 + 0.75 * np.clip(np.sin(np.pi * np.clip(u, 0, 1)), 0, 1) ** 3, 70, 245))
+    roll = shape(w, h, lambda d, s: d.rounded_rectangle([X(826) * s, Y(640) * s, X(862) * s, Y(706) * s], 9 * s, fill=255))
+    deck = shadow(deck, roll, 3, 4, 5, 0.6)
+    u = (xx - X(826)) / 36
+    rv = 14 + 30 * np.clip(np.sin(np.pi * np.clip(u, 0, 1)), 0, 1) ** 1.5 + 22 * np.exp(-((u - 0.33) / 0.07) ** 2)
+    deck = lay(deck, roll, rv[..., None] * np.array([1.0, 0.98, 0.96], np.float32))
+    axle = shape(w, h, lambda d, s: d.ellipse([(X(844) - 4) * s, (Y(646) - 3) * s, (X(844) + 4) * s, (Y(646) + 3) * s], fill=255))
+    deck = lay(deck, axle, steel(0.6, 80, 200))
+
+    # the shadow the window's rim casts in along its top and left
+    occ = np.clip(1 - yy / 30, 0, 1) ** 1.5 * 0.5 + np.clip(1 - xx / 26, 0, 1) ** 1.5 * 0.3
+    deck *= (1 - occ)[..., None]
+    deck += rng.normal(0, 0.8, (h, w))[..., None]
+    return deck
+
+
 # ---- the moving parts, cut first
 gx0, gy0, gx1, gy1, gr = GLASS
 cx0, cy0, cx1, cy1, cr = CASSETTE
@@ -168,18 +316,18 @@ Image.fromarray(np.dstack([np.full((gh, gw, 3), 255, np.float32), streak * 255])
     .save(os.path.join(out, 'glare.png'))
 
 # ---- the body
-# the window empty: the well behind the glass, dark, a little lighter at its middle
+# the window empty: the deck's inside as it is with no cassette in it (the
+# cassette, in, covers it nearly all): its moulded floor, the two spindles on
+# their platters, the alignment pins, and along its foot the head block (erase
+# head, playback head, guides, capstan and pinch roller)
 well = rrect(GLASS[:4], gr)
 h, w = well.shape
-yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-glow = 1 - np.hypot((xx - w / 2) / (w * 0.7), (yy - h / 2) / (h * 0.9)) ** 2
-deep = np.array([30, 29, 28], np.float32) + 14 * np.clip(glow, 0, 1)[..., None]
-deep += np.random.default_rng(3).normal(0, 1.2, deep.shape[:2])[..., None]
+deck = paint_deck(w, h, gx0, gy0)
 # its inner rim: a shade lighter, as the mock-up's
 rim = np.clip(1 - cv2.distanceTransform((well > 0.5).astype(np.uint8), cv2.DIST_L2, 3) / 6, 0, 1)
-deep += (rim * 18)[..., None]
+deck += (rim * 18)[..., None]
 reg = img[gy0:gy1, gx0:gx1]
-reg[:] = reg * (1 - well[..., None]) + deep * well[..., None]
+reg[:] = reg * (1 - well[..., None]) + deck * well[..., None]
 
 # the meter dark: its bars taken away into the glass round them
 m = np.zeros((H, W), np.uint8)
