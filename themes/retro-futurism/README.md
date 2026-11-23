@@ -172,6 +172,13 @@ kept for later.
   emptied, the carriage, the column's head, the tray's clips, and the
   eight cassettes with their titles taken off (`shells.json`: where a
   title goes on each).
+- `tools/make_cursors.py` makes the pointer cursors from `art/Cursors.png`
+  (`home/.local/share/icons/Magnetic88`): each of the 36 cut off the sheet
+  (its soft shadow made a real one, a ring's hole let through), given its
+  hotspot, and written as an Xcursor file at 24 to 96 px; the busy ring
+  and the background-work ring turn (12 frames). The names apps ask for
+  (CSS, X11, Qt and GTK's) link to them. Hyprland, GTK and every app use
+  it, at 28 px (`"cursorSize"` in the theme's settings.json for another).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
 

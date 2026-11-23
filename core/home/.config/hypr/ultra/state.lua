@@ -65,6 +65,9 @@ function M.settings(path)
     function S.string(key, default)
         return text:match('"' .. key .. '"%s*:%s*"([^"]*)"') or default
     end
+    function S.number(key, default)
+        return tonumber(text:match('"' .. key .. '"%s*:%s*(-?[%d.]+)')) or default
+    end
     return S
 end
 

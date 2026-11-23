@@ -20,8 +20,10 @@ if command -v gsettings >/dev/null; then
     gsettings set $i icon-theme Papirus
     gsettings set $i font-name 'JetBrains Mono 10'
     gsettings set $i monospace-font-name 'JetBrains Mono 11'
-    gsettings set $i cursor-theme Adwaita
-    gsettings set $i cursor-size 24
+    # the theme's cursors, at its size ("cursorSize" in its settings.json)
+    size=$(grep -o '"cursorSize"[[:space:]]*:[[:space:]]*[0-9]*' "$config/ultra/retro-futurism/settings.json" 2>/dev/null | grep -o '[0-9]*$')
+    gsettings set $i cursor-theme Magnetic88
+    gsettings set $i cursor-size "${size:-28}"
     gsettings set org.gnome.desktop.wm.preferences button-layout ':'
     gsettings set org.gnome.desktop.sound theme-name freedesktop     # (no sounds of its own: not another theme's)
 fi 2>/dev/null
