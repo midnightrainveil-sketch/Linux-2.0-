@@ -49,12 +49,12 @@ CURSORS = {
     'w-resize':       ((1288, 208, 1388, 270), (0.04, 0.5)),
     'ne-resize':      ((798, 316, 888, 394), (0.95, 0.05)),
     'nw-resize':      ((958, 316, 1048, 394), (0.05, 0.05)),
-    'se-resize':      ((1128, 316, 1218, 394), (0.95, 0.95)),
+    'se-resize':      ((1100, 310, 1245, 391), (0.95, 0.95)),
     'sw-resize':      ((1292, 316, 1383, 394), (0.05, 0.95)),
     'col-resize':     ((772, 438, 902, 552), 'centre'),
     'row-resize':     ((948, 438, 1062, 554), 'centre'),
-    'zoom-in':        ((1102, 438, 1228, 554), (0.36, 0.36)),
-    'zoom-out':       ((1272, 438, 1398, 554), (0.36, 0.36)),
+    'zoom-in':        ((1098, 428, 1234, 560), (0.36, 0.36)),
+    'zoom-out':       ((1266, 428, 1404, 560), (0.36, 0.36)),
     # sheet C: supplementary
     'copy':           ((322, 688, 442, 797), (0.08, 0.08)),
     'alias':          ((532, 688, 668, 797), (0.08, 0.08)),
@@ -112,11 +112,28 @@ ALIASES = {
 HOLES = {'wait', 'progress', 'dnd-move'}
 # the one drawn partly in thin light lines (its dashed box): not peeled
 THIN = {'dnd-move'}
+# the round-bottomed ones whose drop shadow on the sheet is dark enough under
+# their middle to pass for chrome (trimmed below their outline, column by column)
+WEDGE = {'pointer', 'grab', 'grabbing', 'not-allowed', 'no-drop', 'se-resize'}
+# the plain arrows, whose white chrome rim meets the sheet's shadow with no
+# dark line between: their rim peeled deeper (on the others it would bite
+# into light chrome edges)
+DEEP = {'default', 'progress'}
+# the magnifiers: a broad white highlight on their rim, sealed with a wider brush
+WIDE = {'zoom-in', 'zoom-out'}
 
 
-def cut(box, holes=False, peel=True):
+def cut(box, holes=False, peel=True, wedge=False, deep=False, wide=False):
     """the cursor in box off the white: RGBA, at the sheet's size"""
     x0, y0, x1, y1 = box
+    # its label, if the box reaches it, left out: the box ends at the clear
+    # band (no ink in it) between the icon and the text below
+    inky = (sheet[y0:y1, x0:x1].mean(2) < 130).any(1)
+    rows = np.where(inky)[0]
+    if len(rows):
+        gaps = np.where(np.diff(rows) > 4)[0]
+        if len(gaps) and rows[gaps[-1] + 1] > (y1 - y0) * 0.7:
+            y1 = y0 + rows[gaps[-1]] + (rows[gaps[-1] + 1] - rows[gaps[-1]]) // 2
     part = sheet[y0:y1, x0:x1]
     L = part.mean(2)
     sat = part.max(2) - part.min(2)
@@ -139,7 +156,12 @@ def cut(box, holes=False, peel=True):
     # it encloses (its highlights) is it
     core = (L < (226 if not peel else 214)) | (sat > 22)        # (the thin-lined ones: their faint lines too)
     core = cv2.morphologyEx(core.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)).astype(bool)
-    outside = flood(~core)
+    # (its faint outer outline has gaps where its highlights meet the sheet's
+    # white: closed with a wider brush before finding what lies outside it;
+    # what of the sheet that sweeps in, the rim's peeling takes off again)
+    sealed = cv2.morphologyEx(core.astype(np.uint8), cv2.MORPH_CLOSE,
+                              cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13) if wide else (7, 7))).astype(bool)
+    outside = flood(~sealed)
     outer = outside.copy()                        # (round it, not through it)
     if holes:
         # a ring's middle: an enclosed patch of the sheet's own white
@@ -148,34 +170,83 @@ def cut(box, holes=False, peel=True):
         for i in range(1, n):
             m = lab == i
             if not outside[m].any() and (white & m).sum() > 60:
-                outside |= m
+                outside |= m & (L > 236)            # (its light inner rim kept)
     body = ~outside
     # its rim peeled: the sheet's soft shadow runs nearly as dark as its
     # chrome close to it, so a pixel or three of it came along; light grey
     # pixels on the rim go, a layer at a time, until its dark outline
-    shadowy = (L > 150) & (sat < 28)
+    shadowy = (L > (142 if deep else 150)) & (sat < 28)
     cross = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    for _ in range(3 if peel else 0):
+    for _ in range((5 if deep else 3) if peel else 0):
         rim = body & cv2.dilate(outer.astype(np.uint8), cross).astype(bool)
         body &= ~(rim & shadowy)
         outer |= rim & shadowy
     outside |= ~body & ~outside & cv2.dilate(outside.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool)
     n, lab, st, _ = cv2.connectedComponentsWithStats(body.astype(np.uint8), connectivity=8)
     keep = np.zeros((h, w), bool)
+    big = st[1:, cv2.CC_STAT_AREA].max() if n > 1 else 0
     for i in range(1, n):
-        if st[i, cv2.CC_STAT_AREA] > 40:
-            keep |= lab == i
+        area, top, hh = st[i, cv2.CC_STAT_AREA], st[i, cv2.CC_STAT_TOP], st[i, cv2.CC_STAT_HEIGHT]
+        if area <= 40:
+            continue
+        # the top of its label below, reaching into the box: small, at its foot
+        if top + hh >= h - 1 and area < 0.15 * big:
+            continue
+        keep |= lab == i
 
-    # its edge: the outermost pixels are its outline mixed with the sheet's
-    # white; each is taken apart into the outline's colour (from just inside)
-    # and how much of it covers the pixel
-    k3 = np.ones((3, 3), np.uint8)
-    inner = cv2.erode(keep.astype(np.uint8), k3, iterations=2).astype(bool)
-    band = cv2.dilate(keep.astype(np.uint8), k3).astype(bool) & ~inner
-    filled = cv2.inpaint(part.clip(0, 255).astype(np.uint8), band.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA).astype(np.float32)
-    Lf = filled.mean(2)
-    cover = np.clip((252 - L) / np.maximum(252 - Lf, 30), 0, 1)
-    a = np.where(inner, 1.0, np.where(band, cover, 0.0)).astype(np.float32)
+    # the sheet's drop shadow under it is darkest right below its middle,
+    # dark enough to pass for chrome, and leaves a wedge there: in each
+    # column nothing is kept below its lowest dark outline (or coloured) pixel
+    if wedge:
+        ink = ((L < 95) | (sat > 28)) & keep
+        for x in range(w):
+            ys_ = np.where(ink[:, x])[0]
+            if len(ys_):
+                keep[ys_[-1] + 2:, x] = False
+    # the magnifiers' lens: a circle, its rim's pure white highlight (no
+    # outline to find) filled in by fitting it to the rest of its rim
+    if wide:
+        cs, _ = cv2.findContours(keep.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        pts = max(cs, key=len)[:, 0, :].astype(np.float64)
+        # the lens is the shape's upper left; its handle runs off to the lower right
+        lx, ty = pts[:, 0].min(), pts[:, 1].min()
+        r = 0.36 * max(w, h)
+        for _ in range(6):
+            cx, cy = lx + r, ty + r
+            d = np.hypot(pts[:, 0] - cx, pts[:, 1] - cy)
+            on = np.abs(d - r) < 4
+            on &= ~((pts[:, 0] > cx + 0.3 * r) & (pts[:, 1] > cy + 0.3 * r))      # (not the handle)
+            if on.sum() < 20:
+                break
+            A = np.c_[2 * pts[on], np.ones(on.sum())]
+            b = (pts[on] ** 2).sum(1)
+            (cx, cy, c), *_ = np.linalg.lstsq(A, b, rcond=None)
+            r = np.sqrt(c + cx * cx + cy * cy)
+            lx, ty = cx - r, cy - r
+        disc = np.zeros((h, w), np.uint8)
+        cv2.circle(disc, (int(round(cx)), int(round(cy))), int(round(r - 0.5)), 1, -1)
+        keep |= disc.astype(bool)
+    # its outline made smooth: where its chrome's white rim meets the sheet's
+    # white there is no edge to follow, so the cut wanders a pixel in and
+    # out; its notches closed, its contour smoothed, then drawn with an exact
+    # one-pixel soft edge (from each pixel's distance to that contour)
+    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    if peel:
+        # (only along its outer contour: its thin inner parts, a ring's inner
+        # rim, would melt)
+        near = cv2.dilate(outer.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool)
+        smooth = cv2.morphologyEx(keep.astype(np.uint8), cv2.MORPH_CLOSE, disc).astype(bool)
+        smooth = cv2.GaussianBlur(smooth.astype(np.float32), (0, 0), 1.4) > 0.5
+        keep = np.where(near, smooth, keep)
+    k8 = keep.astype(np.uint8)
+    din = cv2.distanceTransform(k8, cv2.DIST_L2, 5)
+    dout = cv2.distanceTransform(1 - k8, cv2.DIST_L2, 5)
+    sd = np.where(keep, din - 0.5, 0.5 - dout)                       # signed: + inside
+    a = np.clip(0.5 + sd, 0, 1).astype(np.float32)
+    # its colour at the edge: from the chrome just inside (never the sheet's white)
+    inner = din > 2.5
+    edge = (a > 0) & ~inner
+    filled = cv2.inpaint(part.clip(0, 255).astype(np.uint8), edge.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA).astype(np.float32)
     colour = np.where(inner[..., None], part, filled)
 
     # (no shadow here: a clean, even one is drawn at each size, see shaped())
@@ -278,7 +349,7 @@ cursors_dir = os.path.join(out, 'cursors')
 os.makedirs(cursors_dir, exist_ok=True)
 previews = []
 for name, (box, spec) in CURSORS.items():
-    im = cut(box, name in HOLES, name not in THIN)
+    im = cut(box, name in HOLES, name not in THIN, name in WEDGE, name in DEEP, name in WIDE)
     hx, hy = hotspot(im, spec)
     frames = frames_of(name, im)
     images = []
