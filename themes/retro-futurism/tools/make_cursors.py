@@ -1,70 +1,463 @@
 #!/usr/bin/env python3
-"""The pointer cursors, from their mock-up sheet (art/Cursors.png): an Xcursor
-theme, "Magnetic88", for Hyprland, the shell and every app.
+"""The pointer cursors: an Xcursor theme, "Magnetic88", drawn here as shapes
+in the style of their mock-up (art/Cursors.png): warm chrome with a bevelled
+edge and a dark outline, sage inlays, a small even shadow.
 
-    python3 tools/make_cursors.py art/Cursors.png home/.local/share/icons/Magnetic88
+    python3 tools/make_cursors.py home/.local/share/icons/Magnetic88
 
-Each cursor is cut off the sheet's white ground (by its outline, flooded in
-from round it, so the chrome's white highlights inside stay; the holes
-through a ring are let through), given its hotspot, and written as an Xcursor
-file at several sizes (24 to 96 px, for any scale). The busy ring turns (12
-frames), the background-work one's small ring too. The names apps and
-toolkits ask for (CSS names, the old X11 ones, Qt's and GTK's) are links to
-the files. Python only: no xcursorgen needed.
+Each cursor is drawn on a 32-unit square, at each size (24 to 96 px) four to
+six times over and averaged down, so it is sharp at any size: nothing is cut
+out of a picture. The busy rings turn (12 frames). The names apps and
+toolkits ask for (CSS, the old X11 ones, Qt's and GTK's) are links to the
+files. Python only: no xcursorgen needed.
 (pip: numpy pillow opencv-python-headless)
 """
-import os, struct, sys
+import math, os, struct, sys
 import numpy as np, cv2
-from PIL import Image
-from collections import deque
+from PIL import Image, ImageDraw, ImageFont
 
-src, out = sys.argv[1:3]
-sheet = np.asarray(Image.open(src).convert('RGB')).astype(np.float32)
+out = sys.argv[-1]
+HERE = os.path.dirname(os.path.abspath(__file__))
+FONT = os.path.join(HERE, '..', 'home', '.local', 'share', 'fonts', 'retro-futurism', 'Barlow-Bold.ttf')
 SIZES = [24, 28, 32, 36, 42, 48, 64, 96]     # (28 at a scale of 1.5 is 42)
 
-# name: (search box on the sheet, hotspot as a fraction of the cut cursor or
-# "tip" (its top-left point) or "centre")
+# ---------------------------------------------------------------- drawing
+class Pen:
+    """draws on a mask in the 32-unit square, through a turn, a scale and a
+    shift (about the square's middle)"""
+    def __init__(self, n, turn=0.0, scale=1.0, shift=(0.0, 0.0), about=(16.0, 16.0)):
+        self.n = n
+        self.k = n / 32.0
+        a = math.radians(turn)
+        self.c, self.s = math.cos(a) * scale, math.sin(a) * scale
+        self.scale, self.turn, self.about, self.shift = scale, turn, about, shift
+
+    def map(self, x, y):
+        ax, ay = self.about
+        x, y = x - ax, y - ay
+        X = ax + self.c * x - self.s * y + self.shift[0]
+        Y = ay + self.s * x + self.c * y + self.shift[1]
+        return X * self.k, Y * self.k
+
+    def r(self, r):
+        return r * self.scale * self.k
+
+    def poly(self, d, pts, fill=255):
+        d.polygon([self.map(x, y) for x, y in pts], fill=fill)
+
+    def circle(self, d, cx, cy, r, fill=255):
+        X, Y = self.map(cx, cy); R = self.r(r)
+        d.ellipse([X - R, Y - R, X + R, Y + R], fill=fill)
+
+    def capsule(self, d, x0, y0, x1, y1, r, fill=255):
+        (X0, Y0), (X1, Y1), R = self.map(x0, y0), self.map(x1, y1), self.r(r)
+        dx, dy = X1 - X0, Y1 - Y0
+        L = math.hypot(dx, dy) or 1
+        nx, ny = -dy / L * R, dx / L * R
+        d.polygon([(X0 + nx, Y0 + ny), (X1 + nx, Y1 + ny), (X1 - nx, Y1 - ny), (X0 - nx, Y0 - ny)], fill=fill)
+        for X, Y in ((X0, Y0), (X1, Y1)):
+            d.ellipse([X - R, Y - R, X + R, Y + R], fill=fill)
+
+    def rect(self, d, x0, y0, x1, y1, fill=255):
+        self.poly(d, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], fill)
+
+    def sector(self, d, cx, cy, r0, r1, a0, a1, fill=255):
+        """a ring's piece, from angle a0 to a1 (degrees, clockwise from 3 o'clock)"""
+        m = max(8, int(abs(a1 - a0) / 3))
+        outer = [(cx + r1 * math.cos(math.radians(a0 + (a1 - a0) * i / m)), cy + r1 * math.sin(math.radians(a0 + (a1 - a0) * i / m))) for i in range(m + 1)]
+        inner = [(cx + r0 * math.cos(math.radians(a1 - (a1 - a0) * i / m)), cy + r0 * math.sin(math.radians(a1 - (a1 - a0) * i / m))) for i in range(m + 1)]
+        self.poly(d, outer + inner, fill)
+
+    def text(self, d, cx, cy, txt, h, fill=255):
+        font = ImageFont.truetype(FONT, max(4, int(self.r(h) * 1.35)))
+        X, Y = self.map(cx, cy)
+        d.text((X, Y), txt, font=font, fill=fill, anchor='mm')
+
+
+def layer(n, pen_args, draw, round_r=0.0):
+    """a mask drawn by draw(pen, d); its convex corners rounded by round_r units"""
+    m = Image.new('L', (n, n), 0)
+    pen = Pen(n, **pen_args)
+    draw(pen, ImageDraw.Draw(m))
+    a = np.asarray(m) > 127
+    if round_r > 0:
+        rr = round_r * n / 32
+        din = cv2.distanceTransform(a.astype(np.uint8), cv2.DIST_L2, 5)
+        core = (din > rr).astype(np.uint8)
+        dout = cv2.distanceTransform(1 - core, cv2.DIST_L2, 5)
+        a = (dout <= rr) & a | (core > 0)
+    return a
+
+
+# ---------------------------------------------------------------- the materials
+LIGHT = np.array([-0.52, -0.72, 0.95]); LIGHT = LIGHT / np.linalg.norm(LIGHT)
+
+
+def normals(m, depth, ppu, sunk=False):
+    """its inside distance (units) and its surface's normal, from a rounded bevel"""
+    din = cv2.distanceTransform(m.astype(np.uint8), cv2.DIST_L2, 5) / ppu
+    h = np.clip(din / depth, 0, 1)
+    h = np.sqrt(1 - (1 - h) ** 2)                     # a round profile, like a tube's
+    h = cv2.GaussianBlur(h.astype(np.float32), (0, 0), max(0.6, 0.3 * ppu))
+    gy, gx = np.gradient(h * depth * ppu)
+    if sunk:
+        gx, gy = -gx, -gy
+    l = np.sqrt(gx * gx + gy * gy + 1)
+    return din, -gx / l, -gy / l, 1 / l               # (nx, ny, nz: ny < 0 faces up)
+
+
+def shade(m, material, ppu):
+    """the colour of mask m in its material (RGB 0..255)"""
+    ys = np.where(m.any(1))[0]
+    y0, y1 = (ys.min(), ys.max() + 1) if len(ys) else (0, 1)
+    t = np.clip((np.arange(m.shape[0])[:, None] - y0) / max(1, y1 - y0), 0, 1) * np.ones_like(m, dtype=np.float32)
+    if material == 'chrome':
+        din, nx, ny, nz = normals(m, 2.0, ppu)
+        lam = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+        # polished chrome mirrors a room: sky above, a dark horizon across its
+        # middle, a lighter floor; its upturned edges catch the sky, its lower
+        # ones the dark
+        e = 0.5 - 0.85 * ny - 0.38 * (t - 0.5)
+        env = np.interp(e, [0, 0.22, 0.4, 0.47, 0.53, 0.62, 0.8, 1.0], [0.5, 0.66, 0.86, 0.6, 0.66, 0.97, 1.0, 1.0])
+        v = env * (0.95 - 0.18 * nx)
+        v += 0.55 * np.clip((lam - 0.93) / 0.07, 0, 1) ** 1.5       # its glint
+        rgb = np.clip(v, 0, 1.1)[..., None] * np.array([248, 244, 234])
+        ow, dark = 0.5, np.array([46, 43, 40])
+    elif material == 'sage':
+        din, nx, ny, nz = normals(m, 1.0, ppu, sunk=True)
+        lam = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+        v = (0.55 + 0.5 * lam) * (1.1 - 0.25 * t)
+        rgb = np.clip(v, 0, 1.2)[..., None] * np.array([122, 150, 110])
+        # its glaze: a soft light across its upper part
+        gl = np.clip(1 - t / 0.42, 0, 1) * np.clip(din / 0.9, 0, 1)
+        rgb = rgb + (gl * 0.22)[..., None] * np.array([235, 245, 225])
+        ow, dark = 0.4, np.array([34, 46, 32])
+    else:                                                          # 'groove': a dark seam
+        din = cv2.distanceTransform(m.astype(np.uint8), cv2.DIST_L2, 5) / ppu
+        rgb = np.ones(m.shape + (3,)) * np.array([70, 65, 60])
+        ow, dark = 0, rgb[0, 0]
+    if ow:
+        e = np.clip(1 - (din - ow) / 0.35, 0, 1)[..., None]           # the outline
+        rgb = rgb * (1 - e) + dark * e
+    return rgb.astype(np.float32)
+
+
+def render(layers, size, ss):
+    """layers: [(material, draw, pen_args, round_r)] -> RGBA image size x size"""
+    n = size * ss
+    ppu = n / 32
+    rgb = np.zeros((n, n, 3), np.float32)
+    a = np.zeros((n, n), np.float32)
+    for material, draw, pen_args, rr in layers:
+        m = layer(n, pen_args, draw, rr)
+        c = shade(m, material, ppu)
+        if material == 'groove':
+            ma = m.astype(np.float32) * 0.85 * (a > 0)
+        else:
+            ma = m.astype(np.float32)
+        rgb = rgb * (1 - ma[..., None]) + c * ma[..., None]
+        a = a + ma * (1 - a)
+    # its shadow: down and a little right, soft, even
+    sh = np.roll(np.roll(a, int(round(1.0 * ppu)), 0), int(round(0.6 * ppu)), 1)
+    sh = cv2.GaussianBlur(sh, (0, 0), 0.9 * ppu) * 0.38
+    A = a + sh * (1 - a)
+    pre = np.dstack([rgb * a[..., None], A * 255])                 # premultiplied (the shadow black)
+    small = cv2.resize(pre, (size, size), interpolation=cv2.INTER_AREA)
+    al = small[..., 3:4] / 255
+    col = small[..., :3] / np.maximum(al, 1e-4)
+    return Image.fromarray(np.dstack([col, al * 255]).clip(0, 255).astype('uint8'), 'RGBA')
+
+
+# ---------------------------------------------------------------- the cursors
+def L(material, draw, rr=0.45, **pen):
+    return (material, draw, pen, rr)
+
+
+ARROW = [(3, 2), (3, 25.5), (8.8, 20.4), (12.8, 29), (17.2, 27.1), (13.3, 18.6), (20.8, 18.4)]
+
+
+def arrow(**pen):
+    return [L('chrome', lambda p, d: p.poly(d, ARROW), 0.7, **pen),
+            L('sage', lambda p, d: p.poly(d, [(5.8, 9), (5.8, 20.3), (15.3, 16.6)]), 0.6, **pen)]
+
+
+SMALL = dict(scale=0.76, about=(3, 2))          # the arrow beside a sign
+
+
+def half_ellipse(cx, cy, rx, ry):
+    """an ellipse's lower half (the hands' sage crescent)"""
+    return [(cx + rx * math.cos(math.radians(a)), cy + ry * math.sin(math.radians(a))) for a in range(0, 181, 6)]
+
+
+def pointer():
+    def body(p, d):
+        p.capsule(d, 12.5, 4.2, 12.5, 17, 2.7)
+        for x, y0, r in ((17.3, 11.5, 2.4), (21.6, 12.6, 2.3), (25.4, 14.2, 2.1)):
+            p.capsule(d, x, y0, x, 18.5, r)
+        p.rect(d, 9.8, 15, 27.5, 23.5)
+        p.capsule(d, 14, 23.5, 23.2, 23.5, 5)
+        p.capsule(d, 7.2, 17.5, 11, 23, 2.5)
+    def seams(p, d):
+        for x, y0, y1 in ((14.95, 12.6, 18), (19.45, 13.4, 18.2), (23.5, 15, 18.6)):
+            p.capsule(d, x, y0, x, y1, 0.32)
+    return [L('chrome', body, 0.8), L('groove', seams, 0),
+            L('sage', lambda p, d: p.poly(d, half_ellipse(18.6, 21.6, 6.1, 4.6)), 0.6)]
+
+
+def open_hand():
+    def body(p, d):
+        for x, y0, r in ((10.5, 7.6, 2.4), (15, 4.8, 2.5), (19.4, 5.3, 2.5), (23.6, 8.2, 2.3)):
+            p.capsule(d, x, y0, x, 16, r)
+        p.rect(d, 8.2, 13.5, 26, 22)
+        p.capsule(d, 12.8, 23, 21.4, 23, 5.3)
+        p.capsule(d, 5, 15.5, 9.6, 21.5, 2.4)
+    def seams(p, d):
+        for x, y0, y1 in ((12.75, 11, 16.6), (17.2, 9, 16.4), (21.5, 10, 16.6)):
+            p.capsule(d, x, y0, x, y1, 0.32)
+    return [L('chrome', body, 0.8), L('groove', seams, 0),
+            L('sage', lambda p, d: p.poly(d, half_ellipse(17.1, 21.6, 6.2, 4.5)), 0.6)]
+
+
+def closed_hand():
+    def body(p, d):
+        for x in (10.6, 15, 19.4, 23.7):
+            p.circle(d, x, 13.2, 2.7)
+        p.rect(d, 7.9, 13.2, 26.4, 21.5)
+        p.capsule(d, 12.6, 22.2, 21.7, 22.2, 5.5)
+        p.capsule(d, 5.8, 16, 9.4, 20.4, 2.3)
+    def seams(p, d):
+        for x in (12.8, 17.2, 21.55):
+            p.capsule(d, x, 11.6, x, 15.4, 0.32)
+    return [L('chrome', body, 0.8), L('groove', seams, 0),
+            L('sage', lambda p, d: p.poly(d, half_ellipse(17.1, 20.8, 6.2, 4.4)), 0.6)]
+
+
+def ibeam(**pen):
+    def body(p, d):
+        p.capsule(d, 10.8, 5, 21.2, 5, 2)
+        p.capsule(d, 10.8, 27, 21.2, 27, 2)
+        p.rect(d, 14.2, 5, 17.8, 27)
+    return [L('chrome', body, 0.6, **pen),
+            L('sage', lambda p, d: p.rect(d, 15.3, 8.5, 16.7, 23.5), 0.5, **pen)]
+
+
+def ring(cx, cy, r_out, r_in, s0, s1, turn, width=38):
+    """a busy ring: chrome, with six sage pieces turning"""
+    def body(p, d):
+        p.circle(d, cx, cy, r_out)
+        p.circle(d, cx, cy, r_in, fill=0)
+    def pieces(p, d):
+        for i in range(6):
+            a = turn + i * 60
+            p.sector(d, cx, cy, s0, s1, a, a + width)
+    return [L('chrome', body, 0.4), L('sage', pieces, 0.35)]
+
+
+def not_allowed():
+    def body(p, d):
+        p.circle(d, 16, 16, 13)
+        p.circle(d, 16, 16, 9.8, fill=0)
+        p.capsule(d, 9.3, 9.3, 22.7, 22.7, 1.9)
+    return [L('sage', lambda p, d: p.circle(d, 16, 16, 10.2), 0), L('chrome', body, 0.4)]
+
+
+def crosshair():
+    def body(p, d):
+        for a in ((3, 16, 12, 16), (20, 16, 29, 16), (16, 3, 16, 12), (16, 20, 16, 29)):
+            p.capsule(d, *a, 1.5)
+        p.circle(d, 16, 16, 4.2)
+        p.circle(d, 16, 16, 2.4, fill=0)
+    def inlay(p, d):
+        for a in ((4.6, 16, 10.6, 16), (21.4, 16, 27.4, 16), (16, 4.6, 16, 10.6), (16, 21.4, 16, 27.4)):
+            p.capsule(d, *a, 0.5)
+        p.circle(d, 16, 16, 1.6)
+    return [L('chrome', body, 0.3), L('sage', inlay, 0)]
+
+
+def four_way(stub=None):
+    """move (stub None: a cross through) or all-scroll (short stubs and a ball)"""
+    def body(p, d):
+        if stub is None:
+            p.capsule(d, 6, 16, 26, 16, 1.8); p.capsule(d, 16, 6, 16, 26, 1.8)
+        else:
+            for a in ((16, 7, 16, 11.5), (16, 25, 16, 20.5), (7, 16, 11.5, 16), (25, 16, 20.5, 16)):
+                p.capsule(d, *a, 1.6)
+            p.circle(d, 16, 16, 3.6)
+        p.poly(d, [(16, 1.8), (10.8, 7.8), (21.2, 7.8)])
+        p.poly(d, [(16, 30.2), (10.8, 24.2), (21.2, 24.2)])
+        p.poly(d, [(1.8, 16), (7.8, 10.8), (7.8, 21.2)])
+        p.poly(d, [(30.2, 16), (24.2, 10.8), (24.2, 21.2)])
+    def inlay(p, d):
+        if stub is None:
+            p.capsule(d, 6.5, 16, 25.5, 16, 0.6); p.capsule(d, 16, 6.5, 16, 25.5, 0.6)
+        else:
+            for a in ((16, 6, 16, 11), (16, 26, 16, 21), (6, 16, 11, 16), (26, 16, 21, 16)):
+                p.capsule(d, *a, 0.6)
+    return [L('chrome', body, 0.5), L('sage', inlay, 0)]
+
+
+def double_arrow(turn):
+    def body(p, d):
+        p.poly(d, [(2, 16), (9.6, 8.6), (9.6, 23.4)])
+        p.poly(d, [(30, 16), (22.4, 8.6), (22.4, 23.4)])
+        p.rect(d, 8, 13.9, 24, 18.1)
+    return [L('chrome', body, 0.55, turn=turn),
+            L('sage', lambda p, d: p.rect(d, 6, 15.1, 26, 16.9), 0.5, turn=turn)]
+
+
+def single_arrow(turn):
+    def body(p, d):
+        p.poly(d, [(16, 2.2), (6.5, 12.6), (25.5, 12.6)])
+        p.rect(d, 12.6, 11.5, 19.4, 28.5)
+    def inlay(p, d):
+        p.poly(d, [(16, 6.4), (10.4, 11.3), (21.6, 11.3)])
+        p.rect(d, 14.9, 10.5, 17.1, 26.5)
+    return [L('chrome', body, 0.6, turn=turn), L('sage', inlay, 0.4, turn=turn)]
+
+
+def split(turn):
+    def body(p, d):
+        p.rect(d, 14.3, 3, 17.7, 29)
+        p.poly(d, [(2, 16), (8, 10.6), (8, 21.4)]); p.rect(d, 7, 14.3, 12.6, 17.7)
+        p.poly(d, [(30, 16), (24, 10.6), (24, 21.4)]); p.rect(d, 19.4, 14.3, 25, 17.7)
+    def inlay(p, d):
+        p.rect(d, 15.35, 5, 16.65, 27)
+        p.rect(d, 5.5, 15.4, 12, 16.6); p.rect(d, 20, 15.4, 26.5, 16.6)
+    return [L('chrome', body, 0.6, turn=turn), L('sage', inlay, 0.4, turn=turn)]
+
+
+def zoom(plus):
+    def body(p, d):
+        p.circle(d, 13, 13, 10.8)
+        p.circle(d, 13, 13, 7.6, fill=0)
+        p.capsule(d, 20.4, 20.4, 27.6, 27.6, 2.8)
+    def sign(p, d):
+        p.capsule(d, 9.4, 13, 16.6, 13, 1.25)
+        if plus:
+            p.capsule(d, 13, 9.4, 13, 16.6, 1.25)
+    return [L('sage', lambda p, d: p.circle(d, 13, 13, 8.0), 0), L('chrome', body, 0.4), L('chrome', sign, 0)]
+
+
+def copy():
+    return [L('chrome', lambda p, d: p.rect(d, 11, 4, 27.5, 20.5), 3),
+            L('sage', lambda p, d: p.rect(d, 23.2, 7.5, 25.2, 17.5), 0.6),
+            L('chrome', lambda p, d: p.rect(d, 4.5, 10.5, 21, 27), 3)]
+
+
+def alias():
+    def curve(p, d):
+        pts = [(21 + 13 * math.cos(math.radians(a)), 27 + 13 * math.sin(math.radians(a))) for a in range(180, 271, 6)]
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            p.capsule(d, x0, y0, x1, y1, 1.8)
+        p.poly(d, [(27.5, 14), (20.6, 8.4), (20.6, 19.6)])
+    return [L('chrome', lambda p, d: p.rect(d, 10.5, 4, 28, 21.5), 3), L('sage', curve, 0.4)]
+
+
+def context_menu():
+    def inlay(p, d):
+        for y in (11, 16, 21):
+            p.circle(d, 8.8, y, 1.35)
+            p.rect(d, 12, y - 1.05, 24.2, y + 1.05)
+    return [L('chrome', lambda p, d: p.rect(d, 4, 6, 28, 26), 3.2), L('sage', inlay, 0.5)]
+
+
+def cell():
+    def body(p, d):
+        for (x, y, dx, dy) in ((3, 3, 1, 1), (29, 3, -1, 1), (3, 29, 1, -1), (29, 29, -1, -1)):
+            p.capsule(d, x, y, x + 5.5 * dx, y, 1.1)
+            p.capsule(d, x, y, x, y + 5.5 * dy, 1.1)
+        for x in (8, 16.6):
+            for y in (8, 16.6):
+                p.rect(d, x, y, x + 7.4, y + 7.4)
+    def inlay(p, d):
+        for x in (8, 16.6):
+            for y in (8, 16.6):
+                p.rect(d, x + 1.7, y + 1.7, x + 5.7, y + 5.7)
+    return [L('chrome', body, 1.0), L('sage', inlay, 0.6)]
+
+
+def no_drop():
+    def x(p, d):
+        p.capsule(d, 11, 11, 21, 21, 1.7); p.capsule(d, 21, 11, 11, 21, 1.7)
+    def seam(p, d):
+        p.circle(d, 16, 16, 10.4); p.circle(d, 16, 16, 9.8, fill=0)
+    return [L('chrome', lambda p, d: p.circle(d, 16, 16, 13), 0), L('groove', seam, 0), L('sage', x, 0)]
+
+
+def up_arrow():
+    def body(p, d):
+        p.poly(d, [(16, 2), (3.5, 15.5), (28.5, 15.5)])
+        p.rect(d, 10.8, 14.5, 21.2, 29.5)
+    def inlay(p, d):
+        p.poly(d, [(16, 7.4), (9.4, 13.8), (22.6, 13.8)])
+        p.rect(d, 13.6, 12.8, 18.4, 27)
+    return [L('chrome', body, 1.0), L('sage', inlay, 0.6)]
+
+
+def dashed_box():
+    def dash(p, d):
+        x0, y0, x1, y1 = 17.5, 17.5, 29.5, 29.5
+        for a, b in ((x0, x1), ):
+            pass
+        step, seg = 3.0, 1.7
+        t = x0
+        while t < x1 - 0.5:
+            for (ax, ay, bx, by) in ((t, y0, min(t + seg, x1), y0), (t, y1, min(t + seg, x1), y1),
+                                     (x0, t, x0, min(t + seg, y1)), (x1, t, x1, min(t + seg, y1))):
+                p.capsule(d, ax, ay, bx, by, 0.6)
+            t += step
+    return [L('chrome', dash, 0)]
+
+
+def help_sign():
+    return [L('chrome', lambda p, d: p.circle(d, 23.4, 23.4, 7.4), 0),
+            L('sage', lambda p, d: p.circle(d, 23.4, 23.4, 5.6), 0),
+            L('chrome', lambda p, d: p.text(d, 23.4, 23.6, '?', 7.6), 0)]
+
+
+def turned(pt, turn):
+    a = math.radians(turn)
+    x, y = pt[0] - 16, pt[1] - 16
+    return 16 + math.cos(a) * x - math.sin(a) * y, 16 + math.sin(a) * x + math.cos(a) * y
+
+
+TIP = (3.5, 2.8)
+SINGLE = {'n': 0, 'ne': 45, 'e': 90, 'se': 135, 's': 180, 'sw': 225, 'w': 270, 'nw': 315}
+
+# name: (layers for frame k, hotspot in units, frames)
 CURSORS = {
-    # sheet A: everyday
-    'default':        ((75, 70, 190, 178), 'tip'),
-    'pointer':        ((290, 62, 405, 175), (0.36, 0.03)),
-    'text':           ((535, 72, 625, 175), 'centre'),
-    'vertical-text':  ((72, 222, 202, 298), 'centre'),
-    'wait':           ((288, 203, 412, 308), 'centre'),
-    'progress':       ((512, 203, 655, 308), 'tip'),
-    'help':           ((78, 333, 208, 430), 'tip'),
-    'not-allowed':    ((292, 338, 408, 432), 'centre'),
-    'crosshair':      ((518, 333, 642, 432), 'centre'),
-    'move':           ((72, 453, 202, 562), 'centre'),
-    'grab':           ((286, 453, 404, 560), (0.5, 0.45)),
-    'grabbing':       ((516, 463, 640, 558), (0.5, 0.45)),
-    # sheet B: resizing and special
-    'ew-resize':      ((778, 78, 897, 152), 'centre'),
-    'ns-resize':      ((966, 63, 1048, 158), 'centre'),
-    'nwse-resize':    ((1122, 68, 1218, 154), 'centre'),
-    'nesw-resize':    ((1288, 68, 1382, 154), 'centre'),
-    'n-resize':       ((798, 198, 878, 280), (0.5, 0.04)),
-    's-resize':       ((962, 198, 1048, 280), (0.5, 0.96)),
-    'e-resize':       ((1118, 208, 1218, 270), (0.96, 0.5)),
-    'w-resize':       ((1288, 208, 1388, 270), (0.04, 0.5)),
-    'ne-resize':      ((798, 316, 888, 394), (0.95, 0.05)),
-    'nw-resize':      ((958, 316, 1048, 394), (0.05, 0.05)),
-    'se-resize':      ((1100, 310, 1245, 391), (0.95, 0.95)),
-    'sw-resize':      ((1292, 316, 1383, 394), (0.05, 0.95)),
-    'col-resize':     ((772, 438, 902, 552), 'centre'),
-    'row-resize':     ((948, 438, 1062, 554), 'centre'),
-    'zoom-in':        ((1098, 428, 1234, 560), (0.36, 0.36)),
-    'zoom-out':       ((1266, 428, 1404, 560), (0.36, 0.36)),
-    # sheet C: supplementary
-    'copy':           ((322, 688, 442, 797), (0.08, 0.08)),
-    'alias':          ((532, 688, 668, 797), (0.08, 0.08)),
-    'context-menu':   ((758, 693, 892, 794), (0.08, 0.08)),
-    'cell':           ((978, 688, 1122, 797), 'centre'),
-    'all-scroll':     ((312, 828, 452, 954), 'centre'),
-    'no-drop':        ((542, 843, 658, 952), 'centre'),
-    'up-arrow':       ((768, 838, 878, 954), (0.5, 0.02)),
-    'dnd-move':       ((982, 838, 1118, 954), 'tip'),
+    'default':       (lambda k: arrow(), TIP, 1),
+    'pointer':       (lambda k: pointer(), (12.5, 1.9), 1),
+    'text':          (lambda k: ibeam(), (16, 16), 1),
+    'vertical-text': (lambda k: ibeam(turn=90), (16, 16), 1),
+    'wait':          (lambda k: ring(16, 16, 13, 6.8, 8.4, 11.6, k * 5), (16, 16), 12),
+    'progress':      (lambda k: arrow(**SMALL) + ring(24, 24, 7, 3.4, 4.4, 6.1, k * 5, 34), TIP, 12),
+    'help':          (lambda k: arrow(**SMALL) + help_sign(), TIP, 1),
+    'not-allowed':   (lambda k: not_allowed(), (16, 16), 1),
+    'crosshair':     (lambda k: crosshair(), (16, 16), 1),
+    'move':          (lambda k: four_way(), (16, 16), 1),
+    'grab':          (lambda k: open_hand(), (16, 15), 1),
+    'grabbing':      (lambda k: closed_hand(), (16, 16), 1),
+    'ew-resize':     (lambda k: double_arrow(0), (16, 16), 1),
+    'ns-resize':     (lambda k: double_arrow(90), (16, 16), 1),
+    'nwse-resize':   (lambda k: double_arrow(45), (16, 16), 1),
+    'nesw-resize':   (lambda k: double_arrow(-45), (16, 16), 1),
+    'col-resize':    (lambda k: split(0), (16, 16), 1),
+    'row-resize':    (lambda k: split(90), (16, 16), 1),
+    'zoom-in':       (lambda k: zoom(True), (13, 13), 1),
+    'zoom-out':      (lambda k: zoom(False), (13, 13), 1),
+    'copy':          (lambda k: copy(), (5, 11), 1),
+    'alias':         (lambda k: alias(), (8, 26), 1),
+    'context-menu':  (lambda k: context_menu(), (4.5, 6.5), 1),
+    'cell':          (lambda k: cell(), (16, 16), 1),
+    'all-scroll':    (lambda k: four_way(stub=True), (16, 16), 1),
+    'no-drop':       (lambda k: no_drop(), (16, 16), 1),
+    'up-arrow':      (lambda k: up_arrow(), (16, 2.6), 1),
+    'dnd-move':      (lambda k: arrow(**SMALL) + dashed_box(), TIP, 1),
 }
+for d, t in SINGLE.items():
+    CURSORS[d + '-resize'] = ((lambda t: lambda k: single_arrow(t))(t), turned((16, 2.8), t), 1)
+
 
 # the names asked for, each a link to one of the files above
 ALIASES = {
@@ -107,220 +500,6 @@ ALIASES = {
 }
 
 
-# the cursors with a hole right through them (a ring's middle); in the others
-# the white is the chrome's highlight
-HOLES = {'wait', 'progress', 'dnd-move'}
-# the one drawn partly in thin light lines (its dashed box): not peeled
-THIN = {'dnd-move'}
-# the round-bottomed ones whose drop shadow on the sheet is dark enough under
-# their middle to pass for chrome (trimmed below their outline, column by column)
-WEDGE = {'pointer', 'grab', 'grabbing', 'not-allowed', 'no-drop', 'se-resize'}
-# the plain arrows, whose white chrome rim meets the sheet's shadow with no
-# dark line between: their rim peeled deeper (on the others it would bite
-# into light chrome edges)
-DEEP = {'default', 'progress'}
-# the magnifiers: a broad white highlight on their rim, sealed with a wider brush
-WIDE = {'zoom-in', 'zoom-out'}
-
-
-def cut(box, holes=False, peel=True, wedge=False, deep=False, wide=False):
-    """the cursor in box off the white: RGBA, at the sheet's size"""
-    x0, y0, x1, y1 = box
-    # its label, if the box reaches it, left out: the box ends at the clear
-    # band (no ink in it) between the icon and the text below
-    inky = (sheet[y0:y1, x0:x1].mean(2) < 130).any(1)
-    rows = np.where(inky)[0]
-    if len(rows):
-        gaps = np.where(np.diff(rows) > 4)[0]
-        if len(gaps) and rows[gaps[-1] + 1] > (y1 - y0) * 0.7:
-            y1 = y0 + rows[gaps[-1]] + (rows[gaps[-1] + 1] - rows[gaps[-1]]) // 2
-    part = sheet[y0:y1, x0:x1]
-    L = part.mean(2)
-    sat = part.max(2) - part.min(2)
-    h, w = L.shape
-
-    def flood(free):
-        """what of free is reached from the box's edge"""
-        got = np.zeros((h, w), bool)
-        q = deque([(x, y) for x in range(w) for y in (0, h - 1) if free[y, x]] +
-                  [(x, y) for y in range(h) for x in (0, w - 1) if free[y, x]])
-        for x, y in q: got[y, x] = True
-        while q:
-            x, y = q.popleft()
-            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                if 0 <= nx < w and 0 <= ny < h and free[ny, nx] and not got[ny, nx]:
-                    got[ny, nx] = True; q.append((nx, ny))
-        return got
-
-    # its body: what is darker or more coloured than the sheet, closed; all
-    # it encloses (its highlights) is it
-    core = (L < (226 if not peel else 214)) | (sat > 22)        # (the thin-lined ones: their faint lines too)
-    core = cv2.morphologyEx(core.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)).astype(bool)
-    # (its faint outer outline has gaps where its highlights meet the sheet's
-    # white: closed with a wider brush before finding what lies outside it;
-    # what of the sheet that sweeps in, the rim's peeling takes off again)
-    sealed = cv2.morphologyEx(core.astype(np.uint8), cv2.MORPH_CLOSE,
-                              cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13) if wide else (7, 7))).astype(bool)
-    outside = flood(~sealed)
-    outer = outside.copy()                        # (round it, not through it)
-    if holes:
-        # a ring's middle: an enclosed patch of the sheet's own white
-        white = (L > 246) & (sat < 10)
-        n, lab, st, _ = cv2.connectedComponentsWithStats((~core).astype(np.uint8), connectivity=4)
-        for i in range(1, n):
-            m = lab == i
-            if not outside[m].any() and (white & m).sum() > 60:
-                outside |= m & (L > 236)            # (its light inner rim kept)
-    body = ~outside
-    # its rim peeled: the sheet's soft shadow runs nearly as dark as its
-    # chrome close to it, so a pixel or three of it came along; light grey
-    # pixels on the rim go, a layer at a time, until its dark outline
-    shadowy = (L > (142 if deep else 150)) & (sat < 28)
-    cross = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-    for _ in range((5 if deep else 3) if peel else 0):
-        rim = body & cv2.dilate(outer.astype(np.uint8), cross).astype(bool)
-        body &= ~(rim & shadowy)
-        outer |= rim & shadowy
-    outside |= ~body & ~outside & cv2.dilate(outside.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(body.astype(np.uint8), connectivity=8)
-    keep = np.zeros((h, w), bool)
-    big = st[1:, cv2.CC_STAT_AREA].max() if n > 1 else 0
-    for i in range(1, n):
-        area, top, hh = st[i, cv2.CC_STAT_AREA], st[i, cv2.CC_STAT_TOP], st[i, cv2.CC_STAT_HEIGHT]
-        if area <= 40:
-            continue
-        # the top of its label below, reaching into the box: small, at its foot
-        if top + hh >= h - 1 and area < 0.15 * big:
-            continue
-        keep |= lab == i
-
-    # the sheet's drop shadow under it is darkest right below its middle,
-    # dark enough to pass for chrome, and leaves a wedge there: in each
-    # column nothing is kept below its lowest dark outline (or coloured) pixel
-    if wedge:
-        ink = ((L < 95) | (sat > 28)) & keep
-        for x in range(w):
-            ys_ = np.where(ink[:, x])[0]
-            if len(ys_):
-                keep[ys_[-1] + 2:, x] = False
-    # the magnifiers' lens: a circle, its rim's pure white highlight (no
-    # outline to find) filled in by fitting it to the rest of its rim
-    if wide:
-        cs, _ = cv2.findContours(keep.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        pts = max(cs, key=len)[:, 0, :].astype(np.float64)
-        # the lens is the shape's upper left; its handle runs off to the lower right
-        lx, ty = pts[:, 0].min(), pts[:, 1].min()
-        r = 0.36 * max(w, h)
-        for _ in range(6):
-            cx, cy = lx + r, ty + r
-            d = np.hypot(pts[:, 0] - cx, pts[:, 1] - cy)
-            on = np.abs(d - r) < 4
-            on &= ~((pts[:, 0] > cx + 0.3 * r) & (pts[:, 1] > cy + 0.3 * r))      # (not the handle)
-            if on.sum() < 20:
-                break
-            A = np.c_[2 * pts[on], np.ones(on.sum())]
-            b = (pts[on] ** 2).sum(1)
-            (cx, cy, c), *_ = np.linalg.lstsq(A, b, rcond=None)
-            r = np.sqrt(c + cx * cx + cy * cy)
-            lx, ty = cx - r, cy - r
-        disc = np.zeros((h, w), np.uint8)
-        cv2.circle(disc, (int(round(cx)), int(round(cy))), int(round(r - 0.5)), 1, -1)
-        keep |= disc.astype(bool)
-    # its outline made smooth: where its chrome's white rim meets the sheet's
-    # white there is no edge to follow, so the cut wanders a pixel in and
-    # out; its notches closed, its contour smoothed, then drawn with an exact
-    # one-pixel soft edge (from each pixel's distance to that contour)
-    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    if peel:
-        # (only along its outer contour: its thin inner parts, a ring's inner
-        # rim, would melt)
-        near = cv2.dilate(outer.astype(np.uint8), np.ones((7, 7), np.uint8)).astype(bool)
-        smooth = cv2.morphologyEx(keep.astype(np.uint8), cv2.MORPH_CLOSE, disc).astype(bool)
-        smooth = cv2.GaussianBlur(smooth.astype(np.float32), (0, 0), 1.4) > 0.5
-        keep = np.where(near, smooth, keep)
-    k8 = keep.astype(np.uint8)
-    din = cv2.distanceTransform(k8, cv2.DIST_L2, 5)
-    dout = cv2.distanceTransform(1 - k8, cv2.DIST_L2, 5)
-    sd = np.where(keep, din - 0.5, 0.5 - dout)                       # signed: + inside
-    a = np.clip(0.5 + sd, 0, 1).astype(np.float32)
-    # its colour at the edge: from the chrome just inside (never the sheet's white)
-    inner = din > 2.5
-    edge = (a > 0) & ~inner
-    filled = cv2.inpaint(part.clip(0, 255).astype(np.uint8), edge.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA).astype(np.float32)
-    colour = np.where(inner[..., None], part, filled)
-
-    # (no shadow here: a clean, even one is drawn at each size, see shaped())
-    alpha = a
-    ys, xs = np.where(alpha > 0.04)
-    bx0, by0, bx1, by1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
-    rgba = np.dstack([colour, alpha * 255])[by0:by1, bx0:bx1]
-    return Image.fromarray(rgba.clip(0, 255).astype('uint8'), 'RGBA')
-
-
-def hotspot(im, spec):
-    w, h = im.size
-    if spec == 'centre':
-        return w / 2, h / 2
-    if spec == 'tip':
-        a = np.asarray(im)[..., 3]
-        ys, xs = np.where(a > 128)
-        i = np.argmin(xs + ys)                      # the point nearest the top left
-        return float(xs[i]), float(ys[i])
-    return spec[0] * w, spec[1] * h
-
-
-def turn(im, deg):
-    """turned about its middle, its colours kept off its clear edges"""
-    return im.convert('RGBa').rotate(-deg, resample=Image.BICUBIC, center=(im.width / 2, im.height / 2)).convert('RGBA')
-
-
-def shaped(f, k, size):
-    """f scaled by k (its colours kept off its clear edges), its edge made
-    crisp, and a small even shadow laid under it (down and a little right)"""
-    fw, fh = max(1, round(f.width * k)), max(1, round(f.height * k))
-    small = np.asarray(f.convert('RGBa').resize((fw, fh), Image.LANCZOS)).astype(np.float32) / 255
-    a = small[..., 3]
-    # crisp: the edge's soft ramp narrowed (its colour, premultiplied, with it)
-    a2 = np.clip((a - 0.10) / 0.78, 0, 1)
-    rgb = small[..., :3] * (a2 / np.maximum(a, 1e-4))[..., None]
-    s = size / 32
-    pad = max(2, round(2 * s))
-    A = np.zeros((fh + 2 * pad, fw + 2 * pad), np.float32)
-    C = np.zeros((fh + 2 * pad, fw + 2 * pad, 3), np.float32)
-    A[pad:pad + fh, pad:pad + fw] = a2
-    C[pad:pad + fh, pad:pad + fw] = rgb
-    dx, dy = max(1, round(0.6 * s)), max(1, round(1.0 * s))
-    sh = np.roll(np.roll(A, dy, 0), dx, 1)
-    sh = cv2.GaussianBlur(sh, (0, 0), max(0.6, 0.8 * s)) * 0.36
-    out_a = A + sh * (1 - A)
-    out_c = C / np.maximum(out_a, 1e-4)[..., None]                    # (the shadow is black)
-    im = np.dstack([out_c * 255, out_a * 255]).clip(0, 255).astype('uint8')
-    return Image.fromarray(im, 'RGBA'), pad
-
-
-def frames_of(name, im):
-    """an animated cursor's frames (the busy ring turning), else just it"""
-    if name == 'wait':
-        return [turn(im, k * 30) for k in range(12)]
-    if name == 'progress':
-        # its small ring, at the lower right, turning; the arrow still
-        a = np.asarray(im)
-        w, h = im.size
-        rx0, ry0 = int(w * 0.52), int(h * 0.40)
-        ring = im.crop((rx0, ry0, w, h))
-        base = Image.fromarray(a.copy()); base.paste((0, 0, 0, 0), (rx0, ry0, w, h))
-        # what of the arrow lay in that corner, kept
-        arrow = Image.fromarray(a.copy())
-        frames = []
-        for k in range(12):
-            f = base.copy()
-            r = turn(ring, k * 30)
-            f.alpha_composite(r, (rx0, ry0))
-            frames.append(f)
-        return frames
-    return [im]
-
-
 def xcursor(images):
     """images: [(size, xhot, yhot, delay, RGBA Image)] -> Xcursor bytes"""
     chunks = []
@@ -345,57 +524,26 @@ def xcursor(images):
     return out_
 
 
+# ---------------------------------------------------------------- writing them
 cursors_dir = os.path.join(out, 'cursors')
 os.makedirs(cursors_dir, exist_ok=True)
-previews = []
-for name, (box, spec) in CURSORS.items():
-    im = cut(box, name in HOLES, name not in THIN, name in WEDGE, name in DEEP, name in WIDE)
-    hx, hy = hotspot(im, spec)
-    frames = frames_of(name, im)
+for name, (make, (hx, hy), nframes) in CURSORS.items():
     images = []
     for size in SIZES:
-        # each fits a size x size square (with room for its shadow), placed
-        # so its hotspot stays where it is
-        room = max(2, round(2 * size / 32)) + max(1, round(size / 32))
-        k = (size - room) / max(im.size)
-        for f in frames:
-            small, pad = shaped(f, k, size)
-            fw, fh = small.size
-            canvas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-            if spec == 'centre':
-                ox, oy = (size - fw) // 2, (size - fh) // 2
-            else:
-                ox, oy = 0, 0
-            canvas.alpha_composite(small, (ox, oy)) if ox >= 0 and oy >= 0 else canvas.paste(small, (ox, oy))
-            xh = min(size - 1, max(0, round(ox + pad + hx * k)))
-            yh = min(size - 1, max(0, round(oy + pad + hy * k)))
-            images.append((size, xh, yh, 60 if len(frames) > 1 else 0, canvas))
+        ss = 6 if size <= 36 else 4
+        for k in range(nframes):
+            im = render(make(k), size, ss)
+            xh = min(size - 1, max(0, round(hx * size / 32)))
+            yh = min(size - 1, max(0, round(hy * size / 32)))
+            images.append((size, xh, yh, 70 if nframes > 1 else 0, im))
     with open(os.path.join(cursors_dir, name), 'wb') as fh:
         fh.write(xcursor(images))
-    for alias in ALIASES.get(name, []):
-        p = os.path.join(cursors_dir, alias)
+    for alias_ in ALIASES.get(name, []):
+        p = os.path.join(cursors_dir, alias_)
         if os.path.lexists(p):
             os.remove(p)
         os.symlink(name, p)
-    previews.append((name, im, (hx, hy)))
 
 with open(os.path.join(out, 'index.theme'), 'w') as fh:
     fh.write('[Icon Theme]\nName=Magnetic88\nComment=Magnetic 88: chrome and sage cursors\nInherits=Adwaita\n')
-
-# a contact sheet of what was cut, each with its hotspot marked (for a look)
-if os.environ.get('CURSOR_SHEET'):
-    cell = 140
-    cols = 9
-    rows = (len(previews) + cols - 1) // cols
-    cs = Image.new('RGBA', (cols * cell, rows * cell), (58, 54, 50, 255))
-    from PIL import ImageDraw
-    d = ImageDraw.Draw(cs)
-    for i, (name, im, (hx, hy)) in enumerate(previews):
-        k = min(1, 110 / max(im.size))
-        s = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
-        x, y = (i % cols) * cell + 15, (i // cols) * cell + 10
-        cs.alpha_composite(s, (x, y))
-        d.ellipse([x + hx * k - 3, y + hy * k - 3, x + hx * k + 3, y + hy * k + 3], outline=(255, 40, 40, 255), width=2)
-        d.text((x, y + 116), name, fill=(230, 230, 230, 255))
-    cs.save(os.environ['CURSOR_SHEET'])
 print(len(CURSORS), 'cursors,', sum(len(v) for v in ALIASES.values()), 'names linked')
