@@ -107,74 +107,85 @@ ALIASES = {
 }
 
 
-def cut(box):
+# the cursors with a hole right through them (a ring's middle); in the others
+# the white is the chrome's highlight
+HOLES = {'wait', 'progress', 'dnd-move'}
+# the one drawn partly in thin light lines (its dashed box): not peeled
+THIN = {'dnd-move'}
+
+
+def cut(box, holes=False, peel=True):
     """the cursor in box off the white: RGBA, at the sheet's size"""
     x0, y0, x1, y1 = box
     part = sheet[y0:y1, x0:x1]
     L = part.mean(2)
     sat = part.max(2) - part.min(2)
-    ground = (L > 238) & (sat < 12)
     h, w = L.shape
-    # the ground: flooded in from the box's edge
-    bg = np.zeros((h, w), bool)
-    q = deque()
-    for x in range(w):
-        for y in (0, h - 1):
-            if ground[y, x]: bg[y, x] = True; q.append((x, y))
-    for y in range(h):
-        for x in (0, w - 1):
-            if ground[y, x] and not bg[y, x]: bg[y, x] = True; q.append((x, y))
-    while q:
-        x, y = q.popleft()
-        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if 0 <= nx < w and 0 <= ny < h and ground[ny, nx] and not bg[ny, nx]:
-                bg[ny, nx] = True; q.append((nx, ny))
-    # holes through it (a ring's middle): large, pure white, enclosed
-    n, lab, st, _ = cv2.connectedComponentsWithStats((ground & ~bg).astype(np.uint8), connectivity=4)
-    for i in range(1, n):
-        if st[i, cv2.CC_STAT_AREA] > 70 and L[lab == i].mean() > 246:
-            bg |= lab == i
-    # its solid body: what is darker or more coloured than the sheet's soft
-    # shadow round it, closed, with the highlights inside it filled
-    core = ((L < 214) | (sat > 22)) & ~bg
+
+    def flood(free):
+        """what of free is reached from the box's edge"""
+        got = np.zeros((h, w), bool)
+        q = deque([(x, y) for x in range(w) for y in (0, h - 1) if free[y, x]] +
+                  [(x, y) for y in range(h) for x in (0, w - 1) if free[y, x]])
+        for x, y in q: got[y, x] = True
+        while q:
+            x, y = q.popleft()
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= nx < w and 0 <= ny < h and free[ny, nx] and not got[ny, nx]:
+                    got[ny, nx] = True; q.append((nx, ny))
+        return got
+
+    # its body: what is darker or more coloured than the sheet, closed; all
+    # it encloses (its highlights) is it
+    core = (L < (226 if not peel else 214)) | (sat > 22)        # (the thin-lined ones: their faint lines too)
     core = cv2.morphologyEx(core.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)).astype(bool)
-    outside = np.zeros((h, w), bool)
-    q = deque([(x, y) for x in range(w) for y in (0, h - 1) if not core[y, x]] +
-              [(x, y) for y in range(h) for x in (0, w - 1) if not core[y, x]])
-    for x, y in q: outside[y, x] = True
-    while q:
-        x, y = q.popleft()
-        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if 0 <= nx < w and 0 <= ny < h and not core[ny, nx] and not outside[ny, nx]:
-                outside[ny, nx] = True; q.append((nx, ny))
-    # a hole through it (its white let through above) is outside too, with
-    # the soft shadow round its rim
-    n, lab, st, _ = cv2.connectedComponentsWithStats((~core).astype(np.uint8), connectivity=4)
-    for i in range(1, n):
-        m = lab == i
-        if not outside[m].any() and (bg & m).sum() > 30:
-            outside |= m
-    body = ~outside | (~bg & ~outside)
-    body &= ~(bg & outside)
-    # (holes let through above stay through)
-    body &= ~(bg & ~outside)
-    # specks apart from it: only the big pieces
+    outside = flood(~core)
+    outer = outside.copy()                        # (round it, not through it)
+    if holes:
+        # a ring's middle: an enclosed patch of the sheet's own white
+        white = (L > 246) & (sat < 10)
+        n, lab, st, _ = cv2.connectedComponentsWithStats((~core).astype(np.uint8), connectivity=4)
+        for i in range(1, n):
+            m = lab == i
+            if not outside[m].any() and (white & m).sum() > 60:
+                outside |= m
+    body = ~outside
+    # its rim peeled: the sheet's soft shadow runs nearly as dark as its
+    # chrome close to it, so a pixel or three of it came along; light grey
+    # pixels on the rim go, a layer at a time, until its dark outline
+    shadowy = (L > 150) & (sat < 28)
+    cross = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    for _ in range(3 if peel else 0):
+        rim = body & cv2.dilate(outer.astype(np.uint8), cross).astype(bool)
+        body &= ~(rim & shadowy)
+        outer |= rim & shadowy
+    outside |= ~body & ~outside & cv2.dilate(outside.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool)
     n, lab, st, _ = cv2.connectedComponentsWithStats(body.astype(np.uint8), connectivity=8)
     keep = np.zeros((h, w), bool)
     for i in range(1, n):
         if st[i, cv2.CC_STAT_AREA] > 40:
             keep |= lab == i
-    # its edge, softened; and round it the sheet's soft shadow, made a real one
-    # (dark, see-through)
-    a = cv2.GaussianBlur(keep.astype(np.float32), (0, 0), 0.7) * (keep | ~outside)
-    shade = np.clip((246 - L) / 90, 0, 0.45) * outside * ~keep
+
+    # its edge: the outermost pixels are its outline mixed with the sheet's
+    # white; each is taken apart into the outline's colour (from just inside)
+    # and how much of it covers the pixel
+    k3 = np.ones((3, 3), np.uint8)
+    inner = cv2.erode(keep.astype(np.uint8), k3, iterations=2).astype(bool)
+    band = cv2.dilate(keep.astype(np.uint8), k3).astype(bool) & ~inner
+    filled = cv2.inpaint(part.clip(0, 255).astype(np.uint8), band.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA).astype(np.float32)
+    Lf = filled.mean(2)
+    cover = np.clip((252 - L) / np.maximum(252 - Lf, 30), 0, 1)
+    a = np.where(inner, 1.0, np.where(band, cover, 0.0)).astype(np.float32)
+    colour = np.where(inner[..., None], part, filled)
+
+    # round it the sheet's soft shadow, made a real one (dark, see-through)
+    shade = np.clip((246 - L) / 90, 0, 0.42) * outside * ~band
     shade = cv2.GaussianBlur(shade.astype(np.float32), (0, 0), 1.0)
-    colour = np.where(keep[..., None], part, 0)
-    alpha = np.maximum(a, shade * (1 - a))
-    part = colour
-    ys, xs = np.where(alpha > 0.05)
+    alpha = a + shade * (1 - a)
+    colour = colour * (a / np.maximum(alpha, 1e-3))[..., None]       # (the shadow is black)
+    ys, xs = np.where(alpha > 0.04)
     bx0, by0, bx1, by1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
-    rgba = np.dstack([part, alpha * 255])[by0:by1, bx0:bx1]
+    rgba = np.dstack([colour, alpha * 255])[by0:by1, bx0:bx1]
     return Image.fromarray(rgba.clip(0, 255).astype('uint8'), 'RGBA')
 
 
@@ -241,7 +252,7 @@ cursors_dir = os.path.join(out, 'cursors')
 os.makedirs(cursors_dir, exist_ok=True)
 previews = []
 for name, (box, spec) in CURSORS.items():
-    im = cut(box)
+    im = cut(box, name in HOLES, name not in THIN)
     hx, hy = hotspot(im, spec)
     frames = frames_of(name, im)
     images = []
