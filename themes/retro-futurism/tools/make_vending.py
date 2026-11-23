@@ -313,9 +313,32 @@ mid = (BODY[3] - BODY[1]) // 2
 o85, o60 = outline(85), outline(60)
 sil[BODY[1]:BODY[3], BODY[0]:BODY[2]] = np.vstack([o85[:mid], o60[mid:]])
 alpha = np.where(bg, np.clip((245 - lum0) / 245 * 1.4, 0, 0.45), 1.0)
-below = np.arange(H)[:, None] >= 1346
-alpha = np.where(below, np.maximum(alpha * (sil < 0.5), sil), sil)
-bg = bg & (sil < 0.5)
+# under it: its two feet (drawn as their shapes, their own pixels kept), and
+# a soft shadow where it stands; the floor's grey and its reflection gone
+FEET = [(140, 242), (884, 976)]                  # each foot's span at its top
+FOOT_TOP, FOOT_FOOT = 1351, 1377
+def feet_shape(scale=4):
+    m = Image.new('L', (W * scale, H * scale), 0)
+    d = ImageDraw.Draw(m)
+    for fx0, fx1 in FEET:
+        cut = 11                                 # its foot rounds in
+        d.polygon([(fx0 * scale, FOOT_TOP * scale), (fx1 * scale, FOOT_TOP * scale),
+                   (fx1 * scale, (FOOT_FOOT - 10) * scale), ((fx1 - cut) * scale, FOOT_FOOT * scale),
+                   ((fx0 + cut) * scale, FOOT_FOOT * scale), (fx0 * scale, (FOOT_FOOT - 10) * scale)], fill=255)
+        d.ellipse([(fx0) * scale, (FOOT_FOOT - 20) * scale, (fx0 + 2 * cut + 2) * scale, FOOT_FOOT * scale], fill=255)
+        d.ellipse([(fx1 - 2 * cut - 2) * scale, (FOOT_FOOT - 20) * scale, fx1 * scale, FOOT_FOOT * scale], fill=255)
+    return np.asarray(m.resize((W, H), Image.LANCZOS)).astype(np.float32) / 255
+feet = feet_shape()
+yy_, xx_ = np.mgrid[0:H, 0:W].astype(np.float32)
+under = yy_ >= FOOT_TOP
+# the shadow: dark, close under the machine, fading down and at its ends
+fade_x = np.clip((xx_ - 100) / 60, 0, 1) * np.clip((1022 - xx_) / 60, 0, 1)
+contact = 0.55 * np.clip(1 - (yy_ - FOOT_TOP) / 30, 0, 1) ** 1.6 * fade_x
+foot_sh = cv2.GaussianBlur(np.roll(feet, 3, 0), (0, 0), 3) * 0.5
+shade = np.clip(np.maximum(contact, foot_sh), 0, 0.7) * under
+alpha = np.where(under, np.maximum(feet, shade), sil)
+img = np.where((under & (feet < 0.5))[..., None], 0, img)
+bg = (bg & (sil < 0.5)) | (under & (feet < 0.5))
 alpha = cv2.GaussianBlur(alpha.astype(np.float32), (0, 0), 0.7)
 rgb = np.where(bg[..., None], 0, img)
 ys, xs = np.where(alpha > 0.02)

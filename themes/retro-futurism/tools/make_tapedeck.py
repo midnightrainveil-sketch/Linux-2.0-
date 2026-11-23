@@ -211,11 +211,32 @@ def paint_deck(w, h, ox, oy):
     return deck
 
 
+# ---- off the white: the player by its outline (flood from the corners);
+# found first, as the keys along its top edge take it too
+lum0 = src0.mean(2); sat0 = src0.max(2) - src0.min(2)
+ground = (lum0 > 235) & (sat0 < 12)
+bg = np.zeros((H, W), bool)
+q = deque([(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)])
+for x, y in q: bg[y, x] = True
+while q:
+    x, y = q.popleft()
+    for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+        if 0 <= nx < W and 0 <= ny < H and ground[ny, nx] and not bg[ny, nx]:
+            bg[ny, nx] = True; q.append((nx, ny))
+# (and the ground showing through a loop, as the cable's: any large white patch)
+n, lab, stats, _ = cv2.connectedComponentsWithStats(ground.astype(np.uint8), connectivity=4)
+for i in range(1, n):
+    if stats[i, cv2.CC_STAT_AREA] > 400:
+        bg |= lab == i
+# (a pixel in from it: its outermost pixels are half the white ground)
+outline = cv2.GaussianBlur(cv2.erode((~bg).astype(np.uint8), np.ones((3, 3), np.uint8)).astype(np.float32), (0, 0), 0.6)
+
 # ---- the moving parts, cut first
 gx0, gy0, gx1, gy1, gr = GLASS
 cx0, cy0, cx1, cy1, cr = CASSETTE
 for name, box in TOP_KEYS.items():
-    sprite(box, f'key-{name}.png', rrect(box, 8))
+    x0, y0, x1, y1 = box
+    sprite(box, f'key-{name}.png', outline[y0:y1, x0:x1])           # (the keys' own bevelled outline)
 for name, box in KEYS.items():
     sprite(box, f'key-{name}.png', rrect(box, 10))
 # the reel's hub: a disc round the first reel's centre (its spokes; the ring
@@ -364,22 +385,6 @@ for box in list(TOP_KEYS.values()) + list(KEYS.values()):
     x0, y0, x1, y1 = box
     img[y0:y0 + 9, x0 + 4:x1 - 4] = img[y0:y0 + 9, x0 + 4:x1 - 4] * 0.25 + np.array([20, 18, 16]) * 0.75
 
-# ---- off the white: the player by its outline (flood from the corners)
-lum0 = src0.mean(2); sat0 = src0.max(2) - src0.min(2)
-ground = (lum0 > 235) & (sat0 < 12)
-bg = np.zeros((H, W), bool)
-q = deque([(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)])
-for x, y in q: bg[y, x] = True
-while q:
-    x, y = q.popleft()
-    for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-        if 0 <= nx < W and 0 <= ny < H and ground[ny, nx] and not bg[ny, nx]:
-            bg[ny, nx] = True; q.append((nx, ny))
-# (and the ground showing through a loop, as the cable's: any large white patch)
-n, lab, stats, _ = cv2.connectedComponentsWithStats(ground.astype(np.uint8), connectivity=4)
-for i in range(1, n):
-    if stats[i, cv2.CC_STAT_AREA] > 400:
-        bg |= lab == i
 alpha = np.where(bg, np.clip((245 - lum0) / 245 * 1.4, 0, 0.45), 1.0)
 alpha = cv2.GaussianBlur(alpha.astype(np.float32), (0, 0), 0.7)
 rgb = np.where(bg[..., None], 0, img)

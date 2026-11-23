@@ -20,15 +20,15 @@ import qs.services
 //                cassette player comes up and it goes in and plays
 //
 // The song in the player is missing from its shelf. Everything is placed in
-// the mock-up's own pixels (body.png starts at its 83, 14;
+// the mock-up's own pixels (body.png starts at its 86, 14;
 // tools/make_vending.py) and the whole machine scaled once.
 Widget {
     id: self
     widgetId: "vending"
 
     readonly property real k: 0.66
-    preferredWidth: 953 * k
-    preferredHeight: 1385 * k
+    preferredWidth: 950 * k
+    preferredHeight: 1376 * k
 
     // ---- what it holds
     property string query: ""
@@ -222,10 +222,10 @@ Widget {
     // the machine, in the mock-up's pixels
     Item {
         id: unit
-        width: 953; height: 1385
+        width: 950; height: 1376
         scale: self.k
         transformOrigin: Item.TopLeft
-        function ax(x) { return x - 83; }
+        function ax(x) { return x - 86; }
         function ay(y) { return y - 14; }
 
         Image {
