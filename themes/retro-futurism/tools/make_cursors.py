@@ -178,11 +178,8 @@ def cut(box, holes=False, peel=True):
     a = np.where(inner, 1.0, np.where(band, cover, 0.0)).astype(np.float32)
     colour = np.where(inner[..., None], part, filled)
 
-    # round it the sheet's soft shadow, made a real one (dark, see-through)
-    shade = np.clip((246 - L) / 90, 0, 0.42) * outside * ~band
-    shade = cv2.GaussianBlur(shade.astype(np.float32), (0, 0), 1.0)
-    alpha = a + shade * (1 - a)
-    colour = colour * (a / np.maximum(alpha, 1e-3))[..., None]       # (the shadow is black)
+    # (no shadow here: a clean, even one is drawn at each size, see shaped())
+    alpha = a
     ys, xs = np.where(alpha > 0.04)
     bx0, by0, bx1, by1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
     rgba = np.dstack([colour, alpha * 255])[by0:by1, bx0:bx1]
@@ -201,10 +198,39 @@ def hotspot(im, spec):
     return spec[0] * w, spec[1] * h
 
 
+def turn(im, deg):
+    """turned about its middle, its colours kept off its clear edges"""
+    return im.convert('RGBa').rotate(-deg, resample=Image.BICUBIC, center=(im.width / 2, im.height / 2)).convert('RGBA')
+
+
+def shaped(f, k, size):
+    """f scaled by k (its colours kept off its clear edges), its edge made
+    crisp, and a small even shadow laid under it (down and a little right)"""
+    fw, fh = max(1, round(f.width * k)), max(1, round(f.height * k))
+    small = np.asarray(f.convert('RGBa').resize((fw, fh), Image.LANCZOS)).astype(np.float32) / 255
+    a = small[..., 3]
+    # crisp: the edge's soft ramp narrowed (its colour, premultiplied, with it)
+    a2 = np.clip((a - 0.10) / 0.78, 0, 1)
+    rgb = small[..., :3] * (a2 / np.maximum(a, 1e-4))[..., None]
+    s = size / 32
+    pad = max(2, round(2 * s))
+    A = np.zeros((fh + 2 * pad, fw + 2 * pad), np.float32)
+    C = np.zeros((fh + 2 * pad, fw + 2 * pad, 3), np.float32)
+    A[pad:pad + fh, pad:pad + fw] = a2
+    C[pad:pad + fh, pad:pad + fw] = rgb
+    dx, dy = max(1, round(0.6 * s)), max(1, round(1.0 * s))
+    sh = np.roll(np.roll(A, dy, 0), dx, 1)
+    sh = cv2.GaussianBlur(sh, (0, 0), max(0.6, 0.8 * s)) * 0.36
+    out_a = A + sh * (1 - A)
+    out_c = C / np.maximum(out_a, 1e-4)[..., None]                    # (the shadow is black)
+    im = np.dstack([out_c * 255, out_a * 255]).clip(0, 255).astype('uint8')
+    return Image.fromarray(im, 'RGBA'), pad
+
+
 def frames_of(name, im):
     """an animated cursor's frames (the busy ring turning), else just it"""
     if name == 'wait':
-        return [im.rotate(-k * 30, resample=Image.BICUBIC, center=(im.width / 2, im.height / 2)) for k in range(12)]
+        return [turn(im, k * 30) for k in range(12)]
     if name == 'progress':
         # its small ring, at the lower right, turning; the arrow still
         a = np.asarray(im)
@@ -217,7 +243,7 @@ def frames_of(name, im):
         frames = []
         for k in range(12):
             f = base.copy()
-            r = ring.rotate(-k * 30, resample=Image.BICUBIC, center=(ring.width / 2, ring.height / 2))
+            r = turn(ring, k * 30)
             f.alpha_composite(r, (rx0, ry0))
             frames.append(f)
         return frames
@@ -257,17 +283,21 @@ for name, (box, spec) in CURSORS.items():
     frames = frames_of(name, im)
     images = []
     for size in SIZES:
-        # each fits a size x size square (its longer side size), placed so
-        # its hotspot stays where it is
-        k = size / max(im.size)
+        # each fits a size x size square (with room for its shadow), placed
+        # so its hotspot stays where it is
+        room = max(2, round(2 * size / 32)) + max(1, round(size / 32))
+        k = (size - room) / max(im.size)
         for f in frames:
-            fw, fh = max(1, round(f.width * k)), max(1, round(f.height * k))
-            small = f.resize((fw, fh), Image.LANCZOS)
+            small, pad = shaped(f, k, size)
+            fw, fh = small.size
             canvas = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-            ox, oy = (size - fw) // 2 if spec == 'centre' else 0, (size - fh) // 2 if spec == 'centre' else 0
-            canvas.alpha_composite(small, (ox, oy))
-            xh = min(size - 1, max(0, round(ox + hx * k)))
-            yh = min(size - 1, max(0, round(oy + hy * k)))
+            if spec == 'centre':
+                ox, oy = (size - fw) // 2, (size - fh) // 2
+            else:
+                ox, oy = 0, 0
+            canvas.alpha_composite(small, (ox, oy)) if ox >= 0 and oy >= 0 else canvas.paste(small, (ox, oy))
+            xh = min(size - 1, max(0, round(ox + pad + hx * k)))
+            yh = min(size - 1, max(0, round(oy + pad + hy * k)))
             images.append((size, xh, yh, 60 if len(frames) > 1 else 0, canvas))
     with open(os.path.join(cursors_dir, name), 'wb') as fh:
         fh.write(xcursor(images))
