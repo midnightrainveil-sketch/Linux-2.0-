@@ -1,0 +1,134 @@
+Everything on this desktop, where to find it, and how to work it. This note comes with the theme and is renewed by every ultra-update (you cannot change it; write your own notes beside it).
+
+SUPER is the Windows key.
+
+
+━━ THE GADGETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Super + Space      APP LAUNCHER (Kairo cartridges)
+    Your apps are cartridges on a rail. Wheel or arrows to choose, Page Up / Down five at a time, just type to search, Enter (or a click on the one in the slot) to launch: the taskbar's port slides under the slot and the cartridge is lowered into it.
+
+Super + C          ORGANIZER (this)
+    CALENDAR, AGENDA, TASKS, NOTES. Start typing anywhere to add (an event; a task in Tasks; a note in Notes). Enter opens, Space ticks a task, Delete removes, Tab or the keys below the screen change page, the rocker steps, the round key is "new", the side wheel scrolls. In the editor: Tab / ↑ ↓ move, ← → change, type digits for the time (1230), Enter saves, Esc leaves. Reminders arrive on the pager even when the organizer is put away.
+
+Super + R          RESEARCH STATION (typewriter)
+    Type a question, Enter: the best Wikipedia article, in sections, with sources. The round knob (or F11) slides the tablet up out of its slot for big work; again (or Esc) to put it back. Tab or F1–F5: RESEARCH, SOURCES (Enter researches one, O opens it in the browser), NOTES (per session), ARCHIVE (Enter opens, Delete removes), EXPORT (Markdown to ~/Documents/Research; Ctrl + S from anywhere).
+
+Super + V          CASSETTE VENDING MACHINE
+    Every song in ~/Music is a cassette. Wheel / arrows / drag the side wheel to choose, type to search, Enter (or SELECT / EJECT) to dispense: it goes into the player and plays.
+
+Super + A          CASSETTE PLAYER
+    Plays the dispensed cassette, or (none in) whatever is playing elsewhere: a browser's video, a music app. PLAY (again to pause), REW / FF (tap: back / on, or the track before / after; hold: wind), STOP/EJ (stop; again: eject), REC opens the vending machine. Keys: Space play / pause, ← → ten seconds (hold to wind), ↑ ↓ volume, S stop, E eject, Home to the start, V vending. The knob is the volume (wheel or drag).
+
+Super + W          CLOCK
+    Time, date, an alarm and a timer; they ring even with the clock put away. Also: click the taskbar's time.
+
+Super + S          CONTROL DECK
+    Wi-Fi and Bluetooth (each opens its own list), power mode, refresh rate, lock time, volume and brightness faders, battery. Also: click the taskbar's Wi-Fi, volume or battery.
+
+Super + Shift + Esc   POWER
+    Lock, log out, sleep, restart, shut down: turn the roller (wheel or arrows), Enter. Also: the power button, or the Arch logo on the taskbar.
+
+Super + N          NOTIFICATIONS (the KAZE pager)
+    A notification slides in at the top right and out again. Tap the screen to open it, right-click or CLEAR to clear it, ◀ ▶ for older ones, ALL CLR for all. Super + N brings it up to look through (arrows, Enter, Delete, Shift + Delete, Esc).
+Super + Shift + N  clear every notification
+Super + Alt + N    Do Not Disturb, on / off (they are kept, quietly)
+
+Every gadget: Esc or a click outside puts it away; swiping to another page does too (what it set going, like music, keeps going).
+
+
+━━ THE DESK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The picture moves: the city slides past the train window. The cassette player in her hands turns its reels and lights its meter while music plays.
+
+The small terminal on the picture is part of the desk, not a window.
+    Super + D      bring it back to its place
+    Super + F      (on it) a fullscreen view of the same shell; close it and the small one is still there
+    clear          resets it to its clean greeting
+
+The taskbar hides under open windows: push the pointer to the bottom edge to bring it up. Its port shows the cartridge of the app under the pointer.
+
+
+━━ WINDOWS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Super + Return      terminal (Ghostty)
+Super + E           files
+Super + B           browser
+Super + Q           close the window
+Super + F           fullscreen
+Super + M           maximise
+Super + Shift + V   float / tile
+Super + P           pseudotile
+Super + J           toggle split
+Super + arrows      focus (also H / L / K)
+Super + Shift + arrows   swap windows
+Super + drag        move (left button) / resize (right button)
+
+
+━━ PAGES (WORKSPACES) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Super + 1 … 9                  go to page
+Super + Shift + 1 … 9          take the window there
+Super + Tab                    the page you were on
+Super + Ctrl + ← →, Page Up / Down     previous / next page
+Super + Shift + Ctrl + ← →     take the window along
+Super + wheel                  through the pages
+Three-finger swipe             through the pages
+Super + `                      open the drawer (a hidden page)
+Super + -                      put the window in the drawer
+Super + Shift + `              take it out again
+
+
+━━ SCREEN, LOCK, THEMES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Print               screenshot of an area (also Super + Shift + S)
+Shift + Print       the whole screen
+Ctrl + Backspace    the whole screen, at once
+Super + Alt + S     the window
+Super + Esc         lock
+Super + T           themes
+
+
+━━ KEYS ON THE G14 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Volume, mute, mic mute, brightness, keyboard light: their own keys
+Play / pause, next, previous: the media keys (any player)
+Fan key             next power profile (quiet / balanced / performance)
+ROG key             ROG Control Center
+Power button        the power menu (hold to shut down)
+
+
+━━ COMMANDS (TERMINAL) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ultra-update            the latest version (--full also upgrades the system; --force reinstalls)
+ultra-theme             change or relink themes
+ultra-idle <minutes>    lock after that long away (never, status)
+ultra-gpu               graphics mode (set hybrid | integrated, toggle)
+ultra-profile           power profile (next, quiet, balanced, performance)
+ultra-refresh           panel rate (60, 120, auto, toggle)
+ultra-brightness        get, set <percent>, up, down
+ultra-snapshot          restore points (on, now, list, restore, off)
+ultra-boot              boot splash (quiet / loud), power button, panel
+ultra-tune / ultra-memory   small tunings, compressed swap (on, off, status)
+ultra-mic               a clearer microphone (tone, check, test)
+ultra-layout            save / restore the open windows
+ultra-screenshot        region, window, screen
+ultra-tapes             the cassettes (library, start, stop)
+ultra-research          ask "<question>", export <session>
+ultra-desk              the desk terminal (full: fullscreen)
+ultra-card              the terminal's greeting
+ultra-rim               the window rims' plugin (build, status)
+ultra-ros               ROS in a container (rviz, a robot's IP)
+qs log                  the shell's messages, when something misbehaves
+
+
+━━ SETTINGS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+~/.config/ultra/retro-futurism/settings.json, for example:
+    "music": "~/Music"            where the cassettes come from
+    "researchLang": "en"          Wikipedia's language for the research station
+    "cursorSize": 28              the pointer's size
+    "deskTerminal": true          the small terminal on the picture
+Log out and in after changing it.
+
+Where things are kept: ~/.local/state/ultra/retro-futurism (the organizer, the research sessions, the notifications, the clock).

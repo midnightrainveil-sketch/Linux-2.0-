@@ -18,6 +18,12 @@ import qs.services
 //                 wind), Up / Down the volume, S stop, E eject, Home back to
 //                 the start, V the vending machine
 //
+// With no cassette of yours in it, it plays along with whatever else is
+// playing (a browser's video, a music app: services/Media.qml): a cassette
+// with its title on the label, its keys the player's (PLAY / pause, REW /
+// FF a tap the track before / after, held a seek, STOP pause), the knob its
+// volume.
+//
 // The reels turn while the tape runs (racing while it winds), the tape
 // moves from one spool to the other as the song goes, the meter shows its
 // levels (services/Spectrum.qml) and the lamp is lit while it plays.
@@ -37,6 +43,28 @@ Widget {
     // the cassette's slide: 0 seated, 1 out above the window
     property real out: Tapes.fresh ? 1 : 0
     readonly property bool busy: inAnim.running || outAnim.running
+
+    // ---- what it shows: your cassette, or (none in) what plays elsewhere
+    readonly property bool mediaMode: held === null && !busy && Media.active
+    function hash(s: string): int { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+    readonly property var disp: held !== null ? held
+        : mediaMode ? { title: Media.title, artist: Media.artist || Media.album, shell: hash(Media.title) % 8, media: true } : null
+    readonly property bool running: mediaMode ? Media.playing : Tapes.playing
+    readonly property real progress: mediaMode ? Media.progress : Tapes.progress
+    readonly property real position: mediaMode ? Media.position : Tapes.position
+    readonly property real length: mediaMode ? Media.length : Tapes.length
+    // the volume, 0..130: the cassette's, or the other player's (else the speakers')
+    readonly property bool mediaVol: (Media.player?.volumeSupported ?? false)
+    readonly property real volume: mediaMode ? (mediaVol ? (Media.player?.volume ?? 1) * 100 : Audio.percent) : Tapes.volume
+    function setVolume(v: real): void {
+        if (!mediaMode) { Tapes.setVolume(v); return; }
+        v = Math.max(0, Math.min(100, v));
+        try { if (mediaVol) Media.player.volume = v / 100; else Audio.setVolume(v / 100); } catch (e) {}
+    }
+    function seekBy(s: real): void { if (mediaMode) Media.seekBy(s); else Tapes.seekBy(s); }
+    // a media cassette slides in as something starts playing while it is up
+    onMediaModeChanged: if (mediaMode && shown) { out = 1; mediaIn.restart(); }
+    NumberAnimation { id: mediaIn; target: self; property: "out"; to: 0; duration: 420; easing.type: Easing.OutCubic }
 
     onShownChanged: Tapes.watchers += shown ? 1 : -1
     Component.onDestruction: if (shown) Tapes.watchers -= 1
@@ -98,15 +126,29 @@ Widget {
     // ---- the keys' actions
     function playKey(): void {
         if (busy) return;
+        if (mediaMode) { Media.toggle(); return; }
         if (!held) { Widgets.open("vending"); return; }
         Tapes.toggle();
     }
     function stopKey(): void {
+        if (mediaMode) { if (Media.playing) Media.toggle(); return; }
         if (busy || !held) return;
         if (Tapes.playing || Tapes.winding !== 0) Tapes.stop();
         else eject();
     }
+    // (the other player: a tap is the track before / after; held, it seeks)
+    property real windAt: 0
+    property int windDir: 0
+    Timer {
+        id: mediaWind; interval: 250; repeat: true
+        onTriggered: if (Date.now() - self.windAt > 350) Media.seekBy(self.windDir * 5)
+    }
     function windKey(dir: int, down: bool): void {
+        if (mediaMode) {
+            if (down) { windAt = Date.now(); windDir = dir; mediaWind.restart(); }
+            else { mediaWind.stop(); if (Date.now() - windAt < 350) { if (dir < 0) Media.previous(); else Media.next(); } windDir = 0; }
+            return;
+        }
         if (!held || busy) return;
         if (down) Tapes.wind(dir); else Tapes.unwind();
     }
@@ -123,17 +165,17 @@ Widget {
             press("play"); playKey(); break;
         case Qt.Key_Left:
             if (e.isAutoRepeat) { if (!leftHeld) { leftHeld = true; windKey(-1, true); } }
-            else { press("rew"); Tapes.seekBy(-10); }
+            else { press("rew"); self.seekBy(-10); }
             break;
         case Qt.Key_Right:
             if (e.isAutoRepeat) { if (!rightHeld) { rightHeld = true; windKey(1, true); } }
-            else { press("ff"); Tapes.seekBy(10); }
+            else { press("ff"); self.seekBy(10); }
             break;
-        case Qt.Key_Up: Tapes.setVolume(Tapes.volume + 5); break;
-        case Qt.Key_Down: Tapes.setVolume(Tapes.volume - 5); break;
-        case Qt.Key_S: press("stop"); if (held) Tapes.stop(); break;
+        case Qt.Key_Up: self.setVolume(self.volume + 5); break;
+        case Qt.Key_Down: self.setVolume(self.volume - 5); break;
+        case Qt.Key_S: press("stop"); if (mediaMode) stopKey(); else if (held) Tapes.stop(); break;
         case Qt.Key_E: eject(); break;
-        case Qt.Key_Home: Tapes.seekTo(0); break;
+        case Qt.Key_Home: if (mediaMode) Media.seekTo(0); else Tapes.seekTo(0); break;
         case Qt.Key_V: case Qt.Key_R: press("rec"); Widgets.open("vending"); break;
         default: return;
         }
@@ -149,7 +191,8 @@ Widget {
     // (the fuller spool turns slower), easing up and down
     property real spin: 0
     property real speed: 0                      // degrees a second, now
-    readonly property real target: !held || busy ? 0
+    readonly property real target: !disp || busy ? 0
+        : mediaMode ? (windDir !== 0 ? windDir * 1400 : Media.playing ? 150 : 0)
         : Tapes.winding !== 0 ? Tapes.winding * 1400
         : Tapes.playing ? 150 : 0
     FrameAnimation {
@@ -189,17 +232,17 @@ Widget {
             // opens the vending machine
             MouseArea {
                 anchors.fill: parent
-                enabled: !self.held
+                enabled: !self.disp
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: Widgets.open("vending")
             }
 
             Item {
                 id: tape
-                visible: self.held !== null
+                visible: self.disp !== null
                 x: 349 - 330; y: 425 - 410 - self.out * 340
                 width: 712; height: 281
-                readonly property var t: self.held
+                readonly property var t: self.disp
                 readonly property int shell: t ? Math.max(0, Math.min(7, t.shell ?? 0)) : 0
 
                 Image {
@@ -212,7 +255,7 @@ Widget {
                 Item {
                     x: 279; y: 110; width: 165; height: 86
                     clip: true
-                    readonly property real p: Tapes.tape === tape.t ? Tapes.progress : 0
+                    readonly property real p: self.mediaMode || Tapes.tape === tape.t ? self.progress : 0
                     Repeater {
                         model: 2
                         Item {
@@ -265,7 +308,7 @@ Widget {
                         x: (index === 0 ? 211 : 510) - 45; y: 150 - 45
                         width: 90; height: 90
                         smooth: true; mipmap: true
-                        rotation: self.spin * (index === 0 ? 1.15 - 0.4 * Tapes.progress : 0.75 + 0.4 * Tapes.progress) + index * 23
+                        rotation: self.spin * (index === 0 ? 1.15 - 0.4 * self.progress : 0.75 + 0.4 * self.progress) + index * 23
                     }
                 }
                 // its label: the song, and who, and how far
@@ -283,7 +326,7 @@ Widget {
                     elide: Text.ElideRight
                     readonly property string who: tape.t ? (tape.t.artist || tape.t.album || "") : ""
                     text: (who !== "" ? who.toUpperCase() + "   " : "")
-                        + Tapes.time(Tapes.tape === tape.t ? Tapes.position : 0) + " / " + Tapes.time(Tapes.length)
+                        + Tapes.time(self.mediaMode || Tapes.tape === tape.t ? self.position : 0) + " / " + Tapes.time(self.length)
                     color: "#5d5850"
                     font.family: "Barlow"; font.weight: Font.Medium; font.pixelSize: 15; font.letterSpacing: 1.5
                 }
@@ -332,14 +375,14 @@ Widget {
             }
         }
         Key { name: "rec"; box: [361, 184]; onHit: Widgets.open("vending") }
-        Key { name: "play"; box: [471, 184]; latched: Tapes.playing && self.held !== null; onHit: self.playKey() }
-        Key { name: "rew"; box: [610, 184]; hold: true; latched: Tapes.winding < 0; onHolding: d => self.windKey(-1, d) }
-        Key { name: "ff"; box: [740, 184]; hold: true; latched: Tapes.winding > 0; onHolding: d => self.windKey(1, d) }
+        Key { name: "play"; box: [471, 184]; latched: self.running && self.disp !== null; onHit: self.playKey() }
+        Key { name: "rew"; box: [610, 184]; hold: true; latched: Tapes.winding < 0 || self.windDir < 0; onHolding: d => self.windKey(-1, d) }
+        Key { name: "ff"; box: [740, 184]; hold: true; latched: Tapes.winding > 0 || self.windDir > 0; onHolding: d => self.windKey(1, d) }
         Key { name: "stop"; box: [866, 184]; onHit: self.stopKey() }
-        Key { name: "back"; box: [377, 759]; hold: true; latched: Tapes.winding < 0; onHolding: d => self.windKey(-1, d) }
+        Key { name: "back"; box: [377, 759]; hold: true; latched: Tapes.winding < 0 || self.windDir < 0; onHolding: d => self.windKey(-1, d) }
         Key { name: "halt"; box: [542, 759]; onHit: self.stopKey() }
-        Key { name: "go"; box: [704, 759]; latched: Tapes.playing && self.held !== null; onHit: self.playKey() }
-        Key { name: "fwd"; box: [865, 759]; hold: true; latched: Tapes.winding > 0; onHolding: d => self.windKey(1, d) }
+        Key { name: "go"; box: [704, 759]; latched: self.running && self.disp !== null; onHit: self.playKey() }
+        Key { name: "fwd"; box: [865, 759]; hold: true; latched: Tapes.winding > 0 || self.windDir > 0; onHolding: d => self.windKey(1, d) }
 
         // ---- the volume knob: its mark on its top, turned with the volume
         Item {
@@ -347,7 +390,7 @@ Widget {
             x: unit.ax(1148); y: unit.ay(178); width: 148; height: 100
             readonly property real cx: 1222 - 1148
             readonly property real cy: 198 - 178
-            readonly property real angle: (-150 + 300 * Math.min(130, Tapes.volume) / 130) * Math.PI / 180
+            readonly property real angle: (-150 + 300 * Math.min(130, self.volume) / (self.mediaMode ? 100 : 130)) * Math.PI / 180
             Rectangle {
                 width: 17; height: 11; radius: 2.5
                 x: knob.cx + 46 * Math.sin(knob.angle) - width / 2
@@ -363,9 +406,9 @@ Widget {
                 cursorShape: Qt.SizeHorCursor
                 property real x0: 0
                 property int v0: 0
-                onPressed: m => { x0 = m.x; v0 = Tapes.volume; }
-                onPositionChanged: m => { if (pressed) Tapes.setVolume(v0 + Math.round((m.x - x0) / 2)); }
-                onWheel: w => Tapes.setVolume(Tapes.volume + (w.angleDelta.y > 0 ? 5 : -5))
+                onPressed: m => { x0 = m.x; v0 = self.volume; }
+                onPositionChanged: m => { if (pressed) self.setVolume(v0 + Math.round((m.x - x0) / 2)); }
+                onWheel: w => self.setVolume(self.volume + (w.angleDelta.y > 0 ? 5 : -5))
             }
         }
 
@@ -373,7 +416,7 @@ Widget {
         Item {
             id: meter
             anchors.fill: parent
-            readonly property bool live: Tapes.playing
+            readonly property bool live: self.running && self.disp !== null
             opacity: live ? 1 : 0
             visible: opacity > 0.01
             Behavior on opacity { NumberAnimation { duration: 300 } }
@@ -413,7 +456,7 @@ Widget {
         // ---- the lamp: lit while it plays, glowing low with a cassette in
         Rectangle {
             id: lamp
-            readonly property real level: Tapes.playing ? 1 : (self.held ? 0.35 : 0)
+            readonly property real level: self.running && self.disp ? 1 : (self.disp ? 0.35 : 0)
             x: unit.ax(1142.5) - 15; y: unit.ay(611) - 15; width: 30; height: 30; radius: 15
             opacity: level
             Behavior on opacity { NumberAnimation { duration: 250 } }

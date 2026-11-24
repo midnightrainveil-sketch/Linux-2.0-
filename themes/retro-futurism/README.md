@@ -98,7 +98,9 @@ Gadgets in steel, cream and sage with e-ink screens.
   drops it in the tray, step by step on the e-ink screen, and the
   **cassette player** (Super + A) comes up and takes it in. The player's
   keys work (PLAY stays down while it runs, REW / FF wind while held,
-  STOP/EJ stops and, again, ejects, REC opens the machine); the reels
+  STOP/EJ stops and, again, ejects, REC opens the machine; with none of
+  yours in, it plays along with whatever else is playing, a browser's video
+  or a music app, its keys and knob that player's); the reels
   turn, the tape winds from spool to spool as the song goes, the meter and
   the lamp light, the knob is the volume. The music is a windowless mpv
   (`ultra-tapes`; with `mpv-mpris` it is an ordinary player for the media

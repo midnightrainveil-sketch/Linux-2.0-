@@ -115,12 +115,24 @@ Singleton {
         return n.id;
     }
     function updateNote(id: string, title: string, body: string): void {
+        if (id === "guide") return;
         notes = notes.map(n => n.id === id ? Object.assign({}, n, { title: title, body: body, updated: Date.now() }) : n)
             .sort((a, b) => b.updated - a.updated);
         changed();
     }
-    function removeNote(id: string): void { notes = notes.filter(n => n.id !== id); changed(); }
-    function note(id: string): var { return notes.find(n => n.id === id) ?? null; }
+    function removeNote(id: string): void { if (id === "guide") return; notes = notes.filter(n => n.id !== id); changed(); }
+    function note(id: string): var { return id === "guide" ? guide : notes.find(n => n.id === id) ?? null; }
+
+    // the theme's guide: a note of its own, first in NOTES, read-only, renewed
+    // with every update (widgets/organizer/guide.txt)
+    property var guide: null
+    FileView {
+        path: Quickshell.shellPath("widgets/organizer/guide.txt")
+        watchChanges: true
+        onFileChanged: reload()
+        printErrors: false
+        onLoaded: { root.guide = { id: "guide", title: "Magnetic 88 — Guide", body: text(), updated: 0, pinned: true }; root.rev++; }
+    }
 
     // ---------------------------------------------------------------- reminders
     // when it rings (ms): its time less its reminder; with no time, at 9:00

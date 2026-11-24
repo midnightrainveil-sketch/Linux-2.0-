@@ -104,7 +104,8 @@ Widget {
     }
     readonly property var agendaItems: agendaRows.filter(r => !r.head).map(r => r.it)
     readonly property var taskItems: (Organizer.rev, Organizer.tasks())
-    readonly property var noteItems: (Organizer.rev, Organizer.notes)
+    readonly property var noteItems: (Organizer.rev, (Organizer.guide ? [Organizer.guide] : []).concat(Organizer.notes))
+    readonly property bool reading: noteId === "guide"
 
     function chosenItem(): var {
         if (view === "agenda") return agendaItems[agendaSel] ?? null;
@@ -216,8 +217,10 @@ Widget {
         const n = Organizer.note(id);
         noteTitle.text = n ? n.title : "";
         noteBody.text = n ? n.body : "";
+        noteScroll.contentY = 0;
         flash.restart();
         noteBody.forceActiveFocus();
+        if (id === "guide") noteBody.cursorPosition = 0;
     }
     function newNote(start: string): void {
         const id = Organizer.addNote();
@@ -229,6 +232,7 @@ Widget {
     }
     function closeNote(): void {
         if (noteId === "") return;
+        if (noteId === "guide") { noteId = ""; flash.restart(); sink.forceActiveFocus(); return; }
         const t = noteTitle.text.trim(), b = noteBody.text;
         if (t === "" && b.trim() === "") Organizer.removeNote(noteId);
         else Organizer.updateNote(noteId, t, b);
@@ -469,7 +473,7 @@ Widget {
                     width: 560; elide: Text.ElideRight
                     font.pixelSize: 76; font.weight: Font.Normal; font.letterSpacing: -0.5
                     text: self.editing ? (self.eId ? "EDIT " : "NEW ") + self.eKind.toUpperCase()
-                        : self.noteId !== "" ? "NOTE"
+                        : self.noteId !== "" ? (self.reading ? "GUIDE" : "NOTE")
                         : self.view === "calendar" ? Organizer.monthNames[self.month] + " " + self.year
                         : self.view.toUpperCase()
                 }
@@ -478,7 +482,7 @@ Widget {
                     font.pixelSize: 26; font.letterSpacing: 7; font.weight: Font.Medium
                     text: {
                         if (self.editing) return self.eDate ? Organizer.longLabel(self.eDate) : "NO DATE";
-                        if (self.noteId !== "") return "WRITE BELOW  ·  ESC TO CLOSE";
+                        if (self.noteId !== "") return self.reading ? "↑ ↓  READ  ·  ESC  CLOSE" : "WRITE BELOW  ·  ESC TO CLOSE";
                         switch (self.view) {
                         case "calendar": return Organizer.longLabel(self.sel);
                         case "agenda": return "FROM " + Organizer.longLabel(self.today);
@@ -486,7 +490,7 @@ Widget {
                             const open = self.taskItems.filter(t => !t.done).length;
                             return open + " OPEN  ·  " + (self.taskItems.length - open) + " DONE";
                         }
-                        default: return self.noteItems.length + (self.noteItems.length === 1 ? " NOTE" : " NOTES");
+                        default: { const n = Organizer.notes.length; return n + (n === 1 ? " NOTE" : " NOTES") + (Organizer.guide ? "  ·  THE GUIDE" : ""); }
                         }
                     }
                 }
@@ -886,7 +890,7 @@ Widget {
                             x: 750 - width; y: 18
                             font.pixelSize: 17; font.letterSpacing: 2
                             color: self.grey
-                            text: Organizer.short(Organizer.key(new Date(nr.modelData.updated))).toUpperCase()
+                            text: nr.modelData.pinned ? "GUIDE" : Organizer.short(Organizer.key(new Date(nr.modelData.updated))).toUpperCase()
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -903,6 +907,7 @@ Widget {
                     Rule { x: 137; y: 432; width: 770 }
                     TextInput {
                         id: noteTitle
+                        readOnly: self.reading
                         x: 152; y: 452; width: 740
                         color: self.ink
                         font.family: self.font; font.pixelSize: 36; font.weight: Font.Medium
@@ -927,9 +932,10 @@ Widget {
                         boundsBehavior: Flickable.StopAtBounds
                         TextEdit {
                             id: noteBody
+                            readOnly: self.reading
                             width: noteScroll.width
                             color: self.ink
-                            font.family: self.font; font.pixelSize: 26; font.weight: Font.Normal
+                            font.family: self.font; font.pixelSize: self.reading ? 23 : 26; font.weight: Font.Normal
                             wrapMode: TextEdit.Wrap
                             selectionColor: self.ink; selectedTextColor: self.light
                             onCursorRectangleChanged: {
@@ -938,6 +944,12 @@ Widget {
                                 else if (r.y + r.height > noteScroll.contentY + noteScroll.height) noteScroll.contentY = r.y + r.height - noteScroll.height;
                             }
                             Keys.onPressed: e => {
+                                if (self.reading) {
+                                    const page = noteScroll.height * 0.9, most = Math.max(0, noteScroll.contentHeight - noteScroll.height);
+                                    const d = { [Qt.Key_Up]: -70, [Qt.Key_Down]: 70, [Qt.Key_PageUp]: -page, [Qt.Key_PageDown]: page, [Qt.Key_Space]: page }[e.key];
+                                    if (d !== undefined) { noteScroll.contentY = Math.max(0, Math.min(most, noteScroll.contentY + d)); e.accepted = true; return; }
+                                    if (e.key === Qt.Key_Home) { noteScroll.contentY = 0; e.accepted = true; return; }
+                                }
                                 if (e.key === Qt.Key_Up && cursorRectangle.y < 4) { noteTitle.forceActiveFocus(); e.accepted = true; }
                                 else if (e.key === Qt.Key_Tab) { insert(cursorPosition, "    "); e.accepted = true; }
                             }
@@ -952,7 +964,7 @@ Widget {
                         x: 152; y: 1142 - height / 2
                         font.pixelSize: 15; font.letterSpacing: 3
                         color: self.grey
-                        text: "SAVED AS YOU WRITE  ·  ESC  CLOSE"
+                        text: self.reading ? "COMES WITH THE THEME  ·  RENEWED BY EVERY UPDATE" : "SAVED AS YOU WRITE  ·  ESC  CLOSE"
                     }
                 }
 
