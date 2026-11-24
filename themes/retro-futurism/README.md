@@ -225,6 +225,11 @@ kept for later.
   shapes made round buttons, and its reels drawn again (a brown tape pack
   round a cream six-toothed hub), written too as the reels that turn
   (`cassette/home-reel-*.png`).
+- The system's programs (Files, Text Editor, gThumb, the sound, Bluetooth
+  and network settings, Timeshift: GTK, and Qt ones through it) look as the
+  terminal does, an e-ink screen: its paper and ink, heavier lines, chosen
+  things inverted, nothing in colour (`home/.config/ultra/retro-futurism/gtk.css`,
+  put in place by `ultra-look` at login).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
 
@@ -254,7 +259,7 @@ sleeping cat): the drawing itself where the terminal shows pictures
 
 ## The terminal widget
 
-A terminal pinned low on the left of the home screen, 16:9, floating and
+A terminal pinned low on the left of the home screen, in the screen's shape, its rim always lit, floating and
 untouched by Hyprland's tiling (`ultra-desk`, `hypr/theme/rules.lua`; on
 by default, `"deskTerminal": false` in settings.json for none). Its shell
 lives in a tmux session of its own (`desk.tmux.conf`: no status line, no

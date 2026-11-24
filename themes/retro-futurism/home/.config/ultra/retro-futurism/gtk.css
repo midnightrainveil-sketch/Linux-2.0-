@@ -1,33 +1,179 @@
-/* Magnetic 88: programs in Magnetic 88's day: cream, charcoal lettering, rust (GTK 3 with adw-gtk3,
+/* Magnetic 88: programs as the terminal is, an e-ink screen: dark ink on
+   light grey paper, heavier lines, nothing in colour (GTK 3 with adw-gtk3,
    GTK 4 / libadwaita). ultra-look copies this to ~/.config/gtk-3.0 and
-   gtk-4.0 as the session starts. */
-@define-color window_bg_color #f4ebdc;
-@define-color window_fg_color #35312a;
-@define-color view_bg_color #f4ebdc;
-@define-color view_fg_color #35312a;
-@define-color headerbar_bg_color #f4ebdc;
-@define-color headerbar_fg_color #35312a;
-@define-color headerbar_backdrop_color #f4ebdc;
-@define-color headerbar_border_color #35312a;
-@define-color sidebar_bg_color #f4ebdc;
-@define-color sidebar_fg_color #35312a;
-@define-color sidebar_backdrop_color #f4ebdc;
-@define-color secondary_sidebar_bg_color #f4ebdc;
-@define-color card_bg_color rgba(53, 49, 42, 0.05);
-@define-color card_fg_color #35312a;
-@define-color popover_bg_color #fbf5ea;
-@define-color popover_fg_color #35312a;
-@define-color dialog_bg_color #fbf5ea;
-@define-color dialog_fg_color #35312a;
-@define-color accent_bg_color #c9583a;
-@define-color accent_fg_color #f4ebdc;
-@define-color accent_color #f0b04c;
-@define-color destructive_bg_color #c4462a;
-@define-color destructive_color #e0734f;
-@define-color theme_selected_bg_color #c9583a;
-@define-color theme_selected_fg_color #f4ebdc;
+   gtk-4.0 as the session starts. The paper and ink are the terminal's own
+   (ghostty: #d7d6d1, #2a2b2a). */
 
-/* square, like everything else here */
-window, button, entry, .card, popover > contents, menu, row, .navigation-sidebar row, headerbar, tooltip {
+/* ---- the colours (GTK 3, and libadwaita before 1.6) */
+@define-color window_bg_color #d7d6d1;
+@define-color window_fg_color #2a2b2a;
+@define-color view_bg_color #dcdbd6;
+@define-color view_fg_color #2a2b2a;
+@define-color headerbar_bg_color #d7d6d1;
+@define-color headerbar_fg_color #2a2b2a;
+@define-color headerbar_border_color #2a2b2a;
+@define-color headerbar_backdrop_color #d7d6d1;
+@define-color headerbar_shade_color #2a2b2a;
+@define-color sidebar_bg_color #d1d0cb;
+@define-color sidebar_fg_color #2a2b2a;
+@define-color sidebar_backdrop_color #d1d0cb;
+@define-color sidebar_shade_color rgba(42, 43, 42, 0.25);
+@define-color secondary_sidebar_bg_color #d1d0cb;
+@define-color secondary_sidebar_fg_color #2a2b2a;
+@define-color card_bg_color rgba(42, 43, 42, 0.05);
+@define-color card_fg_color #2a2b2a;
+@define-color card_shade_color rgba(42, 43, 42, 0.3);
+@define-color popover_bg_color #e0dfda;
+@define-color popover_fg_color #2a2b2a;
+@define-color dialog_bg_color #dcdbd6;
+@define-color dialog_fg_color #2a2b2a;
+@define-color thumbnail_bg_color #dcdbd6;
+@define-color thumbnail_fg_color #2a2b2a;
+@define-color shade_color rgba(42, 43, 42, 0.18);
+@define-color scrollbar_outline_color transparent;
+@define-color accent_bg_color #2a2b2a;
+@define-color accent_fg_color #dcdbd6;
+@define-color accent_color #2a2b2a;
+@define-color destructive_bg_color #2a2b2a;
+@define-color destructive_fg_color #dcdbd6;
+@define-color destructive_color #2a2b2a;
+@define-color success_bg_color #4a4b4a;
+@define-color success_fg_color #dcdbd6;
+@define-color success_color #2a2b2a;
+@define-color warning_bg_color #4a4b4a;
+@define-color warning_fg_color #dcdbd6;
+@define-color warning_color #2a2b2a;
+@define-color error_bg_color #2a2b2a;
+@define-color error_fg_color #dcdbd6;
+@define-color error_color #2a2b2a;
+@define-color borders rgba(42, 43, 42, 0.55);
+@define-color theme_bg_color #d7d6d1;
+@define-color theme_fg_color #2a2b2a;
+@define-color theme_base_color #dcdbd6;
+@define-color theme_text_color #2a2b2a;
+@define-color theme_selected_bg_color #2a2b2a;
+@define-color theme_selected_fg_color #dcdbd6;
+@define-color insensitive_fg_color #8a8a86;
+
+/* ---- the same, for libadwaita 1.6 and later */
+:root {
+    --window-bg-color: #d7d6d1;
+    --window-fg-color: #2a2b2a;
+    --view-bg-color: #dcdbd6;
+    --view-fg-color: #2a2b2a;
+    --headerbar-bg-color: #d7d6d1;
+    --headerbar-fg-color: #2a2b2a;
+    --headerbar-border-color: #2a2b2a;
+    --headerbar-backdrop-color: #d7d6d1;
+    --headerbar-shade-color: #2a2b2a;
+    --sidebar-bg-color: #d1d0cb;
+    --sidebar-fg-color: #2a2b2a;
+    --sidebar-backdrop-color: #d1d0cb;
+    --sidebar-shade-color: rgba(42, 43, 42, 0.25);
+    --secondary-sidebar-bg-color: #d1d0cb;
+    --secondary-sidebar-fg-color: #2a2b2a;
+    --card-bg-color: rgba(42, 43, 42, 0.05);
+    --card-fg-color: #2a2b2a;
+    --card-shade-color: rgba(42, 43, 42, 0.3);
+    --popover-bg-color: #e0dfda;
+    --popover-fg-color: #2a2b2a;
+    --dialog-bg-color: #dcdbd6;
+    --dialog-fg-color: #2a2b2a;
+    --thumbnail-bg-color: #dcdbd6;
+    --thumbnail-fg-color: #2a2b2a;
+    --shade-color: rgba(42, 43, 42, 0.18);
+    --accent-bg-color: #2a2b2a;
+    --accent-fg-color: #dcdbd6;
+    --accent-color: #2a2b2a;
+    --destructive-bg-color: #2a2b2a;
+    --destructive-fg-color: #dcdbd6;
+    --destructive-color: #2a2b2a;
+    --success-bg-color: #4a4b4a;
+    --success-fg-color: #dcdbd6;
+    --success-color: #2a2b2a;
+    --warning-bg-color: #4a4b4a;
+    --warning-fg-color: #dcdbd6;
+    --warning-color: #2a2b2a;
+    --error-bg-color: #2a2b2a;
+    --error-fg-color: #dcdbd6;
+    --error-color: #2a2b2a;
+    --border-opacity: 55%;
+    --window-radius: 0;
+}
+
+/* ---- square, like everything else here; no shadows, no glow */
+window, button, entry, spinbutton, .card, popover > contents, popover.menu > contents, menu, row,
+.navigation-sidebar row, headerbar, tooltip, dialog, .dialog-action-area button, switch, switch slider,
+scale trough, scale slider, progressbar trough, progressbar progress, list, .boxed-list, frame > border {
     border-radius: 0;
+    box-shadow: none;
+}
+
+/* ---- heavier lines, as the e-ink screens have */
+headerbar, .titlebar {
+    border-bottom: 2px solid #2a2b2a;
+    background-image: none;
+}
+button:not(.flat):not(.titlebutton), entry, spinbutton, dropdown > button, combobox > box > button,
+.card, .boxed-list, list.boxed-list, frame > border, popover > contents, switch {
+    border: 2px solid #2a2b2a;
+}
+button:not(.flat):not(.titlebutton) {
+    background-image: none;
+    background-color: transparent;
+}
+button:hover, row:hover {
+    background-color: rgba(42, 43, 42, 0.10);
+}
+/* pressed, chosen, checked: inverted, ink with paper lettering */
+button:active, button:checked, row:selected, row:selected:hover, .navigation-sidebar row:selected,
+list row:selected, treeview:selected, *:selected, .suggested-action, .destructive-action {
+    background-color: #2a2b2a;
+    color: #dcdbd6;
+    background-image: none;
+}
+selection, text selection, entry selection, label selection {
+    background-color: #2a2b2a;
+    color: #dcdbd6;
+}
+entry:focus-within, entry:focus, button:focus-visible {
+    outline: 2px solid #2a2b2a;
+    outline-offset: 1px;
+}
+switch:checked, check:checked, radio:checked, progressbar progress, scale highlight, levelbar block.filled {
+    background-color: #2a2b2a;
+    background-image: none;
+    color: #dcdbd6;
+}
+check, radio {
+    border: 2px solid #2a2b2a;
+    background-image: none;
+}
+scrollbar slider {
+    background-color: #2a2b2a;
+    border-radius: 0;
+    min-width: 6px;
+}
+separator {
+    background-color: rgba(42, 43, 42, 0.55);
+    min-height: 2px;
+    min-width: 2px;
+}
+tooltip, tooltip.background {
+    background-color: #2a2b2a;
+    color: #dcdbd6;
+}
+link, a, label link {
+    color: #2a2b2a;
+    text-decoration: underline;
+}
+
+/* ---- icons in ink: no colour (a photo's thumbnail keeps its own) */
+image, .icon, button image, row image, headerbar image, .sidebar image, .navigation-sidebar image {
+    -gtk-icon-style: symbolic;
+    -gtk-icon-filter: grayscale(1);
+}
+/* the file manager's folders and files, in ink too (GTK 4) */
+.nautilus-grid-view picture, .nautilus-list-view picture, .nautilus-grid-view image, .nautilus-list-view image {
+    filter: grayscale(1);
 }
