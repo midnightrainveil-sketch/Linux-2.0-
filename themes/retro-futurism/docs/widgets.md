@@ -24,7 +24,7 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | --- | --- | --- | --- |
 | `typewriter` | Typewriter | Super + R | Typewriter |
 | `launcher` | App launcher (**built**) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
-| `organizer` | Organizer | Super + C | Calendar |
+| `organizer` | Organizer (**built**): calendar, agenda, tasks, notes, reminders | Super + C | Calendar |
 | `cassette` | Cassette player (**built**) | Super + A, or REC on it for the machine | CassettePlayerWidget |
 | `vending` | Cassette vending (**built**): your ~/Music | Super + V | CassetteVending |
 | `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |

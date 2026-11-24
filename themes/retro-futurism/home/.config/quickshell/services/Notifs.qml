@@ -45,6 +45,9 @@ Singleton {
             const def = acts.find(a => a.identifier === "default") ?? (acts.length === 1 ? acts[0] : null);
             if (def) { def.invoke(); done = true; }
         } catch (err) {}
+        // the shell's own (the organizer's reminders, the clock): its widget
+        const own = ({ organizer: "organizer", clock: "clock" })[(e.app || "").toLowerCase()];
+        if (!done && own) { Widgets.open(own); done = true; }
         if (!done) {
             const app = (e.desktop ? DesktopEntries.byId(e.desktop) : null)
                 ?? DesktopEntries.applications.values.find(a => a.name.toLowerCase() === (e.app || "").toLowerCase());

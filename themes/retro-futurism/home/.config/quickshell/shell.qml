@@ -87,6 +87,11 @@ ShellRoot {
     // ULTRA_CHECK=1: compile and make every widget once, and say how it went
     LazyLoader { active: Quickshell.env("ULTRA_CHECK") === "1"; SelfCheck {} }
 
+    // the services that keep time on their own (the clock's alarm and timer,
+    // the organizer's reminders): started with the shell, not when their
+    // widget first comes up
+    readonly property var timekeepers: [Alarms.alarmOn, Organizer.loaded]
+
     Lock { id: lockScreen }
     Connections { target: Scene; function onLockNow() { lockScreen.lock(); } }
 

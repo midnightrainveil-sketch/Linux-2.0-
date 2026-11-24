@@ -117,8 +117,20 @@ Gadgets in steel, cream and sage with e-ink screens.
   N is Do Not Disturb (they are kept, quietly). The history (60) is kept
   across restarts. Its picture is cut by `tools/make_pager.py`.
 
-Not built yet: the typewriter and the organizer (their keys show their
-mock-ups).
+- The **organizer** (Super + C; `widgets/organizer`, `services/Organizer.qml`):
+  the SHINWA digital planner, its e-ink screen drawn live (nothing on it
+  is a picture but the ginkgo and the icons, drawn by `tools/make_organizer.py`).
+  CALENDAR (the month, dots for events, squares for tasks due; the day,
+  UPCOMING, REMINDERS below), AGENDA (the coming weeks), TASKS (a to-do
+  list) and NOTES. Start typing anywhere to add one; Enter opens, Space
+  ticks, Delete removes, Tab or the keys below the screen change view, the
+  rocker steps, the round key is "new". An event or task can have a date,
+  a time and a reminder (at the time, minutes, hours or days before): the
+  reminders come as notifications on the pager, whether the organizer is up
+  or not, and a tap on one brings it up. Everything is kept in
+  `~/.local/state/ultra/retro-futurism/organizer.json`.
+
+Not built yet: the typewriter (its key shows its mock-up).
 
 (The theme was begun as a copy of Viewfinder's box; everything of Viewfinder's
 look is gone from it now.)
