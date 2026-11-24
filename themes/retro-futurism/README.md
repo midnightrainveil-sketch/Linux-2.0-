@@ -130,7 +130,20 @@ Gadgets in steel, cream and sage with e-ink screens.
   or not, and a tap on one brings it up. Everything is kept in
   `~/.local/state/ultra/retro-futurism/organizer.json`.
 
-Not built yet: the typewriter (its key shows its mock-up).
+- The **research station** (Super + R; `widgets/typewriter`, `services/Research.qml`,
+  `ultra-research`): the SHINWA RS-2012 typewriter. A long e-ink tablet stands
+  in its slot, a strip of it showing for everyday work; the round knob (or
+  F11) slides it up out of the slot, full length, for big work, the machine
+  sinking away below. Type a question, Enter: the best Wikipedia article for
+  it, in numbered sections, its sources beside it (no key, no account; the
+  language is `"researchLang"` in settings.json). SOURCES (research a related
+  article, or open it in the browser), NOTES (yours, per session), ARCHIVE
+  (every session, with how far you read it) and EXPORT (the session as
+  Markdown in `~/Documents/Research`). The machine's keys go down as you
+  type, its carriage runs along the line, its feed lamp pulses while it
+  looks something up. Its pictures and icons: `tools/make_typewriter.py`.
+
+Every gadget is built now.
 
 (The theme was begun as a copy of Viewfinder's box; everything of Viewfinder's
 look is gone from it now.)

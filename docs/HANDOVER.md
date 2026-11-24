@@ -77,8 +77,9 @@ mesh Wi-Fi (Botsync_PilotB_Mesh), see `ultra-lan`.
     and cassette player built (`ultra-tapes`, `services/Tapes.qml`: ~/Music
     as cassettes, mpv over its socket). The notifications'
     KAZE pager is built too (`modules/Pager.qml`), and the organizer
-    (`services/Organizer.qml`: events, tasks, notes, reminders). Not yet:
-    the typewriter. **Never run in Quickshell or
+    (`services/Organizer.qml`: events, tasks, notes, reminders), and the
+    typewriter as a research station (`services/Research.qml`,
+    `ultra-research`: Wikipedia; its tablet pulls out). Every widget built. **Never run in Quickshell or
     Hyprland yet**: only linted (pyside6-qmllint) and drawn in Python from
     the code's own numbers. Least sure: the taskbar changing layer (Top to
     Overlay) to stay over the launcher's blur, the Region mask with a child

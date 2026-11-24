@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""ultra-research: the research station's look-ups (widgets/typewriter).
+
+    ultra-research ask "<question>" [lang]    the best Wikipedia article for
+                                             it, in sections, and related
+                                             articles as its sources (JSON)
+    ultra-research export <session-id>       a session (its question, the
+                                             article, its sources, your
+                                             notes) written as Markdown to
+                                             ~/Documents/Research; prints
+                                             the file's path
+
+Wikipedia's own API, nothing else; no key, no account. The language is
+"researchLang" in the theme's settings.json (default "en").
+"""
+import json, os, re, sys, urllib.parse, urllib.request
+from datetime import datetime
+
+HOME = os.path.expanduser("~")
+STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".local", "state"), "ultra", "retro-futurism")
+CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config"), "ultra", "retro-futurism", "settings.json")
+AGENT = "ultra-research/1.0 (Magnetic 88 desktop; https://www.mediawiki.org/wiki/API:Etiquette)"
+SKIP = {"see also", "references", "external links", "notes", "further reading", "bibliography", "sources",
+        "citations", "footnotes", "gallery", "notes and references", "references and notes"}
+QWORDS = set("how did does do what is are was were why who whom whose when where which the a an of to in on for about "
+             "explain tell me please can could would should i you it its".split())
+
+
+def lang():
+    if len(sys.argv) > 3 and sys.argv[3]:
+        return sys.argv[3]
+    try:
+        with open(CONFIG, encoding="utf-8") as f:
+            return json.load(f).get("researchLang") or "en"
+    except (OSError, ValueError):
+        return "en"
+
+
+def api(code, **params):
+    params.update(format="json", formatversion="2")
+    url = f"https://{code}.wikipedia.org/w/api.php?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={"User-Agent": AGENT})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.load(r)
+
+
+def search(code, q, n=6):
+    d = api(code, action="query", list="search", srsearch=q, srlimit=n, srprop="snippet")
+    return d.get("query", {}).get("search", [])
+
+
+def clean(s):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", s or "")).replace("&quot;", '"').replace("&#039;", "'").replace("&amp;", "&").strip()
+
+
+def ask(question):
+    code = lang()
+    words = [w for w in re.findall(r"[\w'-]+", question.lower()) if w not in QWORDS]
+    hits = search(code, " ".join(words)) if words else []
+    if not hits:
+        hits = search(code, question)
+    if not hits:
+        return {"query": question, "error": "Nothing found for that. Try other words."}
+    title = hits[0]["title"]
+    d = api(code, action="query", prop="extracts|info", explaintext=1, exsectionformat="wiki",
+            inprop="url", redirects=1, titles=title)
+    page = (d.get("query", {}).get("pages") or [{}])[0]
+    text = page.get("extract", "") or ""
+    # its sections: the lead, then each "== Heading ==" (sub-headings fold
+    # into their section), the back matter left out
+    sections, cur = [], {"title": "Overview", "paragraphs": []}
+    for line in text.split("\n"):
+        m = re.match(r"^(=+)\s*(.*?)\s*=+\s*$", line)
+        if m:
+            if len(m.group(1)) == 2:
+                if cur["paragraphs"]:
+                    sections.append(cur)
+                cur = {"title": m.group(2), "paragraphs": []}
+            elif m.group(2):
+                cur["paragraphs"].append("§ " + m.group(2))
+            continue
+        line = line.strip()
+        if line:
+            cur["paragraphs"].append(line)
+    if cur["paragraphs"]:
+        sections.append(cur)
+    sections = [s for s in sections if s["title"].lower() not in SKIP]
+    # (a few subheads with nothing under them: dropped)
+    for s in sections:
+        p = s["paragraphs"]
+        s["paragraphs"] = [x for i, x in enumerate(p) if not (x.startswith("§ ") and (i + 1 == len(p) or p[i + 1].startswith("§ ")))]
+    total = 0
+    kept = []
+    for s in sections[:14]:
+        size = sum(len(x) for x in s["paragraphs"])
+        if total > 60000:
+            break
+        kept.append(s)
+        total += size
+    url = page.get("fullurl") or f"https://{code}.wikipedia.org/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
+    sources = [{"title": page.get("title", title), "site": "Wikipedia", "url": url, "desc": clean(hits[0].get("snippet"))}]
+    for h in hits[1:]:
+        sources.append({"title": h["title"], "site": "Wikipedia",
+                        "url": f"https://{code}.wikipedia.org/wiki/" + urllib.parse.quote(h["title"].replace(" ", "_")),
+                        "desc": clean(h.get("snippet"))})
+    return {"query": question, "title": page.get("title", title), "url": url, "lang": code,
+            "sections": kept, "sources": sources}
+
+
+def export(sid):
+    with open(os.path.join(STATE, "research.json"), encoding="utf-8") as f:
+        sessions = json.load(f).get("sessions", [])
+    s = next((x for x in sessions if str(x.get("id")) == sid), None)
+    if not s:
+        sys.exit("ultra-research: no such session")
+    folder = os.path.join(HOME, "Documents", "Research")
+    os.makedirs(folder, exist_ok=True)
+    when = datetime.fromtimestamp((s.get("created") or 0) / 1000 or datetime.now().timestamp())
+    name = re.sub(r"[^\w\- ]+", "", s.get("query") or s.get("title") or "session").strip()[:60] or "session"
+    path = os.path.join(folder, f"{when:%Y-%m-%d} {name}.md")
+    out = [f"# {s.get('query') or s.get('title')}", "",
+           f"*Research station, session {s.get('n', 0):03d}, {when:%d %b %Y %H:%M}*", ""]
+    if s.get("notes", "").strip():
+        out += ["## My notes", "", s["notes"].strip(), ""]
+    if s.get("title"):
+        out += [f"## {s['title']}", ""]
+        for i, sec in enumerate(s.get("sections", []), 1):
+            out += [f"### {i}. {sec['title']}", ""]
+            for p in sec.get("paragraphs", []):
+                out += [("**" + p[2:] + "**") if p.startswith("§ ") else p, ""]
+    if s.get("sources"):
+        out += ["## Sources", ""]
+        for i, src in enumerate(s["sources"], 1):
+            out.append(f"{i}. {src.get('site', 'Wikipedia')}. “{src['title']}.” <{src['url']}>")
+        out.append("")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out))
+    print(path)
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+    if cmd == "ask" and len(sys.argv) > 2:
+        try:
+            print(json.dumps(ask(sys.argv[2])))
+        except Exception as e:                                   # (no network, a bad answer)
+            print(json.dumps({"query": sys.argv[2], "error": "Could not reach Wikipedia (" + type(e).__name__ + ")."}))
+    elif cmd == "export" and len(sys.argv) > 2:
+        export(sys.argv[2])
+    else:
+        sys.exit(__doc__)

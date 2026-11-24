@@ -22,7 +22,7 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 
 | id | name | key | mock-ups |
 | --- | --- | --- | --- |
-| `typewriter` | Typewriter | Super + R | Typewriter |
+| `typewriter` | Research station (**built**): Wikipedia research, notes, archive, export; the tablet pulls out | Super + R | Typewriter |
 | `launcher` | App launcher (**built**) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
 | `organizer` | Organizer (**built**): calendar, agenda, tasks, notes, reminders | Super + C | Calendar |
 | `cassette` | Cassette player (**built**) | Super + A, or REC on it for the machine | CassettePlayerWidget |
