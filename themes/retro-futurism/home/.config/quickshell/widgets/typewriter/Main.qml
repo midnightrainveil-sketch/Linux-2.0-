@@ -24,7 +24,7 @@ import qs.services
 //   with the line.
 //
 // Placed in the mock-up's own pixels (tools/make_typewriter.py: body.png at
-// its 25, 13, tablet.png at 152, 21, carriage.png at 702, 368) and scaled once.
+// its 25, 105, tablet.png at 152, 12, carriage.png at 702, 368) and scaled once.
 Widget {
     id: self
     widgetId: "typewriter"
@@ -59,24 +59,26 @@ Widget {
         else if (view === "notes") notesEdit.forceActiveFocus();
         else sink.forceActiveFocus();
     }
-    onOpened: focusView()
+    onOpened: { if (!out) measure(); focusView(); }
 
     // ---- the tablet: in its slot (0) or pulled out (1)
     property real pop: 0
-    property real riseR: 0                     // how far its top rises
-    property real dropD: 0                     // how far the machine sinks
+    // the tablet is one long piece, most of it down in the slot: it is as
+    // long as the screen allows it to come out (measured once up)
+    property real riseR: 150                   // how far its top rises
+    property real dropD: 600                   // how far the machine sinks
     property bool out: false
     NumberAnimation on pop { id: popAnim; duration: 620; easing.type: Easing.InOutCubic; running: false }
+    function measure(): void {
+        // (its top near the screen's, the slot near the screen's foot)
+        const top0 = unit.mapToItem(null, 0, 0).y;
+        const per = (unit.mapToItem(null, 0, 100).y - top0) / 100;
+        if (per <= 0) return;
+        const winH = self.Window.height > 0 ? self.Window.height : 1200;
+        riseR = Math.max(0, 21 - (26 - top0) / per);
+        dropD = Math.max(0, (winH - 130 - top0) / per - 373);
+    }
     function togglePop(): void {
-        if (!out) {
-            // (as far as the screen allows: its top near the screen's, the
-            // slot near its foot)
-            const top0 = unit.mapToItem(null, 0, 0).y;
-            const per = (unit.mapToItem(null, 0, 100).y - top0) / 100;
-            const winH = self.Window.height > 0 ? self.Window.height : 1200;
-            riseR = Math.max(0, 21 - (26 - top0) / per);
-            dropD = Math.max(0, (winH - 130 - top0) / per - 373);
-        }
         out = !out;
         popAnim.to = out ? 1 : 0;
         popAnim.restart();
@@ -207,20 +209,29 @@ Widget {
         scale: self.k
         transformOrigin: Item.TopLeft
 
-        // ------------------------------------------------ the tablet (behind the machine: its foot in the slot)
+        // ------------------------------------------------ the tablet (behind the machine: what is below
+        // the slot is inside it, out of sight)
+        Item {
+            id: slot
+            x: 0; y: -2000
+            width: 1536; height: 2000 + 373 + self.dropD * self.pop
+            clip: true
         Item {
             id: tablet
             x: 152
-            y: 21 - self.riseR * self.pop
+            y: 2000 + 21 - self.riseR * self.pop
             width: 1232
-            height: 352 + (self.riseR + self.dropD) * self.pop
-            readonly property real paperBottom: height - 12
+            height: 352 + self.riseR + self.dropD
+            // (the paper's foot as far as one sees it: at the slot, until the
+            // tablet is right out and its own foot shows)
+            readonly property real paperBottom: 352 + (self.riseR + self.dropD) * self.pop - 12 * self.pop - 6 * (1 - self.pop)
             // (clicks on it stay with it)
             MouseArea { anchors.fill: parent; onDoubleClicked: m => { if (m.y < 82) self.togglePop(); } }
             BorderImage {
-                anchors.fill: parent
+                // (its picture starts 9 px higher, at its chrome's top edge)
+                y: -9; width: parent.width; height: parent.height + 9
                 source: self.art("tablet.png")
-                border { left: 75; right: 72; top: 95; bottom: 22 }
+                border { left: 75; right: 72; top: 104; bottom: 22 }
                 smooth: true
             }
 
@@ -599,6 +610,7 @@ Widget {
                 }
             }
         }
+        }
 
         // ------------------------------------------------ the machine, sinking away as the tablet comes out
         Item {
@@ -608,7 +620,7 @@ Widget {
 
             Image {
                 id: bodyImg
-                x: 25; y: 13
+                x: 25; y: 105              // (where body.png starts in the picture)
                 source: self.art("body.png")
                 smooth: true; mipmap: true
                 MouseArea { anchors.fill: parent }          // (clicks on it stay with it)
@@ -626,7 +638,7 @@ Widget {
                     ShaderEffectSource {
                         y: 3; width: parent.width; height: parent.height
                         sourceItem: bodyImg
-                        sourceRect: Qt.rect(pk.x - 25, pk.y - 13, pk.width, pk.height)
+                        sourceRect: Qt.rect(pk.x - bodyImg.x, pk.y - bodyImg.y, pk.width, pk.height)
                     }
                     Rectangle { y: 3; width: parent.width; height: parent.height; radius: 6; color: "black"; opacity: 0.16 }
                 }

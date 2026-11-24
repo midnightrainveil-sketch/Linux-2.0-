@@ -25,7 +25,7 @@ src0 = np.asarray(Image.open(src).convert('RGB')).astype(np.float32)
 img = src0.copy()
 H, W, _ = img.shape
 
-TABLET = (152, 21, 1384, 373, 56)          # its frame: x0 y0 x1 y1 (its foot in the slot), corner radius
+TABLET = (152, 12, 1384, 373, 60)          # its frame: x0 y0 x1 y1 (its foot in the slot), corner radius
 PAPER = (213, 103, 1322, 361, 14)          # its screen, in the picture
 CARRIAGE = [(749, 368, 792, 400, 6), (702, 393, 824, 462, 8), (744, 455, 797, 489, 4)]
 
@@ -89,7 +89,6 @@ tx0, ty0, tx1, ty1, tr = TABLET
 tab = src0[ty0:ty1, tx0:tx1].copy()
 tab[y0 - ty0:y1 - ty0, x0 - tx0:x1 - tx0] = paper
 ta = rrect(tx1 - tx0, ty1 - ty0, tr, corners=(True, True, False, False))
-save(tab, ta, 'tablet.png')
 
 # ---- the body: off the white (flood from the corners), the tablet's place
 # let through
@@ -113,8 +112,12 @@ n, lab, st, _ = cv2.connectedComponentsWithStats(body.astype(np.uint8), connecti
 body = lab == 1 + np.argmax(st[1:, cv2.CC_STAT_AREA])
 body = cv2.morphologyEx(body.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8)).astype(bool)
 alpha = cv2.GaussianBlur(body.astype(np.float32), (0, 0), 0.7) * cv2.dilate(body.astype(np.uint8), cross)
+# (the tablet: its rounded box, less the white ground round its corners)
+ground_soft = cv2.GaussianBlur(bg.astype(np.float32), (0, 0), 0.7)
+ta = ta * (1 - ground_soft[ty0:ty1, tx0:tx1])
+save(tab, ta, 'tablet.png')
 hole = np.zeros((H, W), np.float32)
-hole[ty0:ty1, tx0:tx1] = ta
+hole[ty0:ty1, tx0:tx1] = rrect(tx1 - tx0, ty1 - ty0, tr, corners=(True, True, False, False))
 alpha = alpha * (1 - hole)
 ys, xs = np.where(alpha > 0.02)
 bx0, by0, bx1, by1 = xs.min() - 2, ys.min() - 2, xs.max() + 3, ys.max() + 3
