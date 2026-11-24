@@ -8,18 +8,18 @@ import qs.services
 // and it slides up out of the slot, full length, for big work (the machine
 // sinking away below). Super + R.
 //
-//   RESEARCH  type a question, Enter: the best Wikipedia article for it
-//             (services/Research.qml, ultra-research), in sections, with
-//             its sources beside it; ↑ ↓ Page Up / Down read on
-//   SOURCES   the article and those related to it: Enter researches one,
-//             O opens it in the browser
+//   RESEARCH  type a question, Enter: the web's results for it
+//             (services/Research.qml, ultra-research); ↑ ↓ choose one,
+//             Enter (or a click) opens it in your browser
+//   SOURCES   the same results, by their addresses
 //   NOTES     your notes on this session, saved as you write
 //   ARCHIVE   every session: Enter opens one, Delete removes it
 //   EXPORT    the session (question, article, sources, notes) as Markdown
 //             in ~/Documents/Research (Enter, or Ctrl + S anywhere)
 //
-//   Tab / the keys above the keyboard change view; the round knob (or F11)
-//   pulls the tablet out and pushes it back in; Esc pushes it in first.
+//   Tab / the keys above the keyboard change view; the round knob, the
+//   PULL OUT / PUSH IN button on the tablet, or F11 slide the tablet out of
+//   its slot and back; Esc pushes it in first.
 //   The machine's keys go down as you type, and its carriage runs along
 //   with the line.
 //
@@ -45,6 +45,8 @@ Widget {
     readonly property var views: ["research", "sources", "notes", "archive", "export"]
     readonly property var cur: (Research.rev, Research.current)
     property int sourceSel: 0
+    property int resultSel: 0
+    readonly property var results: self.cur?.results ?? []
     property int archiveSel: 0
 
     function setView(v: string): void {
@@ -91,7 +93,7 @@ Widget {
     // keyboard's is
     readonly property var keyBoxes: ({
         "research": [268, 597, 441, 640], "sources": [470, 597, 643, 640], "notes": [665, 597, 826, 640],
-        "archive": [846, 597, 1021, 640], "return": [1042, 597, 1206, 640], "knob": [1228, 584, 1281, 637],
+        "archive": [846, 597, 1021, 640], "return": [1042, 597, 1206, 640], "knob": [1227, 577, 1294, 640],
         "`": [253, 646, 310, 689], "1": [325, 646, 381, 689], "2": [399, 646, 454, 689], "3": [472, 646, 526, 689],
         "4": [544, 646, 599, 689], "5": [617, 646, 672, 689], "6": [691, 646, 745, 689], "7": [764, 646, 818, 689],
         "8": [837, 646, 891, 689], "9": [911, 646, 966, 689], "0": [985, 646, 1040, 689], "-": [1059, 646, 1114, 689],
@@ -132,6 +134,7 @@ Widget {
     property int downRev: 0
     function press(name: string): void {
         if (!name || !keyBoxes[name]) return;
+        if (name !== "knob") { thumpAnim.restart(); roll += name === "enter" ? 14 : 2.2; }
         const d = downKeys; d[name] = Date.now(); downKeys = d; downRev++;
         release.restart();
     }
@@ -140,7 +143,7 @@ Widget {
         onTriggered: {
             const now = Date.now(); let any = false;
             const d = self.downKeys;
-            for (const k in d) { if (now - d[k] > 120) delete d[k]; else any = true; }
+            for (const k in d) { if (now - d[k] > 170) delete d[k]; else any = true; }
             self.downKeys = d; self.downRev++;
             if (!any) stop();
         }
@@ -158,6 +161,16 @@ Widget {
         if (ctrl && (e.key === Qt.Key_S || e.key === Qt.Key_E)) { setView("export"); Research.exportCurrent(); e.accepted = true; return; }
     }
 
+    // the springs' give (0..1, a knock at each key) and the platen knobs' turn
+    property real thump: 0
+    property real roll: 0
+    Behavior on roll { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+    SequentialAnimation {
+        id: thumpAnim
+        NumberAnimation { target: self; property: "thump"; to: 1; duration: 45; easing.type: Easing.OutQuad }
+        NumberAnimation { target: self; property: "thump"; to: 0; duration: 220; easing.type: Easing.OutBack; easing.overshoot: 2 }
+    }
+
     // the carriage: along the line being typed, back with Enter
     property int column: 0
     readonly property real carriageX: 330 + (column % 64) * 12
@@ -170,7 +183,7 @@ Widget {
     function keyOnList(e: var): void {
         onKey(e);
         if (e.accepted) return;
-        const n = view === "sources" ? (cur?.sources?.length ?? 0) : view === "archive" ? Research.sessions.length : 0;
+        const n = view === "sources" ? results.length : view === "archive" ? Research.sessions.length : 0;
         switch (e.key) {
         case Qt.Key_Up: case Qt.Key_Left:
             if (view === "sources") sourceSel = Math.max(0, sourceSel - 1); else if (view === "archive") archiveSel = Math.max(0, archiveSel - 1);
@@ -179,12 +192,9 @@ Widget {
             if (view === "sources") sourceSel = Math.min(n - 1, sourceSel + 1); else if (view === "archive") archiveSel = Math.min(n - 1, archiveSel + 1);
             break;
         case Qt.Key_Return: case Qt.Key_Enter:
-            if (view === "sources" && cur?.sources?.[sourceSel]) researchSource(cur.sources[sourceSel]);
+            if (view === "sources" && results[sourceSel]) Research.openResult(results[sourceSel]);
             else if (view === "archive" && Research.sessions[archiveSel]) { Research.open(Research.sessions[archiveSel].id); setView("research"); }
             else if (view === "export") Research.exportCurrent();
-            break;
-        case Qt.Key_O:
-            if (view === "sources" && cur?.sources?.[sourceSel]) Qt.openUrlExternally(cur.sources[sourceSel].url);
             break;
         case Qt.Key_Delete:
             if (view === "archive" && Research.sessions[archiveSel]) { Research.remove(Research.sessions[archiveSel].id); archiveSel = Math.min(archiveSel, Research.sessions.length - 1); }
@@ -193,13 +203,13 @@ Widget {
         }
         e.accepted = true;
     }
-    function researchSource(s: var): void { setView("research"); ask.text = s.title; Research.ask(s.title); column = 0; }
+
 
     // ---- an answer arriving: the page turns
     Connections {
         target: Research
-        function onBusyChanged() { if (!Research.busy) { flash.restart(); answer.contentY = 0; ask.fresh = true; } }
-        function onCurrentIdChanged() { const c = Research.sessions.find(x => x.id === Research.currentId); ask.text = c?.query ?? ""; ask.fresh = true; answer.contentY = 0; notesEdit.load(); }
+        function onBusyChanged() { if (!Research.busy) { flash.restart(); self.resultSel = 0; ask.fresh = true; } }
+        function onCurrentIdChanged() { const c = Research.sessions.find(x => x.id === Research.currentId); ask.text = c?.query ?? ""; ask.fresh = true; self.resultSel = 0; notesEdit.load(); }
     }
 
     // ================================================================ the machine
@@ -255,6 +265,39 @@ Widget {
                 x: 171; y: 101 - height / 2
                 font.pixelSize: 19; font.letterSpacing: 1.2
                 text: "RESEARCH STATION / SESSION " + String(self.cur?.n ?? Research.next).padStart(3, "0")
+            }
+            // pull the tablet out of its slot, or push it back in
+            Item {
+                id: popButton
+                x: 552; y: 88; width: 132; height: 27
+                Rectangle {
+                    anchors.fill: parent; radius: 4
+                    color: popArea.pressed ? self.ink : "transparent"
+                    border.width: 1.8; border.color: self.ink
+                }
+                Canvas {
+                    id: chevron
+                    x: 10; y: 8; width: 14; height: 11
+                    property bool up: !self.out
+                    property bool lit: popArea.pressed
+                    onUpChanged: requestPaint()
+                    onLitChanged: requestPaint()
+                    onPaint: {
+                        const c = getContext("2d"); c.reset();
+                        c.strokeStyle = lit ? self.light : self.ink; c.lineWidth = 2.2; c.lineCap = "round"; c.lineJoin = "round";
+                        c.beginPath();
+                        if (up) { c.moveTo(1.5, 9); c.lineTo(7, 2.5); c.lineTo(12.5, 9); }
+                        else { c.moveTo(1.5, 2); c.lineTo(7, 8.5); c.lineTo(12.5, 2); }
+                        c.stroke();
+                    }
+                }
+                Ink {
+                    x: 32; y: parent.height / 2 - height / 2
+                    font.pixelSize: 12; font.letterSpacing: 1.2; font.weight: Font.Medium
+                    color: popArea.pressed ? self.light : self.ink
+                    text: self.out ? "PUSH IN" : "PULL OUT"
+                }
+                MouseArea { id: popArea; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: self.togglePop() }
             }
             Ink {
                 x: 862 - width; y: 101 - height / 2
@@ -322,11 +365,15 @@ Widget {
                         if (e.accepted) return;
                         switch (e.key) {
                         case Qt.Key_Return: case Qt.Key_Enter:
-                            Research.ask(text); fresh = true; self.column = 0; e.accepted = true; return;
-                        case Qt.Key_Up: answer.flick(0, 900); e.accepted = true; return;
-                        case Qt.Key_Down: answer.flick(0, -900); e.accepted = true; return;
-                        case Qt.Key_PageUp: answer.contentY = Math.max(0, answer.contentY - answer.height * 0.9); e.accepted = true; return;
-                        case Qt.Key_PageDown: answer.contentY = Math.min(Math.max(0, answer.contentHeight - answer.height), answer.contentY + answer.height * 0.9); e.accepted = true; return;
+                            // the question asked, unchanged: open the result chosen; else ask it
+                            if ((fresh || (e.modifiers & Qt.ControlModifier)) && self.results[self.resultSel] && text === (self.cur?.query ?? ""))
+                                Research.openResult(self.results[self.resultSel]);
+                            else { Research.ask(text); fresh = true; }
+                            self.column = 0; e.accepted = true; return;
+                        case Qt.Key_Up: self.resultSel = Math.max(0, self.resultSel - 1); e.accepted = true; return;
+                        case Qt.Key_Down: self.resultSel = Math.min(self.results.length - 1, self.resultSel + 1); e.accepted = true; return;
+                        case Qt.Key_PageUp: self.resultSel = Math.max(0, self.resultSel - 4); e.accepted = true; return;
+                        case Qt.Key_PageDown: self.resultSel = Math.min(self.results.length - 1, self.resultSel + 4); e.accepted = true; return;
                         }
                         // a new question: typing over the one asked
                         if (fresh && e.text !== "" && e.text.charCodeAt(0) >= 32 && !(e.modifiers & Qt.ControlModifier)) { text = ""; }
@@ -339,57 +386,53 @@ Widget {
                     }
                 }
 
-                // the answer
-                Flickable {
+                // the results: each a title, its address, the words it is found by
+                ListView {
                     id: answer
-                    x: 282; y: 175; width: 655
+                    x: 280; y: 176; width: 662
                     height: tablet.paperBottom - 8 - y
-                    contentHeight: body.height + 16
                     clip: true
+                    spacing: 6
                     boundsBehavior: Flickable.StopAtBounds
-                    flickDeceleration: 4000
-                    onContentYChanged: if (contentHeight > 0) Research.setRead(Math.min(1, (contentY + height) / contentHeight))
-                    onContentHeightChanged: if (contentHeight > 0 && !Research.busy) Research.setRead(contentHeight <= height + 20 ? 1 : (contentY + height) / contentHeight)
-                    Column {
-                        id: body
-                        width: answer.width - 8
-                        spacing: 6
-                        visible: (self.cur?.sections?.length ?? 0) > 0 && !Research.busy
-                        Repeater {
-                            model: self.cur?.sections ?? []
-                            Column {
-                                id: sec
-                                required property var modelData
-                                required property int index
-                                width: body.width
-                                spacing: 3
-                                Text {
-                                    width: parent.width
-                                    color: self.ink; renderType: Text.QtRendering
-                                    font.family: self.serif; font.pixelSize: 19; font.weight: Font.Bold
-                                    wrapMode: Text.Wrap
-                                    text: (sec.index + 1) + ". " + sec.modelData.title
-                                    topPadding: sec.index ? 6 : 0
-                                }
-                                Repeater {
-                                    model: sec.modelData.paragraphs
-                                    Text {
-                                        required property string modelData
-                                        required property int index
-                                        readonly property bool head: modelData.startsWith("§ ")
-                                        width: sec.width
-                                        color: self.ink; renderType: Text.QtRendering
-                                        font.family: self.sans
-                                        font.pixelSize: head ? 14 : 16
-                                        font.weight: head ? Font.Bold : Font.Normal
-                                        font.letterSpacing: head ? 1 : 0
-                                        lineHeight: 1.12
-                                        wrapMode: Text.Wrap
-                                        text: head ? modelData.slice(2).toUpperCase()
-                                            : modelData + (sec.index === 0 && index === sec.modelData.paragraphs.length - 1 ? "  [1]" : "")
-                                    }
-                                }
+                    visible: self.results.length > 0 && !Research.busy
+                    model: self.results
+                    currentIndex: self.resultSel
+                    highlightMoveDuration: 0
+                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                    delegate: Item {
+                        id: res
+                        required property var modelData
+                        required property int index
+                        readonly property bool on: index === self.resultSel
+                        readonly property bool read: (Research.rev, Research.visited(modelData.url))
+                        width: answer.width; height: col.height + 10
+                        Rectangle { anchors.fill: parent; radius: 3; color: "transparent"; border.width: res.on ? 2 : 0; border.color: self.ink }
+                        Rectangle { x: 0; y: 5; width: 4; height: parent.height - 10; color: self.ink; visible: res.on }
+                        Column {
+                            id: col
+                            x: 14; y: 5; width: parent.width - 24
+                            spacing: 1
+                            Text {
+                                width: parent.width; elide: Text.ElideRight
+                                color: res.read ? self.grey : self.ink; renderType: Text.QtRendering
+                                font.family: self.serif; font.pixelSize: 19; font.weight: Font.Bold
+                                text: (res.index + 1) + ". " + res.modelData.title
                             }
+                            Ink {
+                                width: parent.width; elide: Text.ElideMiddle
+                                font.pixelSize: 12; font.letterSpacing: 0.4; color: self.grey
+                                text: (res.read ? "READ  ·  " : "") + res.modelData.url.replace(/^https?:\/\//, "")
+                            }
+                            Ink {
+                                width: parent.width; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight
+                                font.pixelSize: 15; lineHeight: 1.08
+                                visible: text !== ""
+                                text: res.modelData.snippet
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: { self.resultSel = res.index; Research.openResult(res.modelData); }
                         }
                     }
                 }
@@ -397,46 +440,47 @@ Widget {
                 Column {
                     x: 292; y: 190; width: 630
                     spacing: 8
-                    visible: Research.busy || !self.cur || (self.cur.error ?? "") !== "" || (self.cur.sections?.length ?? 0) === 0
+                    visible: !answer.visible
                     Ink {
                         width: parent.width; wrapMode: Text.Wrap
                         font.pixelSize: 17; font.letterSpacing: 3; font.weight: Font.Medium
-                        text: Research.busy ? "SEARCHING THE ARCHIVES" + ".".repeat(1 + Math.floor(dots.n % 3))
-                            : (self.cur?.error ?? "") !== "" ? "NO ANSWER" : "READY"
+                        text: Research.busy ? "SEARCHING" + ".".repeat(1 + Math.floor(dots.n % 3))
+                            : (self.cur?.error ?? "") !== "" ? "NO RESULTS" : "READY"
                     }
                     Ink {
                         width: parent.width; wrapMode: Text.Wrap
                         font.pixelSize: 15; color: self.grey
-                        text: Research.busy ? "Looking it up on Wikipedia."
+                        text: Research.busy ? "Looking it up on the web."
                             : (self.cur?.error ?? "") !== "" ? self.cur.error
-                            : "Type a question and press Enter. The knob pulls the tablet out for big work."
+                            : "Type a question and press Enter. A result opens in your browser."
                     }
                 }
                 Timer { id: dots; property int n: 0; interval: 400; repeat: true; running: Research.busy; onTriggered: n++ }
 
-                // its sources, beside it
+                // the sites, beside them
                 Rectangle { x: 954; y: 159; width: 1.4; height: tablet.paperBottom - 174; color: self.ink }
                 Icon { name: "source"; x: 975; y: 154; width: 22; height: 22 }
                 Ink {
                     x: 1006; y: 165 - height / 2
                     font.pixelSize: 15; font.letterSpacing: 0.5
-                    text: "SOURCES (" + (self.cur?.sources?.length ?? 0) + ")"
+                    text: "SOURCES (" + self.results.length + ")"
                 }
                 Column {
                     x: 980; y: 186; width: 180
-                    spacing: 9
+                    spacing: 7
                     Repeater {
-                        model: (self.cur?.sources ?? []).slice(0, Math.max(1, Math.floor((tablet.paperBottom - 196) / 44)))
+                        model: self.results.slice(0, Math.max(1, Math.floor((tablet.paperBottom - 196) / 24)))
                         Ink {
                             required property var modelData
                             required property int index
-                            width: 180
-                            wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight
-                            font.pixelSize: 12; lineHeight: 1.05
-                            text: "[" + (index + 1) + "] " + modelData.site + ".\n“" + modelData.title + ".”"
+                            width: 180; elide: Text.ElideRight
+                            font.pixelSize: 12
+                            font.underline: index === self.resultSel
+                            color: (Research.rev, Research.visited(modelData.url)) ? self.grey : self.ink
+                            text: "[" + (index + 1) + "] " + modelData.site
                             MouseArea {
                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                onClicked: { self.sourceSel = parent.index; self.setView("sources"); }
+                                onClicked: { self.resultSel = parent.index; Research.openResult(parent.modelData); }
                             }
                         }
                     }
@@ -472,24 +516,24 @@ Widget {
             Item {
                 anchors.fill: parent
                 visible: self.view === "sources"
-                Heading { text: self.cur?.title ? "Sources: " + self.cur.title : "Sources" }
+                Heading { text: self.cur ? "Sources: " + self.cur.query : "Sources"; width: 870; elide: Text.ElideRight }
                 ListView {
                     x: 276; y: 178; width: 880; height: tablet.paperBottom - 210
                     clip: true; spacing: 4
                     currentIndex: self.sourceSel
                     onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-                    model: self.cur?.sources ?? []
+                    model: self.results
                     delegate: Row2 {
                         required property var modelData
                         required property int index
                         on: index === self.sourceSel
                         a: "[" + (index + 1) + "]  " + modelData.title
-                        b: modelData.desc || modelData.url
-                        c: modelData.site.toUpperCase()
-                        onPicked: self.sourceSel === index ? self.researchSource(modelData) : (self.sourceSel = index)
+                        b: modelData.url
+                        c: ((Research.rev, Research.visited(modelData.url)) ? "READ  ·  " : "") + modelData.site.toUpperCase()
+                        onPicked: { self.sourceSel = index; Research.openResult(modelData); }
                     }
                 }
-                Hint { text: "ENTER  RESEARCH IT  ·  O  OPEN IN THE BROWSER" }
+                Hint { text: "ENTER (OR A CLICK)  OPEN IN THE BROWSER" }
             }
 
             // ---- NOTES
@@ -634,13 +678,21 @@ Widget {
                     required property string modelData
                     readonly property var b: self.keyBoxes[modelData] ?? [0, 0, 1, 1]
                     x: b[0]; y: b[1]; width: b[2] - b[0]; height: b[3] - b[1]
-                    Rectangle { anchors.fill: parent; radius: 6; color: "#141312" }
+                    readonly property bool round: modelData === "knob"
+                    Rectangle { visible: !pk.round; anchors.fill: parent; radius: 6; color: "#141312" }
                     ShaderEffectSource {
-                        y: 3; width: parent.width; height: parent.height
+                        visible: !pk.round
+                        y: 4; width: parent.width; height: parent.height
                         sourceItem: bodyImg
                         sourceRect: Qt.rect(pk.x - bodyImg.x, pk.y - bodyImg.y, pk.width, pk.height)
                     }
-                    Rectangle { y: 3; width: parent.width; height: parent.height; radius: 6; color: "black"; opacity: 0.16 }
+                    Rectangle { visible: !pk.round; y: 4; width: parent.width; height: parent.height; radius: 6; color: "black"; opacity: 0.2 }
+                    // the knob pressed: its cap sinks into its collar, darker
+                    Rectangle {
+                        visible: pk.round
+                        x: 4; y: 3; width: parent.width - 8; height: width; radius: width / 2
+                        color: "black"; opacity: 0.28
+                    }
                 }
             }
 
@@ -662,9 +714,43 @@ Widget {
                 onClicked: self.togglePop()
             }
 
-            // the carriage, along the line
+            // the springs in the side wells: they give a little at each key
+            Repeater {
+                model: [[145, 648, 180, 744], [1357, 648, 1392, 744]]
+                Item {
+                    id: spring
+                    required property var modelData
+                    x: modelData[0]; y: modelData[1]; width: modelData[2] - modelData[0]; height: modelData[3] - modelData[1]
+                    clip: true
+                    ShaderEffectSource {
+                        width: parent.width; height: parent.height
+                        sourceItem: bodyImg
+                        sourceRect: Qt.rect(spring.x - bodyImg.x, spring.y - bodyImg.y, spring.width, spring.height)
+                        transform: Scale { origin.y: spring.height; yScale: 1 - 0.13 * self.thump }
+                    }
+                }
+            }
+            // the platen's knobs: their ridges turn as the paper is fed (a
+            // little at each key, a line at Enter)
+            Repeater {
+                model: [[216, 410, 262, 449], [1274, 410, 1320, 449]]
+                Item {
+                    id: ridge
+                    required property var modelData
+                    x: modelData[0]; y: modelData[1]; width: modelData[2] - modelData[0]; height: modelData[3] - modelData[1]
+                    clip: true
+                    readonly property real off: (self.roll % 6.5)
+                    ShaderEffectSource {
+                        y: -ridge.off; width: parent.width; height: parent.height + 7
+                        sourceItem: bodyImg
+                        sourceRect: Qt.rect(ridge.x - bodyImg.x, ridge.y - bodyImg.y, ridge.width, ridge.height + 7)
+                    }
+                }
+            }
+
+            // the carriage, along the line (with a knock at each key)
             Image {
-                x: self.carriageX - 61; y: 368
+                x: self.carriageX - 61; y: 368 + 2.5 * self.thump
                 source: self.art("carriage.png")
                 smooth: true; mipmap: true
                 Behavior on x { NumberAnimation { duration: self.column === 0 ? 380 : 90; easing.type: Easing.OutCubic } }

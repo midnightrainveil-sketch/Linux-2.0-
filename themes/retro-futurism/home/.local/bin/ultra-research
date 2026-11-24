@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """ultra-research: the research station's look-ups (widgets/typewriter).
 
-    ultra-research ask "<question>" [lang]    the best Wikipedia article for
-                                             it, in sections, and related
-                                             articles as its sources (JSON)
+    ultra-research ask "<question>"          the web's results for it (JSON):
+                                             each one's title, address and
+                                             the words it is found by; the
+                                             station opens them in your
+                                             browser
     ultra-research export <session-id>       a session (its question, the
                                              article, its sources, your
                                              notes) written as Markdown to
                                              ~/Documents/Research; prints
                                              the file's path
 
-Wikipedia's own API, nothing else; no key, no account. The language is
-"researchLang" in the theme's settings.json (default "en").
+The results come from DuckDuckGo's plain page (no key, no account, no
+tracking; Google's own results cannot be had without a paid key). The
+region is "researchRegion" in the theme's settings.json (default
+"wt-wt", everywhere; "us-en", "uk-en", "jp-jp" ...).
 """
 import json, os, re, sys, urllib.parse, urllib.request
 from datetime import datetime
@@ -107,6 +111,45 @@ def ask(question):
             "sections": kept, "sources": sources}
 
 
+def region():
+    try:
+        with open(CONFIG, encoding="utf-8") as f:
+            return json.load(f).get("researchRegion") or "wt-wt"
+    except (OSError, ValueError):
+        return "wt-wt"
+
+
+def web(question):
+    import html as H
+    data = urllib.parse.urlencode({"q": question, "kl": region()}).encode()
+    req = urllib.request.Request("https://html.duckduckgo.com/html/", data=data, headers={
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0",
+        "Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        page = r.read().decode("utf-8", "replace")
+    results = []
+    for block in re.split(r'<div class="result results_links', page)[1:]:
+        if "result--ad" in block[:200]:
+            continue
+        a = re.search(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
+        if not a:
+            continue
+        href = H.unescape(a.group(1))
+        m = re.search(r"[?&]uddg=([^&]+)", href)
+        url = urllib.parse.unquote(m.group(1)) if m else ("https:" + href if href.startswith("//") else href)
+        if "duckduckgo.com/y.js" in url:
+            continue
+        snip = re.search(r'class="result__snippet"[^>]*>(.*?)</a>', block, re.S)
+        site = urllib.parse.urlparse(url).netloc.removeprefix("www.")
+        results.append({"title": H.unescape(clean(a.group(2))), "url": url, "site": site,
+                        "snippet": H.unescape(clean(snip.group(1))) if snip else ""})
+        if len(results) >= 15:
+            break
+    if not results:
+        return {"query": question, "error": "Nothing found for that. Try other words."}
+    return {"query": question, "results": results}
+
+
 def export(sid):
     with open(os.path.join(STATE, "research.json"), encoding="utf-8") as f:
         sessions = json.load(f).get("sessions", [])
@@ -122,16 +165,13 @@ def export(sid):
            f"*Research station, session {s.get('n', 0):03d}, {when:%d %b %Y %H:%M}*", ""]
     if s.get("notes", "").strip():
         out += ["## My notes", "", s["notes"].strip(), ""]
-    if s.get("title"):
-        out += [f"## {s['title']}", ""]
-        for i, sec in enumerate(s.get("sections", []), 1):
-            out += [f"### {i}. {sec['title']}", ""]
-            for p in sec.get("paragraphs", []):
-                out += [("**" + p[2:] + "**") if p.startswith("§ ") else p, ""]
-    if s.get("sources"):
-        out += ["## Sources", ""]
-        for i, src in enumerate(s["sources"], 1):
-            out.append(f"{i}. {src.get('site', 'Wikipedia')}. “{src['title']}.” <{src['url']}>")
+    if s.get("results"):
+        out += ["## Results", ""]
+        seen = set(s.get("visited", []))
+        for i, r in enumerate(s["results"], 1):
+            out.append(f"{i}. [{r['title']}]({r['url']}){'  (read)' if r['url'] in seen else ''}  ")
+            if r.get("snippet"):
+                out.append(f"   {r['snippet']}")
         out.append("")
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))
@@ -142,9 +182,9 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "ask" and len(sys.argv) > 2:
         try:
-            print(json.dumps(ask(sys.argv[2])))
+            print(json.dumps(web(sys.argv[2])))
         except Exception as e:                                   # (no network, a bad answer)
-            print(json.dumps({"query": sys.argv[2], "error": "Could not reach Wikipedia (" + type(e).__name__ + ")."}))
+            print(json.dumps({"query": sys.argv[2], "error": "Could not reach the web (" + type(e).__name__ + ")."}))
     elif cmd == "export" and len(sys.argv) > 2:
         export(sys.argv[2])
     else:

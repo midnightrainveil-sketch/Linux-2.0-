@@ -12,7 +12,7 @@ Super + C          ORGANIZER (this)
     CALENDAR, AGENDA, TASKS, NOTES. Start typing anywhere to add (an event; a task in Tasks; a note in Notes). Enter opens, Space ticks a task, Delete removes, Tab or the keys below the screen change page, the rocker steps, the round key is "new", the side wheel scrolls. In the editor: Tab / ↑ ↓ move, ← → change, type digits for the time (1230), Enter saves, Esc leaves. Reminders arrive on the pager even when the organizer is put away.
 
 Super + R          RESEARCH STATION (typewriter)
-    Type a question, Enter: the best Wikipedia article, in sections, with sources. The round knob (or F11) slides the tablet up out of its slot for big work; again (or Esc) to put it back. Tab or F1–F5: RESEARCH, SOURCES (Enter researches one, O opens it in the browser), NOTES (per session), ARCHIVE (Enter opens, Delete removes), EXPORT (Markdown to ~/Documents/Research; Ctrl + S from anywhere).
+    Type a question, Enter: the web's results (DuckDuckGo). ↑ ↓ choose one, Enter or a click opens it in your browser (and marks it READ). PULL OUT / PUSH IN on the tablet (or the round knob, or F11) slides the tablet out of its slot for big work and back; Esc pushes it in too. Tab or F1–F5: RESEARCH, SOURCES (the results by address), NOTES (per session), ARCHIVE (Enter opens, Delete removes), EXPORT (Markdown to ~/Documents/Research; Ctrl + S from anywhere). Its keys, springs, platen knobs and carriage move as you type.
 
 Super + V          CASSETTE VENDING MACHINE
     Every song in ~/Music is a cassette. Wheel / arrows / drag the side wheel to choose, type to search, Enter (or SELECT / EJECT) to dispense: it goes into the player and plays.
@@ -126,7 +126,7 @@ qs log                  the shell's messages, when something misbehaves
 
 ~/.config/ultra/retro-futurism/settings.json, for example:
     "music": "~/Music"            where the cassettes come from
-    "researchLang": "en"          Wikipedia's language for the research station
+    "researchRegion": "us-en"     the research station's search region (default: everywhere)
     "cursorSize": 28              the pointer's size
     "deskTerminal": true          the small terminal on the picture
 Log out and in after changing it.

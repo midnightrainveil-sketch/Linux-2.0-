@@ -134,22 +134,16 @@ class Harness(QObject):
             return "12 5.1 33 41"
         if name == "ultra-brightness":
             return "50"
-        if name == "ultra-research":                              # a sample answer (no network here)
+        if name == "ultra-research":                              # sample results (no network here)
             if len(cmd) > 1 and cmd[1] == "export":
                 return "/home/misaki/Documents/Research/2026-11-24 How did magnetic tape technology evolve.md"
-            lead = ("Magnetic tape is a medium for magnetic storage made of a thin, magnetizable coating on a long, narrow "
-                    "strip of plastic film. It was developed in Germany in 1928, based on the earlier magnetic wire "
-                    "recording from Denmark.")
-            return json.dumps({"query": cmd[2] if len(cmd) > 2 else "", "title": "Magnetic tape",
-                "url": "https://en.wikipedia.org/wiki/Magnetic_tape", "sections": [
-                {"title": "Overview", "paragraphs": [lead, "Devices that use magnetic tape can record and play back audio, visual and binary computer data."]},
-                {"title": "Origins and early development", "paragraphs": ["Magnetic tape began with Fritz Pfleumer's paper tape coated with iron oxide, patented in 1928. AEG built the first practical tape recorder, the Magnetophon K1, shown in Berlin in 1935. After the Second World War, Ampex brought the technology to America; its Model 200 (1948) set the standard for studio recording."]},
-                {"title": "Expansion and standardization", "paragraphs": ["Tape matured with standardized formats and better oxides (ferric, chrome, metal). The compact cassette of 1963 made tape a mass medium, while open-reel and U-matic formats served professionals.", "§ Data storage", "From the UNIVAC I in 1951, tape stored computer data, and still does in archives."]},
-                {"title": "Decline", "paragraphs": ["Digital media replaced tape for most consumer uses from the 1990s on."]}],
-                "sources": [{"title": "Magnetic tape", "site": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Magnetic_tape", "desc": "Medium for magnetic storage"},
-                            {"title": "Ampex", "site": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Ampex", "desc": "American electronics company"},
-                            {"title": "Compact Cassette", "site": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Compact_Cassette", "desc": "Analog magnetic tape recording format"},
-                            {"title": "Magnetophon", "site": "Wikipedia", "url": "https://en.wikipedia.org/wiki/Magnetophon", "desc": "Pioneering reel-to-reel tape recorder"}]})
+            R = [("Magnetic tape - Wikipedia", "https://en.wikipedia.org/wiki/Magnetic_tape", "Magnetic tape is a medium for magnetic storage made of a thin, magnetizable coating on a long, narrow strip of plastic film. It was developed in Germany in 1928."),
+                 ("The History of Magnetic Recording | Audio Engineering Society", "https://www.aes.org/aeshc/docs/recording.technology.history/tape1.html", "From Poulsen's wire to the Magnetophon: how tape recording came about, and how it reached America after the war."),
+                 ("How Ampex changed recording forever", "https://www.soundonsound.com/music-business/history-ampex", "The Model 200 of 1948 and the studios that took it up; Bing Crosby's part in it."),
+                 ("Compact Cassette - Wikipedia", "https://en.wikipedia.org/wiki/Compact_Cassette", "The Compact Cassette, introduced by Philips in 1963, made tape a mass medium."),
+                 ("A short history of data tape | IBM", "https://www.ibm.com/history/tape-storage", "From the 726 tape unit of 1952 to LTO: seventy years of storing data on tape.")]
+            return json.dumps({"query": cmd[2] if len(cmd) > 2 else "", "results": [
+                {"title": t, "url": u, "site": u.split("/")[2].replace("www.", ""), "snippet": d} for t, u, d in R]})
         if name == "ultra-tapes":                                 # the cassettes: a sample shelf
             names = [("Night Crossing", "Arca Quartet"), ("Rain Terminal", "Mio Sato"), ("Harmonic Log", "Kaito"),
                      ("Dawn Build", "Haruka Ito"), ("Wind Algorithm", "Sora Band"), ("Mirror of Fuji", "Ren"),

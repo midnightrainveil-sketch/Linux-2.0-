@@ -5,11 +5,12 @@ import Quickshell
 import Quickshell.Io
 
 // The research station's sessions (widgets/typewriter): each question asked
-// is a session, with its answer (a Wikipedia article in sections, through
-// ultra-research), its sources, your notes on it, and how far you have read.
+// is a session, with the web's results for it (through ultra-research), the
+// ones you have opened, and your notes on it.
 // Kept in ~/.local/state/ultra/retro-futurism/research.json.
 //
-//   sessions   [{ id, n, query, title, url, sections, sources, notes, read, created, error }]
+//   sessions   [{ id, n, query, results: [{ title, url, site, snippet }], visited: [url], notes, read, created, error }]
+//   openResult(r)   in the browser (and counted as read)
 //   current    the session on the screen (or null)
 //   ask(q)     a new session, looked up; busy while it is
 //   exportCurrent()   to ~/Documents/Research (exported: its path)
@@ -29,7 +30,7 @@ Singleton {
     function ask(q: string): void {
         q = q.trim();
         if (q === "" || busy) return;
-        const s = { id: Date.now().toString(36), n: next, query: q, title: "", url: "", sections: [], sources: [],
+        const s = { id: Date.now().toString(36), n: next, query: q, results: [], visited: [],
                     notes: "", read: 0, created: Date.now(), error: "" };
         next += 1;
         sessions = [s].concat(sessions).slice(0, 60);
@@ -46,9 +47,18 @@ Singleton {
         changed();
     }
     function setNotes(text: string): void { if (current) patch(current.id, { notes: text }); }
-    function setRead(p: real): void {
-        if (current && p > (current.read ?? 0) + 0.004) patch(current.id, { read: Math.min(1, p) });
+    // a result opened in the browser: read (the progress is how many of the
+    // first ten have been)
+    function openResult(r: var): void {
+        if (!r) return;
+        Qt.openUrlExternally(r.url);
+        const c = current;
+        if (!c) return;
+        const v = (c.visited ?? []).includes(r.url) ? c.visited : (c.visited ?? []).concat([r.url]);
+        const top = (c.results ?? []).slice(0, 10).map(x => x.url);
+        patch(c.id, { visited: v, read: top.length ? Math.min(1, top.filter(u => v.includes(u)).length / Math.min(5, top.length)) : 0 });
     }
+    function visited(url: string): bool { return (current?.visited ?? []).includes(url); }
     function remove(id: string): void {
         sessions = sessions.filter(s => s.id !== id);
         if (currentId === id) currentId = sessions.length ? sessions[0].id : "";
@@ -73,10 +83,7 @@ Singleton {
                 let d = null;
                 try { d = JSON.parse(text); } catch (e) {}
                 if (!d) d = { error: "The look-up failed." };
-                root.patch(asker.sid, {
-                    title: d.title ?? "", url: d.url ?? "", sections: d.sections ?? [], sources: d.sources ?? [],
-                    error: d.error ?? ""
-                });
+                root.patch(asker.sid, { results: d.results ?? [], error: d.error ?? "" });
                 root.busy = false;
             }
         }
