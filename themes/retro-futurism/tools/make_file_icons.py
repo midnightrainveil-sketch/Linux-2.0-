@@ -5,7 +5,7 @@ for Files and every program's file dialogs.
     python3 tools/make_file_icons.py art/FileIcons.png home/.local/share/icons/Magnetic88-Files
 
 Each of the sheet's twenty icons is cut off its white ground (its edge where
-its outline is, the sheet's soft shadow under it made a real one, see-through)
+its outline is, the sheet's soft shadow under it left behind)
 and written square at 24 to 256 px; the names programs ask for (a file's
 type: text-plain, application-pdf, image-png ...; the places: folder,
 folder-download ...) are links to them. Everything else (the programs' own
@@ -123,6 +123,15 @@ def cut(box):
         rim = body & cv2.dilate(outer.astype(np.uint8), cross).astype(bool)
         peel = rim & shadowy
         body &= ~peel; outer |= peel
+    # (and under its feet, where the shadow is darkest: deeper, only there)
+    ys = np.where(body.any(1))[0]
+    foot = np.zeros((h, w), bool)
+    foot[int(ys.max() - (ys.max() - ys.min()) * 0.12):] = True
+    for _ in range(8):
+        rim = body & cv2.dilate(outer.astype(np.uint8), cross).astype(bool)
+        peel = rim & foot & (L > 150) & (sat < 22)
+        body &= ~peel; outer |= peel
+    body = cv2.morphologyEx(body.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)).astype(bool)
     n, lab, st, _ = cv2.connectedComponentsWithStats(body.astype(np.uint8), connectivity=8)
     body = lab == 1 + np.argmax(st[1:, cv2.CC_STAT_AREA])
     body = cv2.morphologyEx(body.astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))).astype(bool)
@@ -134,11 +143,8 @@ def cut(box):
     edge = (a > 0) & (din < 2.5)
     fill = cv2.inpaint(part.clip(0, 255).astype(np.uint8), edge.astype(np.uint8) * 255, 3, cv2.INPAINT_TELEA).astype(np.float32)
     colour = np.where((din >= 2.5)[..., None], part, fill)
-    # the shadow: the sheet's own, made dark and see-through
-    shade = np.clip((250 - L) / 110, 0, 0.42) * (~body)
-    shade = cv2.GaussianBlur(shade.astype(np.float32), (0, 0), 1.2)
-    alpha = a + shade * (1 - a)
-    colour = colour * (a / np.maximum(alpha, 1e-3))[..., None]
+    # (no shadow: the icon alone)
+    alpha = a
     rgba = np.dstack([colour, alpha * 255]).clip(0, 255).astype('uint8')
     ys, xs = np.where(alpha > 0.03)
     return Image.fromarray(rgba[ys.min():ys.max() + 1, xs.min():xs.max() + 1], 'RGBA')
