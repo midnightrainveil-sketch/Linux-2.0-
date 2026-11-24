@@ -30,7 +30,7 @@ Super + Shift + Esc   POWER
     Lock, log out, sleep, restart, shut down: turn the roller (wheel or arrows), Enter. Also: the power button, or the Arch logo on the taskbar.
 
 Super + N          NOTIFICATIONS (the KAZE pager)
-    A notification slides in at the top right and out again. Tap the screen to open it, right-click or CLEAR to clear it, ◀ ▶ for older ones, ALL CLR for all. Super + N brings it up to look through (arrows, Enter, Delete, Shift + Delete, Esc).
+    A notification slides in from the right edge and out again; swipe it to the right to send it away at once (it is kept). Tap the screen to open it, right-click or CLEAR to clear it, ◀ ▶ for older ones, ALL CLR for all. Super + N brings it up to look through (arrows, Enter, Delete, Shift + Delete, Esc).
 Super + Shift + N  clear every notification
 Super + Alt + N    Do Not Disturb, on / off (they are kept, quietly)
 

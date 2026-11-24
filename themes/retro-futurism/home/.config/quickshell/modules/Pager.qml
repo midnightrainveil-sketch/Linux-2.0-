@@ -58,7 +58,18 @@ PanelWindow {
         }
     }
 
+    // how far it has been swiped to the right
+    property real swipe: 0
+    NumberAnimation { id: swipeBack; target: win; property: "swipe"; to: 0; duration: 200; easing.type: Easing.OutCubic }
+    SequentialAnimation {
+        id: swipeOut
+        NumberAnimation { target: win; property: "swipe"; to: win.bodyW + Theme.edge + 60; duration: 180; easing.type: Easing.OutQuad }
+        ScriptAction { script: { win.shown = false; win.browsing = false; hold.stop(); } }
+    }
+    onPChanged: if (p <= 0.001 && !swipeOut.running) swipe = 0
+
     function show(i: int, byHand: bool): void {
+        swipeOut.stop(); swipe = 0;
         idx = i;
         browsing = byHand;
         shown = true;
@@ -114,12 +125,25 @@ PanelWindow {
         id: device
         width: win.bodyW; height: win.bodyH
         // in from the top right corner, back out the same way
-        x: (win.width - Theme.edge + 10 - width) + (1 - win.p) * (width * 0.55 + Theme.edge + 40)
-        y: 12 - (1 - win.p) * (height * 0.9)
+        // in from the right edge and back out the same way, straight across;
+        // swiped to the right, it goes at once (and its notifications stay)
+        x: (win.width - Theme.edge + 10 - width) + (1 - win.p) * (width + Theme.edge + 40) + win.swipe
+        y: 12
         opacity: Math.min(1, win.p * 3)
         focus: true
 
         HoverHandler { id: hover }
+        DragHandler {
+            id: swiper
+            target: null
+            xAxis.enabled: true; yAxis.enabled: false
+            onTranslationChanged: if (active) win.swipe = Math.max(-12, translation.x)
+            onActiveChanged: {
+                if (active) { swipeBack.stop(); return; }
+                if (win.swipe > device.width * 0.22) swipeOut.restart();
+                else swipeBack.restart();
+            }
+        }
 
         Keys.onPressed: e => {
             switch (e.key) {
