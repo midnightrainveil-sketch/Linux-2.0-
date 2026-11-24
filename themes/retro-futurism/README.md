@@ -228,12 +228,12 @@ kept for later.
   (`cassette/home-reel-*.png`).
 - The system's programs (Files, Text Editor, gThumb, the sound, Bluetooth
   and network settings, Timeshift: GTK, and Qt ones through it) are made
-  gadgets: a graphite bezel (title bar, sidebar) with light lettering round
-  an e-ink screen (what they show) of the terminal's paper and ink, with its
-  grain and the glass's shadow; the address bar a strip of e-ink set into
-  the bezel; a choice outlined in ink, its name inverted; Barlow lettering;
-  nothing in colour but the file icons (`home/.config/ultra/retro-futurism/gtk.css`
-  and `paper.png`, put in place by `ultra-look` at login). Their files and folders have the
+  a modern e-ink screen: the terminal's paper and ink only, calm and
+  spacious (soft paper bars and a slightly darker sidebar, hairlines between
+  them, rounded corners, Inter lettering); ink kept for what matters (the
+  place you are in, a chosen file's name, the main action); nothing in
+  colour but the file icons (`home/.config/ultra/retro-futurism/gtk.css`,
+  put in place by `ultra-look` at login). Their files and folders have the
   theme's own icons (`art/FileIcons.png`, cut by `tools/make_file_icons.py`
   into the icon theme `Magnetic88-Files`: twenty icons, linked to some two
   hundred file types and places; programs' icons from Papirus).
