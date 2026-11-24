@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""ultra-cover: the picture of a song, for the file manager.
+
+    ultra-cover <size> <song> <out.png>
+
+A thumbnailer (the freedesktop kind): Files asks it for a song's picture
+and shows that in place of the plain audio icon. It is the cover art
+inside the file (most music has it), drawn out by ffmpeg and scaled to fit
+size x size. With no picture inside, it fails, and Files keeps its icon.
+
+setup.sh installs it as /usr/local/bin/ultra-cover with its entry in
+/usr/local/share/thumbnailers (Files runs thumbnailers in a sandbox that
+sees /usr, not your home).
+"""
+import os, shutil, subprocess, sys, tempfile
+
+if len(sys.argv) != 4:
+    sys.exit(__doc__)
+size, song, out = sys.argv[1:4]
+ffmpeg = shutil.which("ffmpeg") or "/usr/bin/ffmpeg"
+if not os.path.exists(ffmpeg):
+    sys.exit(1)
+try:
+    s = max(16, min(1024, int(size)))
+except ValueError:
+    s = 256
+fd, tmp = tempfile.mkstemp(suffix=".png", dir=os.path.dirname(os.path.abspath(out)) or None)
+os.close(fd)
+try:
+    r = subprocess.run([ffmpeg, "-v", "error", "-y", "-i", song, "-map", "0:v:0", "-an", "-frames:v", "1",
+                        "-vf", f"scale={s}:{s}:force_original_aspect_ratio=decrease", "-f", "image2", "-c:v", "png", tmp],
+                       stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+    if r.returncode != 0 or os.path.getsize(tmp) == 0:
+        sys.exit(1)
+    os.replace(tmp, out)
+except (OSError, subprocess.SubprocessError):
+    sys.exit(1)
+finally:
+    if os.path.exists(tmp):
+        os.remove(tmp)

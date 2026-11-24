@@ -391,6 +391,20 @@ if [[ ! -f $state/ultra/snapshots-off ]] \
     "$bin/ultra-snapshot" on || warn "restore points were not set up; run ultra-snapshot on"
 fi
 
+# ------------------------------------------------------------------ songs' pictures in the file manager
+# (Files runs thumbnailers in a sandbox that sees /usr, not your home: so it
+# goes to /usr/local, with its entry)
+if ! cmp -s "$bin/ultra-cover" /usr/local/bin/ultra-cover || [[ ! -f /usr/local/share/thumbnailers/ultra-cover.thumbnailer ]]; then
+    say "songs' cover art in the file manager"
+    sudo install -Dm755 "$bin/ultra-cover" /usr/local/bin/ultra-cover \
+    && printf '%s\n' '[Thumbnailer Entry]' 'TryExec=/usr/local/bin/ultra-cover' 'Exec=/usr/local/bin/ultra-cover %s %i %o' \
+        'MimeType=audio/mpeg;audio/mp3;audio/flac;audio/x-flac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/mp4;audio/x-m4a;audio/aac;audio/x-aac;audio/x-wav;audio/wav;audio/x-ms-wma;audio/x-aiff;audio/x-ape;audio/x-wavpack;audio/x-matroska;audio/x-musepack;' \
+        | sudo install -Dm644 /dev/stdin /usr/local/share/thumbnailers/ultra-cover.thumbnailer \
+    || warn "the cover-art thumbnailer was not installed"
+    # (songs once tried without it: tried again)
+    rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}"/thumbnails/fail 2>/dev/null || true
+fi
+
 # ------------------------------------------------------------------ a quiet start, and the power button
 # your theme's own page while it starts and shuts down, not scrolling text;
 # a press of the power button opens the power menu, holding it shuts down
