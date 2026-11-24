@@ -89,15 +89,18 @@ if (( $+commands[ultra-card] )) && { [[ -n ${ULTRA_DESK:-} ]] || [[ $TERM == (fo
         zle && zle reset-prompt
         return 0
     }
-    # In the desk terminal only, `clear` puts it back as it opened: the
-    # screen and its history wiped (tmux's too, under the widget), the card
-    # drawn fresh, and redrawn again on a resize until a command runs.
-    if [[ -n ${_ultra_widget:-} ]]; then
-        clear() {
-            print -n '\e[H\e[2J\e[3J'
-            [[ -n ${TMUX:-} ]] && tmux clear-history 2>/dev/null
-            ultra-card
-            _ultra_card_fresh=1
-        }
-    fi
+    # `clear` puts the terminal back as it opened: the screen and its history
+    # wiped (tmux's too, under the desk widget), the card drawn fresh, and
+    # redrawn again on a resize until a command runs. Not in a shell reached
+    # over SSH or inside your own tmux: there it is the plain clear, as ever.
+    clear() {
+        if [[ -n ${SSH_CONNECTION:-}${SSH_TTY:-} ]] || { [[ -n ${TMUX:-} ]] && [[ -z ${_ultra_widget:-} ]]; }; then
+            command clear "$@"
+            return
+        fi
+        print -n '\e[H\e[2J\e[3J'
+        [[ -n ${TMUX:-} ]] && tmux clear-history 2>/dev/null
+        ultra-card
+        _ultra_card_fresh=1
+    }
 fi

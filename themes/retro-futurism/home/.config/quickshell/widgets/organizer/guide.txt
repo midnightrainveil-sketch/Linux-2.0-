@@ -44,7 +44,7 @@ The picture moves: the city slides past the train window. The cassette player in
 The small terminal on the picture is part of the desk, not a window.
     Super + D      bring it back to its place
     Super + F      (on it) a fullscreen view of the same shell; close it and the small one is still there
-    clear          resets it to its clean greeting
+    clear          resets it (and any terminal window) to its clean greeting; over SSH or in your own tmux it is the plain clear
 
 The taskbar hides under open windows: push the pointer to the bottom edge to bring it up. Its port shows the cartridge of the app under the pointer.
 
