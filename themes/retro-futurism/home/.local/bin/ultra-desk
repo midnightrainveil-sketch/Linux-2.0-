@@ -88,3 +88,6 @@ hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win
 hyprctl dispatch "hl.dsp.window.float({ action = \"on\", $win })" >/dev/null
 hyprctl dispatch "hl.dsp.window.resize({ x = $pw, y = $ph, $win })" >/dev/null
 hyprctl dispatch "hl.dsp.window.move({ x = $px, y = $py, $win })" >/dev/null
+# the keys to it, as it is the only thing on the workspace in view
+others=$(clients | jq --argjson w "$ws" '[.[] | select(.workspace.id == $w and .class != "retro-futurism.desk" and .hidden != true)] | length')
+[[ ${others:-1} == 0 ]] && hyprctl dispatch "hl.dsp.focus({ $win })" >/dev/null

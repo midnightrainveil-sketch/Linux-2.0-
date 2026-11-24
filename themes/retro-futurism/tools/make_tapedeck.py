@@ -27,7 +27,7 @@ os.makedirs(out, exist_ok=True)
 src0 = np.asarray(Image.open(src).convert('RGB')).astype(np.float32)
 img = src0.copy()
 H, W, _ = img.shape
-CROP = (128, 14, 1462, 958)                   # the player, and a margin
+CROP = (128, 2, 1462, 958)                   # the player, and a margin
 ORIGIN = CROP[:2]
 
 # ---- the places (mock-up pixels)

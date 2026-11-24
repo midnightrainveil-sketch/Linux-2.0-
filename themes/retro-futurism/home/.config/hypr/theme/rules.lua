@@ -71,6 +71,9 @@ local function tuck(gone)
         if not covered(hl.get_workspace(tostring(home)), gone) then
             if alive(desk) then
                 hl.dispatch(hl.dsp.window.move({ workspace = tostring(home), follow = false, window = desk }))
+                -- (back on the workspace in view, alone there: it has the keys)
+                local ws = hl.get_active_workspace()
+                if ws ~= nil and ws.id == home and only_desk(ws) then focus_desk(desk) end
             end
         end
         return
@@ -81,6 +84,21 @@ local function tuck(gone)
         desk_home = desk.workspace.id
         hl.dispatch(hl.dsp.window.move({ workspace = "special:desk", follow = false, window = desk }))
     end
+end
+
+-- the keyboard to it: on a workspace with nothing else open the keys go
+-- straight to the terminal, without the pointer having to go over it first
+local function focus_desk(desk)
+    if desk ~= nil and alive(desk) then
+        hl.dispatch(hl.dsp.focus({ window = desk }))
+    end
+end
+local function only_desk(ws)
+    if ws == nil then return false end
+    for _, w in ipairs(hl.get_workspace_windows(ws)) do
+        if not is_desk(w) and not w.hidden then return false end
+    end
+    return true
 end
 
 local function keep_back(w)
@@ -121,8 +139,8 @@ on("workspace.active", function(ws)
         if not is_desk(w) then return end
     end
     local desk = find_desk()
-    if desk ~= nil and desk.workspace ~= nil and desk.workspace.id == ws.id then return end
-    hl.exec_cmd("ultra-desk")
+    if desk ~= nil and desk.workspace ~= nil and desk.workspace.id == ws.id then focus_desk(desk) return end
+    hl.exec_cmd("ultra-desk")      -- (it gives the terminal the keys once it is there)
 end)
 
 ------------------------------------------------------------------ small tools float in the middle

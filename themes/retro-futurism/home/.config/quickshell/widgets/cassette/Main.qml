@@ -28,14 +28,14 @@ import qs.services
 // moves from one spool to the other as the song goes, the meter shows its
 // levels (services/Spectrum.qml) and the lamp is lit while it plays.
 // Everything is placed in the mock-up's pixels (body.png starts at its
-// 128, 14; tools/make_tapedeck.py) and the whole player scaled once.
+// 128, 2; tools/make_tapedeck.py) and the whole player scaled once.
 Widget {
     id: self
     widgetId: "cassette"
 
     readonly property real k: 0.82
     preferredWidth: 1334 * k
-    preferredHeight: 944 * k
+    preferredHeight: 956 * k
 
     // what the window holds: the cassette in the player, kept while it
     // slides out
@@ -210,11 +210,11 @@ Widget {
     // the player, in the mock-up's pixels
     Item {
         id: unit
-        width: 1334; height: 944
+        width: 1334; height: 956
         scale: self.k
         transformOrigin: Item.TopLeft
         function ax(x) { return x - 128; }
-        function ay(y) { return y - 14; }
+        function ay(y) { return y - 2; }
 
         Image {
             anchors.fill: parent
