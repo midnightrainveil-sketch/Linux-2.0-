@@ -37,17 +37,25 @@ def paint_out(img, box, darker=22, grow=2, r=4):
     img[y0:y1, x0:x1] = cv2.inpaint(part, m * 255, r, cv2.INPAINT_TELEA).astype(np.float64)
 
 
-def stamp(img, box, draw, colour=INK, strength=0.9, soft=0.45, relief=True):
+TILT = 2.8          # the player leans this many degrees clockwise (its window's and keys' edges)
+
+
+def stamp(img, box, draw, colour=INK, strength=0.9, soft=0.45, relief=True, turn=TILT, pad=10):
     """draw(d, s) paints the mark (white) on a canvas the size of box, s times
-    larger; it is laid on the picture in colour, printed a touch into the
-    surface (a faint light edge below it)"""
+    larger; it is turned with the player (about the box's middle) and laid on
+    the picture in colour, printed a touch into the surface (a faint light
+    edge below it)"""
     x0, y0, x1, y1 = box
     w, h = x1 - x0, y1 - y0
     c = Image.new('L', (w * SS, h * SS), 0)
     draw(ImageDraw.Draw(c), SS)
-    a = np.asarray(c.resize((w, h), Image.LANCZOS)).astype(np.float32) / 255
+    big = Image.new('L', ((w + 2 * pad) * SS, (h + 2 * pad) * SS), 0)
+    big.paste(c, (pad * SS, pad * SS))
+    if turn:
+        big = big.rotate(-turn, resample=Image.BICUBIC)
+    a = np.asarray(big.resize((w + 2 * pad, h + 2 * pad), Image.LANCZOS)).astype(np.float32) / 255
     a = cv2.GaussianBlur(a, (0, 0), soft)
-    reg = img[y0:y1, x0:x1]
+    reg = img[y0 - pad:y1 + pad, x0 - pad:x1 + pad]
     if relief:
         lit = np.clip(np.roll(a, 1, 0) - a, 0, 1)[..., None] * 0.22
         reg[:] = reg + (255 - reg) * lit
@@ -82,6 +90,14 @@ def retouch(img):
         x = (140 * s - width('MAGNETIC 88', f, sp)) / 2
         spaced(d, x, 13.6 * s, 'MAGNETIC 88', f, sp)
     stamp(img, (2336, 1436, 2476, 1464), name)
+
+    # ---- the stripes beside it: five clean slanted bars
+    paint_out(img, (2484, 1437, 2574, 1467), darker=16, grow=2, r=4)
+    def stripes(d, s):
+        for i in range(5):
+            bx = 4 + i * 15.5
+            d.polygon([((bx) * s, 24 * s), ((bx + 8) * s, 24 * s), ((bx + 20) * s, 6 * s), ((bx + 12) * s, 6 * s)], fill=255)
+    stamp(img, (2486, 1437, 2572, 1467), stripes, colour=np.array([74, 67, 60]), strength=0.9, soft=0.6)
 
     # ---- the made-up mark under the window: written as a word
     paint_out(img, (2340, 1538, 2392, 1556), darker=18, grow=2)
