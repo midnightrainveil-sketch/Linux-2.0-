@@ -99,6 +99,34 @@ ROWS = int(ENV.get('ULTRA_CARD_ROWS') or tr)
 HMAX = ROWS - 3                     # a blank line above and below, and the prompt
 
 # ---- the machine
+def cpu_name():
+    for line in read('/proc/cpuinfo').splitlines():
+        if line.startswith('model name'):
+            n = line.split(':', 1)[1]
+            n = re.sub(r'\((R|TM|tm)\)|\bCPU\b|\bProcessor\b|@.*$|\s+w/.*$|\s+with .*$|\d+-Core', '', n)
+            return re.sub(r'\s+', ' ', n).strip()
+    return os.uname().machine
+
+def gpu_names():
+    """the graphics cards, the separate one first: "NVIDIA RTX 4060 Max-Q", "AMD Radeon 780M" ..."""
+    out = []
+    for line in run(['lspci', '-mm'], 1.5).splitlines():
+        f = re.findall(r'"([^"]*)"', line)
+        if len(f) < 3 or not re.search(r'VGA|3D|Display', f[0]):
+            continue
+        vendor, dev = f[1], f[2]
+        v = ('NVIDIA' if 'NVIDIA' in vendor else 'AMD' if re.search('AMD|ATI', vendor)
+             else 'Intel' if 'Intel' in vendor else vendor.split()[0])
+        m = re.search(r'\[([^\]]+)\]', dev)
+        name = m.group(1) if m else dev
+        name = name.split('/')[0].strip()
+        name = re.sub(r'\s*(Laptop GPU|Mobile)\s*$', '', name).strip()
+        if v == 'AMD' and not m and re.match(r'(Phoenix|Rembrandt|Cezanne|Renoir|Barcelo|Hawk|Strix|Raphael|Granite)', dev):
+            name = 'Radeon (integrated)'
+        full = name if name.lower().startswith(v.lower()) else v + ' ' + name
+        out.append((0 if v == 'NVIDIA' or ('Radeon RX' in full) else 1, full))
+    return [n for _, n in sorted(out)]
+
 def facts_cached():
     """what changes seldom, kept: the shell's version for the boot, the
     network a few seconds"""
@@ -114,6 +142,10 @@ def facts_cached():
     if c.get('shell') != shell:
         m = re.search(r'\d+(\.\d+)+', run([shell, '--version']).split('\n')[0])
         c['shell'], c['shell_ver'] = shell, (m.group(0) if m else '')
+    if 'cpu' not in c:
+        c['cpu'], c['cores'] = cpu_name(), os.cpu_count() or 0
+    if 'gpus' not in c:
+        c['gpus'] = gpu_names()
     if time.time() - c.get('net_at', 0) > 20:
         net = ''
         if shutil.which('nmcli'):
@@ -168,6 +200,8 @@ try:
 except OSError:
     pass
 net = cache.get('net', '')
+cpu, cores = cache.get('cpu', ''), cache.get('cores', 0)
+gpus = cache.get('gpus', [])
 now_day = time.strftime('%a ') + str(int(time.strftime('%d'))) + time.strftime(' %b')
 now_day = now_day.upper()
 now_time = time.strftime('%H:%M')
@@ -177,6 +211,7 @@ ic_user, ic_cal, ic_clock, ic_tape = '', '', '', '\U000f09d4'
 ic_os = '' if osname.startswith('Arch') else ''
 ic_kernel, ic_pkgs, ic_desk, ic_shell, ic_up = '', '', '', '', '\U000f0150'
 ic_mem, ic_disk, ic_wifi = '\U000f035b', '\U000f02ca', '\U000f05a9'
+ic_cpu, ic_gpu = '\U000f0ee0', '\U000f08ae'
 ic_bat = '\U000f0084' if bat_state == 'Charging' else '\U000f0079'
 
 # ---- drawing
@@ -251,6 +286,9 @@ def fact(name, vw):
         'shell': lambda: kv(ic_shell, 'shell', fit(shell_name + (' ' + shell_ver if shell_ver else ''), vw)),
         'uptime': lambda: kv(ic_up, 'uptime', uptime),
         'network': lambda: kv(ic_wifi, 'network', fit(net or 'offline', vw)),
+        'cpu': lambda: kv(ic_cpu, 'cpu', fit(cpu, vw) + (f'{F}  ·  {cores} threads{N}' if cores and len(cpu) + 14 <= vw else '')),
+        'gpu': lambda: kv(ic_gpu, 'graphics', fit(gpus[0] if gpus else 'none found', vw)),
+        'gpu2': lambda: kv(' ', '', fit(gpus[1], vw)) if len(gpus) > 1 else '',
     }[name]()
 
 def meter(name, inner, figs):
@@ -337,23 +375,32 @@ def lay_wide():
     RW = W - pw - 3
     if RW < 76: return None
     hw = (RW - 1) // 2; vw = hw - 4 - 3 - KW
-    sys_ = box('SYSTEM', hw, [fact('os', vw), fact('kernel', vw), fact('packages', vw)])
+    sys_ = box('SYSTEM', hw, [fact('os', vw), fact('kernel', vw), fact('gpu' if gpus else 'packages', vw)])
     ses = box('SESSION', RW - 1 - hw, [fact('desktop', vw), fact('shell', vw), fact('uptime', vw)])
     mid = [l[2:] for l in side(sys_, ses)]
     right = header(RW) + mid + box('RESOURCES', RW, meters(RW - 4, True, True))
     return side(pic, blank(1, len(right)), right)
 
 def lay_classic():
+    """the main look: the header across, the picture beside SYSTEM and
+    SESSION, then the HARDWARE (its processor and graphics) and RESOURCES
+    across; the hardware left out when the terminal is short"""
     if not (COLS >= 72 and HMAX >= 19): return None
-    W = min(COLS - 4, 90)
+    W = min(COLS - 4, 96)
     head = header(W)
-    pw, pic = picture(9)
+    pr = 10 if HMAX >= 24 else 9
+    pw, pic = picture(pr)
     RW = W - pw - 3; vw = RW - 4 - 3 - KW
     if RW < 32: return None
     right = (box('SYSTEM', RW, [fact('os', vw), fact('kernel', vw), fact('packages', vw)]) +
              box('SESSION', RW, [fact('desktop', vw), fact('shell', vw), fact('uptime', vw)]))
-    left = blank(pw, (len(right) - 9) // 2) + pic
-    return side(head) + side(left, blank(1, len(right)), right) + side(box('RESOURCES', W, meters(W - 4, True, True)))
+    left = blank(pw, max(0, (len(right) - pr) // 2)) + pic
+    hw = []
+    if HMAX >= 19 + 4 + (1 if len(gpus) > 1 else 0):
+        wv = W - 4 - 3 - KW
+        rows = [fact('cpu', wv)] + ([fact('gpu', wv)] if gpus else []) + ([fact('gpu2', wv)] if len(gpus) > 1 else [])
+        hw = side(box('HARDWARE', W, rows))
+    return side(head) + side(left, blank(1, len(right)), right) + hw + side(box('RESOURCES', W, meters(W - 4, True, True)))
 
 def lay_panel():
     global KW
@@ -367,7 +414,8 @@ def lay_panel():
     RW = W - pw - 3
     if RW < mn: return None
     vw = RW - 4 - 3 - KW
-    names = ['os', 'kernel', 'packages', 'desktop', 'shell', 'uptime'] if HMAX >= 18 else ['os', 'kernel', 'desktop', 'uptime']
+    names = (['os', 'kernel', 'gpu' if gpus else 'packages', 'desktop', 'shell', 'uptime'] if HMAX >= 18
+             else ['os', 'kernel', 'desktop', 'uptime'])
     sys_ = box('MACHINE', RW, [fact(n, vw) for n in names])
     if tall:
         head = header(RW)
@@ -440,7 +488,7 @@ def lay_tiny():
         out = ['  ' + l for l in pic]
     return out + [f'  {ic_clock}  {B}{now_time}{N}']
 
-for lay in (lay_wide, lay_classic, lay_panel, lay_compact, lay_column, lay_strip, lay_tiny):
+for lay in (lay_classic, lay_wide, lay_panel, lay_compact, lay_column, lay_strip, lay_tiny):
     PRE.clear()
     lines = lay()
     if lines is not None: break
@@ -449,7 +497,11 @@ body = [''] + lines + ['']
 if REDRAW:
     # over the screen in place, from its top: each line cleared to its end,
     # the rest of the screen after it (and the history the reflow made)
-    out = '\x1b[3J\x1b[H' + ''.join(PRE) + '\x1b[K\n'.join(body) + '\x1b[K\n\x1b[J'
+    # (each line wholly cleared before it is written: the cells a picture is
+    # laid over are stepped over, and the old card would show through it;
+    # all of it one frame, so it does not flicker)
+    out = ('\x1b[?2026h\x1b[3J\x1b[H' + ''.join(PRE) + ''.join('\x1b[2K' + l + '\n' for l in body)
+           + '\x1b[J\x1b[?2026l')
 else:
     out = ''.join(PRE) + '\n'.join(body) + '\n'
 sys.stdout.write(out)
