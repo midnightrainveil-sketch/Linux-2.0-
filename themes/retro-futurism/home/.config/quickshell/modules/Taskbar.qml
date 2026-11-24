@@ -210,6 +210,12 @@ PanelWindow {
         source: Quickshell.shellPath("assets/taskbar/left.png")
         smooth: true; mipmap: true
     }
+    // the port's bezel, polished chrome (tools/make_port_chrome.py: left.png's 82,36 to 220,77)
+    Image {
+        x: bar.leftX + 82 * bar.s; y: bar.lift + 36 * bar.s; width: 138 * bar.s; height: 41 * bar.s
+        source: Quickshell.shellPath("assets/taskbar/port-chrome.png")
+        smooth: true; mipmap: true
+    }
     Image {
         x: bar.leftX + 780 * bar.s; y: bar.lift; width: bar.fillW + 0.5; height: 128 * bar.s
         visible: bar.fillW > 0
