@@ -19,27 +19,36 @@ from PIL import Image, ImageDraw
 assets = sys.argv[1]
 SS = 4
 
-# gold plate from dark to light: warm brown shadow, gold, a pale near-white
-# highlight (gold's highlights are yellow-white, never pure white)
-RAMP = [(0.00, (74, 50, 20)), (0.22, (132, 94, 40)), (0.45, (186, 142, 68)), (0.65, (219, 180, 104)),
-        (0.82, (240, 214, 150)), (1.00, (252, 242, 212))]
+# gold plate from dark to light: deep brown, gold, a pale near-white
+# highlight (gold's highlights are warm, never quite white)
+RAMP = [(0.00, (46, 30, 9)), (0.18, (96, 64, 22)), (0.40, (168, 122, 46)), (0.60, (214, 170, 82)),
+        (0.80, (244, 214, 140)), (0.93, (255, 240, 196)), (1.00, (255, 250, 228))]
+
+# the light the window rims' chrome shows across its depth (the taskbar's own
+# painted chrome: rim/top.png, by tools/make_rim.py): a near-white band, a
+# sharp fall into a deep dark band, warmer mid-tones. The contacts mirror the
+# same room, so the same bands run across them.
+RIM = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'home', '.local', 'share', 'ultra', 'retro-futurism', 'rim', 'top.png')
+try:
+    _col = np.asarray(Image.open(RIM).convert('RGB')).astype(np.float32)[:, 0].mean(1)
+except OSError:
+    _col = np.array([200, 135, 220, 200, 213, 236, 249, 252, 254, 242, 144, 95, 104, 75, 72, 125, 139, 139, 213, 182, 150, 162], np.float32)
+PROFILE = (_col - _col.min()) / max(1.0, _col.max() - _col.min())
 
 
 def field(w, h, seed):
     """what a row of flat polished contacts mirrors, over the whole row (so
-    one soft reflection runs across all of them, as it does on real plate):
-    brighter toward the top, a broad diagonal sheen, a slower one, and a
-    faint cloudiness; 0..1"""
+    one reflection runs across all of them, as on real plate): the rim's
+    chrome bands, laid a little aslant across the row and spread a little
+    wider than a contact is tall, with a faint cloudiness; 0..1"""
     rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    u, v = xx / max(w, h), yy / h
-    f = 0.62 - 0.28 * v
-    d = u * 0.55 + v * 0.85                                               # along the sheen, up to the right
-    f += 0.30 * np.exp(-((d - 0.55) / 0.11) ** 2) + 0.12 * np.exp(-((d - 0.95) / 0.2) ** 2)
-    f -= 0.16 * np.exp(-((d - 0.78) / 0.08) ** 2)                         # (a darker reflection beside it)
-    f += 0.22 * np.exp(-((d - 0.52) / 0.028) ** 2)                        # (a crisp highlight within the sheen)
-    cloud = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), max(2, min(w, h) * 0.08))
-    f += 0.025 * cloud / max(1e-3, cloud.std())
+    d = (yy + (xx - w / 2) * 0.045) / (h * 1.12) + 0.04                   # across the bands, gently aslant
+    t = np.clip(d, 0, 1) * (len(PROFILE) - 1)
+    f = np.interp(t, np.arange(len(PROFILE)), PROFILE)
+    f = cv2.GaussianBlur(f.astype(np.float32), (0, 0), max(0.6, h / 70))   # (its bands' edges, as soft as the rim's)
+    cloud = cv2.GaussianBlur(rng.normal(0, 1, (h, w)).astype(np.float32), (0, 0), max(2, min(w, h) * 0.1))
+    f += 0.02 * cloud / max(1e-3, cloud.std())
     return f.clip(0, 1)
 
 
@@ -66,7 +75,7 @@ def pad(fld, w, h, r, shade_top=True):
     e = max(1.0, min(w, h) * 0.07)                                         # the bevel's width
     top = np.clip(1 - (yy - 0.5) / e, 0, 1); left = np.clip(1 - (xx - 0.5) / e, 0, 1)
     bot = np.clip(1 - (h - yy - 0.5) / e, 0, 1); right = np.clip(1 - (w - xx - 0.5) / e, 0, 1)
-    f = f + 0.22 * np.maximum(top, left * 0.7) - 0.3 * np.maximum(bot, right * 0.6)
+    f = f + 0.16 * np.maximum(top, left * 0.6) - 0.22 * np.maximum(bot, right * 0.5)
     rgb = gold(f.clip(0, 1))
     if shade_top:                                                          # the slot's lip shades its top
         ao = 0.28 * np.exp(-yy / max(1.5, h * 0.16))
