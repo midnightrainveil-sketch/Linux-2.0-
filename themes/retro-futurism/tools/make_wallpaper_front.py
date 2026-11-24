@@ -30,6 +30,10 @@ def mole(img, cx, cy, r=3.4, strength=0.7, colour=(82, 40, 27)):
     a = np.clip((r + 1.2 - np.hypot(xx - cx, yy - cy)) / 2.4, 0, 1) * strength
     img[y0:y0 + 25, x0:x0 + 25] = img[y0:y0 + 25, x0:x0 + 25] * (1 - a[..., None]) + np.array(colour, float) * a[..., None]
 mole(full, 2518.3, 496.4)
+# ---- the cassette player in her hands, cleaned up (its lettering, keys, label, reels)
+sys.path.insert(0, __import__('os').path.dirname(__import__('os').path.abspath(__file__)))
+import make_desk_cassette
+make_desk_cassette.retouch(full)
 Image.fromarray(full.round().astype('uint8')).save(outBack, quality=92, optimize=True, progressive=True)
 
 # ---- the window: the part of the picture the front covers

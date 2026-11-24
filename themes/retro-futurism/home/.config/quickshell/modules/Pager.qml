@@ -25,7 +25,7 @@ PanelWindow {
 
     readonly property real k: 0.32
     readonly property real bodyW: 1920 * k
-    readonly property real bodyH: 574 * k
+    readonly property real bodyH: 584 * k
 
     anchors { top: true; right: true }
     margins.top: Panels.mailY - 8
@@ -138,7 +138,7 @@ PanelWindow {
 
         Item {
             id: unit
-            width: 1920; height: 574
+            width: 1920; height: 584
             scale: win.k
             transformOrigin: Item.TopLeft
             function ax(x) { return x - 36; }

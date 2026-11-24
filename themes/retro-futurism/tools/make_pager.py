@@ -20,7 +20,7 @@ os.makedirs(out, exist_ok=True)
 src0 = np.asarray(Image.open(src).convert('RGB')).astype(np.float32)
 img = src0.copy()
 H, W, _ = img.shape
-CROP = (36, 128, 1956, 702)
+CROP = (36, 128, 1956, 712)
 ORIGIN = CROP[:2]
 
 PAPER = (121, 211, 1689, 535, 18)          # the e-ink screen, inside its glass
@@ -85,22 +85,36 @@ bead = np.clip(9.5 - d, 0, 1)[..., None]
 shade = (0.55 + 0.45 * np.clip(1 - np.hypot(xx + 3, yy + 3) / 10, 0, 1))[..., None]
 reg[:] = reg * (1 - bead) + np.array([62, 68, 64]) * shade * bead
 
-# ---- off the white: the pager by its outline (flood from the corners)
-lum0, sat0 = src0.mean(2), src0.max(2) - src0.min(2)
-ground = (lum0 > 238) & (sat0 < 12)
-bg = np.zeros((H, W), bool)
-q = deque([(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)])
-for x, y in q: bg[y, x] = True
-while q:
-    x, y = q.popleft()
-    for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-        if 0 <= nx < W and 0 <= ny < H and ground[ny, nx] and not bg[ny, nx]:
-            bg[ny, nx] = True; q.append((nx, ny))
-# (its shadow on the white below it: a soft dark one, the white gone)
-alpha = np.where(bg, np.clip((240 - lum0) / 240 * 1.2, 0, 0.4), 1.0)
-alpha = cv2.GaussianBlur(alpha.astype(np.float32), (0, 0), 0.7)
-alpha = np.where(bg, alpha, cv2.GaussianBlur(alpha, (0, 0), 0.5))
-rgb = np.where(bg[..., None], 0, img)
+# ---- off the white: its outline drawn, a rounded box (measured on the
+# mock-up: each corner's radius), so its chrome's white highlights stay and
+# the floor's reflection under it goes; under it a soft contact shadow
+BODY = (38, 138, 1948, 693)
+RADII = {'tl': 110, 'tr': 100, 'bl': 120, 'br': 115}
+def outline(scale=4):
+    x0, y0, x1, y1 = BODY
+    w, h = (x1 - x0) * scale, (y1 - y0) * scale
+    m = Image.new('L', (w, h), 255)
+    d = ImageDraw.Draw(m)
+    for corner, r in RADII.items():
+        r *= scale
+        cx = r if corner[1] == 'l' else w - r
+        cy = r if corner[0] == 't' else h - r
+        qx0, qx1 = (0, r) if corner[1] == 'l' else (w - r, w)
+        qy0, qy1 = (0, r) if corner[0] == 't' else (h - r, h)
+        d.rectangle([qx0, qy0, qx1, qy1], fill=0)
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=255)
+        # (the ellipse also paints inside the body: fine)
+    small = np.asarray(m.resize((x1 - x0, y1 - y0), Image.LANCZOS)).astype(np.float32) / 255
+    out_ = np.zeros((H, W), np.float32)
+    out_[y0:y1, x0:x1] = small
+    return out_
+sil = outline()
+yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+bx0, by0, bx1, by1 = BODY
+fade = np.clip((xx - bx0 - 40) / 80, 0, 1) * np.clip((bx1 - 40 - xx) / 80, 0, 1)
+shadow = 0.42 * np.clip(1 - (yy - by1 + 6) / 16, 0, 1) ** 1.6 * fade * (yy >= by1 - 6)
+alpha = np.maximum(sil, shadow * (1 - sil))
+rgb = img * (sil > 0.002)[..., None]
 x0, y0, x1, y1 = CROP
 save(rgb[y0:y1, x0:x1], alpha[y0:y1, x0:x1], 'body.png')
 print('ORIGIN', ORIGIN, 'size', (x1 - x0, y1 - y0))

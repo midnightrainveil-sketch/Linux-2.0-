@@ -190,6 +190,14 @@ kept for later.
   cursors at half their frames). Hyprland, GTK and every app use it, at
   28 px (`"cursorSize"` in the theme's settings.json for another). The
   first, chrome-and-sage design is `art/Cursors.png`.
+- `tools/make_desk_cassette.py` cleans up the cassette player in her hands
+  (called by `make_wallpaper_front.py` before the picture is saved): the
+  image generator's made-up lettering painted out and written again
+  (MAGNETIC 88 on its plate, STEREO under its window), its keys' symbols
+  drawn clean, its cassette given a label (A · NIGHT TRAIN), two mushy
+  shapes made round buttons, and its reels drawn again (a brown tape pack
+  round a cream six-toothed hub), written too as the reels that turn
+  (`cassette/home-reel-*.png`).
 - `modules/Backdrop.qml` lays the whole picture, the view in the glass
   (1566,76 to 2982,922 of the picture) and the window over it.
 
