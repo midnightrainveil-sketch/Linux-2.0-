@@ -146,11 +146,21 @@ Widget {
     // ---- the lift: where its carriage is (0 at rest, over the tray; less, higher)
     readonly property real holdX: 697
     readonly property real holdY: 968
-    // level with the chosen shelf, while choosing
-    readonly property real chosenLift: current ? footAt(sel - firstPos) - shellOf(current).h / 2 - holdY : 0
+    // its travel: at the top its side plates lie over the column's fixed ones;
+    // at the foot it rests over the tray, as drawn
+    readonly property real liftTop: -571
+    readonly property real liftFoot: 0
+    // level with the chosen shelf (where it takes a cassette from), within its travel
+    readonly property real chosenLift: current ? Math.max(liftTop, Math.min(liftFoot, footAt(sel - firstPos) - shellOf(current).h / 2 - holdY)) : 0
+    // while choosing it is the list's slider: the first song at its top, the
+    // last at its foot (so with more songs, a drag of it runs through them
+    // faster; the wheel and the keys go one at a time)
+    readonly property real scrollLift: results.length > 1 ? liftTop + (liftFoot - liftTop) * sel / (results.length - 1) : liftTop
+    property bool dragging: false
+    property real dragLift: 0
     property real liftY: 0
-    Binding on liftY { when: self.phase === 0; value: self.chosenLift; restoreMode: Binding.RestoreNone }
-    Behavior on liftY { id: lift; enabled: self.phase === 0; NumberAnimation { duration: 340; easing.type: Easing.OutCubic } }
+    Binding on liftY { when: self.phase === 0; value: self.dragging ? self.dragLift : self.scrollLift; restoreMode: Binding.RestoreNone }
+    Behavior on liftY { id: lift; enabled: self.phase === 0 && !self.dragging; NumberAnimation { duration: 340; easing.type: Easing.OutCubic } }
 
     // ---- dispensing: 1 select, 2 extract, 3 transfer, 4 dispense, 5 done
     property int phase: 0
@@ -170,20 +180,25 @@ Widget {
         cx = 204 + s.w / 2;
         cy = footAt(sel - firstPos) - s.h / 2;
         cs = 1;
-        liftY = chosenLift;
-        down.duration = 380 + Math.abs(liftY) * 0.75;
+        toShelf.to = chosenLift;
+        toShelf.duration = 160 + Math.abs(chosenLift - liftY) * 0.6;
+        grabY.to = holdY + chosenLift;
+        down.duration = 380 + Math.abs(chosenLift) * 0.75;
         phase = 1;
         dispenseAnim.restart();
     }
     SequentialAnimation {
         id: dispenseAnim
-        // 1: the carriage is at the shelf (it followed the choice); a beat
-        PauseAnimation { duration: 260 }
+        // 1: the carriage runs to the shelf; a beat
+        NumberAnimation { id: toShelf; target: self; property: "liftY"; easing.type: Easing.InOutCubic }
+        PauseAnimation { duration: 160 }
         // 2: drawn off the shelf, into the carriage's jaws
         ScriptAction { script: self.phase = 2 }
         ParallelAnimation {
             NumberAnimation { target: self; property: "cx"; to: self.holdX; duration: 520; easing.type: Easing.InOutCubic }
             NumberAnimation { target: self; property: "cs"; to: 0.68; duration: 520; easing.type: Easing.InOutCubic }
+            // (from a shelf above its reach: up into its jaws)
+            NumberAnimation { id: grabY; target: self; property: "cy"; duration: 520; easing.type: Easing.InOutCubic }
         }
         PauseAnimation { duration: 120 }
         // 3: carried down the screw
@@ -364,9 +379,39 @@ Widget {
             clip: true
             z: 5
             Image {
+                id: carriage
                 x: 578 - 560; y: 860 - 150 + self.liftY
                 source: self.art("carriage.png")
                 smooth: true; mipmap: true
+                // dragged up and down: the list's slider
+                MouseArea {
+                    x: 20; y: 20; width: parent.width - 40; height: parent.height - 60
+                    enabled: self.phase === 0 && self.results.length > 1
+                    cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                    property real y0: 0
+                    property real l0: 0
+                    onPressed: m => { y0 = mapToItem(column, m.x, m.y).y; l0 = self.liftY; self.dragLift = l0; self.dragging = true; }
+                    onPositionChanged: m => {
+                        if (!pressed) return;
+                        const l = Math.max(self.liftTop, Math.min(self.liftFoot, l0 + mapToItem(column, m.x, m.y).y - y0));
+                        self.dragLift = l;
+                        self.choose(Math.round((l - self.liftTop) / (self.liftFoot - self.liftTop) * (self.results.length - 1)));
+                    }
+                    onReleased: self.dragging = false
+                    onCanceled: self.dragging = false
+                }
+            }
+        }
+        // the shelves' rails, over the cassettes: they slide under them
+        Repeater {
+            model: [[159, 167], [275, 287], [385, 397], [501, 511], [615, 624], [725, 737], [831, 841], [936, 946], [1050, 1059]]
+            Image {
+                required property var modelData
+                x: unit.ax(176); y: unit.ay(modelData[0])
+                z: 3
+                source: self.art("body.png")
+                sourceClipRect: Qt.rect(176 - 86, modelData[0] - 14, 390, modelData[1] - modelData[0])
+                smooth: false
             }
         }
         Image {

@@ -15,7 +15,7 @@ Super + R          RESEARCH STATION (typewriter)
     Type a question, Enter: the web's results (DuckDuckGo). ↑ ↓ choose one, Enter or a click opens it in your browser (and marks it READ). PULL OUT / PUSH IN on the tablet (or the round knob, or F11) slides the tablet out of its slot for big work and back; Esc pushes it in too. Tab or F1–F5: RESEARCH, SOURCES (the results by address), NOTES (per session), ARCHIVE (Enter opens, Delete removes), EXPORT (Markdown to ~/Documents/Research; Ctrl + S from anywhere). Its keys, springs, platen knobs and carriage move as you type.
 
 Super + V          CASSETTE VENDING MACHINE
-    Every song in ~/Music is a cassette. Wheel / arrows / drag the side wheel to choose, type to search, Enter (or SELECT / EJECT) to dispense: it goes into the player and plays.
+    Every song in ~/Music is a cassette. The lift is the list's slider: drag it to run through them all (top: the first song, foot: the last). Wheel / arrows / the side wheel step one at a time; type to search, Enter (or SELECT / EJECT) to dispense: it goes into the player and plays.
 
 Super + A          CASSETTE PLAYER
     Plays the dispensed cassette, or (none in) whatever is playing elsewhere: a browser's video, a music app. PLAY (again to pause), REW / FF (tap: back / on, or the track before / after; hold: wind), STOP/EJ (stop; again: eject), REC opens the vending machine. Keys: Space play / pause, ← → ten seconds (hold to wind), ↑ ↓ volume, S stop, E eject, Home to the start, V vending. The knob is the volume (wheel or drag).
