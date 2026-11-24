@@ -227,10 +227,13 @@ kept for later.
   round a cream six-toothed hub), written too as the reels that turn
   (`cassette/home-reel-*.png`).
 - The system's programs (Files, Text Editor, gThumb, the sound, Bluetooth
-  and network settings, Timeshift: GTK, and Qt ones through it) look as the
-  terminal does, an e-ink screen: its paper and ink, heavier lines, chosen
-  things inverted, nothing in colour (`home/.config/ultra/retro-futurism/gtk.css`,
-  put in place by `ultra-look` at login). Their files and folders have the
+  and network settings, Timeshift: GTK, and Qt ones through it) are made
+  gadgets: a graphite bezel (title bar, sidebar) with light lettering round
+  an e-ink screen (what they show) of the terminal's paper and ink, with its
+  grain and the glass's shadow; the address bar a strip of e-ink set into
+  the bezel; a choice outlined in ink, its name inverted; Barlow lettering;
+  nothing in colour but the file icons (`home/.config/ultra/retro-futurism/gtk.css`
+  and `paper.png`, put in place by `ultra-look` at login). Their files and folders have the
   theme's own icons (`art/FileIcons.png`, cut by `tools/make_file_icons.py`
   into the icon theme `Magnetic88-Files`: twenty icons, linked to some two
   hundred file types and places; programs' icons from Papirus).

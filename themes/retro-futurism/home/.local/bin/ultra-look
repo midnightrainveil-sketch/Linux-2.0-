@@ -11,6 +11,8 @@ if [[ -f $css ]]; then
     for d in gtk-3.0 gtk-4.0; do
         mkdir -p "$config/$d"
         cmp -s "$css" "$config/$d/gtk.css" || cp -f "$css" "$config/$d/gtk.css"
+        # (and its paper's grain, which it draws the screens with)
+        cmp -s "${css%/*}/paper.png" "$config/$d/paper.png" || cp -f "${css%/*}/paper.png" "$config/$d/paper.png" 2>/dev/null
     done
 fi
 fc-cache >/dev/null 2>&1 &
