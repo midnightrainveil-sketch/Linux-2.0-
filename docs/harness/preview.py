@@ -7,7 +7,7 @@ where the real one cannot be built (docs/harness/build.sh).
     steps, run in order before the picture is taken:
         ipc:<target>.<function>     as `qs ipc call <target> <function>`
         ipc:<target>.<function>=<arg>   ... with one argument
-        notify:<summary>|<body>     a notification arrives (_ for a space)
+        notify:<summary>|<body>[|<app>]  a notification arrives (_ for a space)
         key:<text>                  typed into the focused field
         press:<Key>                 a key pressed and let go (Right, Return, Escape, ...)
         frames:<n>:<ms>             n pictures, one every ms (out-000.png ...), for
@@ -96,7 +96,7 @@ def prepare(theme, work, flags=()):
 
 
 class Harness(QObject):
-    notify = Signal(str, str)
+    notify = Signal(str, str, str)
 
     def __init__(self, home, shell, flags):
         super().__init__()
@@ -283,8 +283,9 @@ def main():
                     else:
                         QMetaObject.invokeMethod(h, fn)
         elif kind == "notify":
-            summary, _, body = arg.partition("|")
-            harness.notify.emit(summary.replace("_", " "), body.replace("_", " "))
+            summary, _, rest = arg.partition("|")
+            body, _, sender = rest.partition("|")
+            harness.notify.emit(summary.replace("_", " "), body.replace("_", " "), sender.replace("_", " "))
         elif kind == "key":
             from PySide6.QtGui import QKeyEvent
             from PySide6.QtCore import QEvent

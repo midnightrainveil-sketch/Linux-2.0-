@@ -24,7 +24,8 @@ hl.bind(mod .. " + D", exec("ultra-desk"), { description = "The small terminal o
 -- dark until a lock holds it again, and this brings the lock screen back)
 hl.bind(mod .. " + Escape", shell("lock", "lock"), { locked = true, description = "Lock" })
 hl.bind(mod .. " + T", shell("shell", "themes"), { description = "Themes" })
-hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "Put every notification away" })
+hl.bind(mod .. " + N", shell("notifications", "show"), { description = "Notifications: the pager, to look through them" })
+hl.bind(mod .. " + SHIFT + N", shell("notifications", "clear"), { description = "Clear every notification" })
 hl.bind(mod .. " + ALT + N", shell("notifications", "dnd"), { description = "Do not disturb, on / off" })
 
 ------------------------------------------------------------------ programs

@@ -62,7 +62,7 @@ ShellRoot {
     readonly property var deskScreens: shell.deskAlive && shell.focusedScreen ? [shell.focusedScreen] : []
     Variants {
         model: shell.deskScreens
-        Mail { required property var modelData; screen: modelData }
+        Pager { required property var modelData; screen: modelData }
     }
 
     // built only while open
@@ -131,6 +131,7 @@ ShellRoot {
         target: "notifications"
         function clear(): void { Notifs.clearAll(); }
         function dnd(): void { Notifs.toggleDnd(); }
+        function show(): void { Panels.pagerRequested(); }
     }
     IpcHandler {
         target: "media"

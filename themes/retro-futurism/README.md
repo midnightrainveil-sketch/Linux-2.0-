@@ -105,9 +105,20 @@ Gadgets in steel, cream and sage with e-ink screens.
   keys and the meters too). The rest are placeholders (their mock-up)
   until made.
 
-Not built yet: the typewriter, the organizer (their keys show their
-mock-ups), and the pager: notifications are plain cream cards at the top
-right until it is.
+- **Notifications** come on the KAZE pager (`modules/Pager.qml`,
+  `services/Notifs.qml`): it slides in from the top right corner with the
+  notification on its e-ink screen (the app's mark in ink: Simple Icons'
+  brand marks, CC0, for the well-known apps, else the app's own icon in
+  greys), and out again after a few seconds (an urgent one stays; it waits
+  while the pointer is on it). A tap opens what it is about, right-click or
+  CLEAR clears it, ◀ ▶ page through the earlier ones, ALL CLR clears them
+  all. Super + N brings it up to look through them (the arrows, Enter,
+  Delete, Shift + Delete, Esc); Super + Shift + N clears all, Super + Alt +
+  N is Do Not Disturb (they are kept, quietly). The history (60) is kept
+  across restarts. Its picture is cut by `tools/make_pager.py`.
+
+Not built yet: the typewriter and the organizer (their keys show their
+mock-ups).
 
 (The theme was begun as a copy of Viewfinder's box; everything of Viewfinder's
 look is gone from it now.)

@@ -30,7 +30,6 @@ components/WidgetPlaceholder.qml   the stand-in until a widget is built
 | `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |
 | `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
 | `power` | Power (**built**) | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |
-| `pager` | Notifications | none: the shell brings it up | Notification |
 
 Built: the control deck, the clock, power and the launcher. The rest are placeholders: their mock-up, and a tag
 that shows the last key or click they were given.
