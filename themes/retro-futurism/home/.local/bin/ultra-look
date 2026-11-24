@@ -18,7 +18,7 @@ if command -v gsettings >/dev/null; then
     i=org.gnome.desktop.interface
     gsettings set $i color-scheme prefer-light
     gsettings set $i gtk-theme adw-gtk3
-    gsettings set $i icon-theme Papirus
+    gsettings set $i icon-theme Magnetic88-Files     # the theme's file icons; Papirus for programs
     gsettings set $i font-name 'JetBrains Mono 10'
     gsettings set $i monospace-font-name 'JetBrains Mono 11'
     # the theme's cursors, at its size ("cursorSize" in its settings.json)

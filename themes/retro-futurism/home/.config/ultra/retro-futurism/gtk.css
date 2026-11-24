@@ -168,12 +168,10 @@ link, a, label link {
     text-decoration: underline;
 }
 
-/* ---- icons in ink: no colour (a photo's thumbnail keeps its own) */
-image, .icon, button image, row image, headerbar image, .sidebar image, .navigation-sidebar image {
+/* ---- the small icons (buttons, menus, sidebars) in ink: no colour */
+button image, row image, headerbar image, .sidebar image, .navigation-sidebar image, menu image, popover image {
     -gtk-icon-style: symbolic;
     -gtk-icon-filter: grayscale(1);
 }
-/* the file manager's folders and files, in ink too (GTK 4) */
-.nautilus-grid-view picture, .nautilus-list-view picture, .nautilus-grid-view image, .nautilus-list-view image {
-    filter: grayscale(1);
-}
+/* (the file manager's files and folders keep the theme's own icons,
+   Magnetic88-Files: cream, rust and sage, as drawn) */
