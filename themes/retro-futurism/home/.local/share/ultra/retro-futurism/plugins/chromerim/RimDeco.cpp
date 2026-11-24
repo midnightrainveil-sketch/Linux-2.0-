@@ -50,6 +50,7 @@ namespace {
         SP<Config::Values::CFloatValue> deskDim;
         SP<Config::Values::CColorValue> deskDimColor;
         SP<Config::Values::CStringValue> deskDimIgnore;
+        SP<Config::Values::CStringValue> alwaysLit;
         SP<Config::Values::CStringValue> art;
     };
 
@@ -188,10 +189,10 @@ namespace {
 
     // a window of one of these classes (desk_dim_ignore, separated by
     // spaces or commas) is part of the desk, not something open on it
-    bool ignored(const std::string& cls) {
-        if (!g_config.deskDimIgnore || cls.empty())
+    bool inList(const SP<Config::Values::CStringValue>& opt, const std::string& cls) {
+        if (!opt || cls.empty())
             return false;
-        const std::string list{g_config.deskDimIgnore->value()};
+        const std::string list{opt->value()};
         size_t            i = 0;
         while (i < list.size()) {
             const size_t j = list.find_first_of(" ,", i);
@@ -204,6 +205,7 @@ namespace {
         }
         return false;
     }
+    bool ignored(const std::string& cls) { return inList(g_config.deskDimIgnore, cls); }
 
     bool hasWindows(const PHLWORKSPACE& ws) {
         for (auto const& w : Desktop::windowState()->windows()) {
@@ -397,7 +399,8 @@ void CChromeRim::renderPass(Render::CRenderContext& ctx, PHLMONITOR pMonitor, fl
     SLook      lk;
     lk.scale    = pMonitor->m_scale;
     lk.rounding = std::max(0.0, (double)PWINDOW->presentation().rounding());
-    lk.focused  = PWINDOW == Desktop::focusState()->window();
+    // (always_lit: windows of these classes keep the bright rim, in use or not)
+    lk.focused  = PWINDOW == Desktop::focusState()->window() || inList(g_config.alwaysLit, PWINDOW->metadata().appID());
     lk.width    = rimWidth();
     lk.overlap  = rimOverlap();
     lk.dim      = static_cast<uint32_t>(g_config.dim->value());
@@ -480,17 +483,19 @@ void rimInit(HANDLE handle) {
     g_config.dim     = makeShared<CColorValue>("plugin:chromerim:dim", "Laid over the rim of a window not in use (alpha = how much)", 0x521f1a14);
 
     g_config.deskDimIgnore = makeShared<CStringValue>("plugin:chromerim:desk_dim_ignore", "Window classes that are part of the desk (a widget): their windows do not dim it", "");
+    g_config.alwaysLit     = makeShared<CStringValue>("plugin:chromerim:always_lit", "Window classes whose rim stays bright, in use or not", "");
     g_config.art          = makeShared<CStringValue>("plugin:chromerim:art", "Folder of the rim's pieces, cut from the taskbar (tools/make_rim.py); empty: drawn", "");
     g_config.deskDim      = makeShared<CFloatValue>("plugin:chromerim:desk_dim", "How dark the picture behind the windows goes while they are open (0 = not at all)", 0.F);
     g_config.deskDimColor = makeShared<CColorValue>("plugin:chromerim:desk_dim_color", "The colour it darkens to", 0xff0d0907);
 
-    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim, g_config.deskDim, g_config.deskDimColor, g_config.deskDimIgnore, g_config.art})
+    for (const auto& v : std::initializer_list<SP<IValue>>{g_config.enabled, g_config.width, g_config.overlap, g_config.dim, g_config.deskDim, g_config.deskDimColor, g_config.deskDimIgnore, g_config.alwaysLit, g_config.art})
         HyprlandAPI::addConfigValueV2(handle, v);
 
     // lets the config (and the shell, through it) tell the rim is drawn here
     HyprlandAPI::addLuaFunction(handle, "chromerim", "has_rim", ::luaHasRim);
     HyprlandAPI::addLuaFunction(handle, "chromerim", "has_desk_dim", ::luaHasRim);
     HyprlandAPI::addLuaFunction(handle, "chromerim", "has_desk_dim_ignore", ::luaHasRim);
+    HyprlandAPI::addLuaFunction(handle, "chromerim", "has_always_lit", ::luaHasRim);
 
     // the desk's veil: just after the wallpaper, before everything else
     static auto P4 = Event::bus()->m_events.render.stage.listen([](const Event::SRenderStageEvent& e) {

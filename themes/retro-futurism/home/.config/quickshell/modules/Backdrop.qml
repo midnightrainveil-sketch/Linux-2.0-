@@ -248,7 +248,7 @@ PanelWindow {
                     anchors.fill: parent
                     rim: Theme.frameRim
                     innerR: Theme.windowRounding
-                    dim: !framed.modelData.active
+                    dim: !framed.modelData.active && framed.modelData.cls !== "retro-futurism.desk"   // (the desk terminal: always lit)
                 }
             }
         }

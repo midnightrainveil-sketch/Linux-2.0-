@@ -9,8 +9,8 @@
 #                       widget stays behind it, and closing the view goes
 #                       back to the widget
 #
-# The widget floats low on the left of the picture, 16:9, a third of the
-# screen wide: its middle on the lower third line, its right edge just short
+# The widget floats low on the left of the picture, the screen's own shape
+# (a third of its width, a third of its height): its top just under the middle, its right edge just short
 # of her coat, so that it balances her on the right third; untouched by
 # Hyprland's tiling: while a tiled window is on the workspace it steps out
 # of the way and comes back when the workspace is clear (hypr/theme/rules.lua).
@@ -19,9 +19,9 @@
 # on when the widget is closed: opening it again picks it up.
 set -uo pipefail
 
-# its place and size: fractions of the screen's width (so 16:9 on any
-# screen) and height (as in hypr/theme/rules.lua)
-X=0.0927 Y=0.5167 W=0.3333 H=0.1875
+# its place and size: fractions of the screen's width and height (so the
+# screen's own shape; as in hypr/theme/rules.lua)
+X=0.0927 Y=0.5167 W=0.3333 H=0.3333
 conf="${XDG_CONFIG_HOME:-$HOME/.config}/ultra/retro-futurism/desk.tmux.conf"
 session=(tmux -L ultra-desk -f "$conf")
 attach=("${session[@]}" new-session -A -s desk -e ULTRA_DESK=1 zsh)
@@ -81,7 +81,7 @@ read -r mx my mw mh < <(jq -r '
 px=$(awk -v m="$mx" -v w="$mw" -v f="$X" 'BEGIN { printf "%d", m + w * f }')
 py=$(awk -v m="$my" -v h="$mh" -v f="$Y" 'BEGIN { printf "%d", m + h * f }')
 pw=$(awk -v w="$mw" -v f="$W" 'BEGIN { printf "%d", w * f }')
-ph=$(awk -v w="$mw" -v f="$H" 'BEGIN { printf "%d", w * f }')
+ph=$(awk -v h="$mh" -v f="$H" 'BEGIN { printf "%d", h * f }')
 
 win="window = \"address:$addr\""
 hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = false, $win })" >/dev/null

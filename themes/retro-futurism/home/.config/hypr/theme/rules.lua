@@ -19,8 +19,8 @@ end
 
 ------------------------------------------------------------------ the terminal widget on the picture
 -- At rest the picture holds one terminal, a widget floating low on its
--- left, 16:9 on any screen, a third of the screen wide: its middle on the
--- lower third line, its right edge just short of her coat, balancing her
+-- left, the screen's own shape, a third of the screen wide and a third of
+-- it tall: its top just under the middle, its right edge just short of her coat, balancing her
 -- on the right third. ultra-desk (Super+D) puts it back here and
 -- opens it at login; keep the two in step. Super + F on it opens a
 -- fullscreen view of the same shell (class retro-futurism.desk-view), an
@@ -29,7 +29,7 @@ hl.window_rule({
     name = "retro-futurism-desk",
     match = { class = "^retro-futurism\\.desk$" },
     float = true,
-    size = { "monitor_w*0.3333", "monitor_w*0.1875" },
+    size = { "monitor_w*0.3333", "monitor_h*0.3333" },
     move = { "monitor_w*0.0927", "monitor_h*0.5167" },
 })
 

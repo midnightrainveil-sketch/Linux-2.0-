@@ -120,5 +120,9 @@ if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
     if hl.plugin.chromerim.has_desk_dim_ignore ~= nil then
         hl.config({ plugin = { chromerim = { desk_dim_ignore = "retro-futurism.desk" } } })
     end
+    -- and its rim stays bright, in use or not
+    if hl.plugin.chromerim.has_always_lit ~= nil then
+        hl.config({ plugin = { chromerim = { always_lit = "retro-futurism.desk" } } })
+    end
     -- your own window without it: hl.window_rule({ match = { class = "..." }, ["chromerim:no_rim"] = true }) in user.lua
 end
