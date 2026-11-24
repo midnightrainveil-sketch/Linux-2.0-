@@ -112,7 +112,7 @@ if hl.plugin ~= nil and hl.plugin.chromerim ~= nil then
         dim = "rgba(1f1a1452)",     -- a window not in use: a shade darker, still solid
         -- the picture behind the windows, dimmed while they are open; it
         -- follows the workspace slides and swipes as they go
-        desk_dim = 0.5,
+        desk_dim = 0.68,
         desk_dim_color = "rgb(0d0907)",
     } } })
     -- the terminal widget is part of the desk: it does not dim it (a build

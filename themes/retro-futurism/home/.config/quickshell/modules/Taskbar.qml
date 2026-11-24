@@ -440,10 +440,10 @@ PanelWindow {
     }
     Row {
         id: readouts
-        x: bar.rx(2104) - width
+        x: bar.rx(2084) - width          // (room after the time, before the plate's round end)
         y: bar.my(368) - height / 2
         height: 40 * bar.s
-        spacing: 20 * bar.s
+        spacing: 17 * bar.s
 
         // ---- the state of things: one place to click for the deck
         Item {
@@ -451,7 +451,7 @@ PanelWindow {
             Row {
                 id: readings
                 height: parent.height
-                spacing: 20 * bar.s
+                spacing: 17 * bar.s
 
                 // Wi-Fi: four bars, as many dark as the signal is strong
                 Row {
@@ -571,7 +571,8 @@ PanelWindow {
         }
         Divider { k: bar.s }
 
-        // ---- the date and the time: a click brings up the clock
+        // ---- the date (a click: the organizer's calendar) and the time (a
+        // click: the clock)
         Item {
             width: when.width; height: parent.height
             Row {
@@ -579,6 +580,7 @@ PanelWindow {
                 height: parent.height
                 spacing: 11 * bar.s
                 Text {
+                    id: dateText
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.verticalCenterOffset: 1 * bar.s
                     text: Qt.formatDate(Clock.now, "ddd d MMM").toUpperCase()
@@ -601,7 +603,14 @@ PanelWindow {
                 }
             }
             MouseArea {
-                anchors.fill: parent; anchors.margins: -8 * bar.s
+                x: -8 * bar.s; y: -8 * bar.s; height: parent.height + 16 * bar.s
+                width: dateText.width + 8 * bar.s + when.spacing / 2
+                cursorShape: Qt.PointingHandCursor
+                onClicked: Widgets.toggle("organizer")
+            }
+            MouseArea {
+                x: dateText.width + when.spacing / 2; y: -8 * bar.s; height: parent.height + 16 * bar.s
+                width: parent.width - x + 8 * bar.s
                 cursorShape: Qt.PointingHandCursor
                 onClicked: Widgets.toggle("clock")
             }

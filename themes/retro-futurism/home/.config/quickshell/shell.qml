@@ -64,6 +64,11 @@ ShellRoot {
         model: shell.deskScreens
         Pager { required property var modelData; screen: modelData }
     }
+    // the volume and brightness, as they change (the amber ladder at the right edge)
+    Variants {
+        model: shell.deskScreens
+        Osd { required property var modelData; screen: modelData }
+    }
 
     // built only while open
     LazyLoader { active: Panels.open === "themes"; ThemesSheet { screen: shell.focusedScreen } }
