@@ -1,329 +1,317 @@
-/* Magnetic 88: programs made as the SYSTEM CONTROL DECK is. Brushed silver
-   bars and buttons, a soft grey glass for what they show (the deck's screen),
-   its slate bezel round the address bar, dark-grey lettering (never black on
-   white), and the deck's indigo for what is on or chosen. Inter lettering,
-   Barlow for titles as the deck's labels. Nothing else in colour but the
-   file icons. GTK 3 (adw-gtk3) and GTK 4 / libadwaita. ultra-look copies
-   this to ~/.config/gtk-3.0 and gtk-4.0. */
+/* Magnetic 88: programs as the SYSTEM CONTROL DECK's screen. Its cool grey
+   glass (#bcbcbb) and dark ink (#282c28), soft contrast, no paper warmth;
+   a faint shadow under the glass's top edge; thick ink rules between parts;
+   what is chosen lit as the deck lights a row (an ink bar, the glass's grey
+   in it); the screen's VT323 lettering for the device's own words (titles,
+   headings, the sidebar, the address, the keys), Inter for what you read.
+   Nothing in colour but the file icons. GTK 3 (adw-gtk3) and GTK 4 /
+   libadwaita. ultra-look copies this to ~/.config/gtk-3.0 and gtk-4.0. */
 
 /* ---------------------------------------------------------------- colours */
-@define-color window_bg_color #d3d4d7;
-@define-color window_fg_color #34363b;
-@define-color view_bg_color #d9dad7;
-@define-color view_fg_color #34363b;
-@define-color headerbar_bg_color #dcdde0;
-@define-color headerbar_fg_color #34363b;
-@define-color headerbar_border_color #a9abb1;
-@define-color headerbar_backdrop_color #d6d7da;
-@define-color headerbar_shade_color rgba(40, 42, 55, 0.14);
-@define-color sidebar_bg_color #c9cacf;
-@define-color sidebar_fg_color #34363b;
-@define-color sidebar_backdrop_color #c9cacf;
-@define-color sidebar_shade_color rgba(40, 42, 55, 0.14);
-@define-color secondary_sidebar_bg_color #cfd0d4;
-@define-color secondary_sidebar_fg_color #34363b;
-@define-color card_bg_color #e1e2e1;
-@define-color card_fg_color #34363b;
-@define-color card_shade_color rgba(40, 42, 55, 0.14);
-@define-color popover_bg_color #e2e3e5;
-@define-color popover_fg_color #34363b;
-@define-color dialog_bg_color #d9dad7;
-@define-color dialog_fg_color #34363b;
-@define-color thumbnail_bg_color #d9dad7;
-@define-color thumbnail_fg_color #34363b;
-@define-color shade_color rgba(40, 42, 55, 0.14);
-@define-color accent_bg_color #565aa6;
-@define-color accent_fg_color #f1f2f7;
-@define-color accent_color #4a4e98;
-@define-color destructive_bg_color #9a4a42;
-@define-color destructive_fg_color #f4f1ef;
-@define-color destructive_color #8a3f38;
-@define-color success_bg_color #5a7a62;
-@define-color success_fg_color #f1f4f1;
-@define-color success_color #4a6a52;
-@define-color warning_bg_color #a07a3a;
-@define-color warning_fg_color #f6f3ec;
-@define-color warning_color #86642a;
-@define-color error_bg_color #9a4a42;
-@define-color error_fg_color #f4f1ef;
-@define-color error_color #8a3f38;
-@define-color borders rgba(40, 42, 55, 0.20);
-@define-color theme_bg_color #d3d4d7;
-@define-color theme_fg_color #34363b;
-@define-color theme_base_color #d9dad7;
-@define-color theme_text_color #34363b;
-@define-color theme_selected_bg_color #565aa6;
-@define-color theme_selected_fg_color #f1f2f7;
-@define-color insensitive_fg_color #8b8d94;
+@define-color window_bg_color #bcbcbb;
+@define-color window_fg_color #282c28;
+@define-color view_bg_color #bcbcbb;
+@define-color view_fg_color #282c28;
+@define-color headerbar_bg_color #bcbcbb;
+@define-color headerbar_fg_color #282c28;
+@define-color headerbar_border_color #282c28;
+@define-color headerbar_backdrop_color #bcbcbb;
+@define-color headerbar_shade_color rgba(40, 44, 40, 0.18);
+@define-color sidebar_bg_color #b4b4b3;
+@define-color sidebar_fg_color #282c28;
+@define-color sidebar_backdrop_color #b4b4b3;
+@define-color sidebar_shade_color rgba(40, 44, 40, 0.18);
+@define-color secondary_sidebar_bg_color #b8b8b7;
+@define-color secondary_sidebar_fg_color #282c28;
+@define-color card_bg_color #c3c3c2;
+@define-color card_fg_color #282c28;
+@define-color card_shade_color rgba(40, 44, 40, 0.16);
+@define-color popover_bg_color #c3c3c2;
+@define-color popover_fg_color #282c28;
+@define-color dialog_bg_color #bcbcbb;
+@define-color dialog_fg_color #282c28;
+@define-color thumbnail_bg_color #bcbcbb;
+@define-color thumbnail_fg_color #282c28;
+@define-color shade_color rgba(40, 44, 40, 0.16);
+@define-color accent_bg_color #282c28;
+@define-color accent_fg_color #bcbcbb;
+@define-color accent_color #282c28;
+@define-color destructive_bg_color #282c28;
+@define-color destructive_fg_color #bcbcbb;
+@define-color destructive_color #282c28;
+@define-color success_bg_color #3e423e;
+@define-color success_fg_color #bcbcbb;
+@define-color success_color #282c28;
+@define-color warning_bg_color #3e423e;
+@define-color warning_fg_color #bcbcbb;
+@define-color warning_color #282c28;
+@define-color error_bg_color #282c28;
+@define-color error_fg_color #bcbcbb;
+@define-color error_color #282c28;
+@define-color borders rgba(40, 44, 40, 0.30);
+@define-color theme_bg_color #bcbcbb;
+@define-color theme_fg_color #282c28;
+@define-color theme_base_color #bcbcbb;
+@define-color theme_text_color #282c28;
+@define-color theme_selected_bg_color #282c28;
+@define-color theme_selected_fg_color #bcbcbb;
+@define-color insensitive_fg_color #7c7f7c;
 
 :root {
-    --window-bg-color: #d3d4d7;
-    --window-fg-color: #34363b;
-    --view-bg-color: #d9dad7;
-    --view-fg-color: #34363b;
-    --headerbar-bg-color: #dcdde0;
-    --headerbar-fg-color: #34363b;
-    --headerbar-border-color: #a9abb1;
-    --headerbar-backdrop-color: #d6d7da;
-    --headerbar-shade-color: rgba(40, 42, 55, 0.14);
-    --sidebar-bg-color: #c9cacf;
-    --sidebar-fg-color: #34363b;
-    --sidebar-backdrop-color: #c9cacf;
-    --sidebar-shade-color: rgba(40, 42, 55, 0.14);
-    --secondary-sidebar-bg-color: #cfd0d4;
-    --secondary-sidebar-fg-color: #34363b;
-    --card-bg-color: #e1e2e1;
-    --card-fg-color: #34363b;
-    --card-shade-color: rgba(40, 42, 55, 0.14);
-    --popover-bg-color: #e2e3e5;
-    --popover-fg-color: #34363b;
-    --dialog-bg-color: #d9dad7;
-    --dialog-fg-color: #34363b;
-    --thumbnail-bg-color: #d9dad7;
-    --thumbnail-fg-color: #34363b;
-    --shade-color: rgba(40, 42, 55, 0.14);
-    --accent-bg-color: #565aa6;
-    --accent-fg-color: #f1f2f7;
-    --accent-color: #4a4e98;
-    --destructive-bg-color: #9a4a42;
-    --destructive-fg-color: #f4f1ef;
-    --destructive-color: #8a3f38;
-    --success-bg-color: #5a7a62;
-    --success-fg-color: #f1f4f1;
-    --success-color: #4a6a52;
-    --warning-bg-color: #a07a3a;
-    --warning-fg-color: #f6f3ec;
-    --warning-color: #86642a;
-    --error-bg-color: #9a4a42;
-    --error-fg-color: #f4f1ef;
-    --error-color: #8a3f38;
-    --border-opacity: 20%;
+    --window-bg-color: #bcbcbb;
+    --window-fg-color: #282c28;
+    --view-bg-color: #bcbcbb;
+    --view-fg-color: #282c28;
+    --headerbar-bg-color: #bcbcbb;
+    --headerbar-fg-color: #282c28;
+    --headerbar-border-color: #282c28;
+    --headerbar-backdrop-color: #bcbcbb;
+    --headerbar-shade-color: rgba(40, 44, 40, 0.18);
+    --sidebar-bg-color: #b4b4b3;
+    --sidebar-fg-color: #282c28;
+    --sidebar-backdrop-color: #b4b4b3;
+    --sidebar-shade-color: rgba(40, 44, 40, 0.18);
+    --secondary-sidebar-bg-color: #b8b8b7;
+    --secondary-sidebar-fg-color: #282c28;
+    --card-bg-color: #c3c3c2;
+    --card-fg-color: #282c28;
+    --card-shade-color: rgba(40, 44, 40, 0.16);
+    --popover-bg-color: #c3c3c2;
+    --popover-fg-color: #282c28;
+    --dialog-bg-color: #bcbcbb;
+    --dialog-fg-color: #282c28;
+    --thumbnail-bg-color: #bcbcbb;
+    --thumbnail-fg-color: #282c28;
+    --shade-color: rgba(40, 44, 40, 0.16);
+    --accent-bg-color: #282c28;
+    --accent-fg-color: #bcbcbb;
+    --accent-color: #282c28;
+    --destructive-bg-color: #282c28;
+    --destructive-fg-color: #bcbcbb;
+    --destructive-color: #282c28;
+    --success-bg-color: #3e423e;
+    --success-fg-color: #bcbcbb;
+    --success-color: #282c28;
+    --warning-bg-color: #3e423e;
+    --warning-fg-color: #bcbcbb;
+    --warning-color: #282c28;
+    --error-bg-color: #282c28;
+    --error-fg-color: #bcbcbb;
+    --error-color: #282c28;
+    --border-opacity: 30%;
 }
 
 /* ---------------------------------------------------------------- lettering */
 window, popover, tooltip {
-    font-family: "Inter", "Barlow", sans-serif;
+    font-family: "Inter", sans-serif;
 }
-/* titles as the deck's plate labels */
-headerbar .title, .top-bar .title, windowtitle .title, .heading {
-    font-family: "Barlow", "Inter", sans-serif;
-    font-weight: 700;
-    color: #3b3b3d;
+/* the screen's own words: VT323, as the deck writes them */
+headerbar .title, .top-bar .title, windowtitle .title, .heading, .title-1, .title-2, .title-3, .title-4,
+.navigation-sidebar row label, placessidebar row label, .sidebar row label,
+#NautilusPathButton label, columnview > header > button, button label, tooltip label,
+popover modelbutton label, popover.menu label {
+    font-family: "VT323", "JetBrains Mono", monospace;
+    font-weight: 400;
 }
-.heading { letter-spacing: 1px; }
-.dim-label, .subtitle { color: #686a72; }
+headerbar .title, .top-bar .title, windowtitle .title { font-size: 17pt; }
+.heading { font-size: 15pt; letter-spacing: 1px; }
+.navigation-sidebar row label, placessidebar row label, .sidebar row label { font-size: 14pt; }
+#NautilusPathButton label { font-size: 14pt; }
+columnview > header > button { font-size: 13pt; }
+button label, popover modelbutton label, popover.menu label, tooltip label { font-size: 13pt; }
+.dim-label, .subtitle { color: #555955; }
 .monospace, textview.monospace { font-family: "JetBrains Mono", monospace; }
 
-/* ---------------------------------------------------------------- bars: the deck's brushed plate */
+/* ---------------------------------------------------------------- the top: glass, a thick ink rule under it */
 headerbar, .titlebar, .top-bar, toolbarview > .top-bar {
-    background-color: #dcdde0;
-    background-image: linear-gradient(to bottom, #e6e7e9, #d2d3d7);
-    color: #34363b;
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.65);
-    border-bottom: 1px solid #a9abb1;
+    background-color: #bcbcbb;
+    background-image: none;
+    color: #282c28;
+    box-shadow: inset 0 4px 6px -3px rgba(0, 0, 0, 0.22);
+    border-bottom: 2.5px solid #282c28;
 }
+.top-bar headerbar, toolbarview > .top-bar headerbar { border-bottom: none; box-shadow: none; background: none; }
 headerbar button:not(.suggested-action):not(.destructive-action), .top-bar button:not(.suggested-action):not(.destructive-action),
 headerbar menubutton > button, .top-bar menubutton > button, headerbar splitbutton > button {
     background: none;
-    border: 1px solid transparent;
-    border-radius: 999px;
+    border: 2px solid transparent;
+    border-radius: 6px;
     box-shadow: none;
-    color: #3b3b3d;
+    color: #282c28;
     min-height: 30px;
     min-width: 30px;
 }
 headerbar button:hover, .top-bar button:hover, headerbar menubutton > button:hover {
-    background-image: linear-gradient(to bottom, #eef0f2, #cbccd1);
-    border-color: rgba(40, 42, 55, 0.22);
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.7);
+    background-color: rgba(40, 44, 40, 0.07);
+    border-color: rgba(40, 44, 40, 0.35);
 }
 headerbar button:active, headerbar button:checked, .top-bar button:checked, headerbar menubutton > button:checked {
-    background-image: linear-gradient(to bottom, #b9bbc1, #cfd0d5);
-    border-color: rgba(40, 42, 55, 0.28);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    background-color: #282c28;
+    color: #bcbcbb;
 }
-headerbar image, .top-bar image { color: #3b3b3d; -gtk-icon-filter: none; }
+headerbar button:checked image, headerbar button:active image { color: #bcbcbb; }
+headerbar image, .top-bar image { color: #282c28; -gtk-icon-filter: none; }
 
-/* ---------------------------------------------------------------- sidebars: a darker brushed plate */
-.sidebar-pane headerbar, .sidebar-pane .top-bar, .navigation-sidebar-pane headerbar {
-    background-image: linear-gradient(to bottom, #dadbdf, #c9cacf);
-}
+/* ---------------------------------------------------------------- the sidebar: the glass, a thin ink rule beside it */
+.sidebar-pane headerbar, .sidebar-pane .top-bar, .navigation-sidebar-pane headerbar { background-color: #b4b4b3; }
 .navigation-sidebar, .sidebar, .sidebar-pane, placessidebar, .nautilus-sidebar, stacksidebar {
-    background-color: #c9cacf;
-    color: #34363b;
-    border-right: 1px solid #a9abb1;
+    background-color: #b4b4b3;
+    color: #282c28;
+    border-right: 2.5px solid #282c28;
 }
 .navigation-sidebar row, placessidebar row, .sidebar row {
-    border-radius: 8px;
+    border-radius: 4px;
     margin: 1px 8px;
-    padding: 2px 6px;
-    color: #3b3b3d;
+    padding: 1px 6px;
+    color: #282c28;
 }
 .navigation-sidebar row image, placessidebar row image, .sidebar row image {
-    color: #565860;
+    color: #282c28;
     -gtk-icon-filter: grayscale(1);
 }
-.navigation-sidebar row:hover, placessidebar row:hover, .sidebar row:hover { background-color: rgba(40, 42, 55, 0.07); }
-/* the place you are in: lit indigo, as the deck's switches */
+.navigation-sidebar row:hover, placessidebar row:hover, .sidebar row:hover { background-color: rgba(40, 44, 40, 0.08); }
+/* the place you are in: lit, as the deck lights a row */
 .navigation-sidebar row:selected, placessidebar row:selected, .sidebar row:selected,
 .navigation-sidebar row:selected:hover {
-    background-color: rgba(86, 90, 166, 0.20);
-    box-shadow: inset 3px 0 #565aa6;
-    color: #2e3170;
+    background-color: #282c28;
+    color: #bcbcbb;
 }
-.navigation-sidebar row:selected image, placessidebar row:selected image { color: #4a4e98; }
-.navigation-sidebar separator, placessidebar separator { background-color: rgba(40, 42, 55, 0.16); margin: 6px 12px; }
+.navigation-sidebar row:selected image, placessidebar row:selected image, .sidebar row:selected image { color: #bcbcbb; }
+.navigation-sidebar separator, placessidebar separator { background-color: #282c28; min-height: 2px; margin: 6px 12px; opacity: 0.6; }
 
-/* ---------------------------------------------------------------- the address bar: the deck's screen, in its slate bezel */
+/* ---------------------------------------------------------------- the address: an ink-ruled box on the glass */
 #NautilusPathBar, #NautilusQueryEditor, headerbar entry, .top-bar entry, searchbar entry {
-    background-color: #c9cac6;
-    background-image: linear-gradient(to bottom, #c3c4c0, #cfd0cc);
-    border: 2px solid #4b5163;
-    border-radius: 9px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.22);
-    color: #2c2e30;
+    background-color: #c2c2c1;
+    background-image: none;
+    border: 2px solid #282c28;
+    border-radius: 6px;
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.12);
+    color: #282c28;
 }
 #NautilusPathBar button, #NautilusPathButton, #NautilusPathButton label, #NautilusPathButton image,
 #NautilusPathBar menubutton > button, #NautilusQueryEditor text, #NautilusQueryEditor image {
-    color: #2c2e30;
+    color: #282c28;
     background: none;
     border: none;
     box-shadow: none;
-    border-radius: 6px;
+    border-radius: 4px;
 }
-#NautilusPathButton label { opacity: 0.62; }
-#NautilusPathButton.current-dir label { opacity: 1; font-weight: 600; }
-#NautilusPathButton:hover { background-color: rgba(40, 42, 55, 0.08); }
+#NautilusPathButton label { opacity: 0.6; }
+#NautilusPathButton.current-dir label { opacity: 1; }
+#NautilusPathButton:hover { background-color: rgba(40, 44, 40, 0.10); }
 #NautilusPathBar > scrolledwindow undershoot.left, #NautilusPathBar > scrolledwindow undershoot.right { background: none; border: none; }
-searchbar, searchbar > revealer > box { background-image: linear-gradient(to bottom, #dcdde0, #d2d3d7); border-bottom: 1px solid #a9abb1; }
+searchbar, searchbar > revealer > box { background-color: #bcbcbb; border-bottom: 2.5px solid #282c28; }
 
-/* ---------------------------------------------------------------- what is shown: soft grey glass */
+/* ---------------------------------------------------------------- what is shown: the glass */
 .view, gridview, columnview, listview, treeview, textview, textview text, .nautilus-grid-view, .nautilus-list-view {
-    background-color: #d9dad7;
-    color: #34363b;
+    background-color: #bcbcbb;
+    color: #282c28;
 }
-.nautilus-grid-view gridview > child, .nautilus-grid-view #NautilusViewCell { border-radius: 12px; }
-.nautilus-grid-view gridview > child:hover { background-color: rgba(40, 42, 55, 0.05); }
-/* chosen: an indigo glow round it, its name on an indigo chip */
+.nautilus-grid-view gridview > child, .nautilus-grid-view #NautilusViewCell { border-radius: 6px; }
+.nautilus-grid-view gridview > child:hover { background-color: rgba(40, 44, 40, 0.06); }
+/* chosen: an ink box round it, its name lit */
 .nautilus-grid-view gridview > child:selected, gridview > child:selected {
-    background-color: rgba(86, 90, 166, 0.12);
-    box-shadow: inset 0 0 0 1.5px rgba(86, 90, 166, 0.55);
-    color: #34363b;
+    background-color: rgba(40, 44, 40, 0.07);
+    box-shadow: inset 0 0 0 2px #282c28;
+    color: #282c28;
 }
 gridview > child:selected label {
-    background-color: rgba(86, 90, 166, 0.24);
-    color: #2e3170;
-    border-radius: 6px;
-    padding: 1px 6px;
+    background-color: #282c28;
+    color: #bcbcbb;
+    border-radius: 3px;
+    padding: 0 6px;
 }
-columnview > listview > row { border-radius: 8px; }
-columnview > listview > row:hover { background-color: rgba(40, 42, 55, 0.05); }
+columnview > listview > row { border-radius: 4px; }
+columnview > listview > row:hover { background-color: rgba(40, 44, 40, 0.06); }
 columnview > listview > row:selected, listview > row:selected, treeview:selected {
-    background-color: rgba(86, 90, 166, 0.20);
-    color: #2e3170;
+    background-color: #282c28;
+    color: #bcbcbb;
 }
-columnview > header > button { background: none; color: #5d5f67; font-weight: 600; border-bottom: 1px solid rgba(40, 42, 55, 0.14); }
+columnview > header > button { background: none; color: #282c28; border: none; border-bottom: 2px solid #282c28; border-radius: 0; box-shadow: none; }
 
-/* ---------------------------------------------------------------- controls: the deck's silver keys */
+/* ---------------------------------------------------------------- keys: ink-ruled, lit when pressed */
 button {
-    border-radius: 999px;
-    background-color: #d8d9dc;
-    background-image: linear-gradient(to bottom, #eceef0, #c6c7cc);
-    border: 1px solid rgba(40, 42, 55, 0.26);
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.7), 0 1px 1px rgba(0, 0, 0, 0.10);
-    color: #3b3b3d;
+    border-radius: 6px;
+    background-color: transparent;
+    background-image: none;
+    border: 2px solid #282c28;
+    box-shadow: none;
+    color: #282c28;
 }
-button:hover { background-image: linear-gradient(to bottom, #f2f3f5, #cfd0d5); }
-button:active, button:checked {
-    background-image: linear-gradient(to bottom, #b8bac0, #cfd0d5);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.20);
-}
-button.flat, button.titlebutton, .linked > button.flat, popover button.flat, .view button.flat {
-    background: none;
+button:hover { background-color: rgba(40, 44, 40, 0.08); }
+button:active, button:checked { background-color: #282c28; color: #bcbcbb; }
+button:checked image, button:active image { color: #bcbcbb; }
+button.flat, button.titlebutton, .linked > button.flat, popover button.flat, .view button.flat, .navigation-sidebar button {
     border-color: transparent;
+    background: none;
+}
+button.flat:hover { background-color: rgba(40, 44, 40, 0.08); }
+.suggested-action, button.suggested-action, .destructive-action, button.destructive-action {
+    background-color: #282c28;
+    color: #bcbcbb;
+}
+.suggested-action:hover, .destructive-action:hover { background-color: #3a3e3a; }
+entry, spinbutton, dropdown > button, combobox > box > button {
+    border-radius: 6px;
+    background-color: #c2c2c1;
+    background-image: none;
+    border: 2px solid rgba(40, 44, 40, 0.55);
     box-shadow: none;
 }
-button.flat:hover { background-color: rgba(40, 42, 55, 0.08); }
-/* the main action: lit indigo */
-.suggested-action, button.suggested-action {
-    background-image: linear-gradient(to bottom, #6a6eb8, #5257a2);
-    border-color: #444892;
-    color: #f1f2f7;
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.25), 0 1px 1px rgba(0, 0, 0, 0.12);
-}
-.suggested-action:hover { background-image: linear-gradient(to bottom, #7377c0, #5a5faa); }
-.destructive-action, button.destructive-action {
-    background-image: linear-gradient(to bottom, #a8574e, #8f443d);
-    border-color: #7a3933;
-    color: #f4f1ef;
-}
-entry, spinbutton, dropdown > button, combobox > box > button {
-    border-radius: 9px;
-    background-color: #e1e2e0;
-    background-image: none;
-    border: 1px solid rgba(40, 42, 55, 0.24);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-dropdown > button, combobox > box > button { background-image: linear-gradient(to bottom, #eceef0, #c6c7cc); }
-entry:focus-within { border-color: #565aa6; box-shadow: 0 0 0 2px rgba(86, 90, 166, 0.30); }
+entry:focus-within { border-color: #282c28; }
 .card, .boxed-list, list.boxed-list {
-    border-radius: 12px;
-    background-color: #e1e2e1;
-    border: 1px solid rgba(40, 42, 55, 0.18);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-row { border-radius: 8px; }
-row:selected, list row:selected { background-color: rgba(86, 90, 166, 0.20); color: #2e3170; }
-selection, text selection, entry selection, label selection { background-color: rgba(86, 90, 166, 0.30); color: #22254f; }
-switch {
-    border-radius: 14px;
-    background-color: #a9abb2;
-    border: 1px solid rgba(40, 42, 55, 0.25);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-}
-switch slider {
-    border-radius: 12px;
-    background-image: linear-gradient(to bottom, #f6f7f9, #cfd0d5);
-    border: 1px solid rgba(40, 42, 55, 0.25);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-switch:checked { background-color: #5459a8; }
-check, radio { border: 1.5px solid rgba(40, 42, 55, 0.45); background-color: #e6e7e8; background-image: none; }
-check { border-radius: 5px; }
-check:checked, radio:checked, progressbar progress, scale highlight, levelbar block.filled {
-    background-color: #565aa6; background-image: none; color: #f1f2f7; border-color: #4a4e98;
-}
-progressbar trough, scale trough, levelbar trough {
     border-radius: 6px;
-    background-color: #3a3c42;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    background-color: #c2c2c1;
+    border: 2px solid #282c28;
+    box-shadow: none;
 }
-progressbar progress, scale highlight { border-radius: 6px; }
-scale slider {
-    background-image: linear-gradient(to bottom, #f2f3f5, #c4c5ca);
-    border: 1px solid rgba(40, 42, 55, 0.35);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+.boxed-list > row:not(:last-child) { border-bottom: 1px solid rgba(40, 44, 40, 0.30); }
+row { border-radius: 4px; }
+row:selected, list row:selected { background-color: #282c28; color: #bcbcbb; }
+selection, text selection, entry selection, label selection { background-color: #282c28; color: #bcbcbb; }
+/* switches: the deck's ghost cells, and the lit one */
+switch {
+    border-radius: 6px;
+    background-color: rgba(40, 44, 40, 0.10);
+    border: 2px solid #282c28;
+    box-shadow: none;
 }
-scrollbar slider { background-color: rgba(60, 62, 75, 0.45); border-radius: 6px; min-width: 6px; min-height: 6px; }
+switch slider { border-radius: 3px; background-color: #282c28; box-shadow: none; border: none; margin: 2px; }
+switch:checked { background-color: #282c28; }
+switch:checked slider { background-color: #bcbcbb; }
+check, radio { border: 2px solid #282c28; background-color: transparent; background-image: none; }
+check { border-radius: 3px; }
+check:checked, radio:checked, progressbar progress, scale highlight, levelbar block.filled {
+    background-color: #282c28; background-image: none; color: #bcbcbb; border-color: #282c28;
+}
+/* bars: an ink-ruled outline, unlit cells as ghosts, the charge in ink (as the battery is drawn) */
+progressbar trough, scale trough, levelbar trough {
+    border-radius: 3px;
+    background-color: rgba(40, 44, 40, 0.08);
+    border: 2px solid #282c28;
+}
+progressbar progress, scale highlight { border-radius: 1px; }
+scale slider { background-color: #bcbcbb; border: 2px solid #282c28; border-radius: 3px; box-shadow: none; }
+scrollbar slider { background-color: rgba(40, 44, 40, 0.55); border-radius: 3px; min-width: 6px; min-height: 6px; }
 scrollbar { background: transparent; }
-separator { background-color: rgba(40, 42, 55, 0.16); min-height: 1px; min-width: 1px; }
+separator { background-color: rgba(40, 44, 40, 0.45); min-height: 1px; min-width: 1px; }
 popover > contents, popover.menu > contents {
-    border-radius: 12px;
-    background-color: #e2e3e5;
-    border: 1px solid rgba(40, 42, 55, 0.22);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.20);
+    border-radius: 8px;
+    background-color: #c3c3c2;
+    border: 2px solid #282c28;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
-popover modelbutton { border-radius: 8px; }
-popover modelbutton:hover { background-color: rgba(86, 90, 166, 0.14); }
-tooltip, tooltip.background { background-color: #4b5163; color: #e8e9ee; border-radius: 8px; }
-link, a, label link { color: #4a4e98; }
-/* the small icons (menus, buttons, lists) in grey; the file icons as drawn */
+popover modelbutton { border-radius: 4px; }
+popover modelbutton:hover { background-color: #282c28; color: #bcbcbb; }
+tooltip, tooltip.background { background-color: #282c28; color: #bcbcbb; border-radius: 4px; }
+link, a, label link { color: #282c28; text-decoration: underline; }
+/* the small icons (menus, buttons, lists) in ink; the file icons as drawn */
 .view button image, popover image, menu image, row image { -gtk-icon-style: symbolic; -gtk-icon-filter: grayscale(1); }
 
 /* the status line at the foot */
 .floating-bar, .nautilus-floating-bar, statusbar {
-    background-color: #e1e2e1;
-    color: #34363b;
-    border: 1px solid rgba(40, 42, 55, 0.20);
-    border-radius: 10px;
+    background-color: #c3c3c2;
+    color: #282c28;
+    border: 2px solid #282c28;
+    border-radius: 6px;
 }

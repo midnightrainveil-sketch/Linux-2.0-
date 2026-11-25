@@ -228,13 +228,14 @@ kept for later.
   (`cassette/home-reel-*.png`).
 - The system's programs (Files, Text Editor, gThumb, the sound, Bluetooth
   and network settings, Timeshift: GTK, and Qt ones through it) are made
-  as the SYSTEM CONTROL DECK is: brushed silver bars and pill keys, a soft
-  grey glass for what they show, the deck's slate bezel round the address
-  bar, dark-grey lettering (never black on white), its indigo for what is on
-  or chosen (switches, sliders, the place you are in, a chosen file, the main
-  action); Inter lettering, Barlow headings; nothing else in colour but the
-  file icons (`home/.config/ultra/retro-futurism/gtk.css`, put in place by
-  `ultra-look` at login). Their files and folders have the
+  the SYSTEM CONTROL DECK's screen: its cool grey glass and dark ink (soft
+  contrast, no paper warmth), a faint shadow under the glass's top edge,
+  thick ink rules under the title bar and beside the sidebar, ink-ruled keys
+  and boxes, what is chosen lit as the deck lights a row (an ink bar with the
+  glass's grey in it); the screen's VT323 for the device's words (titles,
+  headings, sidebar, address, keys), Inter for what you read; nothing in
+  colour but the file icons (`home/.config/ultra/retro-futurism/gtk.css`,
+  put in place by `ultra-look` at login). Their files and folders have the
   theme's own icons (`art/FileIcons.png`, cut by `tools/make_file_icons.py`
   into the icon theme `Magnetic88-Files`: twenty icons, linked to some two
   hundred file types and places; programs' icons from Papirus).
