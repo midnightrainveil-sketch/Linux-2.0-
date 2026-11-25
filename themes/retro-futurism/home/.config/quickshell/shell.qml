@@ -64,10 +64,15 @@ ShellRoot {
         model: shell.deskScreens
         Pager { required property var modelData; screen: modelData }
     }
-    // the volume and brightness, as they change (the amber ladder at the right edge)
+    // the volume and brightness, as they change (the volume's amber ladder at
+    // the right edge, the brightness's blue one at the left)
     Variants {
         model: shell.deskScreens
-        Osd { required property var modelData; screen: modelData }
+        Osd { required property var modelData; screen: modelData; kind: "volume" }
+    }
+    Variants {
+        model: shell.deskScreens
+        Osd { required property var modelData; screen: modelData; kind: "brightness" }
     }
 
     // built only while open

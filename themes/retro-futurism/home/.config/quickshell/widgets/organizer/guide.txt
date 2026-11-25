@@ -91,7 +91,7 @@ Super + T           themes
 
 ━━ KEYS ON THE G14 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Volume, mute, mic mute, brightness, keyboard light: their own keys
+Volume, mute, mic mute, brightness, keyboard light: their own keys (the volume shows in amber at the right edge, the brightness in blue at the left)
 Play / pause, next, previous: the media keys (any player)
 Fan key             next power profile (quiet / balanced / performance)
 ROG key             ROG Control Center

@@ -3,16 +3,24 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import qs.services
+import qs.components
 
-// The volume and brightness, shown as they change (the keys, a player, the
-// control deck's faders aside): an amber LED ladder behind smoked glass, in
-// a chrome rim, at the right edge of the screen, as the cassette player's
-// meter. It slides in from the edge, lights to the level, and goes after a
+// The volume or the brightness, shown as it changes (the keys, a player, the
+// control deck's faders aside): an LED ladder behind smoked glass, in the
+// windows' own chrome rim (the taskbar's pieces, as the chromerim plugin and
+// ChromePanel lay them), at an edge of the screen as the cassette player's
+// meter. The volume: amber, at the right edge. The brightness: blue, at the
+// left. It slides in from its edge, lights to the level, and goes after a
 // moment. A muted sound: the ladder dark, "--" below.
+//
+//   Osd { kind: "volume" }       Osd { kind: "brightness" }
 PanelWindow {
     id: win
 
-    anchors { right: true }
+    property string kind: "volume"                  // volume, brightness
+    readonly property bool onLeft: kind === "brightness"
+
+    anchors { right: !win.onLeft; left: win.onLeft }
     exclusionMode: ExclusionMode.Ignore
     implicitWidth: 120 + 60
     implicitHeight: 440
@@ -24,60 +32,82 @@ PanelWindow {
     // (it takes no pointer: clicks go to what is under it)
     mask: Region {}
 
-    property string what: "volume"          // volume, brightness
-    readonly property int value: what === "volume" ? Audio.percent : Brightness.percent
-    readonly property bool muted: what === "volume" && Audio.muted
+    readonly property int value: kind === "volume" ? Audio.percent : Brightness.percent
+    readonly property bool muted: kind === "volume" && Audio.muted
     readonly property int lit: muted ? 0 : Math.round(Math.min(100, value) * 16 / 100)
+
+    // the LEDs' colours: lit, its top three (hotter), unlit, and the glow
+    readonly property color ledOn: kind === "volume" ? "#ffb444" : "#4ea6ff"
+    readonly property color ledTop: kind === "volume" ? "#ff6a3a" : "#a9dcff"
+    readonly property color ledOff: kind === "volume" ? "#3a2c1e" : "#1b2a3c"
+    readonly property color glow: kind === "volume" ? "#ff8a1f" : "#2f8cff"
 
     property bool shown: false
     property real p: shown ? 1 : 0
     Behavior on p { NumberAnimation { duration: win.shown ? 260 : 220; easing.type: win.shown ? Easing.OutCubic : Easing.InCubic } }
 
-    function show(kind: string): void {
+    function show(): void {
         // (not while the control deck is up: its faders show it already)
         if (Widgets.current === "controls" || Scene.locked) return;
-        what = kind;
         shown = true;
         hold.restart();
     }
     Timer { id: hold; interval: 1400; onTriggered: win.shown = false }
-    Connections { target: Audio; function onChanged() { win.show("volume"); } }
-    Connections { target: Brightness; function onChanged() { win.show("brightness"); } }
+    Connections { target: Audio; enabled: win.kind === "volume"; function onChanged() { win.show(); } }
+    Connections { target: Brightness; enabled: win.kind === "brightness"; function onChanged() { win.show(); } }
 
     Item {
         id: body
         width: 120; height: 440
-        x: (1 - win.p) * (width + 60)
+        // in from its own edge
+        x: win.onLeft ? 60 - (1 - win.p) * (width + 60) : (1 - win.p) * (width + 60)
         y: 0
 
-        // the chrome rim
+        // ---- the chrome rim: the windows' own pieces, corners four rims
+        // deep, the straights stretched between
+        readonly property real rim: 14
+        readonly property real k: 4 * rim
+        readonly property real innerR: 17
+        readonly property string dir: Settings.art + "/rim/"
+
+        // the smoked glass, inside the rim
         Rectangle {
-            anchors.fill: parent; radius: 22
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#f1eee8" }
-                GradientStop { position: 0.18; color: "#c9c6bf" }
-                GradientStop { position: 0.5; color: "#8f8c85" }
-                GradientStop { position: 0.82; color: "#cfccc5" }
-                GradientStop { position: 1.0; color: "#e8e5de" }
-            }
-            border.width: 1; border.color: "#57544e"
-            Rectangle {
-                anchors.fill: parent; anchors.margins: 3; radius: 19
-                color: "transparent"; border.width: 1.5; border.color: "#fbf9f4"; opacity: 0.7
-            }
-        }
-        // the smoked glass
-        Rectangle {
-            x: 10; y: 10; width: parent.width - 20; height: parent.height - 20; radius: 14
+            x: body.rim - 1; y: body.rim - 1
+            width: body.width - 2 * (body.rim - 1); height: body.height - 2 * (body.rim - 1)
+            radius: body.innerR
             color: "#1b1917"
-            border.width: 2; border.color: "#0b0a09"
+            Rectangle {      // the rim's shadow on the glass, along its top
+                width: parent.width; height: 22; radius: body.innerR
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.45) }
+                    GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0) }
+                }
+            }
         }
+
+        component Piece: Image { smooth: true; mipmap: true; fillMode: Image.Stretch }
+        Piece { id: tl; source: body.dir + "corner-tl.png"; width: body.k; height: body.k }
+        Piece { x: body.width - body.k; source: body.dir + "corner-tr.png"; width: body.k; height: body.k }
+        Piece { y: body.height - body.k; source: body.dir + "corner-bl.png"; width: body.k; height: body.k }
+        Piece { x: body.width - body.k; y: body.height - body.k; source: body.dir + "corner-br.png"; width: body.k; height: body.k }
+        Piece { x: body.k; width: body.width - 2 * body.k; height: body.rim; source: body.dir + "top.png" }
+        Piece { x: body.k; y: body.height - body.rim; width: body.width - 2 * body.k; height: body.rim; source: body.dir + "bottom.png" }
+        Piece { y: body.k; width: body.rim; height: body.height - 2 * body.k; source: body.dir + "left.png" }
+        Piece { x: body.width - body.rim; y: body.k; width: body.rim; height: body.height - 2 * body.k; source: body.dir + "right.png" }
+        // (no pieces: the rim drawn)
+        Frame {
+            anchors.fill: parent
+            visible: tl.status !== Image.Ready
+            rim: body.rim
+            innerR: body.innerR
+        }
+
         // the LEDs and the number, glowing
         Item {
             anchors.fill: parent
             layer.enabled: win.visible
             layer.effect: MultiEffect {
-                shadowEnabled: true; shadowColor: "#ff8a1f"; shadowBlur: 0.7; shadowOpacity: 0.85
+                shadowEnabled: true; shadowColor: win.glow; shadowBlur: 0.7; shadowOpacity: 0.85
                 shadowHorizontalOffset: 0; shadowVerticalOffset: 0; blurMax: 24
             }
             Column {
@@ -88,31 +118,30 @@ PanelWindow {
                         required property int index
                         readonly property bool on: (15 - index) < win.lit
                         width: 60; height: 13; radius: 2
-                        color: on ? (index < 3 ? "#ff6a3a" : "#ffb444") : "#3a2c1e"
+                        color: on ? (index < 3 ? win.ledTop : win.ledOn) : win.ledOff
                         Behavior on color { ColorAnimation { duration: 70 } }
                     }
                 }
             }
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter; y: 350
+                anchors.horizontalCenter: parent.horizontalCenter; y: 344
                 text: win.muted ? "--" : String(win.value).padStart(2, "0")
-                color: "#ffb444"
+                color: win.ledOn
                 font.family: "VT323"; font.pixelSize: 54
             }
         }
         // what it is: a speaker (struck through when muted), or a sun
         Canvas {
-            id: glyph
-            x: 44; y: 400; width: 32; height: 32
-            property string kind: win.what
+            x: 44; y: 392; width: 32; height: 32
+            property string what: win.kind
             property bool off: win.muted
-            onKindChanged: requestPaint()
+            onWhatChanged: requestPaint()
             onOffChanged: requestPaint()
             onPaint: {
                 const c = getContext("2d"); c.reset();
                 const s = width / 24; c.scale(s, s);
                 c.strokeStyle = "#8a8378"; c.fillStyle = "#8a8378"; c.lineWidth = 2; c.lineCap = "round"; c.lineJoin = "round";
-                if (kind === "volume") {
+                if (what === "volume") {
                     c.beginPath(); c.moveTo(3, 9); c.lineTo(7, 9); c.lineTo(12, 4.5); c.lineTo(12, 19.5); c.lineTo(7, 15); c.lineTo(3, 15); c.closePath(); c.fill();
                     if (off) { c.beginPath(); c.moveTo(15, 9); c.lineTo(21, 15); c.moveTo(21, 9); c.lineTo(15, 15); c.stroke(); }
                     else {

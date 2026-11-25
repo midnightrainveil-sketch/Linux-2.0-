@@ -107,6 +107,10 @@ Gadgets in steel, cream and sage with e-ink screens.
   keys and the meters too). The rest are placeholders (their mock-up)
   until made.
 
+- **Volume and brightness** show as they change (`modules/Osd.qml`): an LED
+  ladder behind smoked glass in the windows' own chrome rim, sliding in from
+  an edge for a moment. The volume in amber at the right edge, the
+  brightness in blue at the left.
 - **Notifications** come on the KAZE pager (`modules/Pager.qml`,
   `services/Notifs.qml`): it slides in from the top right corner with the
   notification on its e-ink screen (the app's mark in ink: Simple Icons'
