@@ -1,5 +1,5 @@
 /* Magnetic 88: programs as the SYSTEM CONTROL DECK's screen. Its cool grey
-   glass (#bcbcbb) and dark ink (#282c28), soft contrast, no paper warmth;
+   glass (#cbcbca) and dark ink (#282c28), soft contrast, no paper warmth;
    a faint shadow under the glass's top edge; thick ink rules between parts;
    what is chosen lit as the deck lights a row (an ink bar, the glass's grey
    in it); the screen's VT323 lettering for the device's own words (titles,
@@ -8,95 +8,95 @@
    libadwaita. ultra-look copies this to ~/.config/gtk-3.0 and gtk-4.0. */
 
 /* ---------------------------------------------------------------- colours */
-@define-color window_bg_color #bcbcbb;
+@define-color window_bg_color #cbcbca;
 @define-color window_fg_color #282c28;
-@define-color view_bg_color #bcbcbb;
+@define-color view_bg_color #cbcbca;
 @define-color view_fg_color #282c28;
-@define-color headerbar_bg_color #bcbcbb;
+@define-color headerbar_bg_color #cbcbca;
 @define-color headerbar_fg_color #282c28;
 @define-color headerbar_border_color #282c28;
-@define-color headerbar_backdrop_color #bcbcbb;
+@define-color headerbar_backdrop_color #cbcbca;
 @define-color headerbar_shade_color rgba(40, 44, 40, 0.18);
-@define-color sidebar_bg_color #b4b4b3;
+@define-color sidebar_bg_color #c2c2c1;
 @define-color sidebar_fg_color #282c28;
-@define-color sidebar_backdrop_color #b4b4b3;
+@define-color sidebar_backdrop_color #c2c2c1;
 @define-color sidebar_shade_color rgba(40, 44, 40, 0.18);
-@define-color secondary_sidebar_bg_color #b8b8b7;
+@define-color secondary_sidebar_bg_color #c6c6c5;
 @define-color secondary_sidebar_fg_color #282c28;
-@define-color card_bg_color #c3c3c2;
+@define-color card_bg_color #d5d5d4;
 @define-color card_fg_color #282c28;
 @define-color card_shade_color rgba(40, 44, 40, 0.16);
-@define-color popover_bg_color #c3c3c2;
+@define-color popover_bg_color #d5d5d4;
 @define-color popover_fg_color #282c28;
-@define-color dialog_bg_color #bcbcbb;
+@define-color dialog_bg_color #cbcbca;
 @define-color dialog_fg_color #282c28;
-@define-color thumbnail_bg_color #bcbcbb;
+@define-color thumbnail_bg_color #cbcbca;
 @define-color thumbnail_fg_color #282c28;
 @define-color shade_color rgba(40, 44, 40, 0.16);
 @define-color accent_bg_color #282c28;
-@define-color accent_fg_color #bcbcbb;
+@define-color accent_fg_color #cbcbca;
 @define-color accent_color #282c28;
 @define-color destructive_bg_color #282c28;
-@define-color destructive_fg_color #bcbcbb;
+@define-color destructive_fg_color #cbcbca;
 @define-color destructive_color #282c28;
 @define-color success_bg_color #3e423e;
-@define-color success_fg_color #bcbcbb;
+@define-color success_fg_color #cbcbca;
 @define-color success_color #282c28;
 @define-color warning_bg_color #3e423e;
-@define-color warning_fg_color #bcbcbb;
+@define-color warning_fg_color #cbcbca;
 @define-color warning_color #282c28;
 @define-color error_bg_color #282c28;
-@define-color error_fg_color #bcbcbb;
+@define-color error_fg_color #cbcbca;
 @define-color error_color #282c28;
 @define-color borders rgba(40, 44, 40, 0.30);
-@define-color theme_bg_color #bcbcbb;
+@define-color theme_bg_color #cbcbca;
 @define-color theme_fg_color #282c28;
-@define-color theme_base_color #bcbcbb;
+@define-color theme_base_color #cbcbca;
 @define-color theme_text_color #282c28;
 @define-color theme_selected_bg_color #282c28;
-@define-color theme_selected_fg_color #bcbcbb;
+@define-color theme_selected_fg_color #cbcbca;
 @define-color insensitive_fg_color #7c7f7c;
 
 :root {
-    --window-bg-color: #bcbcbb;
+    --window-bg-color: #cbcbca;
     --window-fg-color: #282c28;
-    --view-bg-color: #bcbcbb;
+    --view-bg-color: #cbcbca;
     --view-fg-color: #282c28;
-    --headerbar-bg-color: #bcbcbb;
+    --headerbar-bg-color: #cbcbca;
     --headerbar-fg-color: #282c28;
     --headerbar-border-color: #282c28;
-    --headerbar-backdrop-color: #bcbcbb;
+    --headerbar-backdrop-color: #cbcbca;
     --headerbar-shade-color: rgba(40, 44, 40, 0.18);
-    --sidebar-bg-color: #b4b4b3;
+    --sidebar-bg-color: #c2c2c1;
     --sidebar-fg-color: #282c28;
-    --sidebar-backdrop-color: #b4b4b3;
+    --sidebar-backdrop-color: #c2c2c1;
     --sidebar-shade-color: rgba(40, 44, 40, 0.18);
-    --secondary-sidebar-bg-color: #b8b8b7;
+    --secondary-sidebar-bg-color: #c6c6c5;
     --secondary-sidebar-fg-color: #282c28;
-    --card-bg-color: #c3c3c2;
+    --card-bg-color: #d5d5d4;
     --card-fg-color: #282c28;
     --card-shade-color: rgba(40, 44, 40, 0.16);
-    --popover-bg-color: #c3c3c2;
+    --popover-bg-color: #d5d5d4;
     --popover-fg-color: #282c28;
-    --dialog-bg-color: #bcbcbb;
+    --dialog-bg-color: #cbcbca;
     --dialog-fg-color: #282c28;
-    --thumbnail-bg-color: #bcbcbb;
+    --thumbnail-bg-color: #cbcbca;
     --thumbnail-fg-color: #282c28;
     --shade-color: rgba(40, 44, 40, 0.16);
     --accent-bg-color: #282c28;
-    --accent-fg-color: #bcbcbb;
+    --accent-fg-color: #cbcbca;
     --accent-color: #282c28;
     --destructive-bg-color: #282c28;
-    --destructive-fg-color: #bcbcbb;
+    --destructive-fg-color: #cbcbca;
     --destructive-color: #282c28;
     --success-bg-color: #3e423e;
-    --success-fg-color: #bcbcbb;
+    --success-fg-color: #cbcbca;
     --success-color: #282c28;
     --warning-bg-color: #3e423e;
-    --warning-fg-color: #bcbcbb;
+    --warning-fg-color: #cbcbca;
     --warning-color: #282c28;
     --error-bg-color: #282c28;
-    --error-fg-color: #bcbcbb;
+    --error-fg-color: #cbcbca;
     --error-color: #282c28;
     --border-opacity: 30%;
 }
@@ -124,13 +124,18 @@ button label, popover modelbutton label, popover.menu label, tooltip label { fon
 
 /* ---------------------------------------------------------------- the top: glass, a thick ink rule under it */
 headerbar, .titlebar, .top-bar, toolbarview > .top-bar {
-    background-color: #bcbcbb;
+    background-color: #cbcbca;
     background-image: none;
     color: #282c28;
     box-shadow: inset 0 4px 6px -3px rgba(0, 0, 0, 0.22);
     border-bottom: 2.5px solid #282c28;
 }
 .top-bar headerbar, toolbarview > .top-bar headerbar { border-bottom: none; box-shadow: none; background: none; }
+/* every bar one height (the sidebar's and the main one side by side: their
+   ink rules meet as one line), the address box no taller than the keys */
+headerbar { min-height: 50px; padding-top: 0; padding-bottom: 0; }
+headerbar > windowhandle > box { min-height: 50px; }
+#NautilusPathBar, #NautilusQueryEditor { min-height: 30px; margin-top: 0; margin-bottom: 0; }
 headerbar button:not(.suggested-action):not(.destructive-action), .top-bar button:not(.suggested-action):not(.destructive-action),
 headerbar menubutton > button, .top-bar menubutton > button, headerbar splitbutton > button {
     background: none;
@@ -147,15 +152,15 @@ headerbar button:hover, .top-bar button:hover, headerbar menubutton > button:hov
 }
 headerbar button:active, headerbar button:checked, .top-bar button:checked, headerbar menubutton > button:checked {
     background-color: #282c28;
-    color: #bcbcbb;
+    color: #cbcbca;
 }
-headerbar button:checked image, headerbar button:active image { color: #bcbcbb; }
+headerbar button:checked image, headerbar button:active image { color: #cbcbca; }
 headerbar image, .top-bar image { color: #282c28; -gtk-icon-filter: none; }
 
 /* ---------------------------------------------------------------- the sidebar: the glass, a thin ink rule beside it */
-.sidebar-pane headerbar, .sidebar-pane .top-bar, .navigation-sidebar-pane headerbar { background-color: #b4b4b3; }
+.sidebar-pane headerbar, .sidebar-pane .top-bar, .navigation-sidebar-pane headerbar { background-color: #c2c2c1; }
 .navigation-sidebar, .sidebar, .sidebar-pane, placessidebar, .nautilus-sidebar, stacksidebar {
-    background-color: #b4b4b3;
+    background-color: #c2c2c1;
     color: #282c28;
     border-right: 2.5px solid #282c28;
 }
@@ -174,14 +179,14 @@ headerbar image, .top-bar image { color: #282c28; -gtk-icon-filter: none; }
 .navigation-sidebar row:selected, placessidebar row:selected, .sidebar row:selected,
 .navigation-sidebar row:selected:hover {
     background-color: #282c28;
-    color: #bcbcbb;
+    color: #cbcbca;
 }
-.navigation-sidebar row:selected image, placessidebar row:selected image, .sidebar row:selected image { color: #bcbcbb; }
+.navigation-sidebar row:selected image, placessidebar row:selected image, .sidebar row:selected image { color: #cbcbca; }
 .navigation-sidebar separator, placessidebar separator { background-color: #282c28; min-height: 2px; margin: 6px 12px; opacity: 0.6; }
 
 /* ---------------------------------------------------------------- the address: an ink-ruled box on the glass */
 #NautilusPathBar, #NautilusQueryEditor, headerbar entry, .top-bar entry, searchbar entry {
-    background-color: #c2c2c1;
+    background-color: #d5d5d4;
     background-image: none;
     border: 2px solid #282c28;
     border-radius: 6px;
@@ -200,11 +205,11 @@ headerbar image, .top-bar image { color: #282c28; -gtk-icon-filter: none; }
 #NautilusPathButton.current-dir label { opacity: 1; }
 #NautilusPathButton:hover { background-color: rgba(40, 44, 40, 0.10); }
 #NautilusPathBar > scrolledwindow undershoot.left, #NautilusPathBar > scrolledwindow undershoot.right { background: none; border: none; }
-searchbar, searchbar > revealer > box { background-color: #bcbcbb; border-bottom: 2.5px solid #282c28; }
+searchbar, searchbar > revealer > box { background-color: #cbcbca; border-bottom: 2.5px solid #282c28; }
 
 /* ---------------------------------------------------------------- what is shown: the glass */
 .view, gridview, columnview, listview, treeview, textview, textview text, .nautilus-grid-view, .nautilus-list-view {
-    background-color: #bcbcbb;
+    background-color: #cbcbca;
     color: #282c28;
 }
 .nautilus-grid-view gridview > child, .nautilus-grid-view #NautilusViewCell { border-radius: 6px; }
@@ -217,7 +222,7 @@ searchbar, searchbar > revealer > box { background-color: #bcbcbb; border-bottom
 }
 gridview > child:selected label {
     background-color: #282c28;
-    color: #bcbcbb;
+    color: #cbcbca;
     border-radius: 3px;
     padding: 0 6px;
 }
@@ -225,7 +230,7 @@ columnview > listview > row { border-radius: 4px; }
 columnview > listview > row:hover { background-color: rgba(40, 44, 40, 0.06); }
 columnview > listview > row:selected, listview > row:selected, treeview:selected {
     background-color: #282c28;
-    color: #bcbcbb;
+    color: #cbcbca;
 }
 columnview > header > button { background: none; color: #282c28; border: none; border-bottom: 2px solid #282c28; border-radius: 0; box-shadow: none; }
 
@@ -239,8 +244,8 @@ button {
     color: #282c28;
 }
 button:hover { background-color: rgba(40, 44, 40, 0.08); }
-button:active, button:checked { background-color: #282c28; color: #bcbcbb; }
-button:checked image, button:active image { color: #bcbcbb; }
+button:active, button:checked { background-color: #282c28; color: #cbcbca; }
+button:checked image, button:active image { color: #cbcbca; }
 button.flat, button.titlebutton, .linked > button.flat, popover button.flat, .view button.flat, .navigation-sidebar button {
     border-color: transparent;
     background: none;
@@ -248,7 +253,7 @@ button.flat, button.titlebutton, .linked > button.flat, popover button.flat, .vi
 button.flat:hover { background-color: rgba(40, 44, 40, 0.08); }
 .suggested-action, button.suggested-action, .destructive-action, button.destructive-action {
     background-color: #282c28;
-    color: #bcbcbb;
+    color: #cbcbca;
 }
 .suggested-action:hover, .destructive-action:hover { background-color: #3a3e3a; }
 entry, spinbutton, dropdown > button, combobox > box > button {
@@ -267,8 +272,8 @@ entry:focus-within { border-color: #282c28; }
 }
 .boxed-list > row:not(:last-child) { border-bottom: 1px solid rgba(40, 44, 40, 0.30); }
 row { border-radius: 4px; }
-row:selected, list row:selected { background-color: #282c28; color: #bcbcbb; }
-selection, text selection, entry selection, label selection { background-color: #282c28; color: #bcbcbb; }
+row:selected, list row:selected { background-color: #282c28; color: #cbcbca; }
+selection, text selection, entry selection, label selection { background-color: #282c28; color: #cbcbca; }
 /* switches: the deck's ghost cells, and the lit one */
 switch {
     border-radius: 6px;
@@ -278,11 +283,11 @@ switch {
 }
 switch slider { border-radius: 3px; background-color: #282c28; box-shadow: none; border: none; margin: 2px; }
 switch:checked { background-color: #282c28; }
-switch:checked slider { background-color: #bcbcbb; }
+switch:checked slider { background-color: #cbcbca; }
 check, radio { border: 2px solid #282c28; background-color: transparent; background-image: none; }
 check { border-radius: 3px; }
 check:checked, radio:checked, progressbar progress, scale highlight, levelbar block.filled {
-    background-color: #282c28; background-image: none; color: #bcbcbb; border-color: #282c28;
+    background-color: #282c28; background-image: none; color: #cbcbca; border-color: #282c28;
 }
 /* bars: an ink-ruled outline, unlit cells as ghosts, the charge in ink (as the battery is drawn) */
 progressbar trough, scale trough, levelbar trough {
@@ -291,26 +296,26 @@ progressbar trough, scale trough, levelbar trough {
     border: 2px solid #282c28;
 }
 progressbar progress, scale highlight { border-radius: 1px; }
-scale slider { background-color: #bcbcbb; border: 2px solid #282c28; border-radius: 3px; box-shadow: none; }
+scale slider { background-color: #cbcbca; border: 2px solid #282c28; border-radius: 3px; box-shadow: none; }
 scrollbar slider { background-color: rgba(40, 44, 40, 0.55); border-radius: 3px; min-width: 6px; min-height: 6px; }
 scrollbar { background: transparent; }
 separator { background-color: rgba(40, 44, 40, 0.45); min-height: 1px; min-width: 1px; }
 popover > contents, popover.menu > contents {
     border-radius: 8px;
-    background-color: #c3c3c2;
+    background-color: #d5d5d4;
     border: 2px solid #282c28;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 popover modelbutton { border-radius: 4px; }
-popover modelbutton:hover { background-color: #282c28; color: #bcbcbb; }
-tooltip, tooltip.background { background-color: #282c28; color: #bcbcbb; border-radius: 4px; }
+popover modelbutton:hover { background-color: #282c28; color: #cbcbca; }
+tooltip, tooltip.background { background-color: #282c28; color: #cbcbca; border-radius: 4px; }
 link, a, label link { color: #282c28; text-decoration: underline; }
 /* the small icons (menus, buttons, lists) in ink; the file icons as drawn */
 .view button image, popover image, menu image, row image { -gtk-icon-style: symbolic; -gtk-icon-filter: grayscale(1); }
 
 /* the status line at the foot */
 .floating-bar, .nautilus-floating-bar, statusbar {
-    background-color: #c3c3c2;
+    background-color: #d5d5d4;
     color: #282c28;
     border: 2px solid #282c28;
     border-radius: 6px;

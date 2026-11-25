@@ -36,10 +36,13 @@ PanelWindow {
     readonly property bool muted: kind === "volume" && Audio.muted
     readonly property int lit: muted ? 0 : Math.round(Math.min(100, value) * 16 / 100)
 
-    // the LEDs' colours: lit, its top three (hotter), unlit, and the glow
-    readonly property color ledOn: kind === "volume" ? "#ffb444" : "#4ea6ff"
-    readonly property color ledTop: kind === "volume" ? "#ff6a3a" : "#a9dcff"
-    readonly property color ledOff: kind === "volume" ? "#3a2c1e" : "#1b2a3c"
+    // the LEDs' colours, neon: the tube's colour, its white-hot core, the
+    // top three hotter (a deeper tube), unlit, and the glow round them
+    readonly property color ledOn: kind === "volume" ? "#ff9a1a" : "#2f8cff"
+    readonly property color coreOn: kind === "volume" ? "#fff4d8" : "#eaf6ff"
+    readonly property color ledTop: kind === "volume" ? "#ff4a26" : "#2bc4ff"
+    readonly property color coreTop: kind === "volume" ? "#ffe4d6" : "#f0fcff"
+    readonly property color ledOff: kind === "volume" ? "#33261a" : "#18263a"
     readonly property color glow: kind === "volume" ? "#ff8a1f" : "#2f8cff"
 
     property bool shown: false
@@ -107,26 +110,51 @@ PanelWindow {
             anchors.fill: parent
             layer.enabled: win.visible
             layer.effect: MultiEffect {
-                shadowEnabled: true; shadowColor: win.glow; shadowBlur: 0.7; shadowOpacity: 0.85
-                shadowHorizontalOffset: 0; shadowVerticalOffset: 0; blurMax: 24
+                shadowEnabled: true; shadowColor: win.glow; shadowBlur: 1.0; shadowOpacity: 1.0
+                shadowHorizontalOffset: 0; shadowVerticalOffset: 0; blurMax: 32
             }
             Column {
                 x: 30; y: 34; spacing: 6
                 Repeater {
                     model: 16
-                    Rectangle {
+                    Item {
+                        id: led
                         required property int index
                         readonly property bool on: (15 - index) < win.lit
-                        width: 60; height: 13; radius: 2
-                        color: on ? (index < 3 ? win.ledTop : win.ledOn) : win.ledOff
-                        Behavior on color { ColorAnimation { duration: 70 } }
+                        readonly property color tube: index < 3 ? win.ledTop : win.ledOn
+                        readonly property color core: index < 3 ? win.coreTop : win.coreOn
+                        width: 60; height: 13
+                        // its halo (drawn, so it shows even where the glow is not)
+                        Rectangle {
+                            anchors.centerIn: parent; width: parent.width + 12; height: parent.height + 9; radius: 8
+                            color: led.tube; opacity: led.on ? 0.22 : 0
+                            Behavior on opacity { NumberAnimation { duration: 70 } }
+                        }
+                        Rectangle {
+                            anchors.centerIn: parent; width: parent.width + 5; height: parent.height + 4; radius: 5
+                            color: led.tube; opacity: led.on ? 0.40 : 0
+                            Behavior on opacity { NumberAnimation { duration: 70 } }
+                        }
+                        // the tube
+                        Rectangle {
+                            anchors.fill: parent; radius: 3
+                            color: led.on ? led.tube : win.ledOff
+                            Behavior on color { ColorAnimation { duration: 70 } }
+                        }
+                        // its white-hot core
+                        Rectangle {
+                            anchors.fill: parent; anchors.margins: 3; radius: 2
+                            color: led.core; opacity: led.on ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 70 } }
+                        }
                     }
                 }
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter; y: 344
                 text: win.muted ? "--" : String(win.value).padStart(2, "0")
-                color: win.ledOn
+                color: win.coreOn
+                style: Text.Outline; styleColor: win.ledOn
                 font.family: "VT323"; font.pixelSize: 54
             }
         }

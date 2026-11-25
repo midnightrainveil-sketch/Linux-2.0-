@@ -114,11 +114,13 @@ ShellRoot {
         function power(): void { if (Scene.locked) lockScreen.showPower(1); else Widgets.toggle("power"); }
         function themes(): void { Panels.toggle("themes"); }
         function close(): void { Panels.close(); Widgets.close(); }
+        function pager(): void { Panels.pagerRequested(); }
     }
     // the widgets: qs ipc call widget toggle typewriter (open, close, list)
     IpcHandler {
         target: "widget"
-        function toggle(id: string): void { Widgets.toggle(id); }
+        // ("pager": the notifications, brought up to look through: Super + N)
+        function toggle(id: string): void { if (id === "pager") Panels.pagerRequested(); else Widgets.toggle(id); }
         function open(id: string): void { Widgets.open(id); }
         function close(): void { Widgets.close(); }
         function list(): string { return Widgets.list.map(w => w.id + (w.callable === false ? " (shell only)" : "") + "\t" + w.key).join("\n"); }
