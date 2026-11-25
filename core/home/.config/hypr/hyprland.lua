@@ -70,6 +70,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("sh -c 'sleep 4; ultra-mic tone'")   -- the microphone's tone, as last chosen
+    hl.exec_cmd("ultra-volume-swipe")               -- four fingers up / down: the volume, as a fader
 end)
 
 ------------------------------------------------------------------ the theme

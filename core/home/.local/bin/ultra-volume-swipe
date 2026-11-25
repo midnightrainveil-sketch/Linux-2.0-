@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Four fingers up or down on the touchpad: the volume, as a fader.
+
+    ultra-volume-swipe            run (Hyprland starts it at login)
+    ultra-volume-swipe status     is it able to read the touchpad?
+
+While four fingers slide up the volume rises, down it falls, a step of 1%
+for each little way they go (STEP below), so it can be set slowly to just
+the level wanted. Raising it unmutes. The shell shows the level as it goes.
+
+Hyprland's own gestures fire once per swipe, so this reads the touchpad's
+gestures itself (`libinput debug-events`, which shows no keys: they are
+printed as ***). That needs your user in the `input` group: setup.sh adds
+it; log out and in once after. Without it, this does nothing.
+"""
+import fcntl, os, re, select, subprocess, sys, time
+
+FINGERS = 4
+STEP = 90.0          # how far the fingers go for 1% (libinput's units: about 2.3 mm)
+SINK = "@DEFAULT_AUDIO_SINK@"
+
+LINE = re.compile(r"GESTURE_SWIPE_(BEGIN|UPDATE|END)\s+\S+\s+(\d+)"
+                  r"(?:\s+(-?[\d.]+)/\s*(-?[\d.]+)(?:\s*\(\s*(-?[\d.]+)/\s*(-?[\d.]+)\s*unaccelerated\))?)?")
+
+
+def readable() -> bool:
+    """can this user open the input devices?"""
+    try:
+        devs = [f for f in os.listdir("/dev/input") if f.startswith("event")]
+    except OSError:
+        return False
+    for d in devs:
+        try:
+            os.close(os.open("/dev/input/" + d, os.O_RDONLY | os.O_NONBLOCK))
+            return True
+        except OSError:
+            continue
+    return False
+
+
+def volume(pct: int, unmute: bool) -> None:
+    if unmute:
+        subprocess.run(["wpctl", "set-mute", SINK, "0"], stderr=subprocess.DEVNULL)
+    sign = "+" if pct > 0 else "-"
+    subprocess.run(["wpctl", "set-volume", "-l", "1", SINK, f"{abs(pct)}%{sign}"], stderr=subprocess.DEVNULL)
+
+
+def run_once() -> None:
+    p = subprocess.Popen(["stdbuf", "-oL", "libinput", "debug-events"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+    fd = p.stdout.fileno()
+    os.set_blocking(fd, False)
+    buf = b""
+    active = False          # four fingers down, going up or down
+    sx = sy = 0.0           # how far they went this swipe (to tell up/down from sideways)
+    acc = 0.0               # distance not yet turned into a step
+    unmuted = False
+    while True:                     # (to the end of what it wrote)
+        r, _, _ = select.select([fd], [], [], 1.0)
+        if not r:
+            continue
+        try:
+            chunk = os.read(fd, 65536)
+        except BlockingIOError:
+            continue
+        if not chunk:
+            break
+        buf += chunk
+        *lines, buf = buf.split(b"\n")
+        steps = 0
+
+        def flush():
+            nonlocal steps, unmuted
+            if steps:
+                volume(steps, steps > 0 and not unmuted)
+                if steps > 0:
+                    unmuted = True
+                steps = 0
+
+        for raw in lines:
+            m = LINE.search(raw.decode("utf-8", "replace"))
+            if not m:
+                continue
+            kind, n = m.group(1), int(m.group(2))
+            if kind == "BEGIN":
+                flush()
+                active = n == FINGERS
+                sx = sy = acc = 0.0
+                unmuted = False
+            elif kind == "END":
+                flush()
+                active = False
+            elif active and m.group(3) is not None:
+                dx = float(m.group(5) if m.group(5) is not None else m.group(3))
+                dy = float(m.group(6) if m.group(6) is not None else m.group(4))
+                sx += abs(dx); sy += abs(dy)
+                if sy < sx:                 # (more sideways than up or down: not ours)
+                    continue
+                acc += -dy                  # fingers up: louder
+                while acc >= STEP:
+                    steps += 1; acc -= STEP
+                while acc <= -STEP:
+                    steps -= 1; acc += STEP
+        flush()                     # (what this read added, at once)
+    p.kill()
+
+
+def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "status":
+        ok = readable()
+        print("reads the touchpad: four fingers up / down set the volume" if ok
+              else "cannot read the touchpad: add yourself to the input group (sudo usermod -aG input $USER), then log out and in")
+        sys.exit(0 if ok else 1)
+    # one at a time
+    lock = open(os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "ultra-volume-swipe.lock"), "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit(0)
+    if not readable():
+        print("ultra-volume-swipe: no access to the touchpad (the input group); doing nothing", file=sys.stderr)
+        sys.exit(0)
+    # (libinput stops when a device goes, e.g. over sleep: start it again)
+    while True:
+        try:
+            run_once()
+        except FileNotFoundError:
+            print("ultra-volume-swipe: libinput or wpctl is missing", file=sys.stderr)
+            sys.exit(1)
+        time.sleep(2)
+
+
+if __name__ == "__main__":
+    main()

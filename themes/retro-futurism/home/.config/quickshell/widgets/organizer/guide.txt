@@ -74,6 +74,7 @@ Super + Ctrl + ← →, Page Up / Down     previous / next page
 Super + Shift + Ctrl + ← →     take the window along
 Super + wheel                  through the pages
 Three-finger swipe             through the pages
+Four fingers up / down         the volume, slowly, like a fader (1% at a time)
 Super + `                      open the drawer (a hidden page)
 Super + -                      put the window in the drawer
 Super + Shift + `              take it out again
@@ -111,6 +112,7 @@ ultra-snapshot          restore points (on, now, list, restore, off)
 ultra-boot              boot splash (quiet / loud), power button, panel
 ultra-tune / ultra-memory   small tunings, compressed swap (on, off, status)
 ultra-mic               a clearer microphone (tone, check, test)
+ultra-volume-swipe      the four-finger volume (status: can it read the touchpad?)
 ultra-layout            save / restore the open windows
 ultra-screenshot        region, window, screen
 ultra-tapes             the cassettes (library, start, stop)

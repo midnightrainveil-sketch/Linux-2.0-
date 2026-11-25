@@ -71,6 +71,7 @@ chosen theme.
 | `ultra-brightness` | The screen's brightness |
 | `ultra-icc` | A colour profile for a screen |
 | `ultra-mic` | The laptop microphone, made clear |
+| `ultra-volume-swipe` | Four fingers up or down on the touchpad: the volume, as a fader (1% at a time; needs the input group, which setup adds) |
 | `ultra-lan` | Keep the office's machines reachable on a mesh Wi-Fi |
 | `ultra-ros` | ROS Noetic and RViz in an Ubuntu container |
 | `ultra-snapshot` | Restore points (Timeshift) before every system update |

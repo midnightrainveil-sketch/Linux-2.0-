@@ -405,6 +405,14 @@ if ! cmp -s "$bin/ultra-cover" /usr/local/bin/ultra-cover || [[ ! -f /usr/local/
     rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}"/thumbnails/fail 2>/dev/null || true
 fi
 
+# ------------------------------------------------------------------ the volume under four fingers
+# (ultra-volume-swipe reads the touchpad's gestures itself: that needs the
+# input group; it takes effect after logging out and in)
+if ! id -nG "$USER" | tr ' ' '\n' | grep -qx input; then
+    say "four fingers up / down for the volume: adding you to the input group (log out and in after)"
+    sudo usermod -aG input "$USER" || warn "could not add you to the input group; the volume swipe will not work"
+fi
+
 # ------------------------------------------------------------------ a quiet start, and the power button
 # your theme's own page while it starts and shuts down, not scrolling text;
 # a press of the power button opens the power menu, holding it shuts down
