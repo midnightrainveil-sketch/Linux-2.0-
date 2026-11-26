@@ -206,36 +206,59 @@ robot() {
 # (RViz then hangs on "Connection timed out"). Ask its master where they are,
 # and send that network through the robot (sudo ip route replace ... via ...;
 # until the next reboot).
-xmlrpc() { # xmlrpc <url> <method> [string argument]
-    curl -s -m 3 -H 'Content-Type: text/xml' --data \
-        "<?xml version=\"1.0\"?><methodCall><methodName>$2</methodName><params><param><value><string>/archive_ros</string></value></param>${3:+<param><value><string>$3</string></value></param>}</params></methodCall>" "$1"
+# ros_nodes <master url>: each program (node) on the master and where it says
+# it is, "NAME URI" a line; ros_topics <master url>: the topics published.
+# (Python's XML-RPC, one question for the lot: asking name by name over
+# hundreds of topics took minutes)
+ros_nodes() {
+    python3 - "$1" <<'PY' 2>/dev/null || true
+import socket, sys, xmlrpc.client
+socket.setdefaulttimeout(3)
+m = xmlrpc.client.ServerProxy(sys.argv[1])
+_, _, (pubs, subs, srvs) = m.getSystemState("/ultra_ros")
+names = sorted({n for group in (pubs, subs, srvs) for _, ns in group for n in ns})
+for n in names:
+    try:
+        code, _, uri = m.lookupNode("/ultra_ros", n)
+        if code == 1: print(n, uri)
+    except Exception:
+        pass
+PY
 }
-master_name() { # master_name <master url>: the name the master announces itself by
-    xmlrpc "$1" getUri | grep -oP '<string>http://\K[^:/<]+' | head -1 || true
+ros_topics() {
+    python3 - "$1" <<'PY' 2>/dev/null || true
+import socket, sys, xmlrpc.client
+socket.setdefaulttimeout(5)
+_, _, ts = xmlrpc.client.ServerProxy(sys.argv[1]).getPublishedTopics("/ultra_ros", "")
+for t, _ in ts: print(t)
+PY
+}
+# hosts_entry <address> <name>: the name in /etc/hosts as that address (sudo;
+# marked "# ultra-ros", replaced rather than added twice)
+hosts_entry() {
+    sudo sed -i "/[[:space:]]$2[[:space:]]*# ultra-ros\$/d" /etc/hosts 2>/dev/null || true
+    echo "$1 $2 # ultra-ros" | sudo tee -a /etc/hosts >/dev/null
 }
 robot_routes() {
-    local addr=$1 master="http://$1:11311/" name uri ip port seen="" tries=0
-    command -v curl >/dev/null || return 0
-    while IFS= read -r name; do
-        ((++tries > 60)) && break
-        # (the master lists topics and services too: they have no address)
-        uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1 || true)
-        [[ -n $uri ]] || continue
+    local addr=$1 master="http://$1:11311/" name uri ip port seen=""
+    command -v python3 >/dev/null || return 0
+    while read -r name uri; do
         ip=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri")
         port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
-        # announced by a name (the robot's ROS_HOSTNAME), not an address: if
-        # this laptop cannot look it up, RViz reaches the master but gets no
-        # data. The robot's own name goes in /etc/hosts as the robot.
+        # announced by a name (a ROS_HOSTNAME, often the robot's own computer
+        # name), not an address: if this laptop cannot look it up, RViz
+        # reaches the master but gets no data from it. If the robot itself
+        # answers on that program's port, the name is the robot's: it goes in
+        # /etc/hosts as the robot.
         if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             if ! getent ahostsv4 "$ip" >/dev/null; then
                 [[ " $seen " == *" $ip "* ]] && continue
                 seen+=" $ip"
-                if [[ $ip == "$(master_name "$master")" ]]; then
-                    echo ":: the robot calls itself \"$ip\", a name this laptop does not know: adding it to /etc/hosts as $addr (sudo)"
-                    sudo sed -i "/[[:space:]]$ip[[:space:]]*# ultra-ros\$/d" /etc/hosts 2>/dev/null || true
-                    echo "$addr $ip # ultra-ros" | sudo tee -a /etc/hosts >/dev/null || echo "!! could not: RViz may get no data from $name" >&2
+                if timeout 2 bash -c "exec 3<>/dev/tcp/$addr/$port" 2>/dev/null; then
+                    echo ":: the robot's programs call it \"$ip\", a name this laptop does not know: adding it to /etc/hosts as $addr (sudo)"
+                    hosts_entry "$addr" "$ip" || echo "!! could not: RViz may get no data from $name" >&2
                 else
-                    echo "!! $name is announced as \"$ip\", a name this laptop cannot look up: RViz gets nothing from it" >&2
+                    echo "!! $name is announced as \"$ip\", a name this laptop cannot look up, and the robot itself does not answer for it" >&2
                     echo "   (its address, if you know it: a line \"ADDRESS $ip\" in /etc/hosts)" >&2
                 fi
                 continue
@@ -255,7 +278,7 @@ robot_routes() {
         echo ":: the robot's programs are at $ip, which this laptop cannot reach directly;"
         echo "   routing ${ip%.*}.0/24 through the robot (sudo, until the next reboot)"
         sudo ip route replace "${ip%.*}.0/24" via "$addr" || echo "!! could not add the route: RViz may get no data" >&2
-    done < <(xmlrpc "$master" getSystemState | grep -oP '<string>\K/[^<]+' | sort -u)
+    done < <(ros_nodes "$master")
 }
 # tunnel <robot address>: (indirect) the robot's inner networks through an SSH
 # tunnel into the robot (sshuttle; it asks the robot's password unless your
@@ -331,6 +354,14 @@ if [[ -n ${CONTAINER_ID:-} || -e /run/.containerenv ]]; then
     echo "ultra-ros: this is the ROS shell itself; type exit, then run it again outside" >&2
     exit 2
 fi
+# (a robot given as user@address: the user is the robot's login, for the
+# tunnel; the address is the robot)
+args=()
+for a in "$@"; do
+    if [[ $a =~ ^([A-Za-z0-9_.-]+)@([A-Za-z0-9.-]+)$ ]]; then export ULTRA_ROS_USER=${BASH_REMATCH[1]}; a=${BASH_REMATCH[2]}; fi
+    args+=("$a")
+done
+set -- ${args[@]+"${args[@]}"}
 cmd=${1:-shell}
 if looks_like_host "$cmd"; then robot "$cmd"; cmd=shell; fi
 case $cmd in
@@ -396,24 +427,23 @@ case $cmd in
         ((robot_up)) || exit 1
         addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
         master="http://$addr:11311/"
-        topics=$(xmlrpc "$master" getPublishedTopics / | grep -oP '<string>\K/[^<]+' | sort -u || true)
+        topics=$(ros_topics "$master")
         echo ":: $(grep -c . <<<"$topics" || true) topics published"
-        for t in /tf /tf_static /map /scan /odom /robot_description; do
-            if grep -qx "$t" <<<"$topics"; then echo "   $t"; else echo "   $t   (none)"; fi
+        for t in tf tf_static map scan odom robot_description; do
+            found=$(grep -E "(^|/)$t\$" <<<"$topics" | head -3 | tr '\n' ' ' || true)
+            if [[ -n $found ]]; then echo "   $t: $found"; else echo "   $t: (none)"; fi
         done
         echo ":: the robot's programs, from here"
-        bad=0
-        while IFS= read -r name; do
-            uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1 || true)
-            [[ -n $uri ]] || continue
+        bad=0 count=0
+        while read -r name uri; do
+            ((++count))
             h=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri"); port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
             ip=$(getent ahostsv4 "$h" | awk '{print $1; exit}' || true)
             if [[ -z $ip ]]; then echo "   $name: \"$h\" cannot be looked up"; bad=1
-            elif timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null; then :
-            else echo "   $name: $h ($ip) does not answer"; bad=1
+            elif ! timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null; then echo "   $name: $h ($ip) does not answer"; bad=1
             fi
-        done < <(xmlrpc "$master" getSystemState | grep -oP '<string>\K/[^<]+' | sort -u)   # (topics and services too: they have no address, and are passed over)
-        ((bad)) || echo "   all of them answer"
+        done < <(ros_nodes "$master")
+        ((bad)) || echo "   all $count of them answer"
         file=$(saved_setup "$addr")
         if [[ -n $file && -f $file ]]; then echo ":: RViz setup: $file"
         elif [[ -n $file ]]; then echo ":: RViz setup: $file is missing: RViz opens blank"
