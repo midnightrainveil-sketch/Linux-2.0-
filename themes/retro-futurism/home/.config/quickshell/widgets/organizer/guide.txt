@@ -121,7 +121,7 @@ ultra-research          ask "<question>", export <session>, test (which search a
 ultra-desk              the desk terminal (full: fullscreen)
 ultra-card              the terminal's greeting
 ultra-rim               the window rims' plugin (build, status)
-ultra-ros               ROS in a container (rviz, a robot's IP)
+ultra-ros               ROS in a container (rviz, a robot's IP; check ROBOT when RViz shows nothing)
 qs log                  the shell's messages, when something misbehaves
 
 

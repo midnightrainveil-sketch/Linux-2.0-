@@ -16,6 +16,9 @@
 #                          on it). Watching works; what RViz sends to the robot
 #                          (a goal, a pose) needs the robot to reach this laptop,
 #                          which only the direct way gives.
+#   ultra-ros check ROBOT  what RViz would get from a robot: its master, its
+#                          main topics (/tf, /map, /scan ...), whether each of
+#                          its programs can be reached, its saved RViz setup
 #   ultra-ros setup      set up, or finish a setup that stopped
 #   ultra-ros remove     delete the container (your files stay)
 #
@@ -207,6 +210,9 @@ xmlrpc() { # xmlrpc <url> <method> [string argument]
     curl -s -m 3 -H 'Content-Type: text/xml' --data \
         "<?xml version=\"1.0\"?><methodCall><methodName>$2</methodName><params><param><value><string>/archive_ros</string></value></param>${3:+<param><value><string>$3</string></value></param>}</params></methodCall>" "$1"
 }
+master_name() { # master_name <master url>: the name the master announces itself by
+    xmlrpc "$1" getUri | grep -oP '<string>http://\K[^:/<]+' | head -1 || true
+}
 robot_routes() {
     local addr=$1 master="http://$1:11311/" name uri ip port seen="" tries=0
     command -v curl >/dev/null || return 0
@@ -217,6 +223,25 @@ robot_routes() {
         [[ -n $uri ]] || continue
         ip=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri")
         port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
+        # announced by a name (the robot's ROS_HOSTNAME), not an address: if
+        # this laptop cannot look it up, RViz reaches the master but gets no
+        # data. The robot's own name goes in /etc/hosts as the robot.
+        if [[ ! $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if ! getent ahostsv4 "$ip" >/dev/null; then
+                [[ " $seen " == *" $ip "* ]] && continue
+                seen+=" $ip"
+                if [[ $ip == "$(master_name "$master")" ]]; then
+                    echo ":: the robot calls itself \"$ip\", a name this laptop does not know: adding it to /etc/hosts as $addr (sudo)"
+                    sudo sed -i "/[[:space:]]$ip[[:space:]]*# ultra-ros\$/d" /etc/hosts 2>/dev/null || true
+                    echo "$addr $ip # ultra-ros" | sudo tee -a /etc/hosts >/dev/null || echo "!! could not: RViz may get no data from $name" >&2
+                else
+                    echo "!! $name is announced as \"$ip\", a name this laptop cannot look up: RViz gets nothing from it" >&2
+                    echo "   (its address, if you know it: a line \"ADDRESS $ip\" in /etc/hosts)" >&2
+                fi
+                continue
+            fi
+            ip=$(getent ahostsv4 "$ip" | awk '{print $1; exit}')
+        fi
         [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && $ip != "$addr" && " $seen " != *" $ip "* ]] || continue
         seen+=" $ip"
         timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null && continue
@@ -363,11 +388,45 @@ case $cmd in
             if ! rostopic list >/dev/null 2>&1; then roscore >/dev/null 2>&1 & core=\$!; sleep 3; fi
             $show; [ -n \"\${core:-}\" ] && kill \$core"
         ;;
+    check)
+        # what RViz would get from a robot, and what is in the way
+        host=${2:-}
+        [[ -n $host ]] || { echo "usage: ultra-ros check ROBOT" >&2; exit 2; }
+        robot "$host"
+        ((robot_up)) || exit 1
+        addr=$(getent ahostsv4 "$host" | awk '{print $1; exit}')
+        master="http://$addr:11311/"
+        topics=$(xmlrpc "$master" getPublishedTopics / | grep -oP '<string>\K/[^<]+' | sort -u || true)
+        echo ":: $(grep -c . <<<"$topics" || true) topics published"
+        for t in /tf /tf_static /map /scan /odom /robot_description; do
+            if grep -qx "$t" <<<"$topics"; then echo "   $t"; else echo "   $t   (none)"; fi
+        done
+        echo ":: the robot's programs, from here"
+        bad=0
+        while IFS= read -r name; do
+            uri=$(xmlrpc "$master" lookupNode "$name" | grep -oP '<string>\Khttp://[^<]+' | head -1 || true)
+            [[ -n $uri ]] || continue
+            h=$(sed -E 's#http://([^:/]+).*#\1#' <<<"$uri"); port=$(sed -E 's#http://[^:/]+:([0-9]+).*#\1#' <<<"$uri")
+            ip=$(getent ahostsv4 "$h" | awk '{print $1; exit}' || true)
+            if [[ -z $ip ]]; then echo "   $name: \"$h\" cannot be looked up"; bad=1
+            elif timeout 2 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null; then :
+            else echo "   $name: $h ($ip) does not answer"; bad=1
+            fi
+        done < <(xmlrpc "$master" getSystemState | grep -oP '<string>\K/[^<]+' | sort -u)   # (topics and services too: they have no address, and are passed over)
+        ((bad)) || echo "   all of them answer"
+        file=$(saved_setup "$addr")
+        if [[ -n $file && -f $file ]]; then echo ":: RViz setup: $file"
+        elif [[ -n $file ]]; then echo ":: RViz setup: $file is missing: RViz opens blank"
+        else echo ":: no RViz setup saved for $addr: RViz opens blank (only a grid). Add a line \"$addr /path/to/its.rviz\""
+             echo "   to ~/.config/ultra/rviz-setups, or open one: ultra-ros rviz $host -d FILE.rviz"
+        fi
+        if ! grep -qx /tf <<<"$topics"; then echo "!! no /tf: RViz can place nothing (the robot's bringup may not be fully up)"; fi
+        ;;
     setup) setup ;;
     remove)
         distrobox rm --force "$box" || true
         rm -f "$conf/installed" "$apps/ultra-ros.desktop" "$apps/ultra-rviz.desktop"
         echo "removed the container (~/catkin_ws is untouched)"
         ;;
-    *) echo "usage: ultra-ros [ROBOT] | rviz [ROBOT] | rviz-indirect ROBOT | setup | remove" >&2; exit 2 ;;
+    *) echo "usage: ultra-ros [ROBOT] | rviz [ROBOT] | rviz-indirect ROBOT | check ROBOT | setup | remove" >&2; exit 2 ;;
 esac

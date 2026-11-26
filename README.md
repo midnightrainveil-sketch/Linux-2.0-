@@ -74,7 +74,7 @@ chosen theme.
 | `ultra-hdr` | HDR on the laptop's panel: on, off, toggle, status (10-bit colour; SDR mapped into it; off by default, as Hyprland's HDR is still experimental) |
 | `ultra-volume-swipe` | Four fingers up or down on the touchpad: the volume, as a fader (1% at a time; needs the input group, which setup adds) |
 | `ultra-lan` | Keep the office's machines reachable on a mesh Wi-Fi |
-| `ultra-ros` | ROS Noetic and RViz in an Ubuntu container |
+| `ultra-ros` | ROS Noetic and RViz in an Ubuntu container (`ultra-ros check ROBOT`: why RViz shows nothing) |
 | `ultra-snapshot` | Restore points (Timeshift) before every system update |
 | `ultra-memory` | Compressed swap in memory (zram) |
 | `ultra-tune` | Small, reversible laptop tunings |
