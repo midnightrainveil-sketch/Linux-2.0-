@@ -493,6 +493,15 @@ for lay in (lay_classic, lay_wide, lay_panel, lay_compact, lay_column, lay_strip
     lines = lay()
     if lines is not None: break
 
+# in a terminal wider than any card (a fullscreen one), the card in the
+# middle: every line moved over alike (the picture is placed where its
+# line's cursor is, so it moves with them). Narrower ones, the desk's
+# included, keep it at the left.
+cw = max((vis(l) for l in lines), default=0) - 2          # (its own width, without the two-space margin)
+shift = (COLS - cw) // 2 - 2 if COLS >= 110 else 0
+if shift > 0:
+    lines = [' ' * shift + l if l else l for l in lines]
+
 body = [''] + lines + ['']
 if REDRAW:
     # over the screen in place, from its top: each line cleared to its end,
