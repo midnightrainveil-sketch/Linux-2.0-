@@ -1,54 +1,19 @@
 # Magnetic 88: the page shown while the machine starts and stops (Plymouth).
-# The night the train runs through: the taskbar's wordmark, a chrome line
-# ruled under it, a row of amber LEDs (the volume indicator's) that a light
-# sweeps along while it works, and what is happening in the control deck's
-# amber lettering. The pictures come from tools/make_splash.py, drawn for an
-# 1800 px tall screen (the G14) and fitted to others.
+# The lock screen goes on: the station platform at dusk (her waiting while
+# it starts, the platform empty as it shuts down), and in front of it the
+# access pass rising into place, its screen lighting up with what is
+# happening, a glow running along its row of lights, its lamp breathing.
+# The pictures come from tools/make_splash.py, drawn for an 1800 px tall
+# screen (the G14) and fitted to others. Positions on the pass are in its
+# own pixels (device.png: 1162 x 1201).
 
 W = Window.GetWidth();
 H = Window.GetHeight();
 k = H / 1800;
+s = k * 0.82;                       # the pass's scale: about half the screen's height
 
-fun fit(img) {
-    if (k > 0.97 && k < 1.03) return img;
-    return img.Scale(Math.Int(img.GetWidth() * k + 0.5), Math.Int(img.GetHeight() * k + 0.5));
-}
-
-# ------------------------------------------------------------------ the night
-Window.SetBackgroundTopColor(0.051, 0.035, 0.027);
-Window.SetBackgroundBottomColor(0.090, 0.067, 0.051);
-
-head_img = fit(Image("heading.png"));
-head = Sprite(head_img);
-head_y = Math.Int(H * 0.42 - head_img.GetHeight() / 2);
-head.SetPosition(Math.Int((W - head_img.GetWidth()) / 2), head_y, 1);
-head.SetOpacity(0);
-
-rule_img = fit(Image("rule.png"));
-rule_w = rule_img.GetWidth();
-rule_h = rule_img.GetHeight();
-rule_x = Math.Int((W - rule_w) / 2);
-rule_y = Math.Int(head_y + head_img.GetHeight() + 34 * k);
-rule = Sprite();
-rule.SetPosition(rule_x, rule_y, 1);
-
-# ------------------------------------------------------------------ the LEDs
-n = 16;
-on_img = fit(Image("led-on.png"));
-off_img = fit(Image("led-off.png"));
-step = 44 * k;
-led_y = Math.Int(rule_y + rule_h + 40 * k);
-led_x0 = (W - (n - 1) * step) / 2;
-offs = [];
-ons = [];
-for (i = 0; i < n; i++) {
-    cx = led_x0 + i * step;
-    offs[i] = Sprite(off_img);
-    offs[i].SetPosition(Math.Int(cx - off_img.GetWidth() / 2), Math.Int(led_y - off_img.GetHeight() / 2), 1);
-    offs[i].SetOpacity(0);
-    ons[i] = Sprite(on_img);
-    ons[i].SetPosition(Math.Int(cx - on_img.GetWidth() / 2), Math.Int(led_y - on_img.GetHeight() / 2), 2);
-    ons[i].SetOpacity(0);
+fun scaled(img, f) {
+    return img.Scale(Math.Int(img.GetWidth() * f + 0.5), Math.Int(img.GetHeight() * f + 0.5));
 }
 
 # what is happening
@@ -57,51 +22,84 @@ which = "boot";
 if (mode == "shutdown") which = "shutdown";
 if (mode == "reboot") which = "reboot";
 if (mode == "updates" || mode == "system-upgrade" || mode == "firmware-upgrade") which = "updates";
-line_img = fit(Image("line-" + which + ".png"));
-line = Sprite(line_img);
-line_y = Math.Int(led_y + 40 * k);
-line.SetPosition(Math.Int((W - line_img.GetWidth()) / 2), line_y, 1);
-line.SetOpacity(0);
+
+# ------------------------------------------------------------------ the platform
+Window.SetBackgroundTopColor(0.05, 0.04, 0.05);
+Window.SetBackgroundBottomColor(0.05, 0.04, 0.05);
+if (which == "shutdown") bg_img = Image("bg-shutdown.png"); else bg_img = Image("bg-boot.png");
+f = Math.Max(W / bg_img.GetWidth(), H / bg_img.GetHeight());
+bg_img = scaled(bg_img, f);
+bg = Sprite(bg_img);
+bg.SetPosition(Math.Int((W - bg_img.GetWidth()) / 2), Math.Int((H - bg_img.GetHeight()) / 2), 0);
+
+# ------------------------------------------------------------------ the pass
+dev_img = scaled(Image("device.png"), s);
+dx = Math.Int(W * 0.38 - dev_img.GetWidth() / 2);     # (a little left of the middle: she waits on the right)
+dy0 = Math.Int((H - dev_img.GetHeight()) / 2);
+rise = 40 * k;
+fun at_x(x) { return dx + x * s; }
+
+# (its shadow is drawn a quarter size, from 160 px up and left of the pass,
+# and falls a little below it)
+shadow_img = scaled(Image("shadow.png"), 4 * s);
+shadow = Sprite(shadow_img);
+shadow.SetOpacity(0);
+device = Sprite(dev_img);
+device.SetOpacity(0);
+face_img = scaled(Image("face-" + which + ".png"), s);
+face = Sprite(face_img);
+face.SetOpacity(0);
+
+# the row of lights, its label, the lamp
+n = 10;
+on_img = scaled(Image("dot-on.png"), s);
+off_img = scaled(Image("dot-off.png"), s);
+lab_progress = scaled(Image("label-progress.png"), s);
+lab_key = scaled(Image("label-key.png"), s);
+label = Sprite(lab_progress);
+label.SetOpacity(0);
+offs = [];
+ons = [];
+for (i = 0; i < n; i++) {
+    offs[i] = Sprite(off_img);
+    offs[i].SetOpacity(0);
+    ons[i] = Sprite(on_img);
+    ons[i].SetOpacity(0);
+}
+pulse = Sprite(scaled(Image("pulse.png"), s));
+pulse.SetOpacity(0);
+
+fun place(y0) {
+    shadow.SetPosition(Math.Int(dx - 160 * s), Math.Int(y0 - 160 * s), 1);
+    device.SetPosition(dx, Math.Int(y0), 2);
+    face.SetPosition(dx, Math.Int(y0), 3);
+    label.SetPosition(Math.Int(at_x(154 - 30)), Math.Int(y0 + (847 - 24) * s), 4);
+    for (i = 0; i < n; i++) {
+        cx = 172 + i * 58;
+        offs[i].SetPosition(Math.Int(at_x(cx - 60)), Math.Int(y0 + (919 - 60) * s), 4);
+        ons[i].SetPosition(Math.Int(at_x(cx - 60)), Math.Int(y0 + (919 - 60) * s), 5);
+    }
+    pulse.SetPosition(Math.Int(at_x(175 - 60)), Math.Int(y0 + (1054 - 60) * s), 4);
+}
 
 # ------------------------------------------------------------------ the passphrase (an encrypted disk)
-prompt_img = fit(Image("prompt.png"));
-prompt = Sprite(prompt_img);
-prompt.SetPosition(Math.Int((W - prompt_img.GetWidth()) / 2), line_y, 3);
-prompt.SetOpacity(0);
-bullet_img = fit(Image("bullet.png"));
-bullets = [];
 asking = 0;
-
-fun show_bullets(count) {
-    gap = bullet_img.GetWidth() * 0.6;
-    total = count * gap;
-    x0 = (W - total) / 2;
-    for (i = 0; i < count || bullets[i]; i++) {
-        if (!bullets[i]) global.bullets[i] = Sprite(bullet_img);
-        global.bullets[i].SetPosition(Math.Int(x0 + i * gap), Math.Int(line_y + prompt_img.GetHeight() + 6 * k), 3);
-        if (i < count) global.bullets[i].SetOpacity(1); else global.bullets[i].SetOpacity(0);
-    }
-}
-
+typed = 0;
 fun on_password(prompt_text, count) {
     global.asking = 1;
-    prompt.SetOpacity(1);
-    line.SetOpacity(0);
-    show_bullets(count);
+    global.typed = count;
+    label.SetImage(lab_key);
 }
-
 fun on_normal() {
     global.asking = 0;
-    prompt.SetOpacity(0);
-    show_bullets(0);
+    global.typed = 0;
+    label.SetImage(lab_progress);
 }
-
 Plymouth.SetDisplayPasswordFunction(on_password);
 Plymouth.SetDisplayNormalFunction(on_normal);
 
 # ------------------------------------------------------------------ coming on
 t = 0;
-drawn = -1;
 
 fun ease(x) {
     if (x <= 0) return 0;
@@ -111,30 +109,34 @@ fun ease(x) {
 
 fun refresh() {
     global.t = t + 1 / 50;
-    head.SetOpacity(ease(t / 0.8));
-    # the chrome line, ruled from its middle outwards, once
-    p = ease((t - 0.4) / 1.0);
-    w = Math.Int(rule_w * p);
-    if (w != drawn && w > 0) {
-        rule.SetImage(rule_img.Scale(w, rule_h));
-        rule.SetX(Math.Int(rule_x + (rule_w - w) / 2));
-        global.drawn = w;
-    }
-    # the LEDs come on, and a light sweeps along them, there and back
-    a = ease((t - 1.0) / 0.5);
-    s = (t - 1.0) * 0.55;
-    s = s - Math.Int(s);
-    if (s < 0.5) pos = s * 2 * (n - 1); else pos = (1 - s) * 2 * (n - 1);
+    # the pass rises into place
+    a = ease(t / 0.9);
+    place(dy0 + rise * (1 - a));
+    shadow.SetOpacity(a);
+    device.SetOpacity(a);
+    # its screen lights up, with the flicker of a screen coming on
+    b = ease((t - 0.7) / 0.5);
+    flick = 1;
+    if (t > 0.78 && t < 0.86) flick = 0.35;
+    face.SetOpacity(b * flick);
+    label.SetOpacity(b * flick);
+    # the lights: a glow running along them, there and back; or, asked for
+    # the disk's key, one lit for each letter typed
+    c = ease((t - 1.1) / 0.5);
+    sw = (t - 1.1) * 0.5;
+    sw = sw - Math.Int(sw);
+    if (sw < 0.5) pos = sw * 2 * (n - 1); else pos = (1 - sw) * 2 * (n - 1);
     for (i = 0; i < n; i++) {
-        offs[i].SetOpacity(a);
-        d = Math.Abs(i - pos) / 1.9;
-        if (d >= 1) v = 0; else v = (1 - d) * (1 - d);
-        ons[i].SetOpacity(a * v);
+        offs[i].SetOpacity(c);
+        if (asking) {
+            if (i < typed) v = 1; else v = 0;
+        } else {
+            d = Math.Abs(i - pos) / 1.8;
+            if (d >= 1) v = 0; else v = (1 - d) * (1 - d);
+        }
+        ons[i].SetOpacity(c * v);
     }
-    # the word on what is happening, breathing while it works
-    if (!asking) {
-        b = ease((t - 1.3) / 0.6);
-        line.SetOpacity(b * (0.8 + 0.2 * Math.Cos((t - 1.9) * 2.4)));
-    }
+    # the lamp beside what it is doing, breathing
+    pulse.SetOpacity(c * (0.55 + 0.45 * Math.Cos(t * 3.2)));
 }
 Plymouth.SetRefreshFunction(refresh);

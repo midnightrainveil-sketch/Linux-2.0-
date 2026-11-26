@@ -109,10 +109,14 @@ Gadgets in steel, cream and sage with e-ink screens.
 
 - **Starting and shutting down** show the theme's own page
   (`system/plymouth`, drawn by `tools/make_splash.py`; put in place by the
-  core's `ultra-boot quiet`): the night, the taskbar's /// MAGNETIC 88 with
-  a chrome line ruled under it, a light sweeping along a row of amber LEDs,
-  and STARTING UP, SHUTTING DOWN, RESTARTING or INSTALLING UPDATES in the
-  control deck's amber lettering (and PASSPHRASE for an encrypted disk).
+  core's `ultra-boot quiet`), the lock screen going on: the station platform
+  at dusk (her waiting as it starts, the platform empty as it shuts down)
+  and the access pass rising into place in front of it, its screen lighting
+  up in the lock screen's glowing lettering with what is happening (SYSTEM
+  SHUTDOWN, END OF THE LINE, SEE YOU SOON, from DESKTOP SESSION to POWER
+  OFF; start-up, restart and updates their own), a glow running along its
+  row of lights and its lamp breathing; asked for an encrypted disk's key,
+  the row shows a light for each letter typed.
 - **Volume and brightness** show as they change (`modules/Osd.qml`): an LED
   ladder behind smoked glass in the windows' own chrome rim, sliding in from
   an edge for a moment. The volume in amber at the right edge, the
