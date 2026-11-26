@@ -180,9 +180,32 @@ Widget {
     }
 
     Item { id: sink; focus: true; Keys.onPressed: e => self.keyOnList(e) }
+    // a key that writes (a letter, a digit, a space: not Delete, not a shortcut)
+    function writes(e: var): bool {
+        const c = (e.text || "").charCodeAt(0);
+        return e.text !== "" && c >= 32 && c !== 127 && !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier));
+    }
+    // typing on a list page (sources, archive, export): it goes to the
+    // question, on the research page, as if typed there
+    function typeIntoQuestion(e: var): void {
+        setView("research");
+        if (e.key === Qt.Key_Backspace) {
+            ask.fresh = false;
+            if (ask.selectedText !== "") ask.remove(ask.selectionStart, ask.selectionEnd);
+            else if (ask.cursorPosition > 0) ask.remove(ask.cursorPosition - 1, ask.cursorPosition);
+        } else {
+            if (ask.fresh) ask.text = "";
+            ask.fresh = false;
+            const at = ask.cursorPosition;
+            ask.insert(at, e.text);
+            ask.cursorPosition = at + e.text.length;
+        }
+        e.accepted = true;
+    }
     function keyOnList(e: var): void {
         onKey(e);
         if (e.accepted) return;
+        if (writes(e) || e.key === Qt.Key_Backspace) { typeIntoQuestion(e); return; }
         const n = view === "sources" ? results.length : view === "archive" ? Research.sessions.length : 0;
         switch (e.key) {
         case Qt.Key_Up: case Qt.Key_Left:
@@ -359,7 +382,9 @@ Widget {
                     font.family: self.serif; font.pixelSize: 26; font.weight: Font.Bold
                     clip: true
                     selectionColor: self.ink; selectedTextColor: self.light
-                    onCursorPositionChanged: self.column = cursorPosition
+                    // (the caret moved into the question, by a click or the
+                    // arrows: it is being changed, not typed over)
+                    onCursorPositionChanged: { self.column = cursorPosition; if (cursorPosition !== text.length) fresh = false; }
                     Keys.onPressed: e => {
                         self.onKey(e);
                         if (e.accepted) return;
@@ -376,7 +401,7 @@ Widget {
                         case Qt.Key_PageDown: self.resultSel = Math.min(self.results.length - 1, self.resultSel + 4); e.accepted = true; return;
                         }
                         // a new question: typing over the one asked
-                        if (fresh && e.text !== "" && e.text.charCodeAt(0) >= 32 && !(e.modifiers & Qt.ControlModifier)) { text = ""; }
+                        if (fresh && self.writes(e)) { text = ""; }
                         fresh = false;
                     }
                     Ink {
@@ -533,7 +558,7 @@ Widget {
                         onPicked: { self.sourceSel = index; Research.openResult(modelData); }
                     }
                 }
-                Hint { text: "ENTER (OR A CLICK)  OPEN IN THE BROWSER" }
+                Hint { text: "ENTER (OR A CLICK)  OPEN IN THE BROWSER" + (self.cur?.engine ? "  ·  FROM " + self.cur.engine.toUpperCase() : "") }
             }
 
             // ---- NOTES

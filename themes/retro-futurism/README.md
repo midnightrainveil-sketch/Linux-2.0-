@@ -141,8 +141,10 @@ Gadgets in steel, cream and sage with e-ink screens.
   in its slot, a strip of it showing for everyday work; PULL OUT on it (or
   the round knob, or F11) slides it up out of the slot, full length, for big
   work, the machine sinking away below, and PUSH IN puts it back. Type a
-  question, Enter: the web's results (DuckDuckGo's plain page: no key, no
-  account; Google's own results need a paid key), each opened in your
+  question, Enter: the web's results (Google's, through Startpage: no key,
+  no account; DuckDuckGo's plain page when Startpage gives nothing, and the
+  SOURCES page says which answered; settings.json "researchEngine"), typing
+  on any list page going to the question, each opened in your
   browser with Enter or a click and marked READ; the progress bar counts
   them. SOURCES (the results by address), NOTES (yours, per session),
   ARCHIVE (every session) and EXPORT (the session as Markdown in

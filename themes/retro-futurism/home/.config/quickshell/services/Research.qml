@@ -9,7 +9,7 @@ import Quickshell.Io
 // ones you have opened, and your notes on it.
 // Kept in ~/.local/state/ultra/retro-futurism/research.json.
 //
-//   sessions   [{ id, n, query, results: [{ title, url, site, snippet }], visited: [url], notes, read, created, error }]
+//   sessions   [{ id, n, query, results: [{ title, url, site, snippet }], engine, visited: [url], notes, read, created, error }]
 //   openResult(r)   in the browser (and counted as read)
 //   current    the session on the screen (or null)
 //   ask(q)     a new session, looked up; busy while it is
@@ -83,7 +83,7 @@ Singleton {
                 let d = null;
                 try { d = JSON.parse(text); } catch (e) {}
                 if (!d) d = { error: "The look-up failed." };
-                root.patch(asker.sid, { results: d.results ?? [], error: d.error ?? "" });
+                root.patch(asker.sid, { results: d.results ?? [], error: d.error ?? "", engine: d.engine ?? "" });
                 root.busy = false;
             }
         }
