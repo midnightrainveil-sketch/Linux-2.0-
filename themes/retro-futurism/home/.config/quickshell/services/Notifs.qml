@@ -75,6 +75,7 @@ Singleton {
     // (Simple Icons, CC0: assets/pager/marks); else its own (a name or a
     // file), its app's, or its name's
     readonly property var marks: ({
+        kde: "kde", gnome: "gnome",
         discord: "discord", vesktop: "discord", webcord: "discord", armcord: "discord", discordapp: "discord",
         firefox: "firefoxbrowser", librewolf: "librewolf", chrome: "googlechrome", googlechrome: "googlechrome",
         brave: "brave", spotify: "spotify", telegram: "telegram", telegramdesktop: "telegram",

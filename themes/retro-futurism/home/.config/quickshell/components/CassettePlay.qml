@@ -29,7 +29,8 @@ Item {
     property real barMax: 12
     property color lit: "#ffb24a"
 
-    readonly property bool playing: Media.playing
+    property bool still: false              // not to be seen moving: reels and meter rest
+    readonly property bool playing: Media.playing && !still
     readonly property string dir: Settings.art + "/cassette/"
 
     function sx(x) { return ox + x * k; }

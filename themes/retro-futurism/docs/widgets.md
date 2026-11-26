@@ -10,29 +10,28 @@ click outside, or the same key again).
 ```
 widgets/index.json          every widget: id, name, its key, callable or not, its mock-ups
 widgets/<id>/Main.qml       the widget itself
-widgets/<id>/*.png, *.jpg   its pictures (preview.jpg: the mock-up, while it is a placeholder)
+widgets/<id>/*.png, *.jpg   its pictures
 services/Widgets.qml        which widget is up: open(id), toggle(id), close()
 modules/WidgetStage.qml     the stage: blur and dimming, the animation in and out, the keyboard
 components/Widget.qml       what every widget is built on
 components/WidgetStore.qml  a widget's saved state
-components/WidgetPlaceholder.qml   the stand-in until a widget is built
 ```
 
 ## The widgets
 
 | id | name | key | mock-ups |
 | --- | --- | --- | --- |
-| `typewriter` | Research station (**built**): Wikipedia research, notes, archive, export; the tablet pulls out | Super + R | Typewriter |
-| `launcher` | App launcher (**built**) | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
-| `organizer` | Organizer (**built**): calendar, agenda, tasks, notes, reminders | Super + C | Calendar |
-| `cassette` | Cassette player (**built**) | Super + A, or REC on it for the machine | CassettePlayerWidget |
-| `vending` | Cassette vending (**built**): your ~/Music | Super + V | CassetteVending |
-| `clock` | Clock (**built**) | Super + W, or click the taskbar's time | ClockWidget |
-| `controls` | Control deck (**built**) | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
-| `power` | Power (**built**) | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |
+| `typewriter` | Research station: the web's results (Google through Startpage, DuckDuckGo after it), notes, archive, export; the tablet pulls out | Super + R | Typewriter |
+| `launcher` | App launcher | Super + Space, or the taskbar's port | AppLauncher, AppLauncherEmpty, Cartridges |
+| `organizer` | Organizer: calendar, agenda, tasks, notes, reminders | Super + C | Calendar |
+| `cassette` | Cassette player: your songs, or any other player | Super + A, or REC on it for the machine | CassettePlayerWidget |
+| `vending` | Cassette vending: your ~/Music | Super + V | CassetteVending |
+| `clock` | Clock | Super + W, or click the taskbar's time | ClockWidget |
+| `controls` | Control deck | Super + S, or click the taskbar's Wi-Fi / volume / battery | ControlDeck |
+| `power` | Power | the laptop's power button, the Arch logo, Super + Shift + Escape | Power |
 
-Built: the control deck, the clock, power and the launcher. The rest are placeholders: their mock-up, and a tag
-that shows the last key or click they were given.
+Wi-Fi and Bluetooth (`wifi`, `bluetooth`) are the control deck's own lists,
+opened from it; they have no key of their own.
 
 ## Where they come up
 
@@ -164,6 +163,6 @@ up with a short rise and settle, and loads it only while it is up.
 
 ## Adding one
 
-1. A folder `widgets/<id>/` with `Main.qml` (copy a placeholder's).
+1. A folder `widgets/<id>/` with `Main.qml` (a `Widget { ... }`; the clock's is a small one to start from).
 2. An entry in `widgets/index.json`.
 3. Its key in `hypr/theme/binds.lua`: `hl.bind(mod .. " + X", widget("<id>"), ...)`.

@@ -10,7 +10,10 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property bool on: Media.playing || Tapes.playing
+    // (only while a meter can be seen: the desk's, or the cassette player's)
+    property bool deskSees: false
+    property bool widgetSees: false
+    readonly property bool on: (Media.playing || Tapes.playing) && (deskSees || widgetSees)
     property var levels: [0, 0, 0, 0, 0, 0]
     property bool real: false               // cava is answering
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ultra-look: this theme's look for programs, set as the session starts:
-# an e-ink screen, as the terminal is: dark ink on light grey paper, nothing
-# in colour (gtk.css); websites and apps asked for light. (GTK reads gtk.css from ~/.config/gtk-3.0
+# the control deck's screen: its grey glass and dark ink, nothing in colour
+# (gtk.css); websites and apps asked for light. (GTK reads gtk.css from ~/.config/gtk-3.0
 # and gtk-4.0; they are written here, and taken away when another theme
 # comes: theme.json "leaves".)
 set -u
@@ -11,8 +11,7 @@ if [[ -f $css ]]; then
     for d in gtk-3.0 gtk-4.0; do
         mkdir -p "$config/$d"
         cmp -s "$css" "$config/$d/gtk.css" || cp -f "$css" "$config/$d/gtk.css"
-        # (and its paper's grain, which it draws the screens with)
-        cmp -s "${css%/*}/paper.png" "$config/$d/paper.png" || cp -f "${css%/*}/paper.png" "$config/$d/paper.png" 2>/dev/null
+        rm -f "$config/$d/paper.png"      # (the grain an older look drew with)
     done
 fi
 fc-cache >/dev/null 2>&1 &

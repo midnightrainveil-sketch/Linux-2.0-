@@ -32,6 +32,8 @@ import qs.services
 Widget {
     id: self
     widgetId: "cassette"
+    // (its meter reads the music's levels while it is up)
+    Binding { target: Spectrum; property: "widgetSees"; value: self.shown }
 
     readonly property real k: 0.82
     preferredWidth: 1334 * k

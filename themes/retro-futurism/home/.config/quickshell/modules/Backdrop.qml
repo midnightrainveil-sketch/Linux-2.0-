@@ -39,11 +39,22 @@ PanelWindow {
     // ---- the ride: the car sways a little, always, and now and then runs
     // over a rail joint. Seconds of the ride so far, counted only while it
     // can be seen.
+    // ---- at rest while apps are open: the desk is dimmed behind them, so
+    // the ride, the city going by and her cassette player stand still (no
+    // frame is drawn for them), a moment after the first app opens; they go
+    // on again as soon as the desk is clear
+    readonly property bool busy: Hypr.apps.length > 0
+    property bool resting: false
+    onBusyChanged: if (!busy) resting = false
+    Timer { interval: 1500; running: win.busy && !win.resting; onTriggered: win.resting = true }
+    // (the music's levels are read only while a meter can be seen)
+    Binding { target: Spectrum; property: "deskSees"; value: ride.on }
+
     QtObject {
         id: ride
         property real t: 0
         property real bumpAt: -100          // when the car last met a joint
-        readonly property bool on: !win.ownPicture && !scene.hidden
+        readonly property bool on: !win.ownPicture && !scene.hidden && !win.resting
 
         // the sway: slow waves of different lengths, so it never falls
         // into a beat (screen pixels; degrees)
@@ -114,6 +125,8 @@ PanelWindow {
             x: scene.ox; y: scene.oy
             width: scene.iw * scene.k; height: scene.ih * scene.k
             source: Settings.art + "/wallpaper.jpg"
+            // (decoded at the size it is shown, not the picture's 4K)
+            sourceSize.width: Math.ceil(width * scene.scale)
             fillMode: Image.Stretch
             asynchronous: true
             smooth: true
@@ -125,6 +138,7 @@ PanelWindow {
         CassettePlay {
             anchors.fill: parent
             which: "home"
+            still: !ride.on
             ox: scene.ox; oy: scene.oy; k: scene.k
             reels: [[2404, 1517.5], [2501.5, 1523]]
             reelSize: 50
@@ -185,7 +199,7 @@ PanelWindow {
                         duration: Math.max(1, Settings.windowSeconds) * 1000
                         loops: Animation.Infinite
                         running: !win.ownPicture && view.ready
-                        paused: running && (Settings.windowSeconds <= 0 || scene.hidden)
+                        paused: running && (Settings.windowSeconds <= 0 || !ride.on)
                     }
                 }
             }
