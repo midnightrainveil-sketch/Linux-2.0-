@@ -386,7 +386,7 @@ def lay_classic():
     SESSION, then the HARDWARE (its processor and graphics) and RESOURCES
     across; the hardware left out when the terminal is short"""
     if not (COLS >= 72 and HMAX >= 19): return None
-    W = min(COLS - 4, 96)
+    W = COLS - 4                         # (across the whole terminal: the boxes and bars stretch, the picture does not)
     head = header(W)
     pr = 10 if HMAX >= 24 else 9
     pw, pic = picture(pr)
@@ -492,15 +492,6 @@ for lay in (lay_classic, lay_wide, lay_panel, lay_compact, lay_column, lay_strip
     PRE.clear()
     lines = lay()
     if lines is not None: break
-
-# in a terminal wider than any card (a fullscreen one), the card in the
-# middle: every line moved over alike (the picture is placed where its
-# line's cursor is, so it moves with them). Narrower ones, the desk's
-# included, keep it at the left.
-cw = max((vis(l) for l in lines), default=0) - 2          # (its own width, without the two-space margin)
-shift = (COLS - cw) // 2 - 2 if COLS >= 110 else 0
-if shift > 0:
-    lines = [' ' * shift + l if l else l for l in lines]
 
 body = [''] + lines + ['']
 if REDRAW:

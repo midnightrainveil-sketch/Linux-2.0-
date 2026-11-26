@@ -107,6 +107,12 @@ Gadgets in steel, cream and sage with e-ink screens.
   keys and the meters too). The rest are placeholders (their mock-up)
   until made.
 
+- **Starting and shutting down** show the theme's own page
+  (`system/plymouth`, drawn by `tools/make_splash.py`; put in place by the
+  core's `ultra-boot quiet`): the night, the taskbar's /// MAGNETIC 88 with
+  a chrome line ruled under it, a light sweeping along a row of amber LEDs,
+  and STARTING UP, SHUTTING DOWN, RESTARTING or INSTALLING UPDATES in the
+  control deck's amber lettering (and PASSPHRASE for an encrypted disk).
 - **Volume and brightness** show as they change (`modules/Osd.qml`): an LED
   ladder behind smoked glass in the windows' own chrome rim, sliding in from
   an edge for a moment. The volume in amber at the right edge, the

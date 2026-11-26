@@ -16,19 +16,23 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 px = 1.0 / iResolution.xy;
     vec4 c = texture(iChannel0, uv);
 
-    // the ink spreads: a little of the darkest neighbour
-    vec3 n = min(min(texture(iChannel0, uv + vec2(px.x, 0.0)).rgb,
-                     texture(iChannel0, uv - vec2(px.x, 0.0)).rgb),
-                 min(texture(iChannel0, uv + vec2(0.0, px.y)).rgb,
-                     texture(iChannel0, uv - vec2(0.0, px.y)).rgb));
+    // the ink spreads: a little of the darkest neighbour (neighbours kept
+    // inside the screen: past its edge the texture reads black, which drew
+    // a dark line along the edges)
+    vec2 lo = 0.5 * px, hi = 1.0 - 0.5 * px;
+    vec3 n = min(min(texture(iChannel0, clamp(uv + vec2(px.x, 0.0), lo, hi)).rgb,
+                     texture(iChannel0, clamp(uv - vec2(px.x, 0.0), lo, hi)).rgb),
+                 min(texture(iChannel0, clamp(uv + vec2(0.0, px.y), lo, hi)).rgb,
+                     texture(iChannel0, clamp(uv - vec2(0.0, px.y), lo, hi)).rgb));
     vec3 col = mix(c.rgb, min(c.rgb, n), 0.32);
 
     // the glass: lighter at the top left, darker toward the foot and right
     // (uv.y is 1 at the top)
     float shade = 1.0 + 0.030 * (uv.y - 0.5) - 0.015 * (uv.x - 0.5);
-    // the rim's shadow along the top
+    // the rim's shadow along the top: faint and soft (stronger, at the desk
+    // terminal's small size it read as a dark bar)
     float fromTop = iResolution.y - fragCoord.y;
-    shade *= 1.0 - 0.09 * exp(-fromTop / 16.0);
+    shade *= 1.0 - 0.035 * exp(-fromTop / 24.0);
     // the grain: on the glass more than on the ink
     float paper = dot(col, vec3(0.333));
     float g = (grain(floor(fragCoord)) - 0.5) * 0.035 * paper;

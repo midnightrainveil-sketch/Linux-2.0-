@@ -1,0 +1,140 @@
+# Magnetic 88: the page shown while the machine starts and stops (Plymouth).
+# The night the train runs through: the taskbar's wordmark, a chrome line
+# ruled under it, a row of amber LEDs (the volume indicator's) that a light
+# sweeps along while it works, and what is happening in the control deck's
+# amber lettering. The pictures come from tools/make_splash.py, drawn for an
+# 1800 px tall screen (the G14) and fitted to others.
+
+W = Window.GetWidth();
+H = Window.GetHeight();
+k = H / 1800;
+
+fun fit(img) {
+    if (k > 0.97 && k < 1.03) return img;
+    return img.Scale(Math.Int(img.GetWidth() * k + 0.5), Math.Int(img.GetHeight() * k + 0.5));
+}
+
+# ------------------------------------------------------------------ the night
+Window.SetBackgroundTopColor(0.051, 0.035, 0.027);
+Window.SetBackgroundBottomColor(0.090, 0.067, 0.051);
+
+head_img = fit(Image("heading.png"));
+head = Sprite(head_img);
+head_y = Math.Int(H * 0.42 - head_img.GetHeight() / 2);
+head.SetPosition(Math.Int((W - head_img.GetWidth()) / 2), head_y, 1);
+head.SetOpacity(0);
+
+rule_img = fit(Image("rule.png"));
+rule_w = rule_img.GetWidth();
+rule_h = rule_img.GetHeight();
+rule_x = Math.Int((W - rule_w) / 2);
+rule_y = Math.Int(head_y + head_img.GetHeight() + 34 * k);
+rule = Sprite();
+rule.SetPosition(rule_x, rule_y, 1);
+
+# ------------------------------------------------------------------ the LEDs
+n = 16;
+on_img = fit(Image("led-on.png"));
+off_img = fit(Image("led-off.png"));
+step = 44 * k;
+led_y = Math.Int(rule_y + rule_h + 40 * k);
+led_x0 = (W - (n - 1) * step) / 2;
+offs = [];
+ons = [];
+for (i = 0; i < n; i++) {
+    cx = led_x0 + i * step;
+    offs[i] = Sprite(off_img);
+    offs[i].SetPosition(Math.Int(cx - off_img.GetWidth() / 2), Math.Int(led_y - off_img.GetHeight() / 2), 1);
+    offs[i].SetOpacity(0);
+    ons[i] = Sprite(on_img);
+    ons[i].SetPosition(Math.Int(cx - on_img.GetWidth() / 2), Math.Int(led_y - on_img.GetHeight() / 2), 2);
+    ons[i].SetOpacity(0);
+}
+
+# what is happening
+mode = Plymouth.GetMode();
+which = "boot";
+if (mode == "shutdown") which = "shutdown";
+if (mode == "reboot") which = "reboot";
+if (mode == "updates" || mode == "system-upgrade" || mode == "firmware-upgrade") which = "updates";
+line_img = fit(Image("line-" + which + ".png"));
+line = Sprite(line_img);
+line_y = Math.Int(led_y + 40 * k);
+line.SetPosition(Math.Int((W - line_img.GetWidth()) / 2), line_y, 1);
+line.SetOpacity(0);
+
+# ------------------------------------------------------------------ the passphrase (an encrypted disk)
+prompt_img = fit(Image("prompt.png"));
+prompt = Sprite(prompt_img);
+prompt.SetPosition(Math.Int((W - prompt_img.GetWidth()) / 2), line_y, 3);
+prompt.SetOpacity(0);
+bullet_img = fit(Image("bullet.png"));
+bullets = [];
+asking = 0;
+
+fun show_bullets(count) {
+    gap = bullet_img.GetWidth() * 0.6;
+    total = count * gap;
+    x0 = (W - total) / 2;
+    for (i = 0; i < count || bullets[i]; i++) {
+        if (!bullets[i]) global.bullets[i] = Sprite(bullet_img);
+        global.bullets[i].SetPosition(Math.Int(x0 + i * gap), Math.Int(line_y + prompt_img.GetHeight() + 6 * k), 3);
+        if (i < count) global.bullets[i].SetOpacity(1); else global.bullets[i].SetOpacity(0);
+    }
+}
+
+fun on_password(prompt_text, count) {
+    global.asking = 1;
+    prompt.SetOpacity(1);
+    line.SetOpacity(0);
+    show_bullets(count);
+}
+
+fun on_normal() {
+    global.asking = 0;
+    prompt.SetOpacity(0);
+    show_bullets(0);
+}
+
+Plymouth.SetDisplayPasswordFunction(on_password);
+Plymouth.SetDisplayNormalFunction(on_normal);
+
+# ------------------------------------------------------------------ coming on
+t = 0;
+drawn = -1;
+
+fun ease(x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return x * x * (3 - 2 * x);
+}
+
+fun refresh() {
+    global.t = t + 1 / 50;
+    head.SetOpacity(ease(t / 0.8));
+    # the chrome line, ruled from its middle outwards, once
+    p = ease((t - 0.4) / 1.0);
+    w = Math.Int(rule_w * p);
+    if (w != drawn && w > 0) {
+        rule.SetImage(rule_img.Scale(w, rule_h));
+        rule.SetX(Math.Int(rule_x + (rule_w - w) / 2));
+        global.drawn = w;
+    }
+    # the LEDs come on, and a light sweeps along them, there and back
+    a = ease((t - 1.0) / 0.5);
+    s = (t - 1.0) * 0.55;
+    s = s - Math.Int(s);
+    if (s < 0.5) pos = s * 2 * (n - 1); else pos = (1 - s) * 2 * (n - 1);
+    for (i = 0; i < n; i++) {
+        offs[i].SetOpacity(a);
+        d = Math.Abs(i - pos) / 1.9;
+        if (d >= 1) v = 0; else v = (1 - d) * (1 - d);
+        ons[i].SetOpacity(a * v);
+    }
+    # the word on what is happening, breathing while it works
+    if (!asking) {
+        b = ease((t - 1.3) / 0.6);
+        line.SetOpacity(b * (0.8 + 0.2 * Math.Cos((t - 1.9) * 2.4)));
+    }
+}
+Plymouth.SetRefreshFunction(refresh);
