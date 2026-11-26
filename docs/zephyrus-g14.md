@@ -105,6 +105,28 @@ To run one program on the dGPU in Hybrid mode, use
 `prime-run <program>` (from `nvidia-prime`), or in Steam set the launch
 option `prime-run %command%`.
 
+## HDR
+
+The G14's OLED is an HDR panel, and Hyprland can drive it in HDR. It is off
+by default, because Hyprland still calls its HDR experimental:
+
+```bash
+ultra-hdr on        # 10-bit colour, HDR's gamut and PQ curve
+ultra-hdr off       # plain SDR again (and your colour profile)
+ultra-hdr status    # the choice, and the panel's pixel format now
+```
+
+It takes effect at once and holds after a reboot. Everything that is not
+HDR (the desktop, most apps) is mapped into it; if that looks too dim or
+too pale, set `"hdrSdrBrightness"` (about 1.0 to 1.5) and
+`"hdrSdrSaturation"` in `~/.config/ultra/settings.json`. A colour profile
+(`ultra-icc`) is set aside while HDR is on. What shows real HDR: mpv
+(`vo=gpu-next`), games through Proton with `PROTON_ENABLE_WAYLAND=1
+PROTON_ENABLE_HDR=1` (or gamescope with `--hdr-enabled`), and browsers as
+far as their own HDR support goes. Known rough edges in Hyprland: on some
+laptops the brightness keys stop changing the panel while HDR is on, and
+some setups flicker; `ultra-hdr off` puts it back as it was.
+
 ## 4. Stable GPU names for Hyprland
 
 `./setup.sh` writes a udev rule that creates `/dev/dri/amd-igpu` and

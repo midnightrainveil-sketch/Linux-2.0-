@@ -107,6 +107,7 @@ ultra-idle <minutes>    lock after that long away (never, status)
 ultra-gpu               graphics mode (set hybrid | integrated, toggle); every boot starts in Integrated (default hybrid | integrated)
 ultra-profile           power profile (next, quiet, balanced, performance)
 ultra-refresh           panel rate (60, 120, auto, toggle)
+ultra-hdr               HDR on the panel (on, off, toggle, status)
 ultra-brightness        get, set <percent>, up, down
 ultra-snapshot          restore points (on, now, list, restore, off)
 ultra-boot              boot splash (quiet / loud), power button, panel

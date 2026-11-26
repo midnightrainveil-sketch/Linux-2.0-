@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# ultra-hdr: HDR on the laptop's panel (the G14's OLED is an HDR panel).
+#
+#   ultra-hdr on        10-bit colour, HDR's wide gamut and PQ curve: HDR
+#                         video and games show as HDR; everything else (SDR)
+#                         is mapped into it
+#   ultra-hdr off       back to plain SDR (and your colour profile, if any)
+#   ultra-hdr toggle    the other
+#   ultra-hdr status    the choice, and what the panel runs now
+#
+# The choice is kept in ~/.local/state/ultra/hdr, which hypr/ultra/machine.lua
+# reads, so it holds after a reboot; it takes effect at once. Hyprland still
+# calls its HDR experimental: if something looks wrong (SDR too dim or too
+# pale, flicker), "hdrSdrBrightness" (about 1.0-1.5) and "hdrSdrSaturation"
+# in ~/.config/ultra/settings.json tune how SDR looks inside it, or turn it
+# off again. A colour profile (ultra-icc) is set aside while HDR is on.
+#
+# What uses it: mpv (vo=gpu-next), games through Proton with
+# PROTON_ENABLE_WAYLAND=1 PROTON_ENABLE_HDR=1 (or gamescope --hdr-enabled),
+# and browsers as their HDR support allows.
+set -euo pipefail
+state="${XDG_STATE_HOME:-$HOME/.local/state}/ultra"
+mkdir -p "$state"
+now() { [[ $(tr -d '[:space:]' 2>/dev/null <"$state/hdr") == on ]] && echo on || echo off; }
+
+apply() {
+    # the panel again, as machine.lua lays it (ultra_panel); else the whole config
+    hyprctl eval 'ultra_panel()' >/dev/null 2>&1 || hyprctl reload >/dev/null 2>&1 || true
+}
+
+panel() {   # what the laptop's panel runs: its pixel format (10-bit: ...2101010)
+    hyprctl monitors -j 2>/dev/null | jq -r '[.[] | select(.name | startswith("eDP"))][0] | "\(.name): \(.currentFormat // "?")"' 2>/dev/null || echo "no panel found"
+}
+
+case ${1:-status} in
+    on|off)
+        echo "$1" >"$state/hdr"
+        apply
+        notify-send --app-name "Display" "HDR ${1^^}" "$( [[ $1 == on ]] && echo 'The panel in HDR and 10-bit colour.' || echo 'The panel back in SDR.')" >/dev/null 2>&1 || true
+        echo "HDR $1"
+        ;;
+    toggle) [[ $(now) == on ]] && exec "$0" off || exec "$0" on ;;
+    status)
+        echo "HDR:   $(now)"
+        echo "panel: $(panel)"
+        ;;
+    *) echo "usage: ultra-hdr on|off|toggle|status" >&2; exit 2 ;;
+esac

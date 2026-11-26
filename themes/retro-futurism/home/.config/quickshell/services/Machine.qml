@@ -56,13 +56,20 @@ Singleton {
 
     // ---- colour profile
     property string colour: "none"
-    readonly property string colourName: colour === "none" || colour === ""
-        ? "NONE" : colour.split("/").pop().replace(/\.(icc|icm)$/i, "")
-    function readColour(): void { iccReader.running = true; }
+    // (HDR, when on, takes the panel's colour over: ultra-hdr)
+    property bool hdr: false
+    readonly property string colourName: hdr ? "HDR"
+        : colour === "none" || colour === "" ? "NONE" : colour.split("/").pop().replace(/\.(icc|icm)$/i, "")
+    function readColour(): void { iccReader.running = true; hdrReader.running = true; }
     Process {
         id: iccReader
         command: ["ultra-icc", "current"]
         stdout: StdioCollector { onStreamFinished: root.colour = text.trim() || "none" }
+    }
+    Process {
+        id: hdrReader
+        command: ["sh", "-c", "cat \"${XDG_STATE_HOME:-$HOME/.local/state}/ultra/hdr\" 2>/dev/null"]
+        stdout: StdioCollector { onStreamFinished: root.hdr = text.trim() === "on" }
     }
     Timer { interval: 60000; running: true; repeat: true; onTriggered: root.readColour() }
 

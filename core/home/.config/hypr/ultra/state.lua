@@ -52,6 +52,12 @@ function M.refresh()
     return 120
 end
 
+-- HDR on the laptop's panel: off unless chosen (ultra-hdr on)
+function M.hdr()
+    local s = read(M.state_dir .. "/hdr")
+    return s ~= nil and s:match("^%s*on") ~= nil
+end
+
 -- settings.json files, read with patterns (no JSON library needed)
 function M.settings(path)
     local text = read(path) or ""
@@ -74,5 +80,6 @@ end
 local own = M.settings(M.config_dir .. "/ultra/settings.json")
 M.setting_bool = own.bool
 M.setting_string = own.string
+M.setting_number = own.number
 
 return M

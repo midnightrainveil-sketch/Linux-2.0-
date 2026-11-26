@@ -31,12 +31,28 @@ local function with_icc(rule)
     return rule
 end
 
+-- HDR (ultra-hdr on): the panel in 10-bit colour with HDR's wide gamut
+-- and PQ curve, for HDR video and games; everything else (SDR) mapped into
+-- it, as bright and as saturated as "hdrSdrBrightness" / "hdrSdrSaturation"
+-- in ~/.config/ultra/settings.json say (left to Hyprland unless set). A
+-- colour profile cannot be used with it: HDR takes the panel's colour over
+-- while it is on, and the profile comes back when it is off.
+local function with_hdr(rule)
+    if not state.hdr() then return with_icc(rule) end
+    rule.bitdepth = 10
+    rule.cm = "hdr"
+    local b = state.setting_number("hdrSdrBrightness", nil)
+    local s = state.setting_number("hdrSdrSaturation", nil)
+    if b ~= nil then rule.sdrbrightness = b end
+    if s ~= nil then rule.sdrsaturation = s end
+    return rule
+end
 -- 120 Hz, or 60 to save battery (ultra-refresh, the "Hz" in the bar).
--- A global, so ultra-refresh can set the panel again on its own
--- (hyprctl eval 'ultra_panel()'), without reading the whole config again.
+-- A global, so ultra-refresh and ultra-hdr can set the panel again on their
+-- own (hyprctl eval 'ultra_panel()'), without reading the whole config again.
 function ultra_panel()
     for _, name in ipairs({ "eDP-1", "eDP-2" }) do
-        hl.monitor(with_icc({ output = name, mode = "2880x1800@" .. state.refresh(), position = "0x0", scale = 1.5 }))
+        hl.monitor(with_hdr({ output = name, mode = "2880x1800@" .. state.refresh(), position = "0x0", scale = 1.5 }))
     end
 end
 ultra_panel()
