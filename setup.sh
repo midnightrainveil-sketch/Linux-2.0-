@@ -239,7 +239,12 @@ fi
 # ask for sudo: a quick update runs them only when the machine's files
 # (these steps, its commands, its packages) changed since they last ran.
 machine_stamp="$state/ultra/setup-machine"
-machine_now=$(cat "$here/setup.sh" "$here"/core/packages/*.txt "$here"/core/home/.local/bin/* 2>/dev/null | sha1sum | cut -c1-16)
+# (its own lines of this file and the commands they run, not every command:
+# a change to, say, ultra-ros does not ask for them again)
+machine_now=$( { awk '/^# -+ the machine.s own steps/{on=1} on; /^fi   # \(the machine.s own steps\)/{on=0}' "$here/setup.sh"
+                 cat "$here"/core/packages/*.txt
+                 for c in boot cover gpu lan memory mic rog snapshot tune; do cat "$here/core/home/.local/bin/ultra-$c"; done
+               } 2>/dev/null | sha1sum | cut -c1-16)
 machine_steps=1
 if (( quick )) && [[ $(cat "$machine_stamp" 2>/dev/null) == "$machine_now" ]]; then
     machine_steps=0

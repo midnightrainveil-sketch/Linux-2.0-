@@ -8,10 +8,13 @@
 #   ultra-update --full   everything, with a full system upgrade (pacman -Syu)
 #   ultra-update --force  install again even if it is the latest
 #
-# Downloads it from GitHub into a temporary folder and runs its setup.sh,
-# which copies it over ~/ultra (the machine's part and every theme it
-# ships; themes of your own are left alone), installs anything new and
-# rebuilds the plugins if they changed.
+# Fetches it from GitHub and runs its setup.sh, which copies it over ~/ultra
+# (the machine's part and every theme it ships; themes of your own are left
+# alone), installs anything new and rebuilds the plugins if they changed.
+# The download is kept (~/.cache/ultra/source, a shallow git copy), so each
+# update fetches only what changed since the last, not the whole desktop
+# (its pictures are most of its 140 MB); without git, or if that fails, the
+# whole of it is downloaded as before.
 # ULTRA_REPO / ULTRA_BRANCH pick another source.
 set -euo pipefail
 repo=${ULTRA_REPO:-midnightrainveil-sketch/Linux-2.0-}
@@ -36,15 +39,38 @@ if (( !full && !force )) && [[ -n $latest && -f $installed && $(cat "$installed"
     exit 0
 fi
 
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-echo ":: downloading $repo ($branch${latest:+, ${latest:0:7}})"
-# (that very commit, so what is noted as installed is what was installed)
-curl -fL "https://github.com/$repo/archive/${latest:-refs/heads/$branch}.tar.gz" | tar xz -C "$tmp" --strip-components=1
+# ---- the source: what changed only, into the kept copy
+src="${XDG_CACHE_HOME:-$HOME/.cache}/ultra/source"
+url="https://github.com/$repo.git"
+fetched() {
+    command -v git >/dev/null || return 1
+    if [[ -d $src/.git && $(git -C "$src" remote get-url origin 2>/dev/null) == "$url" ]]; then
+        echo ":: fetching what changed ($branch${latest:+, ${latest:0:7}})"
+        git -C "$src" fetch --depth 1 --quiet origin "$branch" || return 1
+        git -C "$src" checkout --quiet --force FETCH_HEAD || return 1
+        git -C "$src" clean -fdxq
+    else
+        echo ":: downloading $repo ($branch), once: later updates fetch only what changed"
+        rm -rf "${src:?}"
+        mkdir -p "${src%/*}"
+        git clone --quiet --depth 1 --single-branch --branch "$branch" "$url" "$src" || return 1
+    fi
+    # (what was fetched: noted as installed below)
+    latest=$(git -C "$src" rev-parse HEAD)
+}
+if ! fetched; then
+    # without git, or it failed: the whole of it, as an archive
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    echo ":: downloading $repo ($branch${latest:+, ${latest:0:7}})"
+    # (that very commit, so what is noted as installed is what was installed)
+    curl -fL "https://github.com/$repo/archive/${latest:-refs/heads/$branch}.tar.gz" | tar xz -C "$tmp" --strip-components=1
+    src=$tmp
+fi
 if (( full )); then
-    "$tmp/setup.sh" ${pass[@]+"${pass[@]}"}
+    "$src/setup.sh" ${pass[@]+"${pass[@]}"}
 else
-    "$tmp/setup.sh" --quick ${pass[@]+"${pass[@]}"}
+    "$src/setup.sh" --quick ${pass[@]+"${pass[@]}"}
 fi
 [[ -n $latest ]] && echo "$branch $latest" >"$installed"
 exit 0
