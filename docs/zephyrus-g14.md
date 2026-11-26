@@ -83,9 +83,20 @@ GPU page has nothing to switch, so start the regular `linux` kernel.
 
 | Mode | When |
 | --- | --- |
-| **Hybrid** (recommended) | everyday use; the iGPU drives the screen, the dGPU wakes for games and CUDA and sleeps (no power) otherwise |
-| Integrated | longest battery; the dGPU is switched off |
+| **Integrated** (every boot) | longest battery; the dGPU is switched off |
+| Hybrid | when you choose it; the iGPU drives the screen, the dGPU wakes for games and CUDA and sleeps (no power) otherwise |
 | Ultimate (MUX dGPU) | games only; the dGPU drives the panel directly (needs a reboot) |
+
+Every boot starts in **Integrated**. The firmware wakes the laptop in Hybrid
+on most boots, so a root service, `ultra-gpu-boot` (installed by `setup.sh`),
+switches it before the login screen. It unloads the NVIDIA driver, takes the
+dGPU off the bus, and sets `dgpu_disable` through asusd. If anything holds the
+dGPU, or the driver will not unload, it leaves Hybrid alone. Hybrid is then
+only what you choose (ROG Control's GPU page, `asusctl armoury set
+dgpu_disable 0`, the control deck) and lasts until the next boot. To start
+every boot in Hybrid instead: `ultra-gpu default hybrid`
+(`ultra-gpu default integrated` to go back). What it did at the last boot:
+`journalctl -b -u ultra-gpu-boot`.
 
 A mode change asks you to log out. In MUX dGPU mode the internal panel is
 often called `eDP-2`. `machine.lua` covers both names.
@@ -126,10 +137,10 @@ height, which the record column uses as breathing room.
   (`ultra-rog power`, run by `setup.sh`; asusd does the switching).
   `ultra-rog calm` stops the switching instead. Both stop ROG Control's
   notifications and its background copy.
-- Graphics: Hybrid. The screen runs on the iGPU (the MUX stays there) and the
-  dGPU wakes for whatever asks for it (`prime-run`, games), then powers off
-  again. On battery it is asleep, so Integrated mode, which needs a log-out
-  for every switch, is not used automatically. `ultra-rog gpu` installs the
+- Graphics: Integrated at every boot (`ultra-gpu-boot`, see above); Hybrid
+  when you switch to it, until the next boot. In Hybrid the screen runs on
+  the iGPU (the MUX stays there) and the dGPU wakes for whatever asks for it
+  (`prime-run`, games), then powers off again. `ultra-rog gpu` installs the
   driver with headers for every kernel you have (linux-lts needs
   linux-lts-headers), the dGPU power settings and Hybrid mode; `setup.sh`
   runs it when the driver is not loaded. `ultra-rog status` shows the

@@ -364,6 +364,32 @@ if [[ $model == *Zephyrus*G14* || $model == *GA403* ]]; then
         say "Zephyrus G14: GPU switching through asusd (supergfxctl retired)"
         "$bin/ultra-rog" switch || warn "could not hand GPU switching to asusd; run ultra-rog switch"
     fi
+    # every boot starts in Integrated (the firmware mostly wakes it in
+    # Hybrid): a root service switches it before the login screen; Hybrid
+    # only when chosen (ROG Control, asusctl), until the next boot.
+    # (its own copy in /usr/local/bin: root runs nothing from your home)
+    gpu_unit='[Unit]
+Description=ultra: the graphics mode every boot starts in (ultra-gpu default)
+After=asusd.service systemd-modules-load.service
+Before=display-manager.service greetd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ultra-gpu boot
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target'
+    if ! cmp -s "$bin/ultra-gpu" /usr/local/bin/ultra-gpu \
+        || [[ $(cat /etc/systemd/system/ultra-gpu-boot.service 2>/dev/null) != "$gpu_unit" ]] \
+        || ! systemctl is-enabled --quiet ultra-gpu-boot.service 2>/dev/null; then
+        say "Zephyrus G14: every boot starts in Integrated graphics (ultra-gpu default)"
+        sudo install -Dm755 "$bin/ultra-gpu" /usr/local/bin/ultra-gpu \
+        && printf '%s\n' "$gpu_unit" | sudo install -Dm644 /dev/stdin /etc/systemd/system/ultra-gpu-boot.service \
+        && { [[ -f /etc/ultra/gpu-default ]] || echo integrated | sudo install -Dm644 /dev/stdin /etc/ultra/gpu-default; } \
+        && sudo systemctl daemon-reload && sudo systemctl enable ultra-gpu-boot.service \
+        || warn "the boot-time graphics mode was not set up; see docs/zephyrus-g14.md"
+    fi
     # Quiet on battery, Balanced plugged in; no ROG Control notifications
     "$bin/ultra-rog" power || warn "could not set the power profiles; run ultra-rog power"
     # waking without the black text screen: the NVIDIA driver suspends itself when it can

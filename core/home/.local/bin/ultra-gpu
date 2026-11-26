@@ -5,6 +5,17 @@
 #                          (no switches on this kernel or machine)
 #   ultra-gpu set hybrid|integrated
 #   ultra-gpu toggle     hybrid <-> integrated
+#   ultra-gpu default [integrated|hybrid]
+#                        the mode every boot starts in (integrated unless
+#                          changed); without an argument, the one set
+#   ultra-gpu boot       (root, at boot: the ultra-gpu-boot service, before
+#                          the login screen) puts the default mode in place
+#
+# The laptop wakes in Hybrid from most boots (the firmware's choice, or the
+# NVIDIA driver taking the dGPU first), so a root service switches it to the
+# default, Integrated, before anyone logs in. Hybrid is then only what you
+# choose (ROG Control's GPU page, asusctl, the control deck), until the next
+# boot. What it did: journalctl -b -u ultra-gpu-boot
 #
 # Reading needs nothing: the firmware's switches are in sysfs (asus-armoury,
 # Linux 6.19+, else the older asus-nb-wmi files). Switching goes through
@@ -76,9 +87,94 @@ set_mode() {
     exit 1
 }
 
+# ---------------------------------------------------------------- at boot
+default_file=/etc/ultra/gpu-default
+default_mode() { local d; d=$(cat "$default_file" 2>/dev/null || true); [[ $d == hybrid ]] && echo hybrid || echo integrated; }
+
+# the dGPU's PCI functions (the GPU, its sound), or nothing (switched off)
+dgpu_funcs() {
+    local d gpu="" slot
+    for d in /sys/bus/pci/devices/*; do
+        if [[ $(cat "$d/vendor" 2>/dev/null) == 0x10de && $(cat "$d/class" 2>/dev/null) == 0x03* ]]; then
+            gpu=${d##*/}; break
+        fi
+    done
+    [[ -n $gpu ]] || return 0
+    slot=${gpu%.*}
+    for d in /sys/bus/pci/devices/"$slot".*; do
+        if [[ $(cat "$d/vendor" 2>/dev/null) == 0x10de ]]; then echo "${d##*/}"; fi
+    done
+    return 0
+}
+
+set_switch() {   # set_switch 0|1: dgpu_disable, through asusd (so it knows) or the file itself
+    local v=$1 a=/sys/class/firmware-attributes/asus-armoury/attributes/dgpu_disable/current_value w=/sys/devices/platform/asus-nb-wmi/dgpu_disable
+    if command -v asusctl >/dev/null 2>&1 && systemctl is-active --quiet asusd.service; then
+        timeout 15 asusctl armoury set dgpu_disable "$v" >/dev/null 2>&1 || true
+        sleep 1
+        [[ $(attr dgpu_disable) == "$v" ]] && return 0
+    fi
+    if [[ -w $a ]]; then echo "$v" >"$a" 2>/dev/null || true
+    elif [[ -w $w ]]; then echo "$v" >"$w" 2>/dev/null || true
+    fi
+    sleep 1
+    [[ $(attr dgpu_disable) == "$v" ]]
+}
+
+to_integrated() {
+    local f users=""
+    # (nothing may hold it: before the login screen, nothing should)
+    for f in /dev/nvidia*; do
+        [[ -e $f ]] || continue
+        users+=$(fuser "$f" 2>/dev/null || true)
+    done
+    if [[ -n ${users// /} ]]; then
+        echo "ultra-gpu boot: the dGPU is in use (pids:$users); left in Hybrid"
+        return 1
+    fi
+    modprobe -r nvidia_drm nvidia_modeset nvidia_uvm nvidia 2>/dev/null || true
+    if lsmod | grep -q '^nvidia '; then
+        echo "ultra-gpu boot: the NVIDIA driver would not unload; left in Hybrid"
+        return 1
+    fi
+    for f in $(dgpu_funcs); do
+        echo 1 >"/sys/bus/pci/devices/$f/remove" 2>/dev/null || true
+    done
+    if set_switch 1; then
+        echo "ultra-gpu boot: Integrated (the dGPU switched off)"
+    else
+        echo "ultra-gpu boot: the switch did not move (dgpu_disable=$(attr dgpu_disable)); bringing the dGPU back"
+        echo 1 >/sys/bus/pci/rescan 2>/dev/null || true
+        return 1
+    fi
+}
+
+boot() {
+    [[ $EUID -eq 0 ]] || { echo "ultra-gpu boot: run as root (the ultra-gpu-boot service does)" >&2; exit 1; }
+    local want now
+    want=$(default_mode); now=$(mode)
+    echo "ultra-gpu boot: woke in ${now}, the default is ${want}"
+    [[ $want == integrated && $now == hybrid ]] || exit 0
+    to_integrated || exit 0
+    # (if something puts it back by itself, say what: then it is that one)
+    sleep 5
+    now=$(mode)
+    if [[ $now != integrated ]]; then
+        echo "ultra-gpu boot: something switched it back to ${now} within seconds (asusd? journalctl -b -u asusd); trying once more"
+        to_integrated || true
+    fi
+}
+
 case ${1:-get} in
     get) mode ;;
+    boot) boot ;;
+    default)
+        if [[ -z ${2:-} ]]; then default_mode
+        elif [[ $2 == integrated || $2 == hybrid ]]; then
+            sudo install -Dm644 /dev/stdin "$default_file" <<<"$2" && echo "every boot starts in: $2"
+        else echo "usage: ultra-gpu default [integrated|hybrid]" >&2; exit 2
+        fi ;;
     set) set_mode "${2:-}" ;;
     toggle) [[ $(mode) == integrated ]] && set_mode hybrid || set_mode integrated ;;
-    *) echo "usage: ultra-gpu [get|set hybrid|integrated|toggle]" >&2; exit 2 ;;
+    *) echo "usage: ultra-gpu [get|set hybrid|integrated|toggle|default [integrated|hybrid]|boot]" >&2; exit 2 ;;
 esac

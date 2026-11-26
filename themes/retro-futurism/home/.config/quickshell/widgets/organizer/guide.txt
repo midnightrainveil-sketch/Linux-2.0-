@@ -104,7 +104,7 @@ Power button        the power menu (hold to shut down)
 ultra-update            the latest version (--full also upgrades the system; --force reinstalls)
 ultra-theme             change or relink themes
 ultra-idle <minutes>    lock after that long away (never, status)
-ultra-gpu               graphics mode (set hybrid | integrated, toggle)
+ultra-gpu               graphics mode (set hybrid | integrated, toggle); every boot starts in Integrated (default hybrid | integrated)
 ultra-profile           power profile (next, quiet, balanced, performance)
 ultra-refresh           panel rate (60, 120, auto, toggle)
 ultra-brightness        get, set <percent>, up, down
